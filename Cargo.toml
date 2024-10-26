@@ -1,0 +1,30 @@
+[package]
+name = "hyperscoop"
+version = "0.1.0"
+edition = "2021"
+publish = false  #
+authors = [ "superwindcloud<<1178933440@qq.com>"]
+description = "A Rust port of  scoop  windows pacakge  manager  ."
+license = "MIT OR Apache-2.0"
+repository = "https://gitee.com/superwindcloud/hyperscoop"
+readme = "README.md"
+homepage = "https://gitee.com/superwindcloud"
+rust-version = "1.80.0"
+
+[[bin]]
+name = "hyperscoop"
+path = "src/main.rs"
+[dependencies]
+
+
+
+
+[profile.release]
+debug = false
+lto = "fat"
+panic = "abort"
+opt-level = 3
+strip = "symbols"
+codegen-units = 1
+
+
