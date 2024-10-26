@@ -126,6 +126,7 @@
 
 # Options :
 
+###     install , uninstall , update ,search,info命令的app_name支持指定buckets查找 , 格式为 buckets/app_name
 ### _-v/--version 打印版本信息_
-
-### _-h/--help 打印帮助信息_
+ 
+### _-h/--help 打印帮助信息_  
