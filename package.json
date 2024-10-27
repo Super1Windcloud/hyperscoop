@@ -1,0 +1,9 @@
+{
+  "scripts": {
+    "release": "commit-and-tag-version"
+  },
+  "devDependencies": {
+    "commit-and-tag-version": "^12.5.0"
+  },
+  "version": "1.0.1"
+}
