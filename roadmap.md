@@ -93,9 +93,10 @@
 > - scoop shim list 列出所有快捷方式
 >     
 > - scoop shim info myapp 显示指定的快捷方式信息
->     
+>
 
-**status** 检查已安装APP是否是最新版本 🎇
+
+**status** 检查已安装APP是否是最新版本 🎇 , 子命令 🐼` scoop status app_name` 检查指定app
 
 **uninstall** 卸载指定APP 🎅 💩 ☃️ Usage: scoop uninstall <app> [options]
 

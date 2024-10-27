@@ -1,0 +1,8 @@
+﻿[toolchain]
+channel = "stable"
+targets = [
+    "x86_64-windows-gnu",
+    "x86_64-windows-msvc",
+    "i686-windows-gnu",
+    "i686-windows-msvc" , "x86_64-pc-windows-msvc"
+]
