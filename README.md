@@ -4,7 +4,7 @@
 
 --- 
 ##  CLI Features  
-> ![img_1.png](img/img_1.png) 
+> ![img_1.png](./img/img_1.png) 
 --- 
 ##  开发计划   
  -  [roadmap](./roadmap.md) 
