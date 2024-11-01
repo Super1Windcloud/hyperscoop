@@ -5,7 +5,7 @@
 ---
 ##  CLI Features  
 
-- ![img.png](./img/img.png) 
+- ![img.png](./img/微信图片_20241101140706.png) 
 ---   
 ##  开发计划   
  -  **[roadmap](./roadmap.md)** 
