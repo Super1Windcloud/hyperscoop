@@ -2,9 +2,9 @@
 
 
 #[derive(Args, Debug)]
-///🔫          管理scoop 所有buckets
+///🔫          管理scoop 所有bucket
+#[clap(author, version, about, long_about = None)]
+#[clap(override_usage = "子命令 _add|list|known|rm repo_name_")]
 pub struct BucketArgs  {
-  #[clap(short, long, help = "添加bucket")]
-  #[clap( help = "         管理scoop 所有buckets")]
   name: Option<String>,
 }

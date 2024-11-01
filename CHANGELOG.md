@@ -6,7 +6,7 @@
 
 ## 1.0.1 (2024-10-27)
 
-### [0.1.0]   ![img.png](img.png)    *2024/10/27 初始化hyperscoop和 manifest* 
+### [0.1.0]   ![img.png](img/img.png)    *2024/10/27 初始化hyperscoop和 manifest* 
 
 
 --- 

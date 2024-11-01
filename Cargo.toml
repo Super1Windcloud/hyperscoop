@@ -27,6 +27,7 @@ clap = { version = "4.5.20", features = ["derive" , "cargo" , "color"] }
 crossterm =  { workspace = true   }
 command_util_lib =  {  workspace = true  }
 clap-verbosity-flag =  {  workspace = true  }
+anyhow =  {  workspace = true  }
 
 [workspace.dependencies]
 serde =  { version = "1.0.213"}
@@ -36,6 +37,7 @@ crossterm = "0.28.1"
 trybuild = "1.0.101"
 command_util_lib =  { path = "crates/command"  }
 clap-verbosity-flag = "2.2.2"
+anyhow = "1.0.91"
 
 
 [[bin]]

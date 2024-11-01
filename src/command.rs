@@ -25,7 +25,6 @@ use crate::comand_args::which::WhichArgs;
 #[command(subcommand_negates_reqs = true)] // 禁止子命令的短选项冲突
 #[command(infer_subcommands = true , infer_long_args = true )] // 自动推断子命令和长选项
 #[command(arg_required_else_help = true  , next_line_help = true    )] //帮助信息换行
-#[command(color_auto = true  , color_help = true    )] // 自动检测终端颜色
 pub(crate) enum Commands {
 
   Bucket(BucketArgs) ,
