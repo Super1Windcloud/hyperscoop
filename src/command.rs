@@ -1,5 +1,6 @@
 ﻿use clap::Subcommand;
 pub(crate) use   crate::comand_args:: {bucket_args::BucketArgs, cache::CacheArgs} ;
+use crate::comand_args::bucket_args;
 use crate::comand_args::cat::CatArgs;
 use crate::comand_args::checkup::checkupArgs;
 use crate::comand_args::cleanup::CleanupArgs;
@@ -20,14 +21,22 @@ use crate::comand_args::uninstall::UninstallArgs;
 use crate::comand_args::update::UpdateArgs;
 use crate::comand_args::which::WhichArgs;
 
-#[derive(Subcommand ,Debug  )]
+#[derive( Debug   ,Subcommand  )]
 #[command(propagate_version = true)] // 自动传递版本信息
 #[command(subcommand_negates_reqs = true)] // 禁止子命令的短选项冲突
 #[command(infer_subcommands = true , infer_long_args = true )] // 自动推断子命令和长选项
-#[command(arg_required_else_help = true  , next_line_help = true    )] //帮助信息换行
+#[command(arg_required_else_help = true  , next_line_help = false   ,disable_help_subcommand = true     )] //帮助信息换行
 pub(crate) enum Commands {
-
   Bucket(BucketArgs) ,
+  // #[command_name = "bucket add "]
+  // Add(bucket_args::AddArgs),
+  // #[command_name = "bucket list "]
+  // List(bucket_args::ListArgs),
+  // #[command_name = "bucket known "]
+  // known(bucket_args::KnownArgs),
+  //
+  // #[command_name = "bucket rm "]
+  // Rm(bucket_args::RmArgs),
   Cat (CatArgs ),
   Cache(CacheArgs),
   Checkup(checkupArgs),

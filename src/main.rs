@@ -4,10 +4,10 @@ mod comand_args;
 use clap_verbosity_flag;
 use crossterm::style::{Color, PrintStyledContent, Stylize};
 use std::path::PathBuf;
-use clap::{Parser, Subcommand, command, Command};
+use clap::{Parser, Subcommand, command, Command, Args};
 mod command;
 use command::Commands;
-#[derive(Parser, Debug)]
+#[derive(Parser, Debug  )]
 #[command(name="hyperscoop" , version, about= None , long_about = None)]
 #[command(propagate_version = true)]  //  版本信息传递
 #[command(override_usage = "hyperscoop [COMMAND]  [OPTIONS] ")]
@@ -20,7 +20,8 @@ struct Cli {
   #[command(flatten)]
   verbose: clap_verbosity_flag::Verbosity,
 }
-
+#[allow(unused_variables)]
+#[allow(unused)]
 fn main() -> Result<(), anyhow::Error> {
   println!("{ }!   \n ", "次世代更快更强更精美的Windows包管理器".magenta().bold());
   let cli = Cli::parse();
@@ -60,7 +61,6 @@ fn main() -> Result<(), anyhow::Error> {
       }
     }
   }
-
   Ok(())
 }
 
