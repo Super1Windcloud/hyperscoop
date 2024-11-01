@@ -1,23 +1,38 @@
- use  std:: { env  , process } ;
+
+use std::{env, process};
+use log::{debug};
+mod comand_args ;
+use clap_verbosity_flag ;
+use crossterm::style::{Color, PrintStyledContent, Stylize};
+use std::path::PathBuf;
+use clap::{Parser, Subcommand    ,command  , Command      };
+mod command;
+use command::Commands;
+#[derive(Parser ,Debug )]
+#[command(name="hyperscoop" , version, about= None , long_about = None)]
+#[command(propagate_version = true  )]  //  版本信息传递
+#[command(override_usage  = "hyperscoop [COMMAND]  [OPTIONS] ")]
+#[command(author = "superwindcloud")]
+#[command(after_help = "For more information about a command, run: hyperscoop COMMAND -h/--help")]
+struct Cli {
+
+  #[command(subcommand)]
+  command: Option<Commands>,
+
+  #[command(flatten)]
+  verbose: clap_verbosity_flag::Verbosity,
+}
+
 fn main() {
-     let args : Vec<String> = env::args().collect();
-     println!("{:?}", args);
-    if   (args.len() < 2)  {
-         println!("Please provide a command to execute");
-    }
-      process::exit(0);
-    if   (args[1] == "linux" || args[1] == "Linux"  ) {
-         are_you_on_linux();
-    } else if  (args[1] == "windows" || args[1] == "Windows" ) {
-         println!("You are running windows!") ;
-    }
+  println!( "{ }!   \n " , "次世代更快更强更精美的Windows包管理器".magenta().bold()) ;
+  let cli = Cli::parse();
+
+  if  cli.command.is_none() {
+
+  }
+
+
+
 }
 
 
- #[cfg(target_os = "windows")]
- fn are_you_on_linux() {
-     println!("You are running linux!") ;
-     if cfg!(target_os = "windows") {
-         println!("You are running windows!") ;
-     }
- }

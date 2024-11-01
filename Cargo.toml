@@ -1,6 +1,6 @@
 [package]
 name = "hyperscoop"
-version = "0.1.0"
+version = "0.1.1"
 edition.workspace = true
 publish = { workspace = true}
 authors =  { workspace = true}
@@ -22,27 +22,35 @@ default = []  # 默认所有feature禁用
 # 只适用于当前包 ,可以直接使用这些依赖，而工作区的其他成员包无法自动继承这些依赖。
 # 当依赖被标记为 "可选 optional" 时，意味着它默认不会被编译
 serde =  { version = "1.0.213"}
-
+log =  { workspace = true  }
+clap = { version = "4.5.20", features = ["derive" , "cargo" , "color"] }
+crossterm =  { workspace = true   }
+command_util_lib =  {  workspace = true  }
+clap-verbosity-flag =  {  workspace = true  }
 
 [workspace.dependencies]
-command =  { path = "crates/command"  }
 serde =  { version = "1.0.213"}
-
-
+log = "0.4.22"
+clap = { version = "4.5.20", features = ["derive"] }
+crossterm = "0.28.1"
+trybuild = "1.0.101"
+command_util_lib =  { path = "crates/command"  }
+clap-verbosity-flag = "2.2.2"
 
 
 [[bin]]
 name = "hyperscoop"
 path = "src/main.rs"
 
+
 [workspace]  # 定义一个工作区
-members = [ "crates/*"]
+members = [ "crates/command"]
 resolver = "2"
 [workspace.package]
 edition = "2021"
 publish = false  #
 authors = [ "superwindcloud<<1178933440@qq.com>"]
-description = "A Rust port of  scoop  windows pacakge  manager  ."
+description = "一个更快更强更精美的Windows包管理器 "
 license = "MIT OR Apache-2.0"
 repository = "https://gitee.com/superwindcloud/hyperscoop"
 readme = "README.md"
@@ -62,6 +70,7 @@ unreachable_pub = "warn"
 [dev-dependencies] # 依赖项仅在开发和测试过程中使用，
 # 例如 `cargo test` 或 `cargo bench` , 'cargo build --tests` ,`cargo build --examples` |
 criterion = "0.5.1"
+trybuild = "1.0.101"
 
 [profile.release]
 debug = false

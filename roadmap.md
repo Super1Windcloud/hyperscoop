@@ -2,7 +2,7 @@
 
    **bucket** 管理scoop 所有buckets
 
-> 🔫 子命令 _add|list|known|rm repo_name_
+>  子命令 _add|list|known|rm repo_name_
 > 
 >  scoop bucket add <repo_name> [<repo_url>]    
 
@@ -10,7 +10,7 @@
 
 **cache** 显示或清理下载缓存
 
-> 🎨 子命令 [ show|rm [app(s)] * ]
+>  子命令 [ show|rm [app(s)] * ]
 > 
 > - scoop cache 等效scoop cache show
 >     
@@ -69,22 +69,23 @@
 >     
 >     > option :{
 >     > 
->     > -k, --no-cache 不使用下载安装包缓存 -s, --skip-hash-check 跳过哈希验证
->     > 
+>     > -k, --no-cache 不使用下载安装包缓存 
+    >  -s, --skip-hash-check 跳过哈希验证
+>     >    -u, --no-update-scoop         安装前不更新scoop 和buckets 
 >     > }
 >     
 
-**list** 列出已安装的所有app 🌈 🏳️‍🌈 `scoop list or scoop list app_name`
+**list** 列出已安装的所有app 🌈  `scoop list or scoop list app_name`
 
 **prefix** 打印指定APP的安装目录 🐇 `scoop prefix app_name`
 
-**reset** 切换指定的APP版本, 如果同app存在多版本
+**reset** 切换指定的APP版本, 如果同app存在多版本 
 
 >  :tada:  :coffee:  scoop reset terraform@0.11.1  指定已安装的版本 ,   scoop   reset terraform  #这将切换到最新版本 
 
 **search** 搜索可用的APP 🍊 🦉 `scoop search 显示所有可安装的包` , scoop search app_name
 
-**shim** 管理所有的shim快捷方式 🥞 🐼 🐧
+**shim** 管理所有的shim快捷方式 🥞 🐼 
 
 > - scoop shim add myapp 'D:\path\myapp.exe' 添加对该文件的自定义 快捷方式
 >     
@@ -119,11 +120,11 @@
 >     >     
 >     
 
-**which** 打印指定APP的可执行文件路径 🤡 🐸 `scoop which app_name`
+**Which** 打印指定APP的可执行文件路径 🤡 🐸 `scoop Which app_name`
 
-**merge** 移除不同buckets中冗余的manifest文件 🍻 👑 🎠 📲
+**Merge** 移除不同buckets中冗余的manifest文件 🍻 👑 🎠 📲
 
-> hyperscoop merge
+> hyperscoop Merge
 
 # Options :
 

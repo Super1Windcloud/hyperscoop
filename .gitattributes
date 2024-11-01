@@ -1,6 +1,4 @@
 ﻿.txt text eol=crlf
-. text eol=lf
-*.py text eol=lf
-
+* text=auto  eol=crlf
 
 

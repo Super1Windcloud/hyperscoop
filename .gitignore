@@ -12,8 +12,4 @@ hyperscoop/
 
 node_modules
 # ignore node_modules directory
-script/*
 
- # ignore all files in the script directory
-!script/hash.py
- # except for the hash.py file
