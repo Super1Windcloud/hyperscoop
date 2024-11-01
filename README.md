@@ -4,7 +4,7 @@
 
 ---
 ##  CLI Features  
-> ![3573d0da55fe4f99affb660207270f0.png](img%2F3573d0da55fe4f99affb660207270f0.png) 
+> ![3573d0da55fe4f99affb660207270f0.png](./img/3573d0da55fe4f99affb660207270f0.png) 
 ---
 ##  开发计划   
  -  [roadmap](./roadmap.md)  
