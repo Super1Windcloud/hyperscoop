@@ -4,7 +4,6 @@
 
 ---
 ##  CLI Features  
->   ![img.png](img/img.png) 
 
 - ![img.png](./img/img.png) 
 ---   
