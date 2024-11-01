@@ -1,4 +1,6 @@
 ﻿.txt text eol=crlf
-* text=auto  eol=crlf
+* text eol=crlf
+*.rs text eol=crlf
 
-
+*.sh text eol=crlf
+*.py text eol=crlf
