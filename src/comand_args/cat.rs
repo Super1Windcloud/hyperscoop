@@ -2,7 +2,9 @@
 
 
 #[derive(Args, Debug)]
-///🐼          显示特定 manifest清单文件内容
+#[command(arg_required_else_help = true, subcommand_negates_reqs = true)]
+#[ command(about ="🐼          显示App的manifest清单文件内容")]
+#[command(override_usage = "hyperscoop cat [app_name]" )]
 pub struct CatArgs  {
-  name: Option<String>,
+  app_name:  String
 }

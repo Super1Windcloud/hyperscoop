@@ -28,15 +28,7 @@ use crate::comand_args::which::WhichArgs;
 #[command(arg_required_else_help = true  , next_line_help = false   ,disable_help_subcommand = true     )] //帮助信息换行
 pub(crate) enum Commands {
   Bucket(BucketArgs) ,
-  // #[command_name = "bucket add "]
-  // Add(bucket_args::AddArgs),
-  // #[command_name = "bucket list "]
-  // List(bucket_args::ListArgs),
-  // #[command_name = "bucket known "]
-  // known(bucket_args::KnownArgs),
-  //
-  // #[command_name = "bucket rm "]
-  // Rm(bucket_args::RmArgs),
+
   Cat (CatArgs ),
   Cache(CacheArgs),
   Checkup(checkupArgs),

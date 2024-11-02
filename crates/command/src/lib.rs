@@ -1,5 +1,9 @@
-pub   mod  demo {}
+pub mod buckets;
+pub mod init_env;
+use anyhow;
+pub use init_env::HyperScoop;
 
-
-use   clap::Command;
-use serde ;
+pub fn init_hyperscoop() -> Result<HyperScoop, anyhow::Error> {
+    let hyperscoop = init_env::HyperScoop::new();
+    Ok(hyperscoop)
+}
