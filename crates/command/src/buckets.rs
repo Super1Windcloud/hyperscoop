@@ -5,10 +5,10 @@ use chrono::{DateTime, Utc};
 use crossterm::style::{Color, PrintStyledContent, Stylize};
 use regex::Regex;
 use serde_json;
-use std::fs::{create_dir_all, metadata, read_dir, remove_file, rename, File};
+use std::fs::{create_dir_all, metadata, read_dir, remove_dir, remove_file, rename, File};
 use std::io;
 use std::io::{BufReader, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::exit;
 use std::time::UNIX_EPOCH;
 use log::{error, info, warn};
@@ -21,6 +21,42 @@ pub struct Buckets {
   pub buckets_path: Vec<String>,
   pub buckets_name: Vec<String>,
 }
+
+impl Buckets {
+  //参数传递尽量以借用为主，避免拷贝大量数据
+  pub async fn rm_buckets(&self, name: &String) -> Result<(), anyhow::Error> {
+    let (bucket_paths, buckets_name) = self.get_bucket_self()?;
+    for bucket_name in buckets_name {
+      if (&bucket_name == name) {
+        for bucket_path in &bucket_paths {
+          if (bucket_path.ends_with(name)) {
+            let delete_path = Path::new(bucket_path);
+            self.delete_dir_recursively(&delete_path).expect("Failed to remove directory");
+            println!("{}", "删除成功".dark_red().bold().to_string());
+            return Ok(());
+          }
+        }
+      }
+    }
+    error!("");
+    Err(anyhow!("bucket not found").context("没有这个名字的bucket"))
+  }
+  fn delete_dir_recursively(&self, bucket_path: &Path) -> Result<(), anyhow::Error> {
+    println!("正在删除目录 : {:?}", bucket_path);
+    for entry in read_dir(bucket_path)? {
+      let path = entry?.path();
+
+      if path.is_dir() {
+        self.delete_dir_recursively(&path)?;
+      } else {
+        remove_file(&path)?;
+      }
+    }
+    remove_dir(bucket_path)?;
+    Ok(())
+  }
+}
+
 //option 代表可选参数 ,Result 代表Promise的reject 和 resolve
 impl Buckets {
   pub async fn add_buckets(
@@ -50,7 +86,7 @@ impl Buckets {
     println!("{} ", "正在下载...... ".dark_green().bold());
     let result = self.request_url(url, &bucket_path).await?;
     println!("{} ", result);
-    return Ok(format!("bucket添加成功 ,\tpath:{}", bucket_path).dark_cyan().bold().to_string());
+    return Ok(format!("bucket添加成功\t{}", bucket_path).dark_cyan().bold().to_string());
   }
   pub fn check_file_ishave_content(&self, bucket_path: &str) -> Result<(), anyhow::Error> {
     //检查目录是否包含文件
@@ -60,6 +96,7 @@ impl Buckets {
     Ok(())
   }
   async fn request_url(&self, url: &str, bucket_path: &str) -> Result<String, anyhow::Error> {
+    self.check_file_ishave_content(bucket_path)?;
     let mut url = url.to_string();
     let mut branch_flag = "-master".to_string();
     if (url.contains(".git")) {
@@ -93,19 +130,19 @@ impl Buckets {
     // 解压 ZIP 文件
     let file = File::open(&zip_path)?;
     let mut archive = ZipArchive::new(file)?;
-
+    let repo_name = archive.by_index(0)?.name().to_string()
+      .trim().replace("/", r"\");
     // 创建目标文件夹
     let dest = Path::new(bucket_path);
-    std::fs::create_dir_all(&dest)?;
+    create_dir_all(&dest)?;
 
     // 解压文件到目标文件夹
     for i in 0..archive.len() {
       let mut file = archive.by_index(i)?;
-      let outpath = dest.join(file.sanitized_name());
-
+      let outpath = dest.join(file.name());
       if file.name().ends_with('/') {
         // 如果是文件夹，创建目录
-        std::fs::create_dir_all(&outpath)?;
+        create_dir_all(&outpath)?;
       } else {
         // 如果是文件，写入文件
         let mut outfile = File::create(&outpath)?;
@@ -116,16 +153,28 @@ impl Buckets {
     remove_file(&zip_path)?;
     let last_url = url.split("/").last().unwrap().to_string();
     let current_dir = dest.join(last_url + &branch_flag);
-    println!("{:?} ", current_dir);
-    println!("{:?} ", dest);
-    // 遍历源目录中的所有项
+    // println!("{:?} ", current_dir);
+    // println!("{:?} ", dest);
+    //遍历源目录中的所有项
     for entry in read_dir(&current_dir)? {
-      let entry = entry.expect(format!("无法读取目录 {}", current_dir.clone().display()).as_str()).path();
-      let target_path = dest;
-      println!("{:?} ", entry);
-      println!("{:?} ", target_path);
-      rename(entry, target_path)?;
+      let error_message = format!("无法读取目录 {}", current_dir.clone().display());
+      let path = entry.expect(error_message.as_str()).path();
+      let entry: &Path = path.as_ref();
+      let target_path = entry.to_string_lossy()
+        .trim().replace(&repo_name, "");
+      //println!("{}", repo_name);   将/换成\
+
+      // println!(" entry {:?} ", entry.to_string_lossy());
+      //   打印出来的是\\ ,但是在原始字符串中是\, 所以在替换的时候只需把\替换成""即可
+      // println!("target {:?} ", target_path);
+      let target_path = Path::new(&target_path);
+      if (entry.is_dir()) {
+        rename(&entry, &target_path).expect("Failed to rename directory路径错误");
+      } else if (entry.is_file()) {
+        rename(&entry, &target_path).expect("Failed to rename directory路径错误");
+      }
     }
+    remove_dir(current_dir)?;
     Ok("下载成功!!! ".dark_green().bold().to_string())
   }
 }
