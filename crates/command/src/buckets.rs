@@ -1,15 +1,21 @@
-﻿use crate::init_hyperscoop;
+﻿use std::fmt::format;
+use crate::init_hyperscoop;
 use anyhow::anyhow;
 use chrono::{DateTime, Utc};
 use crossterm::style::{Color, PrintStyledContent, Stylize};
 use regex::Regex;
 use serde_json;
-use std::fs::{metadata, read_dir, File};
-use std::io::BufReader;
+use std::fs::{create_dir_all, metadata, read_dir, remove_file, rename, File};
+use std::io;
+use std::io::{BufReader, Write};
+use std::path::Path;
 use std::process::exit;
 use std::time::UNIX_EPOCH;
 use log::{error, info, warn};
 use reqwest::{get, Error};
+use zip::read::ZipArchive;
+
+
 #[derive(Debug, Clone)]
 pub struct Buckets {
   pub buckets_path: Vec<String>,
@@ -37,22 +43,93 @@ impl Buckets {
     println!("{}", result);
     Ok(())
   }
-  async fn download_bucket(&self, url: &str, bucket_name: &str, bucket_path: &str) -> Result<String, Error> {
+  async fn download_bucket(&self, url: &str, bucket_name: &str, bucket_path: &str) -> Result<String, anyhow::Error> {
     let bucket_path = bucket_path.to_string() + "\\" + bucket_name;
-    println!("{:?}  ,  {:?}", bucket_path, url);
-    println!("{:?}", bucket_name);
+    // println!("{:?}  ,  {:?}", bucket_path, url);
+    // println!("{:?}", bucket_name);
     println!("{} ", "正在下载...... ".dark_green().bold());
-    self.request_url(url, &bucket_path).await?;
+    let result = self.request_url(url, &bucket_path).await?;
+    println!("{} ", result);
     return Ok(format!("bucket添加成功 ,\tpath:{}", bucket_path).dark_cyan().bold().to_string());
   }
-  async fn request_url(url: &str, bucket_path: &str) -> Result<String, Error> {
-    let mut response = get(url).await?;
-    let mut file = File::create(bucket_path).expect("Failed to create bucket_path"); // 创建文件
-    let mut content = String::new(); // 定义字符串
-    response.read_to_string(&mut content);  // 读取响应内容
-    file.write_all(content.as_bytes()).expect("Failed to write content"); // 写入文件
+  pub fn check_file_ishave_content(&self, bucket_path: &str) -> Result<(), anyhow::Error> {
+    //检查目录是否包含文件
+    if !Path::new(bucket_path).read_dir()?.next().is_none() {
+      return Err(anyhow!("当前目录已经存在文件，请先清空目录或创建新目录: {}", bucket_path));
+    }
+    Ok(())
+  }
+  async fn request_url(&self, url: &str, bucket_path: &str) -> Result<String, anyhow::Error> {
+    let mut url = url.to_string();
+    let mut branch_flag = "-master".to_string();
+    if (url.contains(".git")) {
+      //  let 可以进行变量遮蔽重新赋值
+      url = url.replace(".git", "");
+    }
+    // 将 repo_url 转换为 ZIP 下载链接 ,下载github仓库的zip压缩包
+    let zip_url = format!("{}/archive/refs/heads/master.zip", url);
+    let backup_zip_url1 = format!("{}/archive/refs/heads/main.zip", url);
+    let backup_zip_url2 = format!("{}/archive/refs/heads/dev.zip", url);
+    let mut response = get(zip_url).await?;
+    if !response.status().is_success() {
+      response = get(backup_zip_url1).await?;
+      branch_flag = "-main".to_string();
+      if !response.status().is_success() {
+        response = get(backup_zip_url2).await?;
+        branch_flag = "-dev".to_string();
+      }
+    }
+    //url 是git仓库地址，bucket_path 是下载到本地的路径
+    // 创建一个文件用于存储 ZIP 数据
+    let zip_path = Path::new(bucket_path).join("repo.zip");
+    if !Path::new(bucket_path).exists() {
+      create_dir_all(&bucket_path).expect("Failed to create directory for bucket ");
+    }
+    let mut file = File::create(&zip_path)?;
+    // 将下载的数据写入文件
+    let content = response.bytes().await?;
+    file.write_all(&content)?;
+
+    // 解压 ZIP 文件
+    let file = File::open(&zip_path)?;
+    let mut archive = ZipArchive::new(file)?;
+
+    // 创建目标文件夹
+    let dest = Path::new(bucket_path);
+    std::fs::create_dir_all(&dest)?;
+
+    // 解压文件到目标文件夹
+    for i in 0..archive.len() {
+      let mut file = archive.by_index(i)?;
+      let outpath = dest.join(file.sanitized_name());
+
+      if file.name().ends_with('/') {
+        // 如果是文件夹，创建目录
+        std::fs::create_dir_all(&outpath)?;
+      } else {
+        // 如果是文件，写入文件
+        let mut outfile = File::create(&outpath)?;
+        io::copy(&mut file, &mut outfile)?;
+      }
+    }
+    // 删除 ZIP 文件
+    remove_file(&zip_path)?;
+    let last_url = url.split("/").last().unwrap().to_string();
+    let current_dir = dest.join(last_url + &branch_flag);
+    println!("{:?} ", current_dir);
+    println!("{:?} ", dest);
+    // 遍历源目录中的所有项
+    for entry in read_dir(&current_dir)? {
+      let entry = entry.expect(format!("无法读取目录 {}", current_dir.clone().display()).as_str()).path();
+      let target_path = dest;
+      println!("{:?} ", entry);
+      println!("{:?} ", target_path);
+      rename(entry, target_path)?;
+    }
+    Ok("下载成功!!! ".dark_green().bold().to_string())
   }
 }
+
 
 impl Buckets {
   pub fn display_all_buckets(&self) -> Result<(), anyhow::Error> {

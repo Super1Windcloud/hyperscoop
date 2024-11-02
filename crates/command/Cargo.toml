@@ -23,3 +23,18 @@ regex = "1.11.1"
 crossterm = { workspace = true }
 chrono = "0.4.38"
 reqwest = "0.12.9"
+zip = "2.2.0"
+
+
+[lib]
+name = "command_util_lib"
+path = "src/lib.rs"
+
+[[bin]]
+name = "main"
+path = "src/main.rs"
+
+[[bin]]
+name = "test"
+path = "src/test.rs"
+
