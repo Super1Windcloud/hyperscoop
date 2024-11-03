@@ -1,15 +1,16 @@
 use log::debug;
-use std::{env, process};
-mod comand_args;
-use clap::{command, Args, Command, Parser, Subcommand};
-use clap_verbosity_flag;
-use crossterm::style::{Color, PrintStyledContent, Stylize};
-use std::path::PathBuf;
-mod command;
-use crate::hyperscoop_middle::execute_bucket_command;
-use command::Commands;
+#[macro_use]
+extern crate anyhow;
 
+mod comand_args;
+use clap::{command, Parser};
+use clap_verbosity_flag;
+use crossterm::style::{Stylize};
+mod command;
 mod hyperscoop_middle;
+use hyperscoop_middle::execute_bucket_command;
+use command::Commands;
+use hyperscoop_middle::execute_merge_command;
 mod logger_err;
 use logger_err::init_logger;
 #[derive(Parser, Debug)]
@@ -28,6 +29,7 @@ struct Cli {
 #[tokio::main]  // 异步运行 main 函数
 #[allow(unused_variables)]
 #[allow(unused)]
+#[allow(unreachable_code, unreachable_patterns)]
 async fn main() -> Result<(), anyhow::Error> {
   init_logger();
   println!(
@@ -36,13 +38,13 @@ async fn main() -> Result<(), anyhow::Error> {
   );
   let cli = Cli::parse();
   debug!("Running command: {:?}", cli.command);
-  match cli.command {
+  return match cli.command {
     None => {
       eprintln!("No command provided. Run `hyperscoop --help` to see available commands.");
-      return Ok(());
+      Ok(())
     }
     Some(input_command) => {
-      return match input_command {
+      match input_command {
         Commands::Bucket(bucket) => execute_bucket_command(&bucket.command).await,
         Commands::Cat(_) => return Ok(()),
         Commands::Cache(_) => return Ok(()),
@@ -63,15 +65,15 @@ async fn main() -> Result<(), anyhow::Error> {
         Commands::Uninstall(_) => return Ok(()),
         Commands::Update(_) => return Ok(()),
         Commands::Which(_) => return Ok(()),
-        Commands::Merge(_) => return Ok(()),
+        Commands::Merge(_) => execute_merge_command(),
         _ => {
           eprintln!(
             "No command provided. Run `hyperscoop --help` to see available commands."
           );
           return Err(anyhow::anyhow!("No command provided.")); // 返回一
         }
-      };
+      }
     }
-  }
+  };
   Ok(())
 }

@@ -1,7 +1,9 @@
 pub mod buckets;
 pub mod init_env;
 mod test;
-
+mod utils;
+pub mod merge;
+pub use std::process::exit;
 use anyhow;
 pub use init_env::HyperScoop;
 

@@ -18,6 +18,10 @@ scoop  install  hp/hyperscoop
 
 ---   
 
+## benchmark
+
+> ![img.png](img/1730643822703.jpg)
+
 ## 开发计划
 
 - **[roadmap](./roadmap.md)** 

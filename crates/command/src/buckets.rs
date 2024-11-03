@@ -1,18 +1,17 @@
-﻿use std::fmt::format;
-use crate::init_hyperscoop;
+﻿use crate::init_hyperscoop;
 use anyhow::anyhow;
 use chrono::{DateTime, Utc};
-use crossterm::style::{Color, PrintStyledContent, Stylize};
+use crossterm::style::{Stylize};
 use regex::Regex;
 use serde_json;
 use std::fs::{create_dir_all, metadata, read_dir, remove_dir, remove_file, rename, File};
 use std::io;
 use std::io::{BufReader, Write};
-use std::path::{Path, PathBuf};
-use std::process::exit;
+use std::path::{Path};
+// use std::process::exit;
 use std::time::UNIX_EPOCH;
-use log::{error, info, warn};
-use reqwest::{get, Error};
+use log::{error};
+use reqwest::{get};
 use zip::read::ZipArchive;
 
 
@@ -21,15 +20,19 @@ pub struct Buckets {
   pub buckets_path: Vec<String>,
   pub buckets_name: Vec<String>,
 }
-
+pub fn get_buckets_path() -> Result<Vec<String>, anyhow::Error> {
+  let bucket = Buckets::new();
+  let buckets_path = bucket.buckets_path;
+  return Ok(buckets_path);
+}
 impl Buckets {
   //参数传递尽量以借用为主，避免拷贝大量数据
   pub async fn rm_buckets(&self, name: &String) -> Result<(), anyhow::Error> {
     let (bucket_paths, buckets_name) = self.get_bucket_self()?;
     for bucket_name in buckets_name {
-      if (&bucket_name == name) {
+      if &bucket_name == name {
         for bucket_path in &bucket_paths {
-          if (bucket_path.ends_with(name)) {
+          if bucket_path.ends_with(name) {
             let delete_path = Path::new(bucket_path);
             self.delete_dir_recursively(&delete_path).expect("Failed to remove directory");
             println!("{}", "删除成功".dark_red().bold().to_string());
@@ -70,7 +73,7 @@ impl Buckets {
       .unwrap_or_else(|| url.clone().unwrap().split("/").last().unwrap().to_string());
     let hyperscoop = init_hyperscoop().expect("Failed to initialize hyperscoop");
     let url = url.clone().expect("Failed to initialize hyperscoop"); // 调用 option或Result函数才使用 ?
-    if (!url.contains("http://") && !url.contains("https://")) {
+    if !url.contains("http://") && !url.contains("https://") {
       error!("");
       return Err(anyhow!("Invalid URL: {}", url).context("请输入正确的 URL"));
     };
@@ -79,7 +82,7 @@ impl Buckets {
     println!("{}", result);
     Ok(())
   }
-  async fn download_bucket(&self, url: &str, bucket_name: &str, bucket_path: &str) -> Result<String, anyhow::Error> {
+  pub async fn download_bucket(&self, url: &str, bucket_name: &str, bucket_path: &str) -> Result<String, anyhow::Error> {
     let bucket_path = bucket_path.to_string() + "\\" + bucket_name;
     // println!("{:?}  ,  {:?}", bucket_path, url);
     // println!("{:?}", bucket_name);
@@ -95,11 +98,11 @@ impl Buckets {
     }
     Ok(())
   }
-  async fn request_url(&self, url: &str, bucket_path: &str) -> Result<String, anyhow::Error> {
+  pub async fn request_url(&self, url: &str, bucket_path: &str) -> Result<String, anyhow::Error> {
     self.check_file_ishave_content(bucket_path)?;
     let mut url = url.to_string();
     let mut branch_flag = "-master".to_string();
-    if (url.contains(".git")) {
+    if url.contains(".git") {
       //  let 可以进行变量遮蔽重新赋值
       url = url.replace(".git", "");
     }
@@ -168,9 +171,9 @@ impl Buckets {
       //   打印出来的是\\ ,但是在原始字符串中是\, 所以在替换的时候只需把\替换成""即可
       // println!("target {:?} ", target_path);
       let target_path = Path::new(&target_path);
-      if (entry.is_dir()) {
+      if entry.is_dir() {
         rename(&entry, &target_path).expect("Failed to rename directory路径错误");
-      } else if (entry.is_file()) {
+      } else if entry.is_file() {
         rename(&entry, &target_path).expect("Failed to rename directory路径错误");
       }
     }
@@ -194,7 +197,7 @@ impl Buckets {
       .zip(bucket_manifest.into_iter())
       .map(|(((name, source), updated), manifest)| (name, source, updated, manifest))
       .collect();
-    for (name, source, updated, manifest) in combined_buckets.iter() {
+    for (name, _, updated, manifest) in combined_buckets.iter() {
       println!("{:<30} \t{:<30}\t{:<30}", name, updated, manifest);
     }
     return Ok(());
@@ -233,8 +236,8 @@ impl Buckets {
     // 获取目录的子文件个数
     for source in path {
       let source = source.to_string() + "\\bucket";
-      let mut count = 0;
-      count = read_dir(source).expect("Failed to read directory").count(); // 这里得到的是一个`u64`
+
+      let count = read_dir(source).expect("Failed to read directory").count(); // 这里得到的是一个`u64`
       bucket_manifest.push(count.to_string());
     }
 

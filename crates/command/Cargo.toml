@@ -24,6 +24,7 @@ crossterm = { workspace = true }
 chrono = "0.4.38"
 reqwest = "0.12.9"
 zip = "2.2.0"
+encoding_rs = "0.8.35"
 
 
 [lib]
