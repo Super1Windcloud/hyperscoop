@@ -46,6 +46,7 @@ pub fn merge_all_buckets() -> Result<(), anyhow::Error> {
       load_bucket_info(path_dir, &mut all_bucket_set)?;
     }
   }
+
   let latest_buckets: Vec<Merge> = all_bucket_set.values().cloned().collect();
 
   for path in &paths {
@@ -62,24 +63,20 @@ fn load_bucket_info(path_dir: &Path, map: &mut HashMap<String, Merge>) -> Result
   if !path_dir.is_dir() {
     return Err(anyhow!("路径不是目录"));
   }
-  let exclude_dirs = ["main", "extras", "versions", "nirsoft", "sysinternals"
-    , "php", "nerd-fonts", "nonportable", "java", "games"];
-  for exclude_dir in exclude_dirs {
-    if path_dir.to_str().unwrap().contains(exclude_dir) {
-      return Ok(());
-    }
-  }
-  println!("加载bucket：{}", &path_dir.to_str().expect("Invalid path").to_string().dark_blue().bold());
-  for entry in path_dir.read_dir()? {
+  let path = exclude_special_dir(path_dir);
+  if let Err(e) = path { return Ok(()); }
+  let path = path?;
+  println!("加载bucket：{}", &path.to_str().expect("Invalid path").to_string().dark_blue().bold());
+  for entry in path.read_dir()? {
     let entry = entry?;
-    let file_name = entry.file_name();
-    // println!("文件名是：{}", file_name.to_str().unwrap().to_string().dark_blue().bold());
+    let file_name = entry.file_name().to_string_lossy().to_string();
+
     let path = entry.path();
     if path.is_dir() {
       // println!("{ } {} ", "跳过目录".dark_green().bold(),
       //          file_name.to_str().expect("Invalid file name").to_string().dark_blue().bold());
       continue;
-    } else if path.is_file() && exclude_not_json_file(file_name.to_string_lossy().to_string()) {
+    } else if path.is_file() && exclude_not_json_file(file_name) {
       // println!("{ } {}", "跳过非json文件".dark_green().bold(),
       //          file_name.to_str().unwrap().to_string().dark_blue().bold());
       continue;
@@ -99,14 +96,23 @@ fn load_bucket_info(path_dir: &Path, map: &mut HashMap<String, Merge>) -> Result
   }
   Ok(())
 }
-
+fn exclude_special_dir(path_dir: &Path) -> Result<PathBuf, anyhow::Error> {
+  let exclude_dirs = ["main", "extras", "versions", "nirsoft", "sysinternals"
+    , "php", "nerd-fonts", "nonportable", "java", "games", "Versions", "dorado",
+    "DoveBoyApps", "echo", "lemon", "Python", "samiya"];
+  for exclude_dir in exclude_dirs {
+    if path_dir.to_str().unwrap().contains(exclude_dir) {
+      return Err(anyhow!("排除目录"));
+    }
+  }
+  Ok(path_dir.to_path_buf())
+}
 fn find_latest_version(merge: Merge, map_container:
 &mut HashMap<String, Merge>) -> Result<(), anyhow::Error> {
   // 存入集合
   //  如果变量定义在循环中会导致变量遮蔽
   //如果merge任意字段为空，则跳过
-  if merge.app_name.is_empty() || merge.app_version.is_empty()
-    || merge.app_version.contains("null") {
+  if merge.app_version.is_empty() || merge.app_version.contains("null") {
     println!("{}  :  {}", merge.app_name.clone().dark_blue().bold(),
              merge.app_version.clone().dark_blue().bold());
     return Ok(());
@@ -134,6 +140,9 @@ fn find_latest_version(merge: Merge, map_container:
 }
 
 fn remove_old_manifest(bucket_dir: &Path, latest_buckets: &Vec<Merge>) -> Result<(), anyhow::Error> {
+  let bucket_dir = exclude_special_dir(bucket_dir);
+  if let Err(e) = bucket_dir { return Ok(()); }
+  let bucket_dir = bucket_dir?;
   for entry in bucket_dir.read_dir()? {
     let entry = entry?;
     let path = entry.path();
@@ -170,7 +179,7 @@ fn extract_info_from_manifest(path: &PathBuf) -> Result<Merge, anyhow::Error> {
   let app_version = manifest_json["version"].to_string();
   // file_stem 去掉文件的扩展名
   if app_version.is_empty() || app_version.contains("null") {
-    println!("{}", path.display());
+    println!("删除无效文件{}", path.display());
     remove_file(path).expect("删除文件失败");
   }
   let app_name = path.file_stem().unwrap().to_string_lossy().to_string()

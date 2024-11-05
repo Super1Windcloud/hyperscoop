@@ -22,9 +22,9 @@ pub fn judge_is_valid_utf8_exclude_bom(path: &Path) -> bool {
   // 读取文件内容到字节数组
   reader.read_to_end(&mut content).unwrap();
   // 尝试将字节内容解码为 UTF-8
-  let result = from_utf8(&content).map(|_| true).map_err(|_| false);
+  let result = from_utf8(&content).map(|_| true).map_err(|_| false).ok();
 
-  if let Err(e) = result {
+  if let Some(false) = result {
     //transform_file_to_utf8(path).expect("转换失败");
     error!("路径{}解码失败 ", &path.to_string_lossy());
     return false;

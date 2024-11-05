@@ -135,7 +135,7 @@ pub async fn download_third_party_buckets() -> Result<String, anyhow::Error> {
     let last_word = &name[i];
 
     let download_path = "A:/scoop/buckets/".to_string() + &last_word;
-    if Path::new(&download_path).exists()  {
+    if Path::new(&download_path).exists() {
       continue;
     }
 
