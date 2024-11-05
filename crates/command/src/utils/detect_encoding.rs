@@ -104,6 +104,9 @@ pub fn detect_encoding<R: Read>(reader: &mut R) -> Option<&'static dyn Encoding>
 
 pub fn transform_to_serde_value_object(path: &Path)
                                        -> Result<serde_json::Value, anyhow::Error> {
+  if !path.exists() {
+    return Ok(serde_json::Value::Null.into());
+  }
   let json_str = read_str_from_json_file(path).expect("读取JSON文件失败");
   if json_str.trim().is_empty() {
     return Ok(serde_json::Value::Null.into());

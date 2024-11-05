@@ -159,8 +159,8 @@ fn remove_old_manifest(bucket_dir: &Path, latest_buckets: &Vec<Merge>) -> Result
             let json_str = transform_to_serde_value_object(&path).expect("文件解析错误");
             let app_version = json_str["version"].to_string();
             if app_version != item.app_version {
-              println!("删除的文件{} 版本{}", path.display(), app_version);
-              remove_file(&path).expect("删除文件失败");
+               println!("删除的文件{} 版本{}", path.display(), app_version);
+              if path.exists() { remove_file(&path).expect("删除文件失败"); }
             }
           }
         }
