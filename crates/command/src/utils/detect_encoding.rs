@@ -1,15 +1,11 @@
 ﻿use std::fs::{File, OpenOptions};
-use std::io;
-use std::io::{BufRead, BufReader, Read, Write};
+use std::io::{BufReader, Read, Write};
 use std::path::Path;
-use std::str::{from_utf8, FromStr};
-use anyhow::{anyhow, Context};
-use clap::command;
-use crossterm::event::read;
+use std::str::{from_utf8};
 use crossterm::style::Stylize;
 
 extern crate encoding;
-use encoding::{DecoderTrap, Encoding, EncoderTrap};
+use encoding::{DecoderTrap, Encoding};
 use encoding::all::{UTF_8, UTF_16LE, UTF_16BE, GBK};
 use encoding::label::encoding_from_whatwg_label;
 use log::error;
@@ -84,6 +80,7 @@ pub fn judge_utf8_is_having_bom(path: &Path) -> bool {
   }
 }
 
+#[allow(unused)]
 
 pub fn detect_encoding<R: Read>(reader: &mut R) -> Option<&'static dyn Encoding> {
   let mut buf = [0; 3];
@@ -143,13 +140,8 @@ pub fn transform_file_to_utf8(path: &Path) -> Result<String, anyhow::Error> {
       }
     }
     if judge_utf8_is_having_bom(path) {
-      let result = convert_utf8bom_to_utf8(path).expect("转换失败");
+      convert_utf8bom_to_utf8(path).expect("转换失败");
     }
-    // } else {
-    //   println!("{} {}", "file is not GBK or UTF-8-BOM".
-    //     red().bold(), path.display().to_string().red().bold());
-    //   return Err(anyhow!("转换错误"));
-    // }
   }
   let mut json_str = String::new();
   // 读取文件内容到字符串中
@@ -196,8 +188,8 @@ pub fn convert_utf8bom_to_utf8(file_path: &Path) -> Result<(), anyhow::Error> {
   // 检查并移除 UTF-8 BOM
   const BOM: [u8; 3] = [0xEF, 0xBB, 0xBF];
   if content.starts_with(&BOM) {
-    ///从向量中批量删除指定范围，将所有已删除的元素作为迭代器返回。
-    /// 如果迭代器在完全使用之前被删除，它将删除剩余的已删除元素。
+    // 从向量中批量删除指定范围，将所有已删除的元素作为迭代器返回。
+    // 如果迭代器在完全使用之前被删除，它将删除剩余的已删除元素。
     content.drain(0..BOM.len());
   }
   // 转换为 UTF-8 编码

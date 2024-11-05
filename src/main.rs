@@ -11,6 +11,8 @@ use command::Commands;
 use hyperscoop_middle::execute_merge_command;
 mod logger_err;
 use logger_err::init_logger;
+use hyperscoop_middle::execute_list_installed_apps;
+
 #[derive(Parser, Debug)]
 #[command(name="hyperscoop" , version, about= None , long_about = None)]
 #[command(propagate_version = true)] //  版本信息传递
@@ -54,7 +56,7 @@ async fn main() -> Result<(), anyhow::Error> {
         Commands::Import(_) => return Ok(()),
         Commands::Info(_) => return Ok(()),
         Commands::Install(_) => return Ok(()),
-        Commands::List(_) => return Ok(()),
+        Commands::List(_) => execute_list_installed_apps(),
         Commands::Prefix(_) => return Ok(()),
         Commands::Reset(_) => return Ok(()),
         Commands::Search(_) => return Ok(()),

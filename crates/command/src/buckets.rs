@@ -13,7 +13,7 @@ use std::time::UNIX_EPOCH;
 use log::{error};
 use reqwest::{get};
 use zip::read::ZipArchive;
-use crate::utils::request::{request_download_git_clone, download_third_party_buckets};
+use crate::utils::request::{request_download_git_clone};
 
 #[derive(Debug, Clone)]
 pub struct Buckets {

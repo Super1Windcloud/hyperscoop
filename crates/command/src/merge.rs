@@ -1,16 +1,11 @@
-﻿use std::borrow::Cow;
-use std::collections::{HashMap, HashSet};
-use std::fs::{remove_file, File};
-use std::io::{read_to_string, BufReader, Read};
+﻿use std::collections::{HashMap, HashSet};
+use std::fs::{remove_file};
 use std::path::{Path, PathBuf};
 use crossterm::style::Stylize;
 use crate::buckets::get_buckets_path;
-use std::process::exit;
 use anyhow::anyhow;
 use log::error;
-use serde_json;
-use crate::utils::detect_encoding::{read_str_from_json_file, transform_to_serde_value_object};
-use std::io::stdin;
+use crate::utils::detect_encoding::{transform_to_serde_value_object};
 #[derive(Debug, Eq, PartialEq, Hash, )]
 #[derive(Clone)]  // 从引用clone出新的完整对象而不是引用
 struct Merge {
@@ -64,7 +59,7 @@ fn load_bucket_info(path_dir: &Path, map: &mut HashMap<String, Merge>) -> Result
     return Err(anyhow!("路径不是目录"));
   }
   let path = exclude_special_dir(path_dir);
-  if let Err(e) = path { return Ok(()); }
+  if let Err(_e) = path { return Ok(()); }
   let path = path?;
   println!("加载bucket：{}", &path.to_str().expect("Invalid path").to_string().dark_blue().bold());
   for entry in path.read_dir()? {
@@ -141,7 +136,7 @@ fn find_latest_version(merge: Merge, map_container:
 
 fn remove_old_manifest(bucket_dir: &Path, latest_buckets: &Vec<Merge>) -> Result<(), anyhow::Error> {
   let bucket_dir = exclude_special_dir(bucket_dir);
-  if let Err(e) = bucket_dir { return Ok(()); }
+  if let Err(_e) = bucket_dir { return Ok(()); }
   let bucket_dir = bucket_dir?;
   for entry in bucket_dir.read_dir()? {
     let entry = entry?;
@@ -159,7 +154,7 @@ fn remove_old_manifest(bucket_dir: &Path, latest_buckets: &Vec<Merge>) -> Result
             let json_str = transform_to_serde_value_object(&path).expect("文件解析错误");
             let app_version = json_str["version"].to_string();
             if app_version != item.app_version {
-               println!("删除的文件{} 版本{}", path.display(), app_version);
+              println!("删除的文件{} 版本{}", path.display(), app_version);
               if path.exists() { remove_file(&path).expect("删除文件失败"); }
             }
           }
@@ -188,7 +183,7 @@ fn extract_info_from_manifest(path: &PathBuf) -> Result<Merge, anyhow::Error> {
   let merge = Merge::new(&app_name, &app_version);
   Ok(merge)
 }
-
+#[allow(unused)]
 fn display_repeat_app(merge: &Merge) {
   let app_name = merge.app_name.clone();
   let mut app_set = HashSet::new();

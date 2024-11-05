@@ -1,6 +1,6 @@
 ﻿use regex::Regex;
-use repair_json::{repair, Builder};
 
+#[allow(unused)]
 
 pub const DEMO_JSON: &str = r#"
 {
@@ -30,6 +30,7 @@ pub const DEMO_JSON: &str = r#"
 }
 "#;
 
+#[allow(unused)]
 
 pub fn fix_dirty_json(dirty_json: &str) -> Result<String, anyhow::Error> {
   let mut json_str = repairing_json(&dirty_json).unwrap();
@@ -41,9 +42,11 @@ pub fn fix_dirty_json(dirty_json: &str) -> Result<String, anyhow::Error> {
 
   return Ok(json_value.to_string());
 }
+#[allow(unused)]
+
 fn repairing_json(dirty_json: &str) -> Result<String, anyhow::Error> {
   //  替换掉单引号
-  let mut json_str = dirty_json.trim().to_string();
+  let json_str = dirty_json.trim().to_string();
   //  json_str = json_str.replace("'", "\"");
   return Ok(json_str);
 }

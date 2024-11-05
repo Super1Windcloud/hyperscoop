@@ -2,11 +2,12 @@
 use std::io;
 use std::io::{copy, Write};
 use std::path::Path;
+#[allow(unused_imports)]
 use std::process::{exit, Command};
-use std::thread::ThreadId;
 use crossterm::style::Stylize;
 use reqwest::get;
 use zip::ZipArchive;
+#[allow(unused)]
 
 pub async fn request_download_git_repo(url: &str, download_path: &str) -> Result<String, anyhow::Error> {
   let mut url = url.to_string();
@@ -117,6 +118,8 @@ pub async fn request_download_git_clone(repo_url: &str, destination: &str) -> Re
     Err(io::Error::new(io::ErrorKind::Other, "克隆失败"))
   }
 }
+#[allow(unused)]
+
 pub async fn download_third_party_buckets() -> Result<String, anyhow::Error> {
   let third_buckets = vec!["https://github.com/DoveBoy/Apps",
                            "https://github.com/anderlli0053/DEV-tools", "https://github.com/kkzzhizhou/scoop-apps",
