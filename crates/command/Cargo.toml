@@ -25,6 +25,8 @@ chrono = "0.4.38"
 reqwest = "0.12.9"
 zip = "2.2.0"
 encoding_rs = "0.8.35"
+encoding = "0.2.33"
+repair_json = "0.1.0"
 
 
 [lib]

@@ -1,2 +1,3 @@
-﻿[build]
-rustflags = ["-A", "unused"]
+﻿#[build]
+#rustflags = ["-A", "unused_imports", "-A", "unused_variables"]
+#

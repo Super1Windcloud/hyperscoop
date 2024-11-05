@@ -1,0 +1,2 @@
+﻿#![deny(clippy::shadow)]
+warn_about_specific_lints = ["clippy::unwrap_used"]

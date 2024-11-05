@@ -1,17 +1,31 @@
-﻿mod init_env;
+﻿#![deny(clippy::shadow)]
+mod init_env;
 use anyhow;
 use command_util_lib::init_hyperscoop;
 use init_env::HyperScoop;
 use std::env;
+use std::fs::File;
+use std::io::{read_to_string, Read};
 use std::path::PathBuf;
-mod utils;
+use std::process::exit;
 
-use utils::detect_encoding::read_str_from_json;
+mod utils;
+use utils::detect_encoding::read_str_from_json_file;
+use crate::utils::detect_encoding::{convert_gbk_to_utf8, convert_utf8bom_to_utf8, judge_is_gbk, judge_utf8_is_having_bom, transform_to_serde_value_object};
 mod buckets;
+use utils::repair_dirty_json::{fix_dirty_json, DEMO_JSON};
+
+
 fn main() {
   // let hyperscoop = init_hyperscoop().expect("Failed to initialize hyperscoop");
   // let bucket = buckets::Buckets::new();
-  compare_version();
+  //test_json_parser();
+  // 开始计时
+  let start_time = std::time::Instant::now();
+  // test_fix_json();
+  test_encoding_transform();
+  let end_time = std::time::Instant::now();
+  println!("程序运行时间：{:?}", end_time.duration_since(start_time));
 }
 
 
@@ -39,11 +53,40 @@ fn compare_version() {
 }
 
 
+fn test_encoding_transform() {
+  let gbk_file = r"C:\Users\superuse\super\error_log.txt";
+  let utf8_bom_file = "A:/Scoop/buckets/anderlli0053_DEV-tools/bucket/EnableLoopbackUtility.json";
+
+  let utf8 = "A:/Scoop/buckets/anderlli0053_DEV-tools/bucket/FullscreenPhotoViewer.json";
+  let utf = "A:/Scoop/buckets/anderlli0053_DEV-tools/bucket/fonts-nasu.json";
+  let feiqiu = r"A:\Scoop\buckets\apps\bucket\FeiQ.json";
+  let hyperscoop = r"A:\Scoop\buckets\Hyperscoop\bucket\Hyperscoop.json";
+  let pwsh = r"A:\Scoop\buckets\okibcn_ScoopMaster\bucket\PowerShell-installer.json";
+  let clash = r"A:\Scoop\buckets\okibcn_ScoopMaster\bucket\clash_for_windows.json";
+
+  let result = transform_to_serde_value_object(PathBuf::from(pwsh).as_ref()).unwrap();
+  println!("desc: {}", result["version"]);
+}
+
+
 fn test_json_parser() {
   let file = "A:/Scoop/buckets/anderlli0053_DEV-tools/bucket/EnableLoopbackUtility.json";
   let file1 = "A:/Scoop/buckets/anderlli0053_DEV-tools/bucket/FullscreenPhotoViewer.json";
-  let result = read_str_from_json(PathBuf::from(file).as_ref()).unwrap();
-  let result1 = read_str_from_json(PathBuf::from(file1).as_ref()).unwrap();
+  // let test = r"A:\Scoop\buckets\anderlli0053_DEV-tools\bucket\EnableHybernate.json";
+  let result = transform_to_serde_value_object(PathBuf::from(file1).as_ref()).unwrap();
+  println!("result: {}", result["version"]);
+  exit(0);
+  let result1 = transform_to_serde_value_object(PathBuf::from(file).as_ref()).unwrap();
+  println!("result1 : {}", result1["version"]);
+  exit(0);
+
+
   println!("result: {}", result);
   println!("result1: {}", result1);
+}
+
+
+fn test_fix_json() {
+  let result = fix_dirty_json(DEMO_JSON).unwrap();
+  println!("result: {}", result);
 }

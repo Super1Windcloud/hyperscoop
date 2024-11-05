@@ -1,7 +1,5 @@
+#![deny(clippy::shadow)]
 use log::debug;
-#[macro_use]
-extern crate anyhow;
-
 mod comand_args;
 use clap::{command, Parser};
 use clap_verbosity_flag;

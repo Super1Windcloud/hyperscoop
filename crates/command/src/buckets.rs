@@ -13,7 +13,7 @@ use std::time::UNIX_EPOCH;
 use log::{error};
 use reqwest::{get};
 use zip::read::ZipArchive;
-
+use crate::utils::request::{request_download_git_clone, download_third_party_buckets};
 
 #[derive(Debug, Clone)]
 pub struct Buckets {
@@ -87,7 +87,9 @@ impl Buckets {
     // println!("{:?}  ,  {:?}", bucket_path, url);
     // println!("{:?}", bucket_name);
     println!("{} ", "正在下载...... ".dark_green().bold());
-    let result = self.request_url(url, &bucket_path).await?;
+
+    // let result = download_third_party_buckets().await?;
+    let result = request_download_git_clone(&url, &bucket_path).await?;
     println!("{} ", result);
     return Ok(format!("bucket添加成功\t{}", bucket_path).dark_cyan().bold().to_string());
   }
