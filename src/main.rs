@@ -56,7 +56,7 @@ async fn main() -> Result<(), anyhow::Error> {
         Commands::Import(_) => return Ok(()),
         Commands::Info(_) => return Ok(()),
         Commands::Install(_) => return Ok(()),
-        Commands::List(_) => execute_list_installed_apps(),
+        Commands::List(query_app) => execute_list_installed_apps(query_app.name.as_ref()),
         Commands::Prefix(_) => return Ok(()),
         Commands::Reset(_) => return Ok(()),
         Commands::Search(_) => return Ok(()),

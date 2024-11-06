@@ -1,5 +1,4 @@
-﻿use crate::init_hyperscoop;
-use anyhow::anyhow;
+﻿use anyhow::anyhow;
 use chrono::{DateTime, Utc};
 use crossterm::style::{Stylize};
 use regex::Regex;
@@ -14,6 +13,7 @@ use log::{error};
 use reqwest::{get};
 use zip::read::ZipArchive;
 use crate::utils::request::{request_download_git_clone};
+use crate::init_hyperscoop;
 
 #[derive(Debug, Clone)]
 pub struct Buckets {

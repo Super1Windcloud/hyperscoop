@@ -1,33 +1,26 @@
 ﻿#![deny(clippy::shadow)]
-mod init_env;
-use anyhow;
-use command_util_lib::init_hyperscoop;
-use init_env::HyperScoop;
-use std::env;
-use std::fs::File;
-use std::io::{read_to_string, Read};
-use std::path::PathBuf;
-use std::process::exit;
-
 mod utils;
-use utils::detect_encoding::read_str_from_json_file;
-use crate::utils::detect_encoding::{convert_gbk_to_utf8, convert_utf8bom_to_utf8, judge_is_gbk, judge_utf8_is_having_bom, transform_to_serde_value_object};
-mod buckets;
-use utils::repair_dirty_json::{fix_dirty_json, DEMO_JSON};
 
+use std::path::PathBuf;
+use utils::repair_dirty_json::{fix_dirty_json, DEMO_JSON};
+use crate::utils::detect_encoding::transform_to_serde_value_object;
+use crate::utils::get_file_or_dir_metadata::get_dir_updated_time;
 
 fn main() {
-  // let hyperscoop = init_hyperscoop().expect("Failed to initialize hyperscoop");
-  // let bucket = buckets::Buckets::new();
-  //test_json_parser();
+
   // 开始计时
   let start_time = std::time::Instant::now();
-  // test_fix_json();
-  test_encoding_transform();
   let end_time = std::time::Instant::now();
   println!("程序运行时间：{:?}", end_time.duration_since(start_time));
 }
 
+
+fn test_update_time() {
+  let dir = "A:/Scoop/buckets/okibcn";
+  let file = r"A:\Scoop\apps\scc\3.4.0\LICENSE";
+  let time = get_dir_updated_time(PathBuf::from(file).as_ref());
+  println!("dir: {}, time: {}", dir, time);
+}
 
 fn test_manifest() {
   let path = PathBuf::from("A:/Scoop/buckets/anderlli0053_DEV-tools/bucket/010editor.json");
@@ -75,10 +68,10 @@ fn test_json_parser() {
   // let test = r"A:\Scoop\buckets\anderlli0053_DEV-tools\bucket\EnableHybernate.json";
   let result = transform_to_serde_value_object(PathBuf::from(file1).as_ref()).unwrap();
   println!("result: {}", result["version"]);
-  exit(0);
+  std::process::exit(0);
   let result1 = transform_to_serde_value_object(PathBuf::from(file).as_ref()).unwrap();
   println!("result1 : {}", result1["version"]);
-  exit(0);
+  std::process::exit(0);
 
 
   println!("result: {}", result);

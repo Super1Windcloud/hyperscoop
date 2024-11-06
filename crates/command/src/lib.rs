@@ -1,8 +1,11 @@
+#![deny(clippy::shadow)]
 pub mod buckets;
 pub mod init_env;
 mod test;
 mod utils;
 pub mod merge;
+mod list;
+pub use list::{list_all_installed_apps, list_specific_installed_apps};
 pub use std::process::exit;
 use anyhow;
 pub use init_env::HyperScoop;
