@@ -20,7 +20,7 @@ pub fn get_dir_updated_time(dir_path: &Path) -> String {
   return updated_time_formatted;
 }
 
-
+#[allow(unused)]
 pub fn get_file_updated_time(file_path: &Path) -> String {
   let metadata = metadata(&file_path).expect("Failed to get metadata");
   let modified_time = metadata.modified().expect("Failed to get modified time");

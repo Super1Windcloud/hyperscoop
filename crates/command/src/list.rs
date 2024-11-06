@@ -1,4 +1,4 @@
-﻿use std::fs::{read_dir, remove_dir, remove_dir_all};
+﻿use std::fs::{read_dir, remove_dir_all};
 use std::io::read_to_string;
 use crossterm::style::Stylize;
 use regex::Regex;
@@ -8,10 +8,29 @@ use crate::utils::safe_check::is_directory_empty;
 
 
 pub fn list_specific_installed_apps(query: &String) {
-  todo!()
-}
+  let package = list_all_installed_apps();
+  let app_name_list = package.0;
+  let app_version = package.1;
+  let app_source_bucket = package.2;
+  let app_update_date = package.3;
+  // let (mut app_name, mut version, mut source,
+  //   mut update_date) = (String::new(), String::new(), String::new(), String::new());
+  for i in 0..app_name_list.len() {
+    if app_name_list[i] == query.clone() {
+      println!("{:<30}\t\t\t\t{:<30}\t\t\t{:<30}\t\t\t{:<30} ",
+               "Name".dark_green().bold(), "Version".dark_green().bold(),
+               "Bucket".dark_green().bold(), "UpDate".dark_green().bold());
+      println!("{:<30}\t\t\t\t{:<30}\t\t\t{:<30}\t\t\t{:<30} ",
+               "____".dark_green().bold(), "_______".dark_green().bold(),
+               "______".dark_green().bold(), "______".dark_green().bold());
 
-pub fn list_all_installed_apps() {
+      println!("{:<30}\t{:<23}\t{:<20}\t{:<10} ",
+               app_name_list[i], app_version[i],
+               app_source_bucket[i], app_update_date[i]);
+    };
+  }
+}
+pub fn list_all_installed_apps() -> (Vec<String>, Vec<String>, Vec<String>, Vec<String>) {
   let apps_path = init_hyperscoop().unwrap().apps_path;
   let mut app_name_list: Vec<String> = Vec::new();
   for entry in read_dir(&apps_path).unwrap() {
@@ -28,6 +47,23 @@ pub fn list_all_installed_apps() {
       }
     }
   }
+  let app_version = get_apps_version(&apps_path);
+  let app_source_bucket = get_apps_source_bucket(&apps_path);
+  let app_update_date = get_apps_update_date(&apps_path);
+  // println!("name{} version{} bucket{} update{}", app_name_list.len()
+  //          , app_version.len(), app_source_bucket.len(), app_update_date.len());
+
+  let package = (app_name_list,
+                 app_version, app_source_bucket, app_update_date);
+  // rust 文件系统IO默认是异步非阻塞的 , 所有一定尽可能的明确判断边界条件和空值检查
+  return package;
+}
+pub fn display_app_info() {
+  let package = list_all_installed_apps();
+  let app_name_list = package.0;
+  let app_version = package.1;
+  let app_source_bucket = package.2;
+  let app_update_date = package.3;
   println!("Installed Apps Count:{} \n", app_name_list.len());
   println!("{:<30}\t\t\t\t{:<30}\t\t\t{:<30}\t\t\t{:<30} ",
            "Name".dark_green().bold(), "Version".dark_green().bold(),
@@ -36,27 +72,12 @@ pub fn list_all_installed_apps() {
            "____".dark_green().bold(), "_______".dark_green().bold(),
            "______".dark_green().bold(), "______".dark_green().bold());
 
-
-  let mut app_version: Vec<String> = Vec::with_capacity(app_name_list.len());
-  let mut app_source_bucket: Vec<String> = Vec::with_capacity(app_name_list.len());
-  let mut app_update_date: Vec<String> = Vec::with_capacity(app_name_list.len());
-  app_version = get_apps_version(&apps_path);
-  app_source_bucket = get_apps_source_bucket(&apps_path);
-  app_update_date = get_apps_update_date(&apps_path);
-  // println!("name{} version{} bucket{} update{}", app_name_list.len()
-  //          , app_version.len(), app_source_bucket.len(), app_update_date.len());
-
-
   for i in 0..app_name_list.len() {
     println!("{:<30}\t{:<23}\t{:<20}\t{:<10} ",
              app_name_list[i], app_version[i],
              app_source_bucket[i], app_update_date[i]);
   }
-
-  // rust 文件系统IO默认是异步非阻塞的 , 所有一定尽可能的明确判断边界条件和空值检查
-
 }
-
 fn get_apps_update_date(apps_path: &String) -> Vec<String> {
   let mut app_update_date = vec![];
   for apps_file in read_dir(apps_path).unwrap() {

@@ -6,12 +6,10 @@ use clap_verbosity_flag;
 use crossterm::style::{Stylize};
 mod command;
 mod hyperscoop_middle;
-use hyperscoop_middle::execute_bucket_command;
+use hyperscoop_middle::*;
 use command::Commands;
-use hyperscoop_middle::execute_merge_command;
 mod logger_err;
 use logger_err::init_logger;
-use hyperscoop_middle::execute_list_installed_apps;
 
 #[derive(Parser, Debug)]
 #[command(name="hyperscoop" , version, about= None , long_about = None)]
@@ -59,7 +57,7 @@ async fn main() -> Result<(), anyhow::Error> {
         Commands::List(query_app) => execute_list_installed_apps(query_app.name.as_ref()),
         Commands::Prefix(_) => return Ok(()),
         Commands::Reset(_) => return Ok(()),
-        Commands::Search(_) => return Ok(()),
+        Commands::Search(search_app) => execute_search_command(search_app.name),
         Commands::Shim(_) => return Ok(()),
         Commands::Status(_) => return Ok(()),
         Commands::Uninstall(_) => return Ok(()),
