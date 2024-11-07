@@ -12,7 +12,8 @@ def  calculate_hash(file_path):
         return hashlib.sha256(f.read()).hexdigest()
 def  write_to_manifest(hash_value):
     """Write the hash value to the manifest file"""
-    manifest_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), r"hyperscoop/scoop-emulators/bucket/hyperscoop.json")
+    manifest_path = os.path.join(os.path.dirname(os.path.dirname(__file__)),
+    r"submodule/hyperscoop/scoop-emulators/bucket/hyperscoop.json")
     if not os.path.isfile(manifest_path):
         return None
     with open(manifest_path, "r" ,encoding="utf-8") as f:
