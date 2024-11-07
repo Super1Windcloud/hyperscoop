@@ -7,5 +7,8 @@
 pub struct SearchArgs {
   #[clap(help = "搜索app的名称")]
   #[clap(required = false)]
-  pub(crate) name: Option<String>,
+  pub(crate) name: String,
+  #[clap(required = false)]
+  #[clap(short, long, help = "默认模糊匹配 ,开启选项则精确匹配")]
+  pub(crate) exact_match_option: bool,
 }

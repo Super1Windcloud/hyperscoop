@@ -5,6 +5,8 @@ mod test;
 mod utils;
 pub mod merge;
 mod list;
+pub mod search;
+
 pub use list::{display_app_info, list_specific_installed_apps};
 pub use std::process::exit;
 use anyhow;
