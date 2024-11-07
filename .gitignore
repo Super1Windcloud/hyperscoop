@@ -13,7 +13,5 @@ node_modules
 # ignore node_modules directory
 
 package-lock.json
-
-submodules/*
-submodules
+submodule
 
