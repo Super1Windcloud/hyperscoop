@@ -39,7 +39,8 @@ def  write_scoop_bucket(   hash_value   ) :
 if __name__ == '__main__':
     debug_file_path = r"A:\Rust_Project\hyperscoop\target\debug\hyperscoop.exe"
     release_file_path = r"A:\Rust_Project\hyperscoop\target\release\hyperscoop.exe"
-    result =calculate_hash(release_file_path)
+    #result =calculate_hash(release_file_path)
+    result = None
     result =  calculate_hash(debug_file_path)  if result is None else result
     write_to_manifest(result)  # 将哈希值写入 manifest 文件
     write_scoop_bucket ( result )  # 将哈希值写入 scoop bucket

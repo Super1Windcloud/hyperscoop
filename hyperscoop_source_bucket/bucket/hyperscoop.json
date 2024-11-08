@@ -4,7 +4,7 @@
     "description": "A Rust port of  scoop  windows pacakge  manager with a focus on simplicity and usability.",
     "license": "MIT",
     "url": "https://gitee.com/SuperWindcloud/hyperscoop/releases/download/1.0.3/hyperscoop.exe#/hyperscoop.exe",
-    "hash": "b13ddfffe462e4463dca17dc53df33196740dc2cab406b2ea79f82ad205a8cf0",
+    "hash": "593c554270d4742f8224fa4781dc8f5319ddc131dff04538b0daae6f30a8bc06",
     "bin": "hyperscoop.exe",
     "shortcuts": [
         [

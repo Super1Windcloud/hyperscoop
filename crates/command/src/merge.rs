@@ -1,11 +1,12 @@
 ﻿use std::collections::{HashMap, HashSet};
 use std::fs::{remove_file};
 use std::path::{Path, PathBuf};
+use std::process::exit;
 use crossterm::style::Stylize;
 use crate::buckets::get_buckets_path;
 use anyhow::anyhow;
 use log::error;
-use crate::utils::detect_encoding::{transform_to_serde_value_object};
+use crate::utils::detect_encoding::{transform_to_search_manifest_object};
 #[derive(Debug, Eq, PartialEq, Hash, )]
 #[derive(Clone)]  // 从引用clone出新的完整对象而不是引用
 struct Merge {
@@ -43,13 +44,21 @@ pub fn merge_all_buckets() -> Result<(), anyhow::Error> {
   }
 
   let latest_buckets: Vec<Merge> = all_bucket_set.values().cloned().collect();
-
+  let mut latest_buckets_map: HashMap<String, Merge> = HashMap::new();
+  let mut all_manifest = Vec::new();
   for path in &paths {
     let path_dir = Path::new(path);
     if path_dir.is_dir() {
-      remove_old_manifest(path_dir, &latest_buckets).expect("删除旧版本manifest失败")
+      let manifest = remove_old_manifest(path_dir, &latest_buckets,
+                                         &mut latest_buckets_map).expect("删除旧版本manifest失败");
+
+      if !manifest.is_empty() {
+        all_manifest.push(manifest);
+      }
     }
   }
+  merge_same_latest_version(all_manifest);
+
   println!("{ }", "合并完成".dark_green().bold());
   Ok(())
 }
@@ -93,7 +102,7 @@ fn load_bucket_info(path_dir: &Path, map: &mut HashMap<String, Merge>) -> Result
 }
 fn exclude_special_dir(path_dir: &Path) -> Result<PathBuf, anyhow::Error> {
   let exclude_dirs = ["main", "extras", "versions", "nirsoft", "sysinternals"
-    , "php", "nerd-fonts", "nonportable", "java", "games", "Versions", "dorado",
+    , "php", "nerd-fonts", "nonportable", "java", "games", "dorado",
     "DoveBoyApps", "echo", "lemon", "Python", "samiya"];
   for exclude_dir in exclude_dirs {
     if path_dir.to_str().unwrap().contains(exclude_dir) {
@@ -134,10 +143,19 @@ fn find_latest_version(merge: Merge, map_container:
   Ok(())
 }
 
-fn remove_old_manifest(bucket_dir: &Path, latest_buckets: &Vec<Merge>) -> Result<(), anyhow::Error> {
+fn remove_old_manifest(bucket_dir: &Path, latest_buckets: &Vec<Merge>,
+                       latest_buckets_map: &mut HashMap<String, Merge>)
+                       -> Result<Vec<PathBuf>, anyhow::Error> {
   let bucket_dir = exclude_special_dir(bucket_dir);
-  if let Err(_e) = bucket_dir { return Ok(()); }
+  if let Err(_e) = bucket_dir { return Ok(vec![]); }
+  // 将 latest_buckets 转换为HashMap
+
+  for item in latest_buckets {
+    latest_buckets_map.insert(item.app_name.to_string(), item.clone());
+  }
+
   let bucket_dir = bucket_dir?;
+  let mut same_latest_version_manifests = vec![];
   for entry in bucket_dir.read_dir()? {
     let entry = entry?;
     let path = entry.path();
@@ -148,30 +166,60 @@ fn remove_old_manifest(bucket_dir: &Path, latest_buckets: &Vec<Merge>) -> Result
     if path.is_file() && path.to_string_lossy().to_string().ends_with(".json") {
       let app_name = path.file_stem().unwrap().to_string_lossy().to_string();
       let app_name = app_name.split("/").last().expect("Invalid path");
-      if !app_name.is_empty() {
-        for item in latest_buckets.iter() {
-          if item.app_name == app_name {
-            let json_str = transform_to_serde_value_object(&path).expect("文件解析错误");
-            let app_version = json_str["version"].to_string();
-            if app_version != item.app_version {
-              println!("删除的文件{} 版本{}", path.display(), app_version);
-              if path.exists() { remove_file(&path).expect("删除文件失败"); }
-            }
-          }
+      if latest_buckets_map.contains_key(app_name) {
+        let json_str = transform_to_search_manifest_object(&path).expect("文件解析错误");
+        let app_version = json_str.get_version().unwrap();
+
+        if app_version.to_string() < latest_buckets_map.get(app_name).unwrap().app_version {
+          //  println!("删除的文件{} 版本{}", path.display(), app_version);
+          remove_file(&path).expect("删除文件失败");
+        } else { //多个相等的manifest最高版本只保留一个
+          same_latest_version_manifests.push(path);
         }
       }
     }
   }
-  Ok(())
+  Ok((same_latest_version_manifests))
+}
+
+fn merge_same_latest_version(same_latest_version_manifests: Vec<Vec<PathBuf>>) {
+  let latest_manifest = &same_latest_version_manifests.clone();
+  let mut group_manifests = HashMap::new();
+  for manifests in latest_manifest {
+    for manifest in manifests {
+      let name = manifest.file_stem().unwrap().to_string_lossy().to_string();
+      let app_name = name.split("/").last().unwrap().to_string();
+      if !group_manifests.contains_key(&app_name) {
+        group_manifests.insert(app_name, 1);
+      } else {
+        let count = *group_manifests.get(&app_name).unwrap() + 1;
+        group_manifests.insert(app_name, count);
+      }
+    }
+  }
+  // 遍历 latest_manifest  开始合并
+  for manifests in latest_manifest {
+    for manifest in manifests {
+      let name = manifest.file_stem().unwrap().to_string_lossy().to_string();
+      let app_name = name.split("/").last().unwrap().to_string();
+      let count = group_manifests.get(&app_name).unwrap().clone();
+      if count > 1 {
+         remove_file( manifest).expect("删除文件失败");
+        //  println!(" 删除冗余manifest  {}", manifest.display());
+        group_manifests.insert(app_name.clone(), count - 1);
+      }
+    }
+  }
+  //   println!("检验manifest数量 \n{:? }", group_manifests);
 }
 
 fn extract_info_from_manifest(path: &PathBuf) -> Result<Merge, anyhow::Error> {
   // println!("正在读取文件：{}", path.to_str().unwrap().to_string().dark_blue().bold());
 
-  let manifest_json = transform_to_serde_value_object(path).expect("文件解析错误");
+  let manifest_json = transform_to_search_manifest_object(path).expect("文件解析错误");
 
 
-  let app_version = manifest_json["version"].to_string();
+  let app_version = manifest_json.version.unwrap_or_default();
   // file_stem 去掉文件的扩展名
   if app_version.is_empty() || app_version.contains("null") {
     println!("删除无效文件{}", path.display());

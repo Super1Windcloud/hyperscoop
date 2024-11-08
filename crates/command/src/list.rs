@@ -16,7 +16,7 @@ pub fn list_specific_installed_apps(query: &String) {
   // let (mut app_name, mut version, mut source,
   //   mut update_date) = (String::new(), String::new(), String::new(), String::new());
   for i in 0..app_name_list.len() {
-    if app_name_list[i] == query.clone() {
+    if app_name_list[i].to_lowercase() == query.clone().to_lowercase() {
       println!("{:<30}\t\t\t\t{:<30}\t\t\t{:<30}\t\t\t{:<30} ",
                "Name".dark_green().bold(), "Version".dark_green().bold(),
                "Bucket".dark_green().bold(), "UpDate".dark_green().bold());
@@ -29,6 +29,26 @@ pub fn list_specific_installed_apps(query: &String) {
                app_source_bucket[i], app_update_date[i]);
     };
   }
+}
+
+pub fn get_all_installed_apps_name() -> Vec<String> {
+  let apps_path = init_hyperscoop().unwrap().apps_path;
+  let mut app_name_list: Vec<String> = Vec::new();
+  for entry in read_dir(&apps_path).unwrap() {
+    let entry = entry.unwrap();
+    let path = entry.path();
+    if path.is_dir() {
+      let app_name = path.file_name().unwrap().to_str().unwrap();
+      // 统一全部排除scoop自身
+      if path.file_name().unwrap().to_str().unwrap() == "scoop" {
+        continue;
+      }
+      if app_name != "scoop" {
+        app_name_list.push(String::from(app_name));
+      }
+    }
+  }
+  return app_name_list;
 }
 pub fn list_all_installed_apps() -> (Vec<String>, Vec<String>, Vec<String>, Vec<String>) {
   let apps_path = init_hyperscoop().unwrap().apps_path;

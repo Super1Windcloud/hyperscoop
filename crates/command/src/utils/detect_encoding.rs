@@ -2,13 +2,27 @@
 use std::io::{BufReader, Read, Write};
 use std::path::Path;
 use std::str::{from_utf8};
+use anyhow::anyhow;
 use crossterm::style::Stylize;
-
-extern crate encoding;
 use encoding::{DecoderTrap, Encoding};
 use encoding::all::{UTF_8, UTF_16LE, UTF_16BE, GBK};
 use encoding::label::encoding_from_whatwg_label;
 use log::error;
+use serde_json::{from_slice, from_str};
+
+use crate::manifest::search_manifest::SearchManifest;
+
+pub fn transform_to_only_version_manifest(path: &Path)
+                                          -> Result<SearchManifest, anyhow::Error> {
+  let file = File::open(path).unwrap();
+  let mut content = String::new();
+  let mut reader = BufReader::new(file);
+  reader.read_to_string(&mut content).expect("读取only_version失败");
+  let trimmed = content.trim_start_matches('\u{feff}');
+  let result: SearchManifest = serde_json::from_str(trimmed).expect("解析only_version失败");
+  return Ok(result);
+}
+
 
 pub fn judge_is_valid_utf8_exclude_bom(path: &Path) -> bool {
   let file = File::open(path).unwrap();
@@ -27,6 +41,8 @@ pub fn judge_is_valid_utf8_exclude_bom(path: &Path) -> bool {
   }
   return true;
 }
+
+
 pub fn judge_is_gbk(path: &Path) -> bool {
   // 使用 encoding 库的功能来检测编码
   let mut file = File::open(path).unwrap();
@@ -80,7 +96,6 @@ pub fn judge_utf8_is_having_bom(path: &Path) -> bool {
   }
 }
 
-#[allow(unused)]
 
 pub fn detect_encoding<R: Read>(reader: &mut R) -> Option<&'static dyn Encoding> {
   let mut buf = [0; 3];
@@ -99,16 +114,16 @@ pub fn detect_encoding<R: Read>(reader: &mut R) -> Option<&'static dyn Encoding>
 }
 
 
-pub fn transform_to_serde_value_object(path: &Path)
-                                       -> Result<serde_json::Value, anyhow::Error> {
+pub fn transform_to_search_manifest_object(path: &Path)
+                                           -> Result<SearchManifest, anyhow::Error> {
   if !path.exists() {
-    return Ok(serde_json::Value::Null.into());
+    return Ok(SearchManifest { version: None });
   }
   let json_str = read_str_from_json_file(path).expect("读取JSON文件失败");
   if json_str.trim().is_empty() {
-    return Ok(serde_json::Value::Null.into());
+    return Ok(SearchManifest { version: None });
   }
-  let value: serde_json::Value = serde_json::from_str(&json_str.trim())
+  let value: SearchManifest = from_str(&json_str.trim())
     .map_err(|e| {
       // println!(" 路径是：{}", path.to_string_lossy());
       return anyhow::anyhow!("转为 serde_json::Value 失败: {}", e);
@@ -119,9 +134,10 @@ pub fn transform_to_serde_value_object(path: &Path)
 
 
 pub fn read_str_from_json_file(path: &Path) -> Result<String, anyhow::Error> {
-  let result_str = transform_file_to_utf8(path)?;
+  let result_str = transform_file_to_utf8(path).expect("转换失败");
   // 去除控制字符
-  let result_str = result_str.chars().filter(|c| !c.is_control()).collect::<String>();
+  let result_str = result_str.chars().
+    filter(|c| !c.is_control()).collect::<String>();
   Ok(result_str)
 }
 
@@ -145,10 +161,18 @@ pub fn transform_file_to_utf8(path: &Path) -> Result<String, anyhow::Error> {
   }
   let mut json_str = String::new();
   // 读取文件内容到字符串中
-  let file = File::open(path)?;
+  let file = File::open(path).expect("打开文件失败");
   let mut reader = file;
-  reader.read_to_string(&mut json_str)?;
-  // let json_str = String::from_str(buffer).expect("Invalid UTF-8解析失败");
+  match reader.read_to_string(&mut json_str) {
+    Ok(_) => {
+      None::<usize>
+    }
+    Err(err) => {
+      println!("转换GBK编码{}", path.display());
+      convert_gbk_to_utf8(path).expect("转换失败");
+      None
+    }
+  };
   Ok(json_str)
 }
 

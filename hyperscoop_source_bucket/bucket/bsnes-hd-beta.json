@@ -1,6 +1,5 @@
 {
     "version": "10.6",
-    "description": "bsnes-hd is a fork of bsnes that adds video features like rendering CommandOption 7 in a higher resolution, widescreen, and true color",
     "homepage": "https://github.com/DerKoun/bsnes-hd",
     "license": {
         "identifier": "GPL-3.0-only",
