@@ -204,7 +204,7 @@ fn merge_same_latest_version(same_latest_version_manifests: Vec<Vec<PathBuf>>) {
       let app_name = name.split("/").last().unwrap().to_string();
       let count = group_manifests.get(&app_name).unwrap().clone();
       if count > 1 {
-         remove_file( manifest).expect("删除文件失败");
+        remove_file(manifest).expect("删除文件失败");
         //  println!(" 删除冗余manifest  {}", manifest.display());
         group_manifests.insert(app_name.clone(), count - 1);
       }
