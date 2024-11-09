@@ -1,6 +1,6 @@
 [package]
 name = "hyperscoop"
-version = "1.0.3"
+version = "1.0.4"
 edition.workspace = true
 publish = { workspace = true }
 authors = { workspace = true }
