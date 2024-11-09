@@ -31,11 +31,43 @@ pub fn fuzzy_search(query: String) {
   // let result = Arc::try_unwrap(result).unwrap().into_inner().unwrap();
 
   if query.contains("/") {
-    let query_args = query.split("/").collect::<Vec<&str>>();
+    let query_args = query.clone().split("/")
+      .map(|s| s.trim().to_string()).collect::<Vec<String>>();
     if query_args.len() == 2 {
-      search_app_in_specific_bucket(query_args[0], query_args[1]);
+      search_app_in_specific_bucket(buckets_path, &query_args[0], &query_args[1]);
     }
+  } else {
+    let all_result: Vec<Vec<(String, PathBuf)>> = buckets_path.
+      par_iter().
+      filter_map(|entry| {
+        let path = Path::new(&entry);
+        if path.is_dir() {
+          let bucket_path = path.join("bucket");
+          if bucket_path.is_dir() {
+            let temp = get_apps_names(&bucket_path, &query).expect("Failed to get apps info");
+            if !temp.is_empty() {
+              Some(temp)
+            } else { None }
+          } else { None }
+        } else { None }
+      }).collect(); // 并行处理
+    let result = all_result.into_iter().flatten().collect();
+
+
+    let result_info = get_result_source_and_version(result).unwrap();
+
+    let count = result_info.len();
+    println!("{} {}", count.to_string().dark_green().bold(),
+             "Results from local buckets...\n".dark_green().bold());
+    // println!("加载完毕");
+    sort_result_by_bucket_name(result_info);
   }
+}
+
+pub fn exact_search(query: String) {
+  let query = query.trim().to_string();
+  let bucket = Buckets::new();
+  let buckets_path = bucket.buckets_path;
   let all_result: Vec<Vec<(String, PathBuf)>> = buckets_path.
     par_iter().
     filter_map(|entry| {
@@ -43,7 +75,7 @@ pub fn fuzzy_search(query: String) {
       if path.is_dir() {
         let bucket_path = path.join("bucket");
         if bucket_path.is_dir() {
-          let temp = get_apps_names(&bucket_path, &query).expect("Failed to get apps info");
+          let temp = get_exact_search_apps_names(&bucket_path, &query).expect("Failed to get apps info");
           if !temp.is_empty() {
             Some(temp)
           } else { None }
@@ -82,8 +114,23 @@ Result<Vec<(String, String, String)>, anyhow::Error> {
 }
 
 
-fn search_app_in_specific_bucket(bucket: &str, app_name: &str) {
-  todo!();
+fn search_app_in_specific_bucket(buckets_path: Vec<String>, bucket: &String, app_name: &String) {
+  let path: PathBuf = buckets_path.iter().filter_map(|item| {
+    if item.contains(bucket) {
+      let path = Path::new(item).join("bucket");
+      Some(path)
+    } else { None }
+  }).collect();
+  if path.is_dir() {
+    let result_name = get_apps_names(&path, app_name).unwrap();
+    let result_info = get_result_source_and_version(result_name).unwrap();
+
+    let count = result_info.len();
+    println!("{} {}", count.to_string().dark_green().bold(),
+             "Results from local buckets...\n".dark_green().bold());
+    // println!("加载完毕");
+    sort_result_by_bucket_name(result_info);
+  }
 }
 
 fn sort_result_by_bucket_name(mut result: Vec<(String, String, String)>) {
@@ -147,10 +194,31 @@ fn get_apps_names(path: &PathBuf, query: &String)
     }).collect();
   Ok(app_names)
 }
+fn get_exact_search_apps_names(path: &PathBuf, query: &String)
+                               -> Result<Vec<(String, PathBuf)>, anyhow::Error> {
+  let query_lower = query.to_lowercase();
 
-pub fn exact_search(query: String) {
-  println!("Exact search  ")
+  let app_names = path.read_dir()?
+    .into_iter()
+    .par_bridge().
+    filter_map(|entry| {
+      let path = entry.unwrap().path();
+      if path.is_file() && path.extension().unwrap_or_default() == "json" {
+        let app_name = path.file_stem().unwrap().to_str().unwrap();
+        let app_name = app_name.to_lowercase();
+        if app_name == query_lower {
+          let app_path = path.clone();
+          Some((app_name.to_string(), app_path))
+        } else {
+          None
+        }
+      } else {
+        None
+      }
+    }).collect();
+  Ok(app_names)
 }
+
 
 fn display_result(result: &Vec<(String, String, String)>) {
   for i in 0..result.len() {
