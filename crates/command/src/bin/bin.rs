@@ -15,7 +15,6 @@ fn main() {
   // 开始计时
   let start_time = std::time::Instant::now();
 
-  find_manifest_same_version_count_more_than_one();
   let end_time = std::time::Instant::now();
   println!("程序运行时间：{:?}", end_time.duration_since(start_time));
 }
