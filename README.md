@@ -26,6 +26,10 @@ scoop  install  hp/hyperscoop
 
 - ![img.png](img/1730896772719.jpg)
 
+---
+
+- ![img.png](img/search1731129758178.jpg)
+
 ## 开发计划
 
 - **[roadmap](./roadmap.md)** 

@@ -25,6 +25,7 @@ chrono = "0.4.38"
 reqwest = "0.12.9"
 zip = "2.2.0"
 encoding = "0.2.33"
+rayon = "1.10.0"
 
 [lib]
 name = "command_util_lib"
