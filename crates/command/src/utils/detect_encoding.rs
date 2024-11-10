@@ -2,13 +2,12 @@
 use std::io::{BufReader, Read, Write};
 use std::path::Path;
 use std::str::{from_utf8};
-use anyhow::anyhow;
 use crossterm::style::Stylize;
 use encoding::{DecoderTrap, Encoding};
 use encoding::all::{UTF_8, UTF_16LE, UTF_16BE, GBK};
 use encoding::label::encoding_from_whatwg_label;
 use log::error;
-use serde_json::{from_slice, from_str};
+use serde_json::{from_str};
 
 use crate::manifest::search_manifest::SearchManifest;
 
@@ -19,7 +18,9 @@ pub fn transform_to_only_version_manifest(path: &Path)
   let mut reader = BufReader::new(file);
   reader.read_to_string(&mut content).expect("读取only_version失败");
   let trimmed = content.trim_start_matches('\u{feff}');
-  let result: SearchManifest = serde_json::from_str(trimmed).expect("解析only_version失败");
+  // 去除控制字符
+  let cleaned = trimmed.chars().filter(|c| !c.is_control()).collect::<String>();
+  let result: SearchManifest = serde_json::from_str(&cleaned).expect("解析only_version失败");
   return Ok(result);
 }
 
@@ -167,7 +168,7 @@ pub fn transform_file_to_utf8(path: &Path) -> Result<String, anyhow::Error> {
     Ok(_) => {
       None::<usize>
     }
-    Err(err) => {
+    Err(_) => {
       println!("转换GBK编码{}", path.display());
       convert_gbk_to_utf8(path).expect("转换失败");
       None

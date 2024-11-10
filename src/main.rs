@@ -61,7 +61,7 @@ async fn main() -> Result<(), anyhow::Error> {
         Commands::Shim(_) => return Ok(()),
         Commands::Status(_) => return Ok(()),
         Commands::Uninstall(_) => return Ok(()),
-        Commands::Update(_) => return Ok(()),
+        Commands::Update(update_args) => execute_update_command(update_args),
         Commands::Which(_) => return Ok(()),
         Commands::Merge(_) => execute_merge_command(),
         _ => {

@@ -1,7 +1,6 @@
 ﻿use std::collections::{HashMap, HashSet};
 use std::fs::{remove_file};
 use std::path::{Path, PathBuf};
-use std::process::exit;
 use crossterm::style::Stylize;
 use crate::buckets::get_buckets_path;
 use anyhow::anyhow;
@@ -179,7 +178,7 @@ fn remove_old_manifest(bucket_dir: &Path, latest_buckets: &Vec<Merge>,
       }
     }
   }
-  Ok((same_latest_version_manifests))
+  Ok(same_latest_version_manifests)
 }
 
 fn merge_same_latest_version(same_latest_version_manifests: Vec<Vec<PathBuf>>) {

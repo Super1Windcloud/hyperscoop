@@ -1,11 +1,9 @@
 ﻿use std::path::{Path, PathBuf};
-use std::process::exit;
-use std::sync::{Arc, Mutex};
+//use std::sync::{Arc, Mutex};
 use crossterm::style::Stylize;
 use crate::buckets::Buckets;
 use crate::utils::detect_encoding::{transform_to_only_version_manifest};
 use crate::list::get_all_installed_apps_name;
-use crate::manifest::search_manifest::SearchManifest;
 use rayon::prelude::*; // 并行处理
 pub fn fuzzy_search(query: String) {
   let bucket = Buckets::new();
@@ -148,12 +146,6 @@ fn sort_result_by_bucket_name(mut result: Vec<(String, String, String)>) {
       }
     }
   }
-  println!("{:<30}\t\t\t\t{:<30}\t\t\t\t{:<30}  ",
-           "Name".dark_green().bold(), "Version".dark_green().bold(),
-           "Source_Bucket".dark_green().bold());
-  println!("{:<30}\t\t\t\t{:<30}\t\t\t\t{:<30}  ",
-           "____".dark_green().bold(), "_______".dark_green().bold(),
-           "_____________".dark_green().bold());
 
   display_result(&result)
 }
@@ -222,12 +214,20 @@ fn get_exact_search_apps_names(path: &PathBuf, query: &String)
 
 fn display_result(result: &Vec<(String, String, String)>) {
   for i in 0..result.len() {
-    println!("{:<30}\t{:<30}\t{:<30}",
+    if i == 0 {
+      println!("{:<40}\t\t\t\t\t\t{:<40}\t\t\t\t\t\t{:<30}",
+               "Name".dark_green().bold(), "Version".dark_green().bold(),
+               "Source_Bucket".dark_green().bold());
+      println!("{:<40}\t\t\t\t\t\t{:<40}\t\t\t\t\t\t{:<30}",
+               "____".dark_green().bold(), "_______".dark_green().bold(),
+               "_____________".dark_green().bold());
+    }
+    println!("{:<40}\t{:<40}\t{:<30}",
              result[i].0, result[i].1,
              result[i].2, );
   }
 }
-
+#[allow(unused)]
 fn is_installed(app_name: &str) -> bool {
   let apps_list = get_all_installed_apps_name();
   for item in apps_list {
