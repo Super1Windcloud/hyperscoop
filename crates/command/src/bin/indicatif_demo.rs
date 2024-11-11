@@ -1,11 +1,9 @@
 ﻿use std::process::exit;
 
 fn main() {
-  // multi_tree_ext();
-  // iterator();
-  finebars();
-  // download_speed_progressbar();
-  // yarnish();
+  yarnish();
+
+  multi_tree_ext();
 }
 
 
@@ -376,7 +374,6 @@ fn yarnish() {
   use indicatif::{HumanDuration, MultiProgress, ProgressBar, ProgressStyle};
   use rand::seq::SliceRandom;
   use rand::Rng;
-  println!("yarnish");
   static PACKAGES: &[&str] = &[
     "fs-events",
     "my-awesome-module",
