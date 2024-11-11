@@ -1,13 +1,20 @@
 ﻿use std::fs::{create_dir_all, read_dir, remove_dir, remove_dir_all, remove_file, rename, File};
-use std::io;
-use std::io::{copy, Write};
+use std::{io, thread};
+use std::io::{copy, BufRead, BufReader, Read, Write};
 use std::path::Path;
 #[allow(unused_imports)]
 use std::process::{exit, Command};
+use std::process::Stdio;
 use crossterm::style::Stylize;
+use regex::Regex;
 use reqwest::get;
 use zip::ZipArchive;
 #[allow(unused)]
+use std::cmp::min;
+use std::time::Duration;
+use indicatif::{ProgressBar, ProgressStyle};
+use serde_json::Value;
+use tokio::time;
 
 pub async fn request_download_git_repo(url: &str, download_path: &str) -> Result<String, anyhow::Error> {
   let mut url = url.to_string();
@@ -103,17 +110,91 @@ pub async fn request_download_git_clone(repo_url: &str, destination: &str) -> Re
     create_dir_all(destination).expect("Failed to create directory for bucket ");
   }
   println!("正在下载 {} 到 {}", repo_url, destination);
-  let output = Command::new("git")
+  let mut output = Command::new("git")
     .arg("clone")
+    .arg("--progress")
     .arg(repo_url)
     .arg(destination)
-    .output()?;
+    .stdout(Stdio::piped())
+    .stderr(Stdio::piped())
+    .spawn()
+    .expect("Failed to execute git clone");
+
+  let status = output.wait().expect("Failed to wait on child process");
+
+  // 获取 git clone 的输出流
+  let mut stdout = output.stdout.take().unwrap();
+  let mut stderr = output.stderr.unwrap();
+  let mut str = String::new();
+  stderr.read_to_string(&mut str).unwrap();
+  // println!("stderr: {}", str);
+  let mut downloaded: f32 = 0.0;
+  let size_re = Regex::new(r"(\d+\.\d+\s\w+)").unwrap();
+  let speed_regex = Regex::new(r"(\d+\.\d+)\s\w+\/s").unwrap();
+  let total_size = (|| {
+    // 从输出中提取下载大小  KB 或者MB
+    if let Some(size_caps) = size_re.captures(&str) {
+      let result = &size_caps[1].trim(); // 提取总大小
+      let result = (|| {
+        if result.contains("KiB") {
+          return result.replace("KiB", "").trim().to_string().parse::<f32>().unwrap() * 1024.0;
+        } else {
+          return result.replace("MiB", "").trim().to_string().parse::<f32>().unwrap() * 1024.0 * 1024.0;
+        }
+      })();
+      return result;
+    } else {
+      println!("Failed to extract total size from output");
+      return 0.0;
+    }
+  })();
+  let downloaded_speed = (|| {
+    // KB/S 或者 MB/S 的下载速度
+    if let Some(speed_caps) = speed_regex.captures(&str) {
+      let result = &speed_caps[0].trim(); // 提取下载速度
+      // 提取字符串中的数字
+      // let result = result.replace("KB/s", ""); // &str 存在栈区会被释放 ,需要返回String
+      // let result = result.replace("MiB/s", "").trim().to_string();
+      let result = (|| {
+        if result.contains("KiB/s") {
+          return result.replace("KiB/s", "").trim().to_string().parse::<f32>().unwrap() * 1024.0;
+        } else {
+          return result.replace("MiB/s", "").trim().to_string().parse::<f32>().unwrap() * 1024.0 * 1024.0;
+        }
+      })();
+
+      return result;
+    } else {
+      println!("Failed to extract download speed from output");
+      return 0.0;
+    }
+  })();
+  // ---
+  let pb = ProgressBar::new(total_size as u64);
+  pb.set_style(ProgressStyle::with_template("{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({bytes_per_sec}, {eta})")
+    .unwrap()
+    .progress_chars("#>-"));
+  while downloaded < total_size {
+    let new = (downloaded + downloaded_speed).min(total_size);
+    downloaded = new;
+    pb.set_position(new as u64);
+    // 更新进度条的信息
+    //pb.set_message(format!("{:.2} KB / {:.2} MB", downloaded_mb, total_size_mb));
+
+    time::sleep(Duration::from_millis(12)).await;
+  }
+
+  pb.finish_with_message("downloaded");
 
   // 检查命令是否成功执行
-  if output.status.success() {
+  if status.success() {
     Ok("下载成功!!! ".dark_green().bold().to_string())
   } else {
-    let error_message = String::from_utf8_lossy(&output.stderr);
+    // 读取 stderr 的内容
+    let mut stderr_bytes = Vec::new();
+    stderr.read_to_end(&mut stderr_bytes).expect("Failed to read stderr");
+
+    let error_message = String::from_utf8_lossy(&stderr_bytes);
     println!("克隆失败: {}", error_message);
     Err(io::Error::new(io::ErrorKind::Other, "克隆失败"))
   }

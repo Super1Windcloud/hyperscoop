@@ -3,9 +3,9 @@
 fn main() {
   // multi_tree_ext();
   // iterator();
-  // finebars();
-  // download_speed();
-  yarnish();
+  finebars();
+  // download_speed_progressbar();
+  // yarnish();
 }
 
 
@@ -332,45 +332,41 @@ fn finebars() {
 
   use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
   use rand::{thread_rng, Rng};
-  println!("finebars");
-  fn main() {
-    let styles = [
-      ("Rough bar:", "█  ", "red"),
-      ("Fine bar: ", "█▉▊▋▌▍▎▏  ", "yellow"),
-      ("Vertical: ", "█▇▆▅▄▃▂▁  ", "green"),
-      ("Fade in:  ", "█▓▒░  ", "blue"),
-      ("Blocky:   ", "█▛▌▖  ", "magenta"),
-    ];
+  let styles = [
+    ("Rough bar:", "█  ", "red"),
+    ("Fine bar: ", "█▉▊▋▌▍▎▏  ", "yellow"),
+    ("Vertical: ", "█▇▆▅▄▃▂▁  ", "green"),
+    ("Fade in:  ", "█▓▒░  ", "blue"),
+    ("Blocky:   ", "█▛▌▖  ", "magenta"),
+  ];
 
-    let m = MultiProgress::new();
+  let m = MultiProgress::new();
 
-    let handles: Vec<_> = styles
-      .iter()
-      .map(|s| {
-        let pb = m.add(ProgressBar::new(512));
-        pb.set_style(
-          ProgressStyle::with_template(&format!("{{prefix:.bold}}▕{{bar:.{}}}▏{{msg}}", s.2))
-            .unwrap()
-            .progress_chars(s.1),
-        );
-        pb.set_prefix(s.0);
-        let wait = Duration::from_millis(thread_rng().gen_range(10..30));
-        thread::spawn(move || {
-          for i in 0..512 {
-            thread::sleep(wait);
-            pb.inc(1);
-            pb.set_message(format!("{:3}%", 100 * i / 512));
-          }
-          pb.finish_with_message("100%");
-        })
+  let handles: Vec<_> = styles
+    .iter()
+    .map(|s| {
+      let pb = m.add(ProgressBar::new(512));
+      pb.set_style(
+        ProgressStyle::with_template(&format!("{{prefix:.bold}}▕{{bar:.{}}}▏{{msg}}", s.2))
+          .unwrap()
+          .progress_chars(s.1),
+      );
+      pb.set_prefix(s.0);
+      let wait = Duration::from_millis(thread_rng().gen_range(10..30));
+      thread::spawn(move || {
+        for i in 0..512 {
+          thread::sleep(wait);
+          pb.inc(1);
+          pb.set_message(format!("{:3}%", 100 * i / 512));
+        }
+        pb.finish_with_message("100%");
       })
-      .collect();
+    })
+    .collect();
 
-    for h in handles {
-      let _ = h.join();
-    }
+  for h in handles {
+    let _ = h.join();
   }
-  main();
 }
 fn yarnish() {
   use std::thread;
@@ -469,30 +465,26 @@ fn yarnish() {
   println!("{} Done in {}", SPARKLE, HumanDuration(started.elapsed()));
 }
 
-fn download_speed() {
+fn download_speed_progressbar() {
   use std::cmp::min;
   use std::thread;
   use std::time::Duration;
-
   use indicatif::{ProgressBar, ProgressStyle};
-  println!("download_speed");
-  fn main() {
-    let mut downloaded = 0;
-    let total_size = 231231231;
+  let mut downloaded = 0;
+  let total_size = 231231231.34;
 
-    let pb = ProgressBar::new(total_size);
-    pb.set_style(ProgressStyle::with_template("{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({bytes_per_sec}, {eta})")
-      .unwrap()
-      .progress_chars("#>-"));
+  let pb = ProgressBar::new(total_size as u64);
+  pb.set_style(ProgressStyle::with_template("{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({bytes_per_sec}, {eta})")
+    .unwrap()
+    .progress_chars("#>-"));
 
-    while downloaded < total_size {
-      let new = min(downloaded + 223211, total_size);
-      downloaded = new;
-      pb.set_position(new);
-      thread::sleep(Duration::from_millis(12));
-    }
-
-    pb.finish_with_message("downloaded");
+  while downloaded < total_size as u64 {
+    let new = min(downloaded + 223211, total_size as u64);
+    downloaded = new;
+    pb.set_position(new);
+    thread::sleep(Duration::from_millis(12));
   }
-  main();
+
+  pb.finish_with_message("downloaded");
 }
+

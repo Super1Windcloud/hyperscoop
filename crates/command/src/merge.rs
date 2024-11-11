@@ -1,10 +1,17 @@
 ﻿use std::collections::{HashMap, HashSet};
 use std::fs::{remove_file};
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use crossterm::style::Stylize;
 use crate::buckets::get_buckets_path;
 use anyhow::anyhow;
 use log::error;
+use std::thread;
+use std::time::Duration;
+use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
+use rand::{thread_rng, Rng};
+use tokio::sync::Mutex;
+use tokio::task;
 use crate::utils::detect_encoding::{transform_to_search_manifest_object};
 #[derive(Debug, Eq, PartialEq, Hash, )]
 #[derive(Clone)]  // 从引用clone出新的完整对象而不是引用
@@ -184,8 +191,10 @@ fn remove_old_manifest(bucket_dir: &Path, latest_buckets: &Vec<Merge>,
 fn merge_same_latest_version(same_latest_version_manifests: Vec<Vec<PathBuf>>) {
   let latest_manifest = &same_latest_version_manifests.clone();
   let mut group_manifests = HashMap::new();
+  let mut all_manifest_count = 0;
   for manifests in latest_manifest {
-    for manifest in manifests {
+    for manifest in manifests.iter() {
+      all_manifest_count += 1;
       let name = manifest.file_stem().unwrap().to_string_lossy().to_string();
       let app_name = name.split("/").last().unwrap().to_string();
       if !group_manifests.contains_key(&app_name) {
@@ -197,20 +206,102 @@ fn merge_same_latest_version(same_latest_version_manifests: Vec<Vec<PathBuf>>) {
     }
   }
   // 遍历 latest_manifest  开始合并
+  let mut finish_manifest_count = 100;
+  // 初始化进度条
+  let total_manifest_count = all_manifest_count;
+  let styles = [
+    ("Rough bar:", "█  ", "red"),
+    ("Fine bar: ", "█▉▊▋▌▍▎▏  ", "yellow"),
+    ("Vertical: ", "█▇▆▅▄▃▂▁  ", "green"),
+    ("Fade in:  ", "█▓▒░  ", "blue"),
+    ("Blocky:   ", "█▛▌▖  ", "magenta"),
+  ];
+  // let group_manifests_ref = Arc::new(Mutex::new(group_manifests));
+  let m = MultiProgress::new();
   for manifests in latest_manifest {
-    for manifest in manifests {
+    for manifest in manifests.iter() {
       let name = manifest.file_stem().unwrap().to_string_lossy().to_string();
       let app_name = name.split("/").last().unwrap().to_string();
-      let count = group_manifests.get(&app_name).unwrap().clone();
-      if count > 1 {
+      // 异步读取 count
+      let count = group_manifests.get(&app_name).ok_or(anyhow!("应用不存在")).unwrap().clone();
+
+      if count > 1 && manifest.exists() {
         remove_file(manifest).expect("删除文件失败");
-        //  println!(" 删除冗余manifest  {}", manifest.display());
         group_manifests.insert(app_name.clone(), count - 1);
       }
     }
   }
+
+  //-----
+
+  let handles: Vec<_> = styles
+    .iter()
+    .map(|s| {
+      let pb = m.add(ProgressBar::new(total_manifest_count as u64));
+      pb.set_style(
+        ProgressStyle::with_template(&format!("{{prefix:.bold}}▕{{bar:.{}}}▏{{msg}}", s.2))
+          .unwrap()
+          .progress_chars(s.1),
+      );
+      pb.set_prefix(s.0);
+      let wait = Duration::from_millis(thread_rng().gen_range(10..20));
+      thread::spawn(move || {
+        for i in 0..(total_manifest_count / 50) {
+          thread::sleep(wait);
+          pb.inc(50);
+          pb.set_message(format!("{:3}%", 5000 * i / total_manifest_count));
+        }
+        pb.finish_with_message("处理完成");
+      })
+    })
+    .collect();
+
+  for h in handles {
+    let _ = h.join();
+  }
+
+
   //   println!("检验manifest数量 \n{:? }", group_manifests);
 }
+
+
+fn finebars(file_finish_count: u64, total_file_count: u64) {
+  let styles = [
+    ("Rough bar:", "█  ", "red"),
+    ("Fine bar: ", "█▉▊▋▌▍▎▏  ", "yellow"),
+    ("Vertical: ", "█▇▆▅▄▃▂▁  ", "green"),
+    ("Fade in:  ", "█▓▒░  ", "blue"),
+    ("Blocky:   ", "█▛▌▖  ", "magenta"),
+  ];
+
+  let m = MultiProgress::new();
+
+  let handles: Vec<_> = styles
+    .iter()
+    .map(|s| {
+      let pb = m.add(ProgressBar::new(total_file_count as u64));
+      pb.set_style(
+        ProgressStyle::with_template(&format!("{{prefix:.bold}}▕{{bar:.{}}}▏{{msg}}", s.2))
+          .unwrap()
+          .progress_chars(s.1),
+      );
+      pb.set_prefix(s.0);
+      let wait = Duration::from_millis(thread_rng().gen_range(10..20));
+      thread::spawn(move || {
+        thread::sleep(wait);
+        let move_rate = 1000 / total_file_count;   ;
+        pb.inc(move_rate * 100);
+        pb.set_message(format!("{:3}%", file_finish_count / total_file_count));
+        pb.finish_with_message("100%");
+      })
+    })
+    .collect();
+
+  for h in handles {
+    let _ = h.join();
+  }
+}
+
 
 fn extract_info_from_manifest(path: &PathBuf) -> Result<Merge, anyhow::Error> {
   // println!("正在读取文件：{}", path.to_str().unwrap().to_string().dark_blue().bold());

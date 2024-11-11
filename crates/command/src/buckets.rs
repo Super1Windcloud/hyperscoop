@@ -3,7 +3,7 @@ use chrono::{DateTime, Utc};
 use crossterm::style::{Stylize};
 use regex::Regex;
 use serde_json;
-use std::fs::{create_dir_all, metadata, read_dir, remove_dir, remove_file, rename, File};
+use std::fs::{create_dir_all, metadata, read_dir, remove_dir, remove_dir_all, remove_file, rename, File};
 use std::io;
 use std::io::{BufReader, Write};
 use std::path::{Path};
@@ -50,9 +50,9 @@ impl Buckets {
       let path = entry?.path();
 
       if path.is_dir() {
-        self.delete_dir_recursively(&path)?;
+        remove_dir_all(&path)?;
       } else {
-        remove_file(&path)?;
+        remove_file(&path)?
       }
     }
     remove_dir(bucket_path)?;
