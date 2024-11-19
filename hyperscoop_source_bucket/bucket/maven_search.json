@@ -1,0 +1,18 @@
+﻿{
+    "version": "1.0.00",
+    "homepage": "https://gitee.com/superwindcloud/maven_search",
+    "description": "   搜索Maven仓库包的信息",
+    "license": "MIT",
+    "url": "https://gitee.com/SuperWindcloud/maven_search/releases/download/1.0.00/maven_search.exe",
+    "hash": "554A7C7821F1C58638180DFC8626ADD43B95D19CB8BB6B593EFFAD339BB372DE",
+    "bin": "maven_search.exe",
+    "checkver": {
+        "gitee": "https://gitee.com/superwindcloud/maven_search"
+    },
+    "autoupdate": {
+        "url": "https://gitee.com/SuperWindcloud/maven_search/releases/download/$version/maven_search.exe",
+        "hash": {
+            "url": "$url.sha256"
+        }
+    }
+}

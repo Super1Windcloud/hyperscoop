@@ -45,7 +45,10 @@ pub(crate) enum Commands {
   List(ListArgs),
   Prefix(PrefixArgs),
   Reset(ResetArgs),
+  // 添加别名
+  #[clap(alias = "s")]
   Search(SearchArgs),
+
   Shim(ShimArgs),
   Status(StatusArgs),
   Uninstall(UninstallArgs),

@@ -8,7 +8,7 @@
  scoop bucket add hp https://gitee.com/SuperWindcloud/hyperscoop_bucket.git
 scoop  install  hp/hyperscoop 
  
- ```
+```
 
 ---
 
@@ -16,13 +16,13 @@ scoop  install  hp/hyperscoop
 
 - ![img.png](./img/微信图片_20241101140706.png)
 
----   
+---
 
 ## benchmark
 
 - ![img.png](img/1730643822703.jpg)
 
---- 
+---
 
 - ![img.png](img/1730896772719.jpg)
 

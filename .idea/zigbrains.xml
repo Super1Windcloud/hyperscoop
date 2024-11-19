@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ZLSSettings">
+    <option name="zlsPath" value="A:\Scoop\shims\zls.exe" />
+  </component>
+  <component name="ZigProjectSettings">
+    <option name="toolchainPath" value="A:\Scoop\shims" />
+  </component>
+</project>

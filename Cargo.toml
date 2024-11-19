@@ -55,7 +55,7 @@ path = "src/main.rs"
 
 
 [workspace]  # 定义一个工作区
-members = ["crates/command"]
+members = ["crates/command", "."]  # 显式把src根目录也一并添加到工作区
 resolver = "2"
 [workspace.package]
 edition = "2021"
