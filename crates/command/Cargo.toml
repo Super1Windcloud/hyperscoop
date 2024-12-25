@@ -35,6 +35,8 @@ time = "0.3.36"
 dashmap = { workspace = true }
 [lib]
 name = "command_util_lib"
+crate-type = ["lib", "cdylib"]
+proc-macro = false
 path = "src/lib.rs"
 
 [[bin]]

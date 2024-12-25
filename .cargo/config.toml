@@ -1,3 +1,48 @@
 ﻿#[build]
 #rustflags = ["-A", "unused_imports", "-A", "unused_variables"]
 #
+
+[alias]
+b = "build"
+br = "build --release"
+
+c = "check"
+t = "test"
+r = "run"
+rr = "run --release"
+recursive_example = "rr --example recursions"
+space_example = ["run", "--release", "--", "\"command list\""]
+
+
+[build]
+target-dir = "target"
+rustc = "rustc"
+rustdoc = "rustdoc"
+incremental = true
+rustflags = ["-C", "link-arg=-fuse-ld=lld",
+  "-C", "target-cpu=native", ]
+
+
+[net]
+retry = 3                   # network retries
+git-fetch-with-cli = true   # use the `git` executable for git operations
+offline = true              # do not access the network
+
+
+[doc]
+browser = "chromium"
+
+
+[http]
+debug = false               # HTTP debugging
+proxy = "http://127.0.0.1:7890"         # HTTP proxy in libcurl format
+
+timeout = 10
+[term]
+quiet = false          # whether cargo output is quiet
+verbose = false        # whether cargo provides verbose output
+color = 'auto'         # whether cargo colorizes output
+hyperlinks = true      # whether cargo inserts links into output
+unicode = true         # whether cargo can render output using non-ASCII unicode characters
+progress.when = 'auto' # whether cargo shows progress bar
+progress.width = 80    # width of progress bar

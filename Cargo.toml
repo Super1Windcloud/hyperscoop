@@ -30,7 +30,7 @@ clap-verbosity-flag = { workspace = true }
 anyhow = { workspace = true }
 env_logger = "0.11.5"
 tokio = { version = "1.0.0", features = ["rt", "rt-multi-thread", "macros"] }
-serde_json.workspace = true
+serde_json = { workspace = true }
 
 
 
@@ -47,6 +47,8 @@ anyhow = "1.0.91"
 serde_json = "1.0.132"
 tokio = { version = "1.0.0", features = ["rt", "rt-multi-thread", "macros"] }
 dashmap = "6.1.0"
+quote = "1.0.37"
+syn = "2.0.91"
 
 
 [[bin]]
@@ -55,7 +57,7 @@ path = "src/main.rs"
 
 
 [workspace]  # 定义一个工作区
-members = ["crates/command", "."]  # 显式把src根目录也一并添加到工作区
+members = ["crates/command", ".", "crates/hscoop_macro"]  # 显式把src根目录也一并添加到工作区
 resolver = "2"
 [workspace.package]
 edition = "2021"
@@ -85,28 +87,32 @@ trybuild = "1.0.101"
 
 [profile.release]
 debug = false
-lto = true   # 链接时间优化
-panic = "unwind"
+lto = true   # 链接时间优化,如果 codegen 单位为 1 或opt-level为 0，则不执行 LTO。
+panic = "abort"
 opt-level = 3
 strip = "symbols"
-codegen-units = 1
+codegen-units = 16   # 编译单元数量
+incremental = false
 debug-assertions = false
 overflow-checks = false
 rpath = false   # 关闭运行时路径
 
 [profile.dev]
+#  rust-cranelift后端不支持Windows, 并且mold链接器也不支持Windows,只能使用LLVM
+strip = "debuginfo"
 opt-level = 0
-overflow-checks = false     # 关闭整数溢出检查
-debug = true                # 开启调试信息
-lto = false                  # 关闭链接时间优化
-panic = "unwind"            # 异常处理方式为unwind
-incremental = true          # 开启增量编译
-codegen-units = 256           # 编译单元数量
-debug-assertions = true      # 开启调试断言
-rpath = false                # 关闭运行时路径
-
+debug = false
+lto = false
+overflow-checks = true
+panic = "abort"
+incremental = true
+codegen-units = 256
+debug-assertions = true
+rpath = false
 [build-dependencies]  # 这些依赖项仅在构建脚本（build.rs 文件）中使用
 criterion = "0.5.1"
+
+
 
 [target.x86_64-pc-windows-msvc.dependencies] # 依赖项仅在 Windows 平台上使用。
 criterion = "0.5.1"
@@ -120,3 +126,5 @@ repository = "superwindcloud/hyperscoop"
 username = "superwindcloud"
 [package.metadata.docs.rs]
 features = ["default"]
+
+
