@@ -120,11 +120,24 @@ criterion = "0.5.1"
 
 [package.metadata.release]
 version-increment = "patch"  # 版本号递增方式为 patch
+changelog-path = "CHANGELOG.md"  # 发布 Changelog 文件路径
+tag-template = "v{version}"  # 发布 tag 名称模板
+push = false   # 是否推送到远程仓库
+check-readme = true  # 是否检查 README 文件
+check-license = true  # 是否检查 LICENSE 文件
+check-cargo-toml = true  # 是否检查 Cargo.toml 文件
+check-manifest = true  # 是否检查 Cargo.toml 文件
+check-all = true  # 是否检查所有文件
+
 
 [package.metadata.release.github]
 repository = "superwindcloud/hyperscoop"
 username = "superwindcloud"
+labels = ["release"]
+
+
 [package.metadata.docs.rs]
 features = ["default"]
+
 
 

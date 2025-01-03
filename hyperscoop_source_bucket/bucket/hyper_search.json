@@ -1,4 +1,4 @@
-﻿{
+{
     "version": "7.7.7",
     "homepage": "https://gitee.com/superwindcloud/hyper_go_search",
     "description": "适用于go的pkg_go_dev  search  一键检索 , 类似于 cargo search的功能\n",
@@ -17,3 +17,4 @@
     },
     "notes": " Now  you can  execute hyper_search  -h to start enjoying "
 }
+  
