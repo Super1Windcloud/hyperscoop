@@ -1,0 +1,27 @@
+{
+    "version": "1.1.0",
+    "description": "DeepSeek 桌面客户端",
+    "homepage": "https://gitee.com/SuperWindcloud/deep-seek_tauri",
+    "license": {
+        "identifier": "MIT"
+    },
+    "architecture": {
+        "64bit": {
+            "url": "https://gitee.com/SuperWindcloud/deep-seek_tauri/releases/download/7.7.7/deepseek.exe"
+        }
+    },
+    "shortcuts": [
+        [
+            "deepseek.exe",
+            "DeepSeek"
+        ]
+    ],
+    "checkver": "github",
+    "autoupdate": {
+        "architecture": {
+            "64bit": {
+                "url": "https://gitee.com/SuperWindcloud/deep-seek_tauri/releases/download/$version/deepseek.exe"
+            }
+        }
+    }
+}
