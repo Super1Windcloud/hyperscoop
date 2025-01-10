@@ -907,6 +907,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "hp"
+version = "1.0.4"
+dependencies = [
+ "anyhow",
+ "clap",
+ "clap-verbosity-flag",
+ "command_util_lib",
+ "criterion",
+ "crossterm",
+ "env_logger",
+ "log",
+ "serde",
+ "serde_json",
+ "tokio",
+ "trybuild",
+]
+
+[[package]]
 name = "hscoop_macro"
 version = "0.1.0"
 dependencies = [
@@ -1030,24 +1048,6 @@ dependencies = [
  "tokio",
  "tower-service",
  "tracing",
-]
-
-[[package]]
-name = "hyperscoop"
-version = "1.0.4"
-dependencies = [
- "anyhow",
- "clap",
- "clap-verbosity-flag",
- "command_util_lib",
- "criterion",
- "crossterm",
- "env_logger",
- "log",
- "serde",
- "serde_json",
- "tokio",
- "trybuild",
 ]
 
 [[package]]

@@ -1,5 +1,5 @@
 [package]
-name = "hyperscoop"
+name = "hp"
 version = "1.0.4"
 edition.workspace = true
 publish = { workspace = true }
@@ -52,7 +52,7 @@ syn = "2.0.91"
 
 
 [[bin]]
-name = "hyperscoop"
+name = "hp"
 path = "src/main.rs"
 
 
@@ -99,7 +99,6 @@ rpath = false   # 关闭运行时路径
 
 [profile.dev]
 #  rust-cranelift后端不支持Windows, 并且mold链接器也不支持Windows,只能使用LLVM
-strip = "debuginfo"
 opt-level = 0
 debug = false
 lto = false
