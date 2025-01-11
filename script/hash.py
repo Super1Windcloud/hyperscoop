@@ -59,7 +59,7 @@ def  write_to_manifest(hash_value):
 
 def  write_scoop_bucket(   hash_value   ) :
      """Write the hash value to the scoop bucket"""
-     hyperscoop_bucekt = r'A:\Scoop\buckets\hyperscoop\bucket\hyperscoop.json'
+     hyperscoop_bucekt = r'A:\Scoop\buckets\hyperscoop\bucket\hp.json'
      if not os.path.isfile(hyperscoop_bucekt):
          return None
      with open(hyperscoop_bucekt, "r" ,encoding="utf-8") as f:
@@ -71,8 +71,8 @@ def  write_scoop_bucket(   hash_value   ) :
 
 
 if __name__ == '__main__':
-    debug_file_path = r"A:\Rust_Project\hyperscoop\target\debug\hyperscoop.exe"
-    release_file_path = r"A:\Rust_Project\hyperscoop\target\release\hyperscoop.exe"
+    debug_file_path = r"A:\Rust_Project\hyperscoop\target\debug\hp.exe"
+    release_file_path = r"A:\Rust_Project\hyperscoop\target\release\hp.exe"
     result =calculate_hash(release_file_path)
     # result =  calculate_hash(debug_file_path)
     write_to_manifest(result)  # 将哈希值写入 manifest 文件

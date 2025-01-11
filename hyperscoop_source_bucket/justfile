@@ -1,0 +1,2 @@
+default:
+    echo 'Hello, world!'

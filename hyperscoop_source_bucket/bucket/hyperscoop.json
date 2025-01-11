@@ -3,23 +3,23 @@
     "homepage": "https://gitee.com/superwindcloud/hyperscoop",
     "description": "A Rust port of  scoop  windows pacakge  manager with a focus on simplicity and usability.",
     "license": "MIT",
-    "url": "https://gitee.com/SuperWindcloud/hyperscoop/releases/download/1.0.4/hyperscoop.exe#/hyperscoop.exe",
-    "hash": "02db440368f6049048e483e1ebc7fdd64820c631e6e9b36fde4940edf3c22374",
-    "bin": "hyperscoop.exe",
+    "url": "https://gitee.com/SuperWindcloud/hyperscoop/releases/download/1.0.4/hp.exe",
+    "hash": "84BE925FA37132468D0852B741AA279409F0019C7090932D386084FF27831F9C",
+    "bin": "hp.exe",
     "shortcuts": [
         [
-            "hyperscoop.exe",
-            "hyperscoop"
+            "hp.exe",
+            "hp"
         ]
     ],
     "checkver": {
         "gitee": "https://gitee.com/superwindcloud/hyperscoop"
     },
     "autoupdate": {
-        "url": "https://gitee.com/SuperWindcloud/hyperscoop/releases/download/$version/hyperscoop.exe#/hyperscoop",
+        "url": "https://gitee.com/SuperWindcloud/hyperscoop/releases/download/$version/hp.exe",
         "hash": {
             "url": "$url.sha256"
         }
     },
-    "notes": " Now  you can use hyperscoop to  instead of scoop in windows.  execute hyperscoop -h to start enjoying "
+    "notes": " Now  you can use hp.exe  to  instead of scoop in windows.  execute hyperscoop -h to start enjoying "
 }

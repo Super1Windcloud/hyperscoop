@@ -12,11 +12,11 @@ mod logger_err;
 use logger_err::init_logger;
 
 #[derive(Parser, Debug)]
-#[command(name="hyperscoop" , version, about= None , long_about = None)]
+#[command(name="hp" , version, about= None , long_about = None)]
 #[command(propagate_version = true)] //  版本信息传递
-#[command(override_usage = "hyperscoop [COMMAND]  [OPTIONS] ")]
+#[command(override_usage = "hp  [COMMAND]  [OPTIONS] ")]
 #[command(author = "superwindcloud")]
-#[command(after_help = "For more i nformation about a command, run: hyperscoop COMMAND -h/--help")]
+#[command(after_help = "For more i nformation about a command, run: hp  COMMAND -h/--help")]
 struct Cli {
     #[command(subcommand)]
     command: Option<Commands>,
@@ -38,7 +38,7 @@ async fn main() -> Result<(), anyhow::Error> {
     debug!("Running command: {:?}", cli.command);
     return match cli.command {
         None => {
-            eprintln!("No command provided. Run `hyperscoop --help` to see available commands.");
+            eprintln!("No command provided. Run `hp  --help` to see available commands.");
             Ok(())
         }
         Some(input_command) => {
@@ -65,9 +65,7 @@ async fn main() -> Result<(), anyhow::Error> {
                 Commands::Which(_) => return Ok(()),
                 Commands::Merge(_) => execute_merge_command(),
                 _ => {
-                    eprintln!(
-                        "No command provided. Run `hyperscoop --help` to see available commands."
-                    );
+                    eprintln!("No command provided. Run `hp  --help` to see available commands.");
                     return Err(anyhow::anyhow!("No command provided.")); // 返回一
                 }
             }
