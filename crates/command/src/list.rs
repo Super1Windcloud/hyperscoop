@@ -5,7 +5,6 @@ use crossterm::style::Stylize;
 use regex::Regex;
 use std::fs::{read_dir, remove_dir_all};
 use std::io::read_to_string;
-use std::process::exit;
 
 pub fn list_specific_installed_apps(query: &String) {
     let package = list_all_installed_apps();
@@ -89,7 +88,7 @@ pub fn list_all_installed_apps() -> (Vec<String>, Vec<String>, Vec<String>, Vec<
         app_update_date,
     );
     // rust 文件系统IO默认是异步非阻塞的 , 所有一定尽可能的明确判断边界条件和空值检查
-    return package;
+    package
 }
 pub fn display_app_info() {
     let package = list_all_installed_apps();

@@ -1,6 +1,5 @@
 #![deny(clippy::shadow)]
-use log::debug;
-mod comand_args;
+mod command_args;
 use clap::{command, Parser};
 use clap_verbosity_flag;
 use crossterm::style::Stylize;
@@ -35,7 +34,6 @@ async fn main() -> Result<(), anyhow::Error> {
         "次世代更快更强更精美的Windows包管理器".magenta().bold()
     );
     let cli = Cli::parse();
-    debug!("Running command: {:?}", cli.command);
     return match cli.command {
         None => {
             eprintln!("No command provided. Run `hp  --help` to see available commands.");
@@ -44,7 +42,7 @@ async fn main() -> Result<(), anyhow::Error> {
         Some(input_command) => {
             match input_command {
                 Commands::Bucket(bucket) => execute_bucket_command(&bucket.command).await,
-                Commands::Cat(_) => return Ok(()),
+                Commands::Cat(cat) => execute_cat_command(cat),
                 Commands::Cache(_) => return Ok(()),
                 Commands::Checkup(_) => return Ok(()),
                 Commands::Cleanup(_) => return Ok(()),

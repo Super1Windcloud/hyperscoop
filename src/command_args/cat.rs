@@ -5,5 +5,5 @@
 #[command(about = "🐼          显示App的manifest清单文件内容")]
 #[command(override_usage = "hp  cat [app_name]")]
 pub struct CatArgs {
-    app_name: String,
+    pub app_name: String,
 }

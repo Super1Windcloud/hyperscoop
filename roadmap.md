@@ -4,7 +4,11 @@
 
 > 子命令 _add|list|known|rm repo_name_
 >
-> scoop bucket add <repo_name> [<repo_url>]**cat** 显示特定 manifest清单文件内容 , 子命令 `app_name`
+> scoop bucket add <repo_name> [<repo_url>]
+
+
+
+**cat** 显示特定 manifest清单文件内容 , 子命令 `app_name`
 
 **cache** 显示或清理下载缓存
 
@@ -115,6 +119,7 @@
     >     >
 
     >     >
+
 >
 
 **Which** 打印指定APP的可执行文件路径 🤡 🐸 `scoop Which app_name`

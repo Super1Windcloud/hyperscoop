@@ -26,7 +26,7 @@ rustflags = ["-C", "link-arg=-fuse-ld=lld",
 [net]
 retry = 3                   # network retries
 git-fetch-with-cli = true   # use the `git` executable for git operations
-offline = true              # do not access the network
+offline = false               # do not access the network
 
 
 [doc]

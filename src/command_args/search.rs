@@ -11,9 +11,3 @@ pub struct SearchArgs {
     #[clap(short, long, help = "默认模糊匹配 ,开启选项则精确匹配")]
     pub(crate) exact_match_option: bool,
 }
-
-//
-
-struct Struct {
-    name: String,
-}
