@@ -14,3 +14,6 @@ pub use invoke_search::execute_search_command;
 pub use invoke_update::execute_update_command;
 
 pub use invoke_cat::execute_cat_command;
+
+mod invoke_home;
+pub use invoke_home::execute_home_command;

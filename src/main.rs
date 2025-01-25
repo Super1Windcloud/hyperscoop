@@ -48,7 +48,7 @@ async fn main() -> Result<(), anyhow::Error> {
                 Commands::Cleanup(_) => return Ok(()),
                 Commands::Config(_) => return Ok(()),
                 Commands::Export(_) => return Ok(()),
-                Commands::Home(_) => return Ok(()),
+                Commands::Home(home) => execute_home_command(home),
                 Commands::Import(_) => return Ok(()),
                 Commands::Info(_) => return Ok(()),
                 Commands::Install(_) => return Ok(()),
