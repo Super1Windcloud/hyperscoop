@@ -53,7 +53,7 @@ async fn main() -> Result<(), anyhow::Error> {
                 Commands::Info(info) => execute_info_command(info),
                 Commands::Install(_) => return Ok(()),
                 Commands::List(query_app) => execute_list_installed_apps(query_app.name.as_ref()),
-                Commands::Prefix(_) => return Ok(()),
+                Commands::Prefix( prefix ) =>  execute_prefix_command( prefix ), 
                 Commands::Reset(_) => return Ok(()),
                 Commands::Search(search_app) => execute_search_command(search_app),
                 Commands::Shim(_) => return Ok(()),
