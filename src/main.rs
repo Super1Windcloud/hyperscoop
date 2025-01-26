@@ -1,3 +1,4 @@
+#![feature(str_as_str)]
 #![deny(clippy::shadow)]
 mod command_args;
 use clap::{command, Parser};
@@ -60,7 +61,7 @@ async fn main() -> Result<(), anyhow::Error> {
                 Commands::Status(_) => return Ok(()),
                 Commands::Uninstall(_) => return Ok(()),
                 Commands::Update(update_args) => execute_update_command(update_args),
-                Commands::Which(_) => return Ok(()),
+                Commands::Which(which ) =>  execute_which_command( which ), 
                 Commands::Merge(_) => execute_merge_command(),
                 _ => {
                     eprintln!("No command provided. Run `hp  --help` to see available commands.");

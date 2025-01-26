@@ -1,7 +1,6 @@
 use crossterm::style::Stylize;
 use std::fs;
 use std::io;
-use std::time::SystemTime;
 use chrono::{DateTime, Local};
 use serde_json::Value;
 
