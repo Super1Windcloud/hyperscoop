@@ -12,6 +12,8 @@ pub use std::process::exit;
 // pub use manifest::search_manifest;
 pub mod home;
 pub mod manifest;
+
+pub mod info;
 pub fn init_hyperscoop() -> Result<HyperScoop, anyhow::Error> {
     let hyperscoop = init_env::HyperScoop::new();
     Ok(hyperscoop)

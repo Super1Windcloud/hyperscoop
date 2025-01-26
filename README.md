@@ -18,6 +18,28 @@ scoop  install  hp/hyperscoop
 
 ---
 
+## ToDo  Command 
+- [x] Bucket
+- [x]  cat 
+- [ ] cache 
+- [ ]  checkup 
+- [ ]  cleanup  
+- [ ]  config 
+- [ ]  export  
+- [x] home 
+- [ ] import 
+- [x]  info 
+- [ ] install 
+- [x] list 
+- [ ] prefix 
+- [ ] reset 
+-  [x] search 
+- [ ] shim
+- [ ]  status  
+- [ ]  uninstall  
+- [ ]  update  
+- [ ]  which 
+- [x] merge 
 ## benchmark
 
 - ![img.png](img/1730643822703.jpg)
