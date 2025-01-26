@@ -31,14 +31,14 @@ scoop  install  hp/hyperscoop
 - [x]  info 
 - [ ] install 
 - [x] list 
-- [ ] prefix 
+- [x] prefix 
 - [ ] reset 
 -  [x] search 
 - [ ] shim
 - [ ]  status  
 - [ ]  uninstall  
 - [ ]  update  
-- [ ]  which 
+- [x]  which 
 - [x] merge 
 ## benchmark
 
