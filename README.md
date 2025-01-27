@@ -35,7 +35,7 @@ scoop  install  hp/hyperscoop
 - [ ] reset 
 -  [x] search 
 - [ ] shim
-- [ ]  status  
+- [ ] status  
 - [ ]  uninstall  
 - [ ]  update  
 - [x]  which 

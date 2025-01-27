@@ -13,7 +13,7 @@ pub fn execute_which_command(command: WhichArgs) ->  Result<(), anyhow::Error> {
       if let Some(file_name) = path.file_name() {
         let file_name = file_name.to_string_lossy();
           if file_name .as_str()!=app_name {  
-            let  app = app_name.clone();
+            // let  app = app_name.clone();
             // println!("{} is not installed or not exist ", app.red().bold());
           continue; }
         let path = app_path + "\\" + &app_name + "\\current\\" + &app_name + ".exe";

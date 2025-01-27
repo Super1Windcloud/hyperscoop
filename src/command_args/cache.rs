@@ -1,7 +1,7 @@
 ﻿use clap::{Args, Subcommand};
 
 #[derive(Clone, Subcommand, Debug)]
-pub enum Cache {
+pub enum CacheSubcommand {
     Show(ShowArgs),
     Rm(RmArgs),
 }
@@ -21,11 +21,11 @@ pub struct RmArgs {
 #[command(override_usage = " hp  cache show|rm [app(s)]")]
 pub struct CacheArgs {
     #[clap(subcommand)]
-    command: Option<Cache>,
+    pub(crate) command: Option<CacheSubcommand>,
     #[clap(
         long,
         short = 'a',
-        help = "清理所有缓存\t---hp cache rm -a",
+        help = "清理所有缓存\t 例如 rm -a /--all /* ",
         alias = "*"
     )]
     #[clap(alias = "*")]
