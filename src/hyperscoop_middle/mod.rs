@@ -29,5 +29,11 @@ mod invoke_which ;
 pub use invoke_which::execute_which_command ; 
 
 
+
+
 mod  invoke_cache ; 
-pub use invoke_cache::execute_cache_command ; 
+pub use invoke_cache::execute_cache_command ;  
+
+
+mod invoke_checkup ; 
+pub use invoke_checkup::execute_checkup_command ;  

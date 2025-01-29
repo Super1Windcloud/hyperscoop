@@ -27,13 +27,14 @@ pub   fn  display_all_cache_info()   {
   let  total_size_parsed = format!("{:.2}", total_size);
   println!("{} {} {} {} {}\n" , "Total : ".to_string().yellow().bold() ,count.to_string().dark_yellow().bold(), 
      "Files, ".to_string().yellow().bold() ,
-           total_size_parsed.to_string().yellow().bold() , "MB".to_string().dark_yellow().bold()) ;
+           total_size_parsed.to_string().yellow().bold() , "MB".to_string().dark_yellow().bold()) ; 
+  if   count ==0  { 
+    return ; 
+  }
   println!("{:<30}\t\t{:<30}\t\t{:<30}" , "Name".green().bold() , "Version".green().bold(), "Size".green().bold());
   println!("{:<30}\t\t{:<30}\t\t{:<30}" , "____".green().bold() , "_______".green().bold(), "____".green().bold());
 
   println_cache_info(&infos);
-
-  
 
 }
 

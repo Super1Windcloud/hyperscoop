@@ -45,7 +45,7 @@ async fn main() -> Result<(), anyhow::Error> {
                 Commands::Bucket(bucket) => execute_bucket_command(&bucket.command).await,
                 Commands::Cat(cat) => execute_cat_command(cat),
                 Commands::Cache(cache_args) => execute_cache_command(cache_args) ,
-                Commands::Checkup(_) => return Ok(()),
+                Commands::Checkup(_) =>  execute_checkup_command() ,
                 Commands::Cleanup(_) => return Ok(()),
                 Commands::Config(_) => return Ok(()),
                 Commands::Export(_) => return Ok(()),
