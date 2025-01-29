@@ -14,7 +14,7 @@ pub   fn  display_all_cache_info() {
      let  path1 =path.path().clone().file_name().unwrap().to_str().unwrap().to_string();
      let path2 =path.path().clone().to_string_lossy().to_string();
      let  app_name =path1.split("#").collect::<Vec<&str>>()[0].to_string();
-     let  zip_size=std::fs::metadata(&path2).unwrap().len()/1024/1024;
+     let  zip_size=(std::fs::metadata(&path2).unwrap().len() as f64)/1024f64/1024f64 ; 
        log::info!("cache file : {}",&app_name);
       log::info!("cache file : {}",&path2);
      log::info!("cache size : {} MB",&zip_size);
@@ -23,8 +23,11 @@ pub   fn  display_all_cache_info() {
       infos.push((app_name,version,zip_size));
      count += 1;
    }
-  let total_size = infos.iter().fold(0, |acc, x| acc + x.2);
-  println!("Total : {} Files, {} MB\n" , count.to_string().green().bold(), total_size.to_string().green().bold());
+  let total_size = infos.iter().fold(0f64, |acc, x| acc + x.2); 
+  let  total_size_parsed = format!("{:.2}", total_size);
+  println!("{} {} {} {} {}\n" , "Total : ".to_string().yellow().bold() ,count.to_string().dark_yellow().bold(), 
+     "Files, ".to_string().yellow().bold() ,
+           total_size_parsed.to_string().yellow().bold() , "MB".to_string().dark_yellow().bold()) ;
   println!("{:<30}\t\t{:<30}\t\t{:<30}" , "Name".green().bold() , "Version".green().bold(), "Size".green().bold());
   println!("{:<30}\t\t{:<30}\t\t{:<30}" , "____".green().bold() , "_______".green().bold(), "____".green().bold());
 
@@ -33,8 +36,9 @@ pub   fn  display_all_cache_info() {
 
 }
 
-fn println_cache_info(app_name : &Vec<(String, String, u64)>) {
-  for info in app_name {
-    println!("{:<15} {:<15} {:<15}", info.0, info.1, info.2.to_string()+" MB");
+fn println_cache_info(app_name : &Vec<(String, String, f64)>) {
+  for info in app_name { 
+    let zip_size_parsed = format!("{:.2}", info.2);
+    println!("{:<15} {:<15} {:<15}", info.0, info.1, zip_size_parsed +" MB");
   }
 }
