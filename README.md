@@ -21,8 +21,8 @@ scoop  install  hp/hyperscoop
 ## ToDo  Command 
 - [x] Bucket
 - [x]  cat 
-- [ ] cache 
-- [ ]  checkup 
+- [x] cache 
+- [x]  checkup 
 - [ ]  cleanup  
 - [ ]  config 
 - [ ]  export  
