@@ -1,5 +1,4 @@
 ﻿use clap::{Args, Subcommand};
-
 #[derive(Clone, Subcommand, Debug)]
 pub enum CacheSubcommand {
     Show(ShowArgs),
@@ -8,11 +7,24 @@ pub enum CacheSubcommand {
 
 #[derive(Debug, Clone, Args)]
 ///显示所有缓存
-pub struct ShowArgs {}
+pub struct ShowArgs {} 
+
 #[derive(Debug, Clone, Args)]
-///删除指定缓存
+///删除指定缓存 
+#[command(arg_required_else_help = true, subcommand_negates_reqs = true)]
 pub struct RmArgs {
-    rm_app: String,
+  
+    pub    rm_app: Option<String> ,
+  #[arg(
+    long,
+    short = 'a',
+    help = "清理所有缓存\t 例如 rm -a /--all /* ",
+    alias = "*"
+  )]
+  pub all: bool,
+
+  #[arg (short = 'l' , long, help = "启动日志等级", default_value = "4" , value_name = "1-4" )]
+  pub  log_level :  u8 ,
 }
 
 #[derive(Args, Debug)]
@@ -22,12 +34,14 @@ pub struct RmArgs {
 pub struct CacheArgs {
     #[clap(subcommand)]
     pub(crate) command: Option<CacheSubcommand>,
-    #[clap(
-        long,
-        short = 'a',
-        help = "清理所有缓存\t 例如 rm -a /--all /* ",
-        alias = "*"
-    )]
-    #[clap(alias = "*")]
-    all: bool,
+  #[arg(
+    long,
+    short = 'a',
+    help = "清理所有缓存\t 例如 rm -a /--all /* ",
+    alias = "*"
+  )]
+  pub all: bool,
+  
+  #[arg (short = 'l' , long, help = "启动日志等级", default_value = "4" , value_name = "1-4" )]
+  pub  log_level :  u8 , 
 }
