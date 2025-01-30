@@ -46,7 +46,7 @@ async fn main() -> Result<(), anyhow::Error> {
                 Commands::Cat(cat) => execute_cat_command(cat),
                 Commands::Cache(cache_args) => execute_cache_command(cache_args) ,
                 Commands::Checkup(_) =>  execute_checkup_command() ,
-                Commands::Cleanup(_) => return Ok(()),
+                Commands::Cleanup(args ) =>  execute_cleanup_command( args)  ,
                 Commands::Config(_) => return Ok(()),
                 Commands::Export(_) => return Ok(()),
                 Commands::Home(home) => execute_home_command(home),
