@@ -13,8 +13,12 @@ pub use std::process::exit;
 pub mod home;
 pub mod manifest;
 pub mod   cache ; 
-pub mod info;
+pub mod info; 
+pub mod  export  ; 
 pub fn init_hyperscoop() -> Result<HyperScoop, anyhow::Error> {
     let hyperscoop = init_env::HyperScoop::new();
     Ok(hyperscoop)
 }
+
+
+pub mod  config ;  

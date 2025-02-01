@@ -34,6 +34,7 @@ tokio = { workspace = true }
 time = "0.3.36"
 dashmap = { workspace = true }
 webbrowser = "1.0.3"
+git2 = "0.20.0"
 [lib]
 name = "command_util_lib"
 crate-type = ["lib"]

@@ -9,7 +9,6 @@
 scoop  install  hp/hyperscoop 
  
 ```
-
 ---
 
 ## CLI Features
@@ -17,14 +16,13 @@ scoop  install  hp/hyperscoop
 - ![img.png](./img/微信图片_20241101140706.png)
 
 ---
-
 ## ToDo  Command 
 - [x] Bucket
 - [x]  cat 
 - [x] cache 
 - [x]  checkup 
-- [ ]  cleanup  
-- [ ]  config 
+- [x]  cleanup  
+- [x]  config 
 - [ ]  export  
 - [x] home 
 - [ ] import 
@@ -33,7 +31,7 @@ scoop  install  hp/hyperscoop
 - [x] list 
 - [x] prefix 
 - [ ] reset 
--  [x] search 
+- [x] search 
 - [ ] shim
 - [ ] status  
 - [ ]  uninstall  

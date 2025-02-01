@@ -1,4 +1,4 @@
-﻿<component name="InspectionProjectProfileManager">
+<component name="InspectionProjectProfileManager">
   <profile version="1.0">
     <option name="myName" value="Project Default" />
     <inspection_tool class="Eslint" enabled="true" level="WARNING" enabled_by_default="true" />
@@ -25,5 +25,6 @@
         </list>
       </option>
     </inspection_tool>
+    <inspection_tool class="t" enabled="false" level="WEAK WARNING" enabled_by_default="false" />
   </profile>
 </component>

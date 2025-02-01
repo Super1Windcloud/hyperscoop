@@ -13,7 +13,6 @@ pub struct ShowArgs {}
 ///删除指定缓存 
 #[command(arg_required_else_help = true, subcommand_negates_reqs = true)]
 pub struct RmArgs {
-  
     pub    rm_app: Option<String> ,
   #[arg(
     long,

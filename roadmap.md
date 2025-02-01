@@ -58,7 +58,7 @@
 **info** 显示指定APP的信息 🍷 `scoop info app_name`
 
 > Name : zig Description : General-purpose programming language designed for robustness, optimality, and maintainability. Version : 0.13.0 Bucket : main Website : [https://ziglang.org](https://ziglang.org) License : MIT ([https://spdx.org/licenses/MIT.html](https://spdx.org/licenses/MIT.html)) Updated at : 2024/6/7 16:28:11 Updated by : github-actions[bot] Manifest : A:\Scoop\buckets\main\bucket\zig.json Installed : A:\Scoop\apps\zig\0.13.0 Installed size : 293.8 MB Binaries : zig.exe Suggestions : extras/vcredist2022
-
+ 
 **install** 安装指定APP 🐘 _Usage: scoop install <app> [options]_
 
 > - scoop install app , 从bucket 安装
