@@ -1,4 +1,4 @@
-﻿#[allow(dead_code)]
+#[allow(dead_code)]
 fn main() {
   // 数值微分
   fn fx(x: f64) -> f64 {

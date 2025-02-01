@@ -23,9 +23,9 @@ scoop  install  hp/hyperscoop
 - [x]  checkup 
 - [x]  cleanup  
 - [x]  config 
-- [ ]  export  
+- [x]  export  
 - [x] home 
-- [ ] import 
+- [x] import 
 - [x]  info 
 - [ ] install 
 - [x] list 
