@@ -12,24 +12,25 @@ def  update_version_and_url() :
               if  line.startswith("version") :
                   version =  line.split("=")[1].strip()
                   break
-      manifest_path1 = os.path.join(os.path.dirname(os.path.dirname(__file__)),
-      r"hyperscoop_source_bucket/bucket/hyperscoop.json")
+      manifest_path1 = os.path.join(os.path.dirname(os.path.dirname(__file__)),  r"hyperscoop_source_bucket/bucket/hyperscoop.json")
       manifest_path2 = r'A:\Scoop\buckets\hp\bucket\hyperscoop.json'
-      with open(manifest_path2, "r" ,encoding="utf-8") as f:
+      with open(manifest_path1, "r" ,encoding="utf-8") as f:
           data =  json.load(f)
           old_version = data["version"]
+          print(data["url"])
           data["version"] = version.replace('"', '')
-          data["url"]  =data["url"].replace(old_version, version).replace('"', '')
+          data["url"]  ="https://gitee.com/SuperWindcloud/hyperscoop/releases/download/"+version.replace('"', '') +"/hp.exe"
+          print(data["url"])
           with open(manifest_path2, "w", encoding="utf-8") as writer :
                  json.dump(data, writer , ensure_ascii=False , indent=4)  # 禁用 ASCII 编码以保留非 ASCII 字符（如中文） )
 
 
 
-      with open(manifest_path1, "r" ,encoding="utf-8") as f:
+      with open(manifest_path2, "r" ,encoding="utf-8") as f:
               data =  json.load(f)
               old_version = data["version"]
               data["version"] = version.replace('"', '')
-              data["url"]  =data["url"].replace(old_version, version).replace('"', '')
+              data["url"]  = "https://gitee.com/SuperWindcloud/hyperscoop/releases/download/"+version.replace('"', '') +"/hp.exe"
               with open(manifest_path1, "w", encoding="utf-8") as writer :
                      json.dump(data, writer , ensure_ascii=False , indent=4)  # 禁用 ASCII 编码以保留非 ASCII 字符（如中文） )
 
