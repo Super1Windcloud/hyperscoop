@@ -6,7 +6,7 @@
 
 ```bash
  scoop bucket add hp https://gitee.com/SuperWindcloud/hyperscoop_bucket.git
-scoop  install  hp/hyperscoop 
+scoop  install  -u  hp/hp   
  
 ```
 ---
