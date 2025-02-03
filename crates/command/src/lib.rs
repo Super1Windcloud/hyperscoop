@@ -22,6 +22,6 @@ pub fn init_hyperscoop() -> Result<HyperScoop, anyhow::Error> {
 
 
 pub mod  config ;  
-
+pub mod reset ; 
 
 pub mod  shim ; 

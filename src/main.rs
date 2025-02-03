@@ -55,7 +55,7 @@ async fn main() -> Result<(), anyhow::Error> {
                 Commands::Install(_) => return Ok(()),
                 Commands::List(query_app) => execute_list_installed_apps(query_app.name.as_ref()),
                 Commands::Prefix( prefix ) =>  execute_prefix_command( prefix ),
-                Commands::Reset(_) => return Ok(()),
+                Commands::Reset( args ) =>  execute_reset_command( args)   ,
                 Commands::Search(search_app) => execute_search_command(search_app),
                 Commands::Shim( args ) =>  execute_shim_command( args)   ,
                 Commands::Status(_) => return Ok(()),

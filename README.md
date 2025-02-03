@@ -30,7 +30,7 @@ scoop  install  hp/hyperscoop
 - [ ] install 
 - [x] list 
 - [x] prefix 
-- [ ] reset 
+- [x] reset 
 - [x] search 
 - [x] shim
 - [ ] status  

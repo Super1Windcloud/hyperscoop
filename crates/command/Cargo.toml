@@ -35,7 +35,6 @@ tokio = { workspace = true }
 webbrowser = "1.0.3"
 git2 = "0.20.0"
 rust_file_encode_mode_convert = "11.45.14"
-
 [lib]
 name = "command_util_lib"
 crate-type = ["lib"]

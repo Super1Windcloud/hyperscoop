@@ -976,7 +976,7 @@ dependencies = [
 
 [[package]]
 name = "hp"
-version = "1.0.4"
+version = "1.1.1"
 dependencies = [
  "anyhow",
  "clap",
@@ -986,6 +986,7 @@ dependencies = [
  "crossterm",
  "env_logger",
  "log",
+ "regex",
  "serde",
  "serde_json",
  "tokio",

@@ -4,17 +4,17 @@ use command_util_lib::init_hyperscoop;
 use crate::command_args::cleanup::CleanupArgs;
 
 pub  fn  execute_cleanup_command(args: CleanupArgs) -> Result<(), anyhow::Error> {
-  if let Some(name) = args.name { 
-    if name == "*" {   clean_all_old_versions()   } 
+  if let Some(name) = args.name {
+    if name == "*" {   clean_all_old_versions()   }
     else {
       clean_specific_old_version(name)
     }
-  }  
-  if args.all { 
-    log::info!("Run cleanup all command"); 
-      clean_all_old_versions()  
-  }  
-  Ok(()) 
+  }
+  if args.all {
+    log::info!("Run cleanup all command");
+      clean_all_old_versions()
+  }
+  Ok(())
 }
 
 fn clean_specific_old_version(   app_name  : String) {
@@ -62,16 +62,16 @@ fn clean_all_old_versions() {
   log::info!("{:?}", versions_with_name);
   for (app_name, version) in versions_with_name {
     let exclude_path = format!("{}\\{}\\{}", apps_path.clone(), app_name, version);
-    let exclude_path = std::path::Path::new(&exclude_path); 
+    let exclude_path = std::path::Path::new(&exclude_path);
     let   dir = format!("{}\\{}", apps_path.clone(), app_name)  ;
     log::info!("{:?}", dir);
     if exclude_path.exists() {
-      for entry in std::fs::read_dir(dir ).expect("Failed to read app directory") { 
-        let entry = entry.expect("Failed to read app directory entry"); 
-        if entry.path().is_dir() { 
+      for entry in std::fs::read_dir(dir ).expect("Failed to read app directory") {
+        let entry = entry.expect("Failed to read app directory entry");
+        if entry.path().is_dir() {
           if entry.path() == exclude_path { continue; }
-          let  name = entry.path().file_name().unwrap().to_str().unwrap().to_string(); 
-          if name == "current"  { continue; }  
+          let  name = entry.path().file_name().unwrap().to_str().unwrap().to_string();
+          if name == "current"  { continue; }
           log :: info!("Removing old version: {}", entry.path().display());
           std::fs::remove_dir_all(entry.path()).expect("Failed to remove old version");
         }
@@ -82,7 +82,7 @@ fn clean_all_old_versions() {
 
 use std::cmp::Ordering;
 
-fn compare_versions(ver1: String, ver2: String) -> Ordering {
+pub  fn compare_versions(ver1: String, ver2: String) -> Ordering {
   // 分割版本号并转换为数字数组
   let v1: Vec<i32> = ver1.split('.').flat_map(|s| s.parse()).collect();
   let v2: Vec<i32> = ver2.split('.').flat_map(|s| s.parse()).collect();
