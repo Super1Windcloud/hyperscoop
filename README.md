@@ -25,14 +25,14 @@ scoop  install  hp/hyperscoop
 - [x]  config 
 - [x]  export  
 - [x] home 
-- [x] import 
+- [ ] import 
 - [x]  info 
 - [ ] install 
 - [x] list 
 - [x] prefix 
 - [ ] reset 
 - [x] search 
-- [ ] shim
+- [x] shim
 - [ ] status  
 - [ ]  uninstall  
 - [ ]  update  

@@ -57,7 +57,7 @@ async fn main() -> Result<(), anyhow::Error> {
                 Commands::Prefix( prefix ) =>  execute_prefix_command( prefix ),
                 Commands::Reset(_) => return Ok(()),
                 Commands::Search(search_app) => execute_search_command(search_app),
-                Commands::Shim(_) => return Ok(()),
+                Commands::Shim( args ) =>  execute_shim_command( args)   ,
                 Commands::Status(_) => return Ok(()),
                 Commands::Uninstall(_) => return Ok(()),
                 Commands::Update(update_args) => execute_update_command(update_args),
