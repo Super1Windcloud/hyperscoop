@@ -14,7 +14,7 @@ def  update_version_and_url() :
                   break
       manifest_path1 = os.path.join(os.path.dirname(os.path.dirname(__file__)),
       r"hyperscoop_source_bucket/bucket/hyperscoop.json")
-      manifest_path2 = r'A:\Scoop\buckets\hyperscoop\bucket\hyperscoop.json'
+      manifest_path2 = r'A:\Scoop\buckets\hp\bucket\hyperscoop.json'
       with open(manifest_path2, "r" ,encoding="utf-8") as f:
           data =  json.load(f)
           old_version = data["version"]
@@ -59,7 +59,7 @@ def  write_to_manifest(hash_value):
 
 def  write_scoop_bucket(   hash_value   ) :
      """Write the hash value to the scoop bucket"""
-     hyperscoop_bucekt = r'A:\Scoop\buckets\hyperscoop\bucket\hp.json'
+     hyperscoop_bucekt = r'A:\Scoop\buckets\hp\bucket\hyperscoop.json'
      if not os.path.isfile(hyperscoop_bucekt):
          return None
      with open(hyperscoop_bucekt, "r" ,encoding="utf-8") as f:
@@ -71,10 +71,8 @@ def  write_scoop_bucket(   hash_value   ) :
 
 
 if __name__ == '__main__':
-    debug_file_path = r"A:\Rust_Project\hyperscoop\target\debug\hp.exe"
     release_file_path = r"A:\Rust_Project\hyperscoop\target\release\hp.exe"
     result =calculate_hash(release_file_path)
-    # result =  calculate_hash(debug_file_path)
     write_to_manifest(result)  # 将哈希值写入 manifest 文件
     write_scoop_bucket ( result )  # 将哈希值写入 scoop bucket
     update_version_and_url()  # 更新版本号和下载URL
