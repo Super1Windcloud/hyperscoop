@@ -2,9 +2,11 @@
 
 
 #[derive(Args, Debug)]
-#[clap(name = "import", about = "⚽️         导入json文件下载列表中的APP")]
-pub struct ImportArgs {
-  name: Option<String>,
+#[clap(name = "import", about = "⚽️         导入通过export导出的json配置文件")]
+#[command(arg_required_else_help = true)]
+pub struct ImportArgs { 
+  #[arg(help = "导入的json配置文件路径")]
+  pub(crate) path  : Option<String>,
 }
 
 
