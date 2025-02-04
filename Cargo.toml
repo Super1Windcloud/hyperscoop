@@ -32,6 +32,8 @@ tokio = { version = "1.0.0", features = ["rt", "rt-multi-thread", "macros"] }
 serde_json = { workspace = true }
 command_util_lib = { path = "crates/command" }
 regex = "1.11.1"
+reqwest = "0.12.9"
+rayon = "1.10.0"
 
 
 [workspace.dependencies]

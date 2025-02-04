@@ -33,7 +33,7 @@ scoop  install  -u  hp/hp
 - [x] reset 
 - [x] search 
 - [x] shim
-- [ ] status  
+- [x] status  
 - [ ]  uninstall  
 - [ ]  update  
 - [x]  which 
