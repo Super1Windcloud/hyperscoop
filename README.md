@@ -25,7 +25,7 @@ scoop  install  -u  hp/hp
 - [x]  config 
 - [x]  export  
 - [x] home 
-- [ ] import 
+- [x] import 
 - [x]  info 
 - [ ] install 
 - [x] list 

@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use crate::init_hyperscoop;
 use anyhow::bail;
 use crossterm::style::Stylize;
@@ -48,13 +49,13 @@ pub fn install_apps(app_info: Vec<(&str, &str, &str)>, path: String) -> Result<(
                 path.red().bold()
             )
         }
-        invoke_hp_install(app_name, bucket, version)?;
+        invoke_hp_install(app_name, bucket )?;
     }
 
     Ok(())
 }
 
-fn invoke_hp_install(app_name: &str, bucket: &str, version: &str) -> Result<(), anyhow::Error> {
+fn invoke_hp_install(app_name: &str, bucket: &str ) -> Result<(), anyhow::Error> {
     let hp = init_hyperscoop()?;
     let buckets_path = hp.bucket_path.clone();
     for entry in std::fs::read_dir(buckets_path)? {
@@ -67,22 +68,31 @@ fn invoke_hp_install(app_name: &str, bucket: &str, version: &str) -> Result<(), 
         if bucket_name != bucket {
             continue;
         }
-        log::trace!("{:?}", &path);
+        log::trace!("{:?}", &path); 
+        let  path = path.join("bucket");
         for entry in std::fs::read_dir(&path)? {
             let entry = entry?;
-            let path = entry.path().join("bucket");
-            if !path.is_dir() {
+            let path = entry.path();
+            if !path.is_file()  {
                 continue;
             }
-           let file_name = path.file_stem().unwrap().to_str().unwrap(); 
+           let file_name = path.file_name().unwrap().to_str().unwrap().replace(".json", "");
            if file_name != app_name {
                continue;
            } 
-           log::trace!("app manifest {:?}", path.display());
+           log::trace!("app manifest {:?}", path.display()); 
+          parser_app_manifest(path.clone())?;
           return Ok(());
         } 
       bail!("Config_File Error: app not exist on {}", path.clone().to_str().unwrap().red().bold())
     }
     eprintln!("Error: bucket {} not found", bucket.red().bold());
     bail!("Config_File Error: bucket not exist ");
+}
+
+fn parser_app_manifest(path : PathBuf) -> Result<() , anyhow::Error> {
+   log::info!("开始安装app") ; 
+   let manifest = std::fs::read_to_string(&path)?;
+    log::info!("{:?}", &manifest);
+   Ok(())
 }
