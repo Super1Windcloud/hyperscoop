@@ -20,8 +20,10 @@ pub fn init_hyperscoop() -> Result<HyperScoop, anyhow::Error> {
     Ok(hyperscoop)
 }
 
-
+pub mod  uninstall ; 
 pub mod  config ;
 pub mod reset ;
 pub mod  import ; 
-pub mod  shim ;
+pub mod  shim ; 
+pub mod  update ; 
+pub  mod install ; 
