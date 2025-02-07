@@ -1,8 +1,9 @@
 use crate::init_hyperscoop;
 use anyhow::bail;
 use crossterm::style::Stylize;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use serde_json::Value;
+use crate::utils::invoke_hook_script::*;
 
 pub fn uninstall_app_with_purge(app_name: &str) -> Result<(), anyhow::Error> {
     uninstall_app(app_name)?;
@@ -30,7 +31,6 @@ pub fn uninstall_app(app_name: &str) -> Result<(), anyhow::Error> {
     let hyperscoop = init_hyperscoop()?;
     let app_path = hyperscoop.get_apps_path();
     let shim_path = hyperscoop.get_shims_path();
-  let persist_path = hyperscoop.get_persist_path();
   let  lower = app_name.to_lowercase();
   let  app_name = lower.as_str();
     if app_name == "scoop" {
@@ -76,26 +76,35 @@ pub fn uninstall_app(app_name: &str) -> Result<(), anyhow::Error> {
             if file_name.to_str().unwrap().to_lowercase() == app_name {
                 let current_path = path.join("current");
                 let manifest_path = current_path.join("manifest.json");
+              let install_path = current_path.join("install.json");
 
-                if !manifest_path.exists() {
+
+                if !manifest_path.exists()  || !install_path.exists() {
                     bail!("{} is not  existing ", manifest_path.display());
+
                 }
                 let contents = std::fs::read_to_string(manifest_path)?;
                 let manifest: serde_json::Value = serde_json::from_str(&contents)?;
                 let version = manifest["version"].as_str().unwrap_or("Unknown");
-
-
+                let  install_info = std::fs::read_to_string(install_path)?;
+                let install_info: serde_json::Value = serde_json::from_str(&install_info)?;
+               let  arch = install_info["architecture"].as_str().unwrap_or("Unknown");
+               invoke_hook_script(HookType::PreUninstall, &manifest, arch)?;
                 println!(
                     "Uninstalling '{}'  ({})",
                     app_name.dark_red().bold(),
                     version.dark_red().bold()
                 );
-
+              invoke_hook_script(HookType::Uninstaller, &manifest, arch)?;
+              env_path_var_rm( &current_path, &manifest)?;
               rm_shim_file(shim_path.clone(), app_name );
               rm_start_menu_shortcut();
-                println!("Unlinking {}", current_path.display());
-               // std::fs::remove_dir_all(path)?;
+                println!("Unlinking {}", &current_path.display());
 
+              invoke_hook_script(HookType::PostUninstall, &manifest, arch)?;
+
+               uninstall_psmodule (  &manifest )?;
+              //  rm_all_dir(path.clone())? ;
                 return Ok(());
             }
         }
@@ -103,7 +112,111 @@ pub fn uninstall_app(app_name: &str) -> Result<(), anyhow::Error> {
     bail!("'{}' {}", app_name.red().bold() ,"is not installed".red().bold());
 }
 
- 
+fn env_path_var_rm(current : &PathBuf, manifest : &Value) -> Result<() , anyhow::Error>  {
+  use winreg::enums::*;
+  use winreg::RegKey;
+
+  let env_add_path_str  = manifest["env_add_path"].as_str();
+  let  env_add_path_arr = manifest["env_add_path"].as_array();
+  if env_add_path_str.is_none() && env_add_path_arr.is_none() {
+    return Ok(());
+  }
+ if  env_add_path_str.is_some() {
+   let path_var =    current.join(env_add_path_str.unwrap());
+   if path_var.exists() {
+
+     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+     let environment_key = hkcu.open_subkey("Environment")?;
+
+     let user_path: String = environment_key.get_value("PATH")?;
+
+     log::trace!("\n 当前用户的 PATH: {}", user_path);
+     let  mut paths: Vec<PathBuf> =std:: env::split_paths(&user_path).collect();
+     paths.retain(|p| p != &path_var);
+     let  user_path = paths.iter().map(|p| p.to_string_lossy().into_owned()).collect::<Vec<String>>().join(";");
+     log::trace!("\n 更新后的用户的 PATH: {}", user_path);
+
+     // environment_key.set_value("PATH", &user_path)?;
+     let  script = format!(r#"[System.Environment]::SetEnvironmentVariable("PATH","{user_path}", "User")"#);
+     let output = std::process::Command::new("powershell")
+       .arg("-ExecutionPolicy")
+       .arg("Bypass")
+       .arg("-Command")
+       .arg(script)
+       .output()?;
+     if !output.status.success() {
+       bail!("Failed to remove path var");
+     }
+   }
+ }
+  if env_add_path_arr.is_some() {
+    let  env_add_path_arr = env_add_path_arr.unwrap(); 
+    let  env_add_path_arr =env_add_path_arr.iter().map(|p| 
+      current.join(p.as_str().unwrap())) .collect::<Vec<PathBuf>>();
+
+    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+    let environment_key = hkcu.open_subkey("Environment")?;
+
+    let user_path: String = environment_key.get_value("PATH")?;
+    let origin = user_path.clone();
+    log::trace!("\n 当前用户的 PATH: {}", user_path);
+    let  mut paths: Vec<PathBuf> =std:: env::split_paths(&user_path).collect();
+
+     for path_var in env_add_path_arr {  
+       paths.retain(|p| p != &path_var);
+     }
+
+    let  user_path = paths.iter().map(|p| p.to_string_lossy().into_owned()).collect::<Vec<String>>().join(";");
+    log::trace!("\n 更新后的用户的 PATH: {}", user_path);
+     if user_path ==origin {   
+       log::trace!("\n 没有需要移除的路径变量");
+       return Ok(()); 
+     } 
+    let  script = format!(r#"[System.Environment]::SetEnvironmentVariable("PATH","{user_path}", "User")"#);
+    let output = std::process::Command::new("powershell")
+      .arg("-ExecutionPolicy")
+      .arg("Bypass")
+      .arg("-Command")
+      .arg(script)
+      .output()?;
+    if !output.status.success() {
+      bail!("Failed to remove path var");
+    }
+    
+  }
+  Ok(())
+}
+
+fn uninstall_psmodule( manifest: &Value) -> Result<(), anyhow::Error> {
+  let psmodule = manifest["psmodule"]
+    .as_object()
+    .map(|o| serde_json::to_string(o).unwrap());
+  if psmodule.is_none() {
+    return Ok(());
+  }
+  let  hp = init_hyperscoop().unwrap();
+  let   psmodule_dir = hp.get_psmodule_path() ;
+  let  module_name :Value  =  serde_json::from_str(psmodule.as_ref().unwrap().as_str() )? ;
+  let  module_name = module_name.get("name").unwrap().as_str().unwrap();
+  println!("Uninstalling PowerShell module  '{}'" ,  module_name.dark_red().bold());
+  let lind_path = Path::new(&psmodule_dir).join(module_name);
+  if   lind_path.exists() {
+    println!("Removing psmodule path {}", &lind_path.display());
+    std::fs::remove_dir_all(lind_path)?;
+  }
+  Ok(())
+}
+
+
+fn rm_all_dir(path : PathBuf) -> Result<() , anyhow::Error> {
+  match std::fs::remove_dir_all(path) {
+    Ok(_) => { Ok(()) }
+    Err(err) => {
+      bail!("{}", err.to_string().red().bold());
+    }
+  }
+}
+
 fn check_installed_status(app_name : &str) -> Result<bool, anyhow::Error> {
 
   use regex::Regex;

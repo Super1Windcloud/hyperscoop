@@ -1,10 +1,14 @@
 ﻿#![deny(clippy::shadow)]
 
+use std::cell::RefCell;
+use std::fs;
 use std::fs::{read_to_string, File};
 use std::io::{BufRead, BufReader, Read};
 use std::path::PathBuf;
 use std::process::exit;
+use rayon::iter::ParallelBridge;
 use serde_json::{from_str, Value};
+use command_util_lib::init_hyperscoop;
 use command_util_lib::manifest::search_manifest::SearchManifest;
 use command_util_lib::utils::repair_dirty_json::{fix_dirty_json, DEMO_JSON};
 use command_util_lib::utils::detect_encoding::{transform_to_search_manifest_object, transform_to_only_version_manifest};
@@ -14,7 +18,7 @@ fn main() {
 
   // 开始计时
   let start_time = std::time::Instant::now();
-
+  test_invoke_uninstall_hook_script();
   let end_time = std::time::Instant::now();
   println!("程序运行时间：{:?}", end_time.duration_since(start_time));
 }
@@ -130,4 +134,42 @@ fn test_json_parser() {
 fn test_fix_json() {
   let result = fix_dirty_json(DEMO_JSON).unwrap();
   println!("result: {}", result);
+}
+
+
+fn  test_invoke_uninstall_hook_script() {
+  use std::fs;
+  use rayon::prelude::*;
+  let hp = init_hyperscoop().unwrap();
+  let  mut count = 0 ;  
+  let bucket_path = hp.get_bucket_path();
+  fs::read_dir(bucket_path)
+    .unwrap()
+    .par_bridge()
+    .for_each(|entry| {
+      let entry = entry.unwrap();
+      let bucket = entry.path().join("bucket");
+
+      fs::read_dir(bucket)
+        .unwrap()
+        .par_bridge()
+        .for_each(|entry| {
+          let entry = entry.unwrap();
+          let path = entry.path();
+          let count = RefCell::new(0);
+          if path.is_file() && path.extension().unwrap_or(std::ffi::OsStr::new("")) == "json" {
+            let  contents = fs::read_to_string(&path).unwrap_or_default();
+            let manifest: serde_json::Value = serde_json::from_str(&contents).unwrap_or_default();
+            let  post_uninstall = manifest["post_uninstall"].as_array();
+            let   pre_uninstall = manifest["pre_uninstall"].as_array();
+            let  uninstaller = manifest["uninstaller"].as_str();
+            let installer = manifest["installer"].as_str();
+            let  psmodule = manifest["psmodule"].as_object(); 
+            let  env_add_path = manifest["env_add_path"].as_array();
+            if env_add_path.is_some()   {
+              
+            }
+          }
+        });
+    });
 }

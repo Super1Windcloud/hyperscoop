@@ -32,6 +32,9 @@ impl HyperScoop {
     pub fn get_apps_path(&self) -> String {
         self.apps_path.clone()
     }
+  pub fn get_psmodule_path(&self) -> String { 
+      format!("{}\\modules", self.scoop_path) 
+  }
     pub fn get_persist_path(&self) -> String {
         self.persist_path.clone()
     }
