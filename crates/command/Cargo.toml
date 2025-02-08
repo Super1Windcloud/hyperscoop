@@ -36,6 +36,12 @@ webbrowser = "1.0.3"
 git2 = "0.20.0"
 rust_file_encode_mode_convert = "11.45.14"
 winreg = "0.55.0"
+windows-sys = { version = "0.59.0" ,features = [
+  "Win32_UI_WindowsAndMessaging",
+  "Win32_Foundation","Win32_Graphics_Gdi"
+
+] }
+widestring = "1.1.0"
 [lib]
 name = "command_util_lib"
 crate-type = ["lib"]

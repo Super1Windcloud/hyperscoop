@@ -52,7 +52,7 @@ async fn main() -> Result<(), anyhow::Error> {
                 Commands::Home(home) => execute_home_command(home),
                 Commands::Import( args ) =>  execute_import_command( args),
                 Commands::Info(info) => execute_info_command(info),
-                Commands::Install(_) => return Ok(()),
+                Commands::Install(args )  => execute_install_command( args)   ,
                 Commands::List(query_app) => execute_list_installed_apps(query_app.name.as_ref()),
                 Commands::Prefix( prefix ) =>  execute_prefix_command( prefix ),
                 Commands::Reset( args ) =>  execute_reset_command( args)   ,

@@ -164,12 +164,17 @@ fn  test_invoke_uninstall_hook_script() {
             let   pre_uninstall = manifest["pre_uninstall"].as_array();
             let  uninstaller = manifest["uninstaller"].as_str();
             let installer = manifest["installer"].as_str();
-            let  psmodule = manifest["psmodule"].as_object(); 
+            let  psmodule = manifest["psmodule"].as_object();  
+            let env_set= manifest["env_set"].as_object();  
             let  env_add_path = manifest["env_add_path"].as_array();
-            if env_add_path.is_some()   {
-              
+            if env_set.is_some()    && ! env_set.unwrap().is_empty(){
+                 dbg!(path.display());   
+                println!("env {:?}"  , env_set.unwrap() );
+                exit(0); 
             }
           }
         });
     });
 }
+
+

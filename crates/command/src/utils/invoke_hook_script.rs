@@ -22,7 +22,7 @@ pub enum ProcessorArchitecture {
     Arm64,
 }
 
-// 模拟的清单结构
+#[allow(dead_code)]
 struct Manifest {
     // 假设清单包含钩子脚本
     installer_script: Option<String>,
