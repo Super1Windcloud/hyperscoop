@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::path::Path;
 use anyhow::bail;
 use widestring::WideCString;
 use windows_sys::Win32::UI::WindowsAndMessaging::{SendMessageTimeoutW, WM_SETTINGCHANGE, SMTO_ABORTIFHUNG, MessageBoxW, MB_OK, MB_ICONINFORMATION, CreateWindowExW, ShowWindow};
@@ -142,6 +143,9 @@ pub fn set_env_var(var_key: &str, var_value: &str) -> Result<(), anyhow::Error> 
   Ok(() )
 }
 
+pub  fn is_shortcut(path: &Path) -> bool {
+  path.extension().and_then(|ext| ext.to_str()) == Some("lnk")
+}
 
 mod test {
   #[allow(unused_imports)]
