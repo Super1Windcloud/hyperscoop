@@ -34,7 +34,7 @@ scoop  install  -u  hp/hp
 - [x] search 
 - [x] shim
 - [x] status  
-- [ ]  uninstall  
+- [x]  uninstall  
 - [ ]  update  
 - [x]  which 
 - [x] merge 
