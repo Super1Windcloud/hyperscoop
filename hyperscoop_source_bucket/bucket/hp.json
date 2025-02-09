@@ -1,10 +1,10 @@
 {
-    "version": "1.1.1",
+    "version": "7.7.7",
     "homepage": "https://gitee.com/superwindcloud/hyperscoop",
     "description": "A Rust port of  scoop  windows pacakge  manager with a focus on simplicity and usability.",
     "license": "MIT",
-    "url": "https://gitee.com/SuperWindcloud/hyperscoop/releases/download/1.1.1/hp.exe",
-    "hash": "fe517b9da92a00fdd79d2e936797c748b597ab5a74abf6d8ee156b4f645e58b4",
+    "url": "https://gitee.com/SuperWindcloud/hyperscoop/releases/download/7.7.7/hp.exe",
+    "hash": "efa6edb276f7d701110bb5cadd2861c1f6871c18a60b2c1082de83f90d1abcd7",
     "bin": "hp.exe",
     "shortcuts": [
         [

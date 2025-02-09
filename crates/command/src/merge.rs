@@ -1,6 +1,6 @@
 ﻿use crate::buckets::get_buckets_path;
 use crate::utils::detect_encoding::transform_to_search_manifest_object;
-use anyhow::anyhow;
+use anyhow::{anyhow, bail};
 use crossterm::style::Stylize;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use log::error;
@@ -387,4 +387,10 @@ fn exclude_not_json_file(file_name: String) -> bool {
         return true;
     }
     false
+}
+
+
+pub fn rm_err_manifest() -> Result<(), anyhow::Error> {
+    
+  Ok(())
 }

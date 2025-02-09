@@ -32,11 +32,13 @@ tokio = { version = "1.0.0", features = ["rt", "rt-multi-thread", "macros"] }
 serde_json = { workspace = true }
 command_util_lib = { path = "crates/command" }
 regex = "1.11.1"
-reqwest = "0.12.9"
 rayon = "1.10.0"
 
 
 [workspace.dependencies]
+human-panic = "2.0.2"
+reqwest = "0.12.9"
+
 serde = { version = "1.0.213", features = ["derive"] }
 log = "0.4.22"
 clap = { version = "4.5.20", features = ["derive"] }
@@ -49,7 +51,6 @@ tokio = { version = "1.0.0", features = ["rt", "rt-multi-thread", "macros"] }
 dashmap = "6.1.0"
 quote = "1.0.37"
 syn = "2.0.91"
-hp = { path = "." }
 
 [[bin]]
 name = "hp"

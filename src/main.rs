@@ -62,7 +62,7 @@ async fn main() -> Result<(), anyhow::Error> {
                 Commands::Uninstall( args ) => execute_uninstall_command( args)  ,
                 Commands::Update(update_args) => execute_update_command(update_args),
                 Commands::Which(which ) =>  execute_which_command( which ),
-                Commands::Merge(_) => execute_merge_command(),
+                Commands::Merge(args ) => execute_merge_command(args ),
                 _ => {
                     eprintln!("No command provided. Run `hp  --help` to see available commands.");
                     return Err(anyhow::anyhow!("No command provided.")); // 返回一

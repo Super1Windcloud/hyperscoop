@@ -1,9 +1,7 @@
 ﻿use std::process::exit;
 
 fn main() {
-  yarnish();
-  
-  multi_tree_ext();
+  download_speed_progressbar(); 
 }
 
 
