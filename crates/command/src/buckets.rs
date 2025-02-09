@@ -12,7 +12,7 @@ use std::time::UNIX_EPOCH;
 use log::{error};
 use reqwest::{get};
 use zip::read::ZipArchive;
-use crate::utils::request::{request_download_git_clone};
+use crate::utils::request::{get_git_repo_remote_url, request_download_git_clone};
 use crate::init_hyperscoop;
 
 #[derive(Debug, Clone)]
@@ -24,6 +24,12 @@ pub fn get_buckets_path() -> Result<Vec<String>, anyhow::Error> {
   let bucket = Buckets::new();
   let buckets_path = bucket.buckets_path;
   return Ok(buckets_path);
+}
+
+pub fn get_buckets_name() -> Result<Vec<String>, anyhow::Error> {
+  let bucket = Buckets::new();
+  let buckets_name = bucket.buckets_name;
+  return Ok(buckets_name);
 }
 impl Buckets {
   //参数传递尽量以借用为主，避免拷贝大量数据
@@ -187,10 +193,7 @@ impl Buckets {
 
 impl Buckets {
   pub fn display_all_buckets(&self) -> Result<(), anyhow::Error> {
-    println!(
-      "{:<30}",
-      "BucketName\t\t\tUpdated \t\t\tManifest ".dark_blue().bold()
-    );
+
     let (bucket_name, bucket_source, bucket_updated, bucket_manifest) = Self::get_all_buckets();
     let combined_buckets: Vec<(String, String, String, String)> = bucket_name
       .into_iter()
@@ -199,19 +202,49 @@ impl Buckets {
       .zip(bucket_manifest.into_iter())
       .map(|(((name, source), updated), manifest)| (name, source, updated, manifest))
       .collect();
-    for (name, _, updated, manifest) in combined_buckets.iter() {
-      println!("{:<30} \t{:<30}\t{:<30}", name, updated, manifest);
+    let max_name_len  = combined_buckets
+     .iter()
+     .map(|e| e.0.len())
+     .max()
+     .unwrap_or(0);
+  let  max_manifest_len = combined_buckets
+     .iter()
+     .map(|e| e.3.len())
+     .max()
+     .unwrap_or(0);
+    let max_source_len = combined_buckets
+     .iter()
+     .map(|e| e.1.len())
+     .max()
+     .unwrap_or(0);
+    let max_updated_len = combined_buckets
+    .iter()
+    .map(|e| e.2.len())
+    .max()
+    .unwrap_or(0);
+
+    println!("{:<max_name_len$} {:<max_source_len$} {:<max_updated_len$} {:<max_manifest_len$}",
+             "BucketName\t\t".dark_cyan().bold(), "SourceUrl\t\t\t\t\t\t".dark_cyan().bold(),
+             "UpdatedTime\t\t".dark_cyan().bold(), "     Manifests".dark_cyan().bold(),
+             max_name_len=max_name_len+10, max_source_len=max_source_len,
+             max_updated_len=max_updated_len, max_manifest_len=max_manifest_len   );
+    for (name, source, updated, manifest) in combined_buckets.iter() {
+      println!("{:<max_name_len$} {:<max_source_len$} {:<max_updated_len$} {:<max_manifest_len$}",
+               name, source , updated, manifest,
+               max_name_len=max_name_len+10, max_source_len=max_source_len,
+               max_updated_len=max_updated_len+10 , max_manifest_len=max_manifest_len  );
     }
-    return Ok(());
+
+    Ok(())
   }
   fn get_all_buckets() -> (Vec<String>, Vec<String>, Vec<String>, Vec<String>) {
-    let buckets = Buckets::new();
-    let bucket_name = buckets.buckets_name.clone();
-    let bucket_source = buckets.buckets_path.clone();
+    let bucket_name =  get_buckets_name().unwrap();
+    let bucket_source_url  = Self::get_bucket_source_url ();
+    let bucket_source =  get_buckets_path().unwrap();
     let bucket_updated = Self::get_updated_time(&bucket_source);
     let bucket_manifest = Self::get_manifest_version(&bucket_source);
 
-    return (bucket_name, bucket_source, bucket_updated, bucket_manifest);
+    return (bucket_name, bucket_source_url, bucket_updated, bucket_manifest);
   }
 
   fn get_updated_time(bucket_source: &Vec<String>) -> Vec<String> {
@@ -244,6 +277,16 @@ impl Buckets {
     }
 
     return bucket_manifest;
+  }
+
+  fn get_bucket_source_url() -> Vec<String>  {
+    let bucket_path  = get_buckets_path().unwrap();
+    let buckets_path = bucket_path.iter().map(
+      |path| get_git_repo_remote_url(path).unwrap()
+    ).collect::<Vec<String>>();
+
+
+    buckets_path
   }
 }
 
