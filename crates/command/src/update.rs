@@ -1,4 +1,4 @@
-
+#[allow(unused_imports)] 
 use anyhow::bail; 
 pub fn  update_all_apps()  -> Result<(), anyhow::Error> { 
   

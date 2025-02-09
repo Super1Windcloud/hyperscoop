@@ -1,4 +1,5 @@
 ﻿use std::path::{Path, PathBuf};
+use anyhow::bail;
 //use std::sync::{Arc, Mutex};
 use crossterm::style::Stylize;
 use crate::buckets::Buckets;
@@ -100,8 +101,14 @@ Result<Vec<(String, String, String)>, anyhow::Error> {
     let app_name = item.0.clone();
     let source = path.parent().unwrap().parent().unwrap().
       file_stem().unwrap().to_string_lossy().to_string();
-    let version = transform_to_only_version_manifest(path.as_ref())
-      .expect("Failed to transform to only version manifest");
+    let version = transform_to_only_version_manifest(path.as_ref()); 
+    
+    if version.is_err() { 
+      eprintln!("{}", format!("{} {}", "Failed to get version of".red(),
+                              path.to_string_lossy().to_string().red()).bold());
+      return None;
+    }
+    let version = version.unwrap();
     let version = version.get_version().unwrap().to_string();
 
     Some((app_name, version, source))
