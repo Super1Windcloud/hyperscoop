@@ -1,4 +1,4 @@
-﻿use crate::buckets::get_buckets_path;
+﻿use crate::buckets::{get_buckets_name, get_buckets_path};
 use crate::utils::detect_encoding::transform_to_search_manifest_object;
 use anyhow::{anyhow, bail};
 use crossterm::style::Stylize;
@@ -10,6 +10,8 @@ use std::fs::remove_file;
 use std::path::{Path, PathBuf};
 use std::thread;
 use std::time::Duration;
+use crate::update::update_scoop_bar;
+
 #[derive(Debug, Eq, PartialEq, Hash, Clone)] // 从引用clone出新的完整对象而不是引用
 struct Merge {
     pub app_name: String,
@@ -391,6 +393,31 @@ fn exclude_not_json_file(file_name: String) -> bool {
 
 
 pub fn rm_err_manifest() -> Result<(), anyhow::Error> {
-    
+  use  crate::utils::progrees_bar::{
+    indicatif::{MultiProgress, ProgressBar, ProgressFinish, ProgressStyle},
+    style, Message, ProgressOptions,
+  } ;
+  const FINISH_MESSAGE: &'static str = "✅";
+  let progress_style = style(Some(ProgressOptions::Hide), Some(Message::suffix()));
+  let bucket_paths= get_buckets_path()?;
+  let buckets_name = get_buckets_name()?;
+
+  let mp = MultiProgress::new();
+  let  longest_bucket_name =
+    buckets_name.iter().map( |item | item.len()).max().unwrap_or(0) ;
+  let outdated_buckets = buckets_name
+    .into_iter()
+    .map(|bucket| {
+      let pb = mp.add(
+        ProgressBar::new(1)
+          .with_style(progress_style.clone())
+          .with_message("Checking updates")
+          .with_prefix(format!("🪣 {:<longest_bucket_name$}", bucket))
+          .with_finish(ProgressFinish::WithMessage(FINISH_MESSAGE.into())),
+      );
+      pb.set_position(0);
+      (bucket, pb)
+    }).collect::<Vec<_>>();
+
   Ok(())
 }

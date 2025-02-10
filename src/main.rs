@@ -52,7 +52,7 @@ async fn main() -> Result<(), anyhow::Error> {
                 Commands::Home(home) => execute_home_command(home),
                 Commands::Import( args ) =>  execute_import_command( args),
                 Commands::Info(info) => execute_info_command(info),
-                Commands::Install(args )  => execute_install_command( args)   ,
+                Commands::Install(args )  => execute_install_command( args).await    ,
                 Commands::List(query_app) => execute_list_installed_apps(query_app.name.as_ref()),
                 Commands::Prefix( prefix ) =>  execute_prefix_command( prefix ),
                 Commands::Reset( args ) =>  execute_reset_command( args)   ,
@@ -60,9 +60,9 @@ async fn main() -> Result<(), anyhow::Error> {
                 Commands::Shim( args ) =>  execute_shim_command( args)   ,
                 Commands::Status(_) =>  execute_status_command() , 
                 Commands::Uninstall( args ) => execute_uninstall_command( args)  ,
-                Commands::Update(update_args) => execute_update_command(update_args),
+                Commands::Update(update_args) => execute_update_command(update_args).await,
                 Commands::Which(which ) =>  execute_which_command( which ),
-                Commands::Merge(args ) => execute_merge_command(args ),
+                Commands::Merge(args ) => execute_merge_command(args ).await  ,
                 _ => {
                     eprintln!("No command provided. Run `hp  --help` to see available commands.");
                     return Err(anyhow::anyhow!("No command provided.")); // 返回一
