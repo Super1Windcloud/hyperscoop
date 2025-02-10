@@ -1,5 +1,6 @@
-﻿
-fn main() {
+﻿use indicatif::MultiProgress;
+
+fn main() { 
  download_speed_progressbar () ;
 }
 
@@ -509,21 +510,40 @@ fn download_speed_progressbar() {
   use std::time::Duration;
   use indicatif::{ProgressBar, ProgressStyle};
   let mut downloaded = 0;
-  let total_size = 231231231.34;
-
+  let total_size = 2312310;
+  let m = MultiProgress::new();
   let pb = ProgressBar::new(total_size as u64);
+  let sty = ProgressStyle::default_bar()
+    .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta})").unwrap()
+    .progress_chars("#>-");
+
   pb.set_style(ProgressStyle
   ::with_template("{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({bytes_per_sec}, {eta})")
     .unwrap()
     .progress_chars("#>-"));
+  let pb1 = m.add(ProgressBar::new(100));
+  pb1.set_style(sty.clone());
+  pb1.set_message("Task 1");
 
+  let pb2 = m.add(ProgressBar::new(200));
+  pb2.set_style(sty.clone());
+  pb2.set_message("Task 2");
+
+  let pb3 = m.add(ProgressBar::new(50));
+  pb3.set_style(sty);
+  pb3.set_message("Task 3");
+ println!("Downloading..."); 
   while downloaded < total_size as u64 {
     let new = min(downloaded + 223211, total_size as u64);
     downloaded = new;
     pb.set_position(new);
+    pb1.inc(1);
+    pb2.inc(1);
+    pb3.inc(1);
     thread::sleep(Duration::from_millis(12));
-  }
+  } 
+  println!("Downloaded");
 
-  pb.finish_with_message("downloaded");
+  
 }
 

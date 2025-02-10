@@ -1,5 +1,4 @@
 use anyhow::bail;
-use crossterm::style::Stylize;
 use std::error::Error;
 use std::path::Path;
 use widestring::WideCString;

@@ -1,10 +1,13 @@
+use git2::BranchType;
 use std::path::Path;
 use anyhow::bail;
+use git2::{FetchOptions, Progress, Remote, RemoteCallbacks, Repository};
 use gix::{
-  bstr::BStr, remote::ref_map, revision::walk::Sorting,
-  traverse::commit::simple::CommitTimeOrder, Commit, ObjectId, Repository,
+   remote::ref_map,
+  ObjectId
 };
 use serde::Deserialize;
+use crate::utils::pull::run_pull;
 
 mod errors {
   //! Git specific error helpers
@@ -96,9 +99,9 @@ pub fn current_branch(repo : gix::Repository) -> anyhow::Result<String> {
 }
 
 
-pub async  fn remote_latest_scoop_commit( ) -> anyhow::Result<ObjectId> { 
+pub async  fn remote_latest_scoop_commit( ) -> anyhow::Result<ObjectId> {
   let  scoop_path = get_local_scoop_git()?;
-  let repo = gix::open(scoop_path)?; 
+  let repo = gix::open(scoop_path)?;
   let remote = repo.find_remote("origin").ok()
     .ok_or(Error::MissingRemote("origin".to_string()))?;
 
@@ -148,8 +151,8 @@ pub async fn get_latest_release_version() -> anyhow::Result<String> {
   Ok(release.tag_name)
 }
 
-pub fn  local_scoop_latest_commit( ) -> anyhow::Result<ObjectId> { 
-  let  scoop_path = get_local_scoop_git()?; 
+pub fn  local_scoop_latest_commit( ) -> anyhow::Result<ObjectId> {
+  let  scoop_path = get_local_scoop_git()?;
   let repo = gix::open(scoop_path)?;
   let  local_latest_commit = repo.head_commit()?.id();
   Ok(ObjectId::from(local_latest_commit))
@@ -175,4 +178,132 @@ pub fn get_local_scoop_git() -> anyhow::Result<String > {
   }
 
    Ok( scoop_path .to_str().unwrap().to_owned())
+}
+
+
+
+pub   fn git_pull_update_repo_with_scoop(callback: impl Fn(Progress, bool) -> bool + Sized) -> anyhow::Result<()> {
+  let scoop_path = get_local_scoop_git()?;
+  let repo = git2::Repository::open(&scoop_path)?;
+  let    remote = repo.find_remote("origin")?  ;
+  let mut fetch_options = FetchOptions::new();
+  let mut callbacks = RemoteCallbacks::new();
+  callbacks.transfer_progress(|status|   callback(status, false)) ;
+  fetch_options.remote_callbacks(callbacks);
+
+  start_fetch(remote.clone()  ,&repo ,fetch_options)?;
+  let stats = remote.stats()  ;
+  callback(stats, true);
+  Ok(())
+}
+
+pub fn git_pull_update_repo<'a> (repo_path: &str,
+      callback: crate::utils::pull::ProgressCallback<'_>)
+  -> anyhow::Result<()> {
+  let repo = git2::Repository::open(repo_path)?;
+  use   crate::utils::pull::RepoArgs;
+  let remote_name =  repo.remotes()?.iter().next().unwrap_or("origin".into()).unwrap().to_string();
+  // println!("remote_name:{}",remote_name);
+  let remote_branch = repo.head()?.shorthand().unwrap().to_string();
+  // println!("remote_branch:{}",remote_branch);
+
+  let args = RepoArgs {
+    arg_remote: Some(remote_name),
+    arg_branch: Some(remote_branch),
+  };
+  run_pull(args,repo_path.into()  , callback)?;
+
+  // let    remote = repo.find_remote("origin")?  ;
+  // let mut fetch_options = FetchOptions::new();
+  // let mut callbacks = RemoteCallbacks::new();
+  // callbacks.transfer_progress(|status|   callback(status, true   )) ;
+  // fetch_options.remote_callbacks(callbacks);
+  //
+  // start_fetch(remote.clone()  ,&repo ,fetch_options)?;
+  // let stats = remote.stats()  ;
+  // callback(stats, true);
+  Ok(())
+}
+fn start_fetch(mut remote: Remote, repo: &Repository,
+               mut fetch_options: FetchOptions) -> anyhow::Result<()>{
+  // 执行 fetch 操作，获取远程仓库的最新数据
+  remote.fetch(&["refs/heads/*:refs/remotes/origin/*"], Some(&mut fetch_options), None)?;
+
+  // 获取当前分支的引用
+  let head = repo.head()?;
+  let branch_name = head.shorthand().unwrap_or("master");
+  let branch = repo.find_branch(branch_name, BranchType::Local)?;
+
+  // 获取远程分支的引用
+  let upstream = branch.upstream()?;
+  let upstream_commit = repo.find_annotated_commit(upstream.get().peel_to_commit()?.id())?;
+
+  // 合并远程分支到当前分支
+  let analysis = repo.merge_analysis(&[&upstream_commit])?;
+  if analysis.0.is_up_to_date() {
+    println!("Already up to date.");
+  } else if analysis.0.is_fast_forward() {
+    // 快进合并
+    let mut reference = head;
+    reference.set_target(upstream_commit.id(), "Fast-forward")?;
+    repo.set_head(reference.name().unwrap())?;
+    repo.checkout_head(Some(git2::build::CheckoutBuilder::default().force()))?;
+    println!("Fast-forward merge completed.");
+  } else {
+    let head_commit = repo.find_commit(head.target().unwrap())?; // 将 Oid 转换为 Commit
+    let upstream_commit = repo.find_commit(upstream_commit.id())?; // 将 Oid 转换为 Commit
+    let mut index = repo.merge_commits(&head_commit, &upstream_commit, None)?;
+    if index.has_conflicts() {
+      println!("Merge conflicts detected. Resolve them and commit the changes.");
+      return Ok(());
+    }
+    let tree_oid = index.write_tree_to(&repo)?;
+    let tree = repo.find_tree(tree_oid)?;
+    repo.commit(
+      Some("HEAD"),
+      &head_commit.author(),
+      &head_commit.committer(),
+      "Merge commit",
+      &tree,
+      &[&head_commit, &upstream_commit],
+    )?;
+    println!("Merge completed.");
+  }
+
+  Ok(())
+}
+
+
+
+mod  tests {
+  use crate::utils::pull::{run, run_pull};
+  use super::*;
+  #[test]
+  fn test_git_pull () {
+    use   crate::utils::pull::RepoArgs;
+    let remote_name  = "origin" ;
+    let remote_branch = "master" ;
+    let args = RepoArgs {
+      arg_remote: Some(remote_name.into()),
+      arg_branch: Some(remote_branch.into()),
+    } ;
+    let repo_path = "A:\\scoop\\buckets\\java".into() ;
+  }
+  #[test]
+  fn git_pull_update() -> anyhow::Result<()> {
+    let repo_path :String = "A:\\scoop\\buckets\\hp".into() ;
+    let repo = git2::Repository::open(&repo_path)?;
+    use   crate::utils::pull::RepoArgs;
+
+    let remote_name =  repo.remotes()?.iter().next().unwrap_or("origin".into()).unwrap().to_string();
+    println!("remote_name:{}",remote_name);
+    let remote_branch = repo.head()?.shorthand().unwrap().to_string();
+    println!("remote_branch:{}",remote_branch);
+    let args = RepoArgs {
+      arg_remote: Some(remote_name),
+      arg_branch: Some(remote_branch),
+    };
+    run(args, repo_path) ?;
+    Ok(())
+  }
 }

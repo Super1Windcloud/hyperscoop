@@ -10,7 +10,6 @@ use std::fs::remove_file;
 use std::path::{Path, PathBuf};
 use std::thread;
 use std::time::Duration;
-use crate::update::update_scoop_bar;
 
 #[derive(Debug, Eq, PartialEq, Hash, Clone)] // 从引用clone出新的完整对象而不是引用
 struct Merge {
@@ -394,7 +393,7 @@ fn exclude_not_json_file(file_name: String) -> bool {
 
 pub fn rm_err_manifest() -> Result<(), anyhow::Error> {
   use  crate::utils::progrees_bar::{
-    indicatif::{MultiProgress, ProgressBar, ProgressFinish, ProgressStyle},
+    indicatif::{MultiProgress, ProgressBar, ProgressFinish},
     style, Message, ProgressOptions,
   } ;
   const FINISH_MESSAGE: &'static str = "✅";

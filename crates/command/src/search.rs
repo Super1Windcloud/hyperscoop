@@ -1,6 +1,4 @@
 ﻿use std::path::{Path, PathBuf};
-use anyhow::bail;
-//use std::sync::{Arc, Mutex};
 use crossterm::style::Stylize;
 use crate::buckets::Buckets;
 use crate::utils::detect_encoding::{transform_to_only_version_manifest};

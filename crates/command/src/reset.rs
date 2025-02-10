@@ -1,5 +1,5 @@
 use crate::init_hyperscoop;
-use crate::utils::compare_versions;
+use crate::utils::utility::compare_versions;
 use anyhow::bail;
 use std::cmp::Ordering;
 use std::os::windows::fs::symlink_dir;
