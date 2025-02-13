@@ -17,7 +17,7 @@ fn do_fetch_default_cli<'a >(
   remote: &'a mut git2::Remote,
 ) -> Result<git2::AnnotatedCommit<'a>, git2::Error> {
 
-  let mut cb = git2::RemoteCallbacks::new(); 
+  let mut cb = git2::RemoteCallbacks::new();
     cb.transfer_progress(|stats| {
       if stats.received_objects() == stats.total_objects() {
         print!(
@@ -75,7 +75,7 @@ fn do_fetch<'a >(
   callback : ProgressCallback<'_>
 )
   -> Result<git2::AnnotatedCommit<'a>, git2::Error>
- 
+
 {
   let mut cb = git2::RemoteCallbacks::new();
   cb.transfer_progress(  |stats|   callback(stats, false  )) ;
@@ -208,8 +208,8 @@ pub fn run(args: RepoArgs ,  repo_path: String ) -> Result<(), git2::Error> {
   do_merge(&repo, &remote_branch, fetch_commit)
 }
 
- pub fn  run_pull <'a> (args: RepoArgs, repo_path: String, 
-                  callback: ProgressCallback<'_> ) 
+ pub fn  run_pull <'a> (args: RepoArgs, repo_path: String,
+                  callback: ProgressCallback<'_> )
    -> anyhow::Result<()> {
    let remote_name = args.arg_remote.as_ref().map(|s| &s[..]).unwrap_or("origin");
    let remote_branch = args.arg_branch.as_ref().map(|s| &s[..]).unwrap_or("master");

@@ -287,7 +287,6 @@ mod  tests {
       arg_remote: Some(remote_name.into()),
       arg_branch: Some(remote_branch.into()),
     } ;
-    let repo_path = "A:\\scoop\\buckets\\java".into() ;
   }
   #[test]
   fn git_pull_update() -> anyhow::Result<()> {
@@ -304,6 +303,17 @@ mod  tests {
       arg_branch: Some(remote_branch),
     };
     run(args, repo_path) ?;
+    Ok(())
+  }
+
+  #[test]
+
+  fn test_default_branch() -> anyhow::Result<()> {
+
+    let  repo  :String = "A:\\scoop\\buckets\\cmontage".into(); 
+    let  repo = git2::Repository::open(&repo)?;
+    let  default_branch = repo.head()?.shorthand().unwrap_or("").to_string();
+    assert_eq!(default_branch,"main");
     Ok(())
   }
 }

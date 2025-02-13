@@ -257,7 +257,6 @@ pub  fn gen_stats_callback(
       pb.set_length(stats.total_objects() as u64);
       pb.set_message("Receiving objects");
     }
-    pb.tick();
     true
   }
 }

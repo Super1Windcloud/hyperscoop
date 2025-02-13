@@ -109,7 +109,7 @@ pub   fn update_all_buckets_bar(official_buckets: Vec<String>) -> anyhow::Result
    // outdated_buckets.par_iter() // 来自 rayon
   //     .for_each(|(pb, bucket_path)| {
   //         let callback = gen_stats_callback(pb);
-  //         let result = git_pull_update_repo(bucket_path, callback);
+  //         let result = git_pull_update_repo(bucket_path, &callback);
   //         if let Err(e) = result {
   //             pb.finish_with_message(format!("❌ {}", e));
   //         } else {

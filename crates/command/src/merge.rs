@@ -410,7 +410,7 @@ pub fn rm_err_manifest() -> Result<(), anyhow::Error> {
       let pb = mp.add(
         ProgressBar::new(1)
           .with_style(progress_style.clone())
-          .with_message("Checking updates")
+          .with_message("Remove Error Manifests")
           .with_prefix(format!("🪣 {:<longest_bucket_name$}", bucket))
           .with_finish(ProgressFinish::WithMessage(FINISH_MESSAGE.into())),
       );
