@@ -1,4 +1,6 @@
-# hyperscoop    (WIP 正在开发中)
+![](img/cover.jpeg) 
+
+# hyperscoop 
 
 ## 🐼 一个更快,更强, 更精美的  windows 包管理器基于 rust ( 继承自 scoop )
 
@@ -9,6 +11,12 @@
 scoop  install  -u  hp/hp   
  
 ```
+
+## 🏗 Project Status   (WIP) 
+
+|![](https://i.giphy.com/media/CwfC5Pv6Rtp66h4coK/giphy.gif) |
+|:--:|
+| Under construction |
 ---
 
 ## CLI Features
@@ -16,7 +24,7 @@ scoop  install  -u  hp/hp
 - ![img.png](./img/微信图片_20241101140706.png)
 
 ---
-## ToDo  Command 
+## ☑️ TODO
 - [x] Bucket
 - [x]  cat 
 - [x] cache 
