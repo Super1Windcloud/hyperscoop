@@ -2,6 +2,8 @@
 #![deny(clippy::shadow)]
 mod command_args;
 use clap::{command, Parser};
+use clap::builder::Styles;
+use clap::builder::styling::{AnsiColor, Effects};
 use clap_verbosity_flag;
 use crossterm::style::Stylize;
 mod command;
@@ -11,12 +13,26 @@ use hyperscoop_middle::*;
 mod logger_err;
 use logger_err::init_logger;
 
+const WONDERFUL_STYLES: Styles = Styles::styled()
+  .header(AnsiColor::Green.on_default().effects(Effects::BOLD))
+  .usage(AnsiColor::Green.on_default().effects(Effects::BOLD))
+  .literal(AnsiColor::Cyan.on_default().effects(Effects::BOLD))
+  .placeholder(AnsiColor::Cyan.on_default()).error(AnsiColor::Red.on_default().effects(Effects::BOLD))
+  .invalid(AnsiColor::Red.on_default().effects(Effects::BOLD)) ;
+
+
 #[derive(Parser, Debug)]
-#[command(name="hp" , version, about= None , long_about = None)]
+#[command(name="hp" , version, about= "Next Generation Faster, Stronger and Beautiful Windows Package Manager" , long_about = None)]
 #[command(propagate_version = true)] //  版本信息传递
 #[command(override_usage = "hp  [COMMAND]  [OPTIONS] ")]
-#[command(author = "superwindcloud")]
-#[command(after_help = "For more i nformation about a command, run: hp  COMMAND -h/--help")]
+#[command(author = "superwindcloud", name = "hp" ,
+  disable_help_flag = false ,
+  disable_help_subcommand = true,
+  disable_version_flag = false  
+)]
+
+#[command(after_help = "For more i nformation about a command, run: hp  COMMAND -h/--help", after_long_help = None)]
+#[command(disable_colored_help = false , styles = WONDERFUL_STYLES )]
 struct Cli {
     #[command(subcommand)]
     command: Option<Commands>,
@@ -58,7 +74,7 @@ async fn main() -> Result<(), anyhow::Error> {
                 Commands::Reset( args ) =>  execute_reset_command( args)   ,
                 Commands::Search(search_app) => execute_search_command(search_app),
                 Commands::Shim( args ) =>  execute_shim_command( args)   ,
-                Commands::Status(_) =>  execute_status_command() , 
+                Commands::Status(_) =>  execute_status_command() ,
                 Commands::Uninstall( args ) => execute_uninstall_command( args)  ,
                 Commands::Update(update_args) => execute_update_command(update_args).await,
                 Commands::Which(which ) =>  execute_which_command( which ),
