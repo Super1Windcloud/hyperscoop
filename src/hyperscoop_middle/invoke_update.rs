@@ -35,7 +35,7 @@ pub  async fn execute_update_command(update_args: UpdateArgs) -> Result<(), anyh
       }
       update_specific_app(app_name.clone())?;
       return Ok(());
-
+ 
     }
 
     Ok(())
@@ -44,7 +44,7 @@ pub  async fn execute_update_command(update_args: UpdateArgs) -> Result<(), anyh
 async fn update_buckets() -> Result<(), anyhow::Error> {
     log::trace!("Calling update_buckets()");
 
-  // 更新hp 和buckets
+  // 更新hp 和buckets  
   // 只对官方维护的bucket进行更新  
   let  official_buckets = get_official_buckets_name();
    update_scoop_bar().await ? ;
