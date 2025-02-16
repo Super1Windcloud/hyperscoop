@@ -3,6 +3,7 @@ use clap::Parser;
 use git2::{Progress, Repository};
 use std::io::{self, Write};
 use std::str;
+use anyhow::bail;
 
 #[derive(Parser)]
 pub struct RepoArgs {
@@ -42,7 +43,6 @@ fn do_fetch_default_cli<'a >(
     fo.remote_callbacks(cb);
 
     fo.download_tags(git2::AutotagOption::All);
-    // log::info!("Fetching {} for repo", remote.name().unwrap());
     remote.fetch(refs, Some(&mut fo), None)?;
 
 
@@ -88,7 +88,6 @@ fn do_fetch<'a >(
 
   let stats = remote.stats();
   callback(stats, true  );
-
   let fetch_head = repo.find_reference("FETCH_HEAD")?;
   Ok(repo.reference_to_annotated_commit(&fetch_head)?)
 }
@@ -103,7 +102,8 @@ fn fast_forward(
     None => String::from_utf8_lossy(lb.name_bytes()).to_string(),
   };
   let msg = format!("Fast-Forward: Setting {} to id: {}", name, rc.id());
-  println!("{}", msg);
+  // println!("{}", msg);  
+  
   lb.set_target(rc.id(), &msg)?;
   repo.set_head(&name)?;
   repo.checkout_head(Some(
@@ -120,7 +120,7 @@ fn normal_merge(
   repo: &Repository,
   local: &git2::AnnotatedCommit,
   remote: &git2::AnnotatedCommit,
-) -> Result<(), git2::Error> {
+) -> Result<(), anyhow::Error> {
   let local_tree = repo.find_commit(local.id())?.tree()?;
   let remote_tree = repo.find_commit(remote.id())?.tree()?;
   let ancestor = repo
@@ -129,9 +129,9 @@ fn normal_merge(
   let mut idx = repo.merge_trees(&ancestor, &local_tree, &remote_tree, None)?;
 
   if idx.has_conflicts() {
-    println!("Merge conflicts detected...");
+    println!("Merge conflicts detected..."); 
     repo.checkout_index(Some(&mut idx), None)?;
-    return Ok(());
+    bail!("Merge conflicts detected"); 
   }
   let result_tree = repo.find_tree(idx.write_tree_to(repo)?)?;
   // now create the merge commit
@@ -157,13 +157,13 @@ fn do_merge<'a>(
   repo: &'a Repository,
   remote_branch: &str,
   fetch_commit: git2::AnnotatedCommit<'a>,
-) -> Result<(), git2::Error> {
+) -> Result<(), anyhow::Error> {
   // 1. do a merge analysis
   let analysis = repo.merge_analysis(&[&fetch_commit])?;
 
   // 2. Do the appropriate merge
   if analysis.0.is_fast_forward() {
-    println!("Doing a fast forward");
+    // println!("Doing a fast forward");
     // do a fast forward
     let refname = format!("refs/heads/{}", remote_branch);
     match repo.find_reference(&refname) {
@@ -194,12 +194,12 @@ fn do_merge<'a>(
     let head_commit = repo.reference_to_annotated_commit(&repo.head()?)?;
     normal_merge(&repo, &head_commit, &fetch_commit)?;
   } else {
-    println!("Nothing to do...");
+    // println!("Nothing to do...");
   }
   Ok(())
 }
 
-pub fn run(args: RepoArgs ,  repo_path: String ) -> Result<(), git2::Error> {
+pub fn run(args: RepoArgs ,  repo_path: String ) -> Result<(), anyhow::Error> {
   let remote_name = args.arg_remote.as_ref().map(|s| &s[..]).unwrap_or("origin");
   let remote_branch = args.arg_branch.as_ref().map(|s| &s[..]).unwrap_or("master");
   let repo = Repository::open(repo_path)?;
@@ -207,7 +207,7 @@ pub fn run(args: RepoArgs ,  repo_path: String ) -> Result<(), git2::Error> {
   let fetch_commit = do_fetch_default_cli(&repo, &[remote_branch], &mut remote  )?;
   do_merge(&repo, &remote_branch, fetch_commit)
 }
-
+///   当使用indicatif 进度条时 , 如果控制台缓存区输出字符串会导致进度条重新渲染, log::trace,info,warn, println! 等 
  pub fn  run_pull <'a> (args: RepoArgs, repo_path: String,
                   callback: ProgressCallback<'_> )
    -> anyhow::Result<()> {

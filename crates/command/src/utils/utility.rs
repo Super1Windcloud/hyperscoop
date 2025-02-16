@@ -1,4 +1,6 @@
 use std::cmp::Ordering;
+use std::path::Path;
+use crate::utils::system::get_system_current_time;
 
 pub  fn compare_versions(ver1: String, ver2: String) -> Ordering {
   // 分割版本号并转换为数字数组
@@ -17,7 +19,23 @@ pub  fn compare_versions(ver1: String, ver2: String) -> Ordering {
 }
 
 
-
+pub fn update_scoop_config_last_update_time() {
+  let current = get_system_current_time().unwrap();
+  let config_path = std::env::var("XDG_CONFIG_HOME").unwrap_or_else(|_| {
+    let home_dir = std::env::var("USERPROFILE").unwrap();
+    format!("{}\\.config\\scoop\\config.json", home_dir)
+  });
+  let config_path = Path::new(&config_path);
+  if config_path.exists() {
+    let config_file = std::fs::File::open(config_path).unwrap();
+    let mut config_json: serde_json::Value = serde_json::from_reader(config_file).unwrap();
+    if let Some(obj) = config_json.as_object_mut() {
+      obj.insert("last_update".into() ,  current.into());
+    }
+    let file = std::fs::File::create(config_path).unwrap();
+    serde_json::to_writer_pretty(file, &config_json).unwrap();
+  }
+}
 
 
 pub  fn  get_official_buckets_name()  -> Vec<String> {

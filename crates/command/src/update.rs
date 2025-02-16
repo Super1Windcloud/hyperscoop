@@ -48,7 +48,6 @@ const FINISH_MESSAGE: &'static str = "✅";
 
 pub async fn update_scoop_bar() -> anyhow::Result<()> {
 
-  log::trace!("update_scoop_bar");
 
   let progress_style = style(Some(ProgressOptions::PosLen), Some(Message::suffix()));
   let buckets_name = get_buckets_name()?;

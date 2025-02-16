@@ -1,7 +1,8 @@
 ﻿use crossterm::style::Stylize;
+use command_util_lib::import::write_into_scoop_config;
 use crate::command_args::update::UpdateArgs;
 use command_util_lib::update::*;
-use command_util_lib::utils::utility::get_official_buckets_name;
+use command_util_lib::utils::utility::{get_official_buckets_name, update_scoop_config_last_update_time};
 
 pub  async fn execute_update_command(update_args: UpdateArgs) -> Result<(), anyhow::Error> {
     if update_args.update_self {
@@ -47,7 +48,8 @@ async fn update_buckets() -> Result<(), anyhow::Error> {
   // 只对官方维护的bucket进行更新  
   let  official_buckets = get_official_buckets_name();
    update_scoop_bar().await ? ;
-  update_all_buckets_bar(official_buckets)?; 
+  update_all_buckets_bar(official_buckets)?;
+  update_scoop_config_last_update_time() ; 
     Ok(())
 }
 
