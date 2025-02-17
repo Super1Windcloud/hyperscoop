@@ -128,12 +128,11 @@ pub fn transform_to_search_manifest_object(path: &Path) -> Result<SearchManifest
         return Ok(SearchManifest { version: None });
     }
     let json_str = read_str_from_json_file(path).expect("读取JSON文件失败");
-    if json_str.trim().is_empty() {
+    if json_str.is_empty() {
         return Ok(SearchManifest { version: None });
     }
     let value: SearchManifest = from_str(&json_str.trim())
         .map_err(|e| {
-            // println!(" 路径是：{}", path.to_string_lossy());
             return anyhow::anyhow!("转为 serde_json::Value 失败: {}", e);
         })
         .unwrap_or_default();

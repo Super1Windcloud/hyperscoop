@@ -10,6 +10,6 @@ pub struct MergeArgs {
   #[arg(short='e', long ,  help = "移除buckets中格式错误的manifest文件")]
   pub  rm_err_manifest: bool,
 
-  #[arg(short= 'r' , long, help = "移除buckets中冗余的manifest文件" ,help_heading = "仅社区桶")]
+  #[arg(short= 'r' , long, help = "移除buckets中冗余的manifest文件" ,help_heading = "仅超大型社区桶")]
   pub   rm_redundant_manifest: bool,
 }

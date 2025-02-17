@@ -1,5 +1,12 @@
 ﻿use crate::buckets::{get_buckets_name, get_buckets_path};
-use crate::utils::detect_encoding::{transform_to_only_version_manifest, transform_to_search_manifest_object};
+use crate::utils::detect_encoding::{
+    transform_to_only_version_manifest, transform_to_search_manifest_object,
+};
+use crate::utils::request::get_git_repo_remote_url;
+use crate::utils::utility::{
+    remove_bom_and_control_chars_from_utf8_file, write_into_log_file, write_into_log_one_time,
+    LARGE_COMMUNITY_BUCKET,
+};
 use anyhow::{anyhow, bail};
 use crossterm::style::Stylize;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
@@ -9,15 +16,14 @@ use rayon::prelude::*;
 use std::collections::{HashMap, HashSet};
 use std::fs::{read_to_string, remove_file};
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 use windows_sys::Win32::Security::Authentication::Identity::X509Certificate;
-use crate::utils::request::get_git_repo_remote_url;
-use crate::utils::utility::{remove_bom_and_control_chars_from_utf8_file, write_into_log_file, write_into_log_one_time, LARGE_COMMUNITY_BUCKET};
+use crate::manifest::search_manifest::SearchManifest;
 
 #[derive(Debug, Eq, PartialEq, Hash, Clone)] // 从引用clone出新的完整对象而不是引用
-pub  struct Merge {
+pub struct Merge {
     pub app_name: String,
     pub app_version: String,
 }
@@ -51,43 +57,41 @@ pub fn merge_all_buckets() -> Result<(), anyhow::Error> {
         .collect::<Vec<String>>();
     paths.reverse();
     //  初始化容器
-   let all_bucket_set = Mutex::new(HashMap::<String, Merge>::new());
+    let all_bucket_set = Mutex::new(HashMap::<String, Merge>::new());
     // 记录所有旧版本的容器
-  paths.par_iter().for_each(|path| {
-    let path_dir = Path::new(path);
-    if path_dir.is_dir() {
-      load_bucket_info(path_dir, &all_bucket_set).expect("加载bucket失败");
-    }
-  });
-  let latest_buckets: Vec<Merge> = all_bucket_set.lock().unwrap().values().cloned().collect();
-  return  Ok(()) ;
-    let mut latest_buckets_map: HashMap<String, Merge> = HashMap::new();
-    let mut all_manifest = Vec::new();
-    for path in &paths {
+    paths.par_iter().for_each(|path| {
         let path_dir = Path::new(path);
         if path_dir.is_dir() {
-            let manifest = remove_old_manifest(path_dir, &latest_buckets, &mut latest_buckets_map)
-                .expect("删除旧版本manifest失败");
+            load_bucket_info(path_dir, &all_bucket_set).expect("加载bucket失败");
+        }
+    });
+    let latest_buckets: Vec<Merge> = all_bucket_set.lock().unwrap().values().cloned().collect();
+    let all_manifest = Mutex::new(Vec::new());
+    paths.par_iter().for_each(|path| {
+        let path_dir = Path::new(path);
+        if path_dir.is_dir() {
+            let manifest =
+                remove_old_manifest(path_dir, &latest_buckets).expect("删除旧版本manifest失败");
 
             if !manifest.is_empty() {
-                all_manifest.push(manifest);
+                all_manifest.lock().unwrap().push(manifest);
             }
         }
-    }
-    merge_same_latest_version(all_manifest);
+    });
+  let all_manifest =all_manifest.lock().unwrap().clone().into_iter().flatten().collect::<Vec<_>>();
+
+    merge_same_latest_version(&mut all_manifest.lock().unwrap());
 
     println!("{ }", "合并完成".dark_green().bold());
     Ok(())
 }
 
 fn load_bucket_info(
-  path_dir: &Path,
-  map: &Mutex<HashMap<String, Merge>>,
+    path_dir: &Path,
+    map: &Mutex<HashMap<String, Merge>>,
 ) -> Result<(), anyhow::Error> {
-    if !path_dir.is_dir() {
-        return Err(anyhow!("路径不是目录"));
-    }
-    let path = exclude_special_dir(path_dir);
+
+    let path = include_special_dir(path_dir);
     if let Err(_e) = path {
         return Ok(());
     }
@@ -101,66 +105,71 @@ fn load_bucket_info(
             .dark_blue()
             .bold()
     );
-  let entries = path.read_dir()?.collect::<Result<Vec<_>, _>>()?;
-   let  result  =  entries.par_iter().map (|entry| {
-    let file_name = entry.file_name().to_string_lossy().to_string();
-    let path = entry.path();
-    if path.is_dir() {
-      return  None
-    } else if exclude_not_json_file(file_name) {
-      return  None
-    } else if path.extension().is_some()
-      && path.to_string_lossy().to_string().ends_with(".json")
-    {
-      // 对于 path使用ends_with 只能匹配路径的最后一个元素,不能匹配扩展名
-      let result = extract_info_from_manifest(&path);
-      if  let Err(e) = result {
-        eprintln!("{}", e.to_string().dark_blue().bold());
-        return   None
-      }
-      let  result = result.unwrap();
-      return  Some( result ) ;
-    } else {
-      print!("{}", path.to_str().unwrap().to_string().dark_blue().bold());
-      eprintln!("文件类型不支持");
-      return  None
-    }
-  })  .collect::<Vec<_>>();
+    let entries = path
+        .read_dir()?
+        .par_bridge()
+        .collect::<Result<Vec<_>, _>>()?;
+    let result = entries
+        .par_iter()
+        .map(|entry| {
+            let path = entry.path();
+          let file_type = entry.file_type().ok()?;
+            if  file_type .is_file() &&path.extension().and_then(|ext| ext.to_str()) == Some("json")  {
+                // 对于 path使用ends_with 只能匹配路径的最后一个元素,不能匹配扩展名
+                let result = extract_info_from_manifest(&path);
+                if let Err(e) = result {
+                    eprintln!("{}", e.to_string().dark_blue().bold());
+                    return None;
+                }
+                let result = result.unwrap();
+                return Some(result);
+            } else {
+                return None;
+            }
+        })
+        .collect::<Vec<_>>();
 
-  result .into_par_iter().for_each(|merge | {
-        if  merge.is_none() {
-          return ;
+    result.into_par_iter().for_each(|merge| {
+        if merge.is_none() {
+            return;
         }
-        let  merge = merge.unwrap();
-     let mut map = map.lock().unwrap();
-     find_latest_version(merge, &mut map).expect("执行合并失败");
-   }) ;
-   Ok(())
+        let merge = merge.unwrap();
+        let mut map = map.lock().unwrap();
+        find_latest_version(merge, &mut map).expect("执行合并失败");
+    });
+    Ok(())
 }
-fn exclude_special_dir(path_dir: &Path) -> Result<PathBuf, anyhow::Error> {
-    let exclude_dirs = [
-        "main",
-        "extras",
-        "versions",
-        "nirsoft",
-        "sysinternals",
-        "php",
-        "nerd-fonts",
-        "nonportable",
-        "java",
-        "games",
-        "dorado",
-        "DoveBoyApps",
-        "echo",
-        "lemon",
-        "Python",
-        "samiya",
-    ];
-    for exclude_dir in exclude_dirs {
-        if path_dir.to_str().unwrap().contains(exclude_dir) {
-            return Err(anyhow!("排除目录"));
-        }
+fn include_special_dir(path_dir: &Path) -> Result<PathBuf, anyhow::Error> {
+    let repo_path = path_dir.to_str().unwrap().strip_suffix("bucket");
+    if repo_path.is_none() {
+        return Err(anyhow!("路径不是目录"));
     }
+    let repo_path = PathBuf::from(repo_path.unwrap());
+    if !repo_path.exists() {
+        return Err(anyhow!("路径不存在"));
+    }
+    let remote_url = get_git_repo_remote_url(repo_path)?;
+    if !LARGE_COMMUNITY_BUCKET.contains(&remote_url.as_str()) {
+        return Err(anyhow!("排除目录"));
+    }
+    // let exclude_dirs = [
+    //     "main",
+    //     "extras",
+    //     "versions",
+    //     "nirsoft",
+    //     "sysinternals",
+    //     "php",
+    //     "nerd-fonts",
+    //     "nonportable",
+    //     "java",
+    //     "games",
+    //     "dorado",
+    //     "DoveBoyApps",
+    //     "echo",
+    //     "lemon",
+    //     "Python",
+    //     "samiya",
+    // ];
     Ok(path_dir.to_path_buf())
 }
 fn find_latest_version(
@@ -204,51 +213,73 @@ fn find_latest_version(
 fn remove_old_manifest(
     bucket_dir: &Path,
     latest_buckets: &Vec<Merge>,
-    latest_buckets_map: &mut HashMap<String, Merge>,
 ) -> Result<Vec<PathBuf>, anyhow::Error> {
-    let bucket_dir = exclude_special_dir(bucket_dir);
-    if let Err(_e) = bucket_dir {
+    let latest_buckets_map: Arc<Mutex<HashMap<String, Merge>>> =
+        Arc::new(Mutex::new(HashMap::<String, Merge>::new()));
+    let bucket_dir = include_special_dir(bucket_dir);
+    if let Err(_) = bucket_dir {
         return Ok(vec![]);
     }
     // 将 latest_buckets 转换为HashMap
 
-    for item in latest_buckets {
-        latest_buckets_map.insert(item.app_name.to_string(), item.clone());
-    }
+    latest_buckets.par_iter().for_each(|item| {
+        latest_buckets_map
+            .lock()
+            .unwrap()
+            .insert(item.app_name.to_string(), item.clone());
+    });
 
     let bucket_dir = bucket_dir?;
-    let mut same_latest_version_manifests = vec![];
-    for entry in bucket_dir.read_dir()? {
-        let entry = entry?;
-        let path = entry.path();
-        if path.is_dir() {
-            continue;
-        }
-        if !path.exists() {
-            continue;
-        }
-        if path.is_file() && path.to_string_lossy().to_string().ends_with(".json") {
-            let app_name = path.file_stem().unwrap().to_string_lossy().to_string();
-            let app_name = app_name.split("/").last().expect("Invalid path");
-            if latest_buckets_map.contains_key(app_name) {
-                let json_str = transform_to_search_manifest_object(&path).expect("文件解析错误");
-                let app_version = json_str.get_version().unwrap();
 
-                if app_version.to_string() < latest_buckets_map.get(app_name).unwrap().app_version {
-                    //  println!("删除的文件{} 版本{}", path.display(), app_version);
-                    remove_file(&path).expect("删除文件失败");
-                } else {
-                    //多个相等的manifest最高版本只保留一个
-                    same_latest_version_manifests.push(path);
-                }
-            }
-        }
-    }
-    Ok(same_latest_version_manifests)
+    // 读取目录条目并收集结果（提前处理错误）
+    let entries: Vec<_> = bucket_dir.read_dir()?.par_bridge(). collect::<Result<Vec<_>, _>>()?;
+
+    let same_latest_version_manifests = entries
+        .into_par_iter()
+        .filter_map(|entry| {
+            let path = entry.path();
+          let file_type = entry.file_type().ok()?;
+          if !file_type.is_file()  { return None;  }
+            if path.extension().and_then(|ext| ext.to_str()) == Some("json") {
+              let app_name = path.file_stem().and_then(|s| s.to_str()).expect("Invalid file stem");
+                let app_name = app_name.split("/").last().expect("Invalid path");
+                if latest_buckets_map.lock().unwrap().contains_key(app_name) {
+                  let content = read_to_string(&path).unwrap_or_default();
+                    if content.is_empty() {
+                      remove_file(&path).expect("删除文件失败");
+                      return None;
+                    }
+                    let json_str  :SearchManifest=serde_json::from_str(&content).unwrap_or_default() ;
+
+                    let app_version = json_str.get_version().unwrap_or_default();
+                    if app_version.is_empty() {
+                      remove_file(&path).expect("删除文件失败");
+                      return None;
+                    }
+                    if app_version.to_string()
+                        < latest_buckets_map
+                            .lock()
+                            .unwrap()
+                            .get(app_name)
+                            .unwrap()
+                            .app_version
+                    {
+                        //  println!("删除的文件{} 版本{}", path.display(), app_version);
+                        remove_file(&path).expect("删除文件失败");
+                        return None;
+                    } else {
+                        //多个相等的manifest最高版本只保留一个
+                        return path.into() ;
+                    }
+                }else {None }
+            }else { None }
+        })
+        .collect::<Vec<PathBuf>>();
+  Ok(same_latest_version_manifests)
 }
 
-fn merge_same_latest_version(same_latest_version_manifests: Vec<Vec<PathBuf>>) {
-    let latest_manifest = &same_latest_version_manifests.clone();
+fn merge_same_latest_version(same_latest_version_manifests:   Vec<Vec<PathBuf>>) {
+    let latest_manifest = same_latest_version_manifests ; 
     let mut group_manifests = HashMap::new();
     let mut all_manifest_count = 0;
     for manifests in latest_manifest {
@@ -362,16 +393,19 @@ fn finebars(file_finish_count: u64, total_file_count: u64) {
 }
 
 fn extract_info_from_manifest(path: &PathBuf) -> Result<Merge, anyhow::Error> {
-
-    let manifest_json = transform_to_search_manifest_object(path).expect("文件解析错误");
+    let content = std::fs::read_to_string(path).unwrap_or_default();
+   if   content.is_empty() {
+       return Err(anyhow!("文件为空"));
+   }
+    let manifest_json :SearchManifest  = serde_json::from_str(&content ).unwrap_or_default();
 
     let app_version = manifest_json.version.unwrap_or_default();
     // file_stem 去掉文件的扩展名
-    if app_version.is_empty() || app_version.contains("null") {
+    if app_version.is_empty()   {
         println!("删除无效文件{}", path.display());
         remove_file(path).expect("删除文件失败");
     }
-    let app_name = path.file_stem().unwrap().to_string_lossy().to_string();
+  let app_name = path.file_stem().and_then(|s| s.to_str()).expect("Invalid file stem");
     let app_name = app_name
         .split("/")
         .last()
@@ -482,21 +516,27 @@ fn rm_err_manifest_unit(
     pb: &ProgressBar,
     finish_message: String,
 ) -> anyhow::Result<()> {
-  let  git_repo = bucket_path.strip_suffix("bucket").unwrap();
-  let  repo_path = Path::new(git_repo);
-  if !repo_path.exists() {
-    bail!("{} 不存在", repo_path.to_str().unwrap().to_string().dark_red().bold());
-  }
+    let git_repo = bucket_path.strip_suffix("bucket").unwrap();
+    let repo_path = Path::new(git_repo);
+    if !repo_path.exists() {
+        bail!(
+            "{} 不存在",
+            repo_path.to_str().unwrap().to_string().dark_red().bold()
+        );
+    }
     let bucket_path = Path::new(bucket_path);
     let manifests = bucket_path
         .read_dir()?
         .par_bridge()
         .filter_map(|path| Some(path.ok()))
         .collect::<Vec<_>>();
-  let  git_url = get_git_repo_remote_url(repo_path ).unwrap_or_default();
-  if git_url.is_empty() {
-     bail!("{} 不是git仓库", bucket_path.to_str().unwrap().to_string().dark_red().bold());
-  }
+    let git_url = get_git_repo_remote_url(repo_path).unwrap_or_default();
+    if git_url.is_empty() {
+        bail!(
+            "{} 不是git仓库",
+            bucket_path.to_str().unwrap().to_string().dark_red().bold()
+        );
+    }
     manifests.par_iter().for_each(|manifest_path| {
         pb.inc(1);
         if manifest_path.is_none() {
@@ -506,45 +546,87 @@ fn rm_err_manifest_unit(
         if manifest_path.is_file() && manifest_path.clone().to_str().unwrap().ends_with(".json") {
             let content = std::fs::read_to_string(&manifest_path).unwrap_or_default();
             if content.is_empty() {
-               remove_file(&manifest_path).unwrap_or_else(|_| {
-                   eprintln!("{} 删除失败", manifest_path.to_str().unwrap().to_string().dark_red().bold());
-               }) ;
+                remove_file(&manifest_path).unwrap_or_else(|_| {
+                    eprintln!(
+                        "{} 删除失败",
+                        manifest_path
+                            .to_str()
+                            .unwrap()
+                            .to_string()
+                            .dark_red()
+                            .bold()
+                    );
+                });
                 // crate::utils::utility::write_into_log_file(&manifest_path);
                 return;
             }
 
-          if    LARGE_COMMUNITY_BUCKET.contains( &git_url.as_str() ) {
-            let content =   remove_bom_and_control_chars_from_utf8_file(&manifest_path);
-            if content.is_err() {
-              remove_file(&manifest_path).unwrap_or_else(|_| {
-                eprintln!("{} 删除失败", manifest_path.to_str().unwrap().to_string().dark_red().bold());
-              }) ;
-              // crate::utils::utility::write_into_log_file(&manifest_path);
-              return;
-            }
-            let  content = serde_json::from_str::<serde_json::Value>(&content.unwrap()).unwrap_or_default();
-            if content.is_null() {
-              remove_file(&manifest_path).unwrap_or_else(|_| {
-                eprintln!("{} 删除失败", manifest_path.to_str().unwrap().to_string().dark_red().bold());
-              }) ;
-              // crate::utils::utility::write_into_log_file(&manifest_path);
-              return;
-            }
-             return ;
-          }
-           let content =   read_to_string(&manifest_path);
-            if content.is_err() {
-              remove_file(&manifest_path).unwrap_or_else(|_| {
-                eprintln!("{} 删除失败", manifest_path.to_str().unwrap().to_string().dark_red().bold());
-              }) ;
-              // crate::utils::utility::write_into_log_file(&manifest_path);
+            if LARGE_COMMUNITY_BUCKET.contains(&git_url.as_str()) {
+                let content = remove_bom_and_control_chars_from_utf8_file(&manifest_path);
+                if content.is_err() {
+                    remove_file(&manifest_path).unwrap_or_else(|_| {
+                        eprintln!(
+                            "{} 删除失败",
+                            manifest_path
+                                .to_str()
+                                .unwrap()
+                                .to_string()
+                                .dark_red()
+                                .bold()
+                        );
+                    });
+                    // crate::utils::utility::write_into_log_file(&manifest_path);
+                    return;
+                }
+                let content = serde_json::from_str::<serde_json::Value>(&content.unwrap())
+                    .unwrap_or_default();
+                if content.is_null() {
+                    remove_file(&manifest_path).unwrap_or_else(|_| {
+                        eprintln!(
+                            "{} 删除失败",
+                            manifest_path
+                                .to_str()
+                                .unwrap()
+                                .to_string()
+                                .dark_red()
+                                .bold()
+                        );
+                    });
+                    // crate::utils::utility::write_into_log_file(&manifest_path);
+                    return;
+                }
                 return;
             }
-          let  content = serde_json::from_str::<serde_json::Value>(&content.unwrap()).unwrap_or_default();
+            let content = read_to_string(&manifest_path);
+            if content.is_err() {
+                remove_file(&manifest_path).unwrap_or_else(|_| {
+                    eprintln!(
+                        "{} 删除失败",
+                        manifest_path
+                            .to_str()
+                            .unwrap()
+                            .to_string()
+                            .dark_red()
+                            .bold()
+                    );
+                });
+                // crate::utils::utility::write_into_log_file(&manifest_path);
+                return;
+            }
+            let content =
+                serde_json::from_str::<serde_json::Value>(&content.unwrap()).unwrap_or_default();
             if content.is_null() {
                 remove_file(&manifest_path).unwrap_or_else(|_| {
-                    eprintln!("{} 删除失败", manifest_path.to_str().unwrap().to_string().dark_red().bold());
-                }) ;
+                    eprintln!(
+                        "{} 删除失败",
+                        manifest_path
+                            .to_str()
+                            .unwrap()
+                            .to_string()
+                            .dark_red()
+                            .bold()
+                    );
+                });
                 // crate::utils::utility::write_into_log_file(&manifest_path);
                 return;
             }
@@ -554,17 +636,15 @@ fn rm_err_manifest_unit(
     Ok(())
 }
 
-
-
 #[cfg(test)]
 mod tests {
-  use super::*;
+    use super::*;
 
-  #[test]
-  fn  test_transfrom_result () {
-    let file = r"A:\Scoop\buckets\echo\bucket\hdtune.json"  ;
-    let  content = std::fs::read_to_string(file).unwrap();
-    let result =  serde_json::from_str::<serde_json::Value>(&content).unwrap();
-    println!("{:?}", result);
-  }
+    #[test]
+    fn test_transfrom_result() {
+        let file = r"A:\Scoop\buckets\echo\bucket\hdtune.json";
+        let content = std::fs::read_to_string(file).unwrap();
+        let result = serde_json::from_str::<serde_json::Value>(&content).unwrap();
+        println!("{:?}", result);
+    }
 }
