@@ -9,13 +9,10 @@ use  clap::Args;
 #[command(after_help = r#"
 e.g. 安装应用程序的通常方法（使用您的本地buckets）： hp install git
 
-指定特定buckets的清单中安装:   hp install  main/genact 
-     
+指定特定buckets的清单中安装:   hp install  main/genact
+
 安装应用程序的不同版本,如果存在多版本清单 :  hp install gh@2.7.0
 
-从清单上安装一个在URL上的应用程序：
-     hp install https://raw.githubusercontent.com/ScoopInstaller/Main/master/bucket/runat.json
- 
 从计算机上的指定路径清单中安装应用程序 :   hp install \path\to\app.json
 
      "#)]
@@ -35,5 +32,5 @@ pub struct InstallArgs  {
 
   #[arg(short='a', long, help = "指定安装架构, 如果支持的话",
     required = false ,default_value ="64bit" ,value_name="<32bit|64bit|arm64>")]
-  arch : Option<String>, 
+  arch : Option<String>,
 }
