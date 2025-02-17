@@ -44,11 +44,8 @@ pub  async fn execute_update_command(update_args: UpdateArgs) -> Result<(), anyh
 async fn update_buckets() -> Result<(), anyhow::Error> {
     log::trace!("Calling update_buckets()");
 
-  // 更新hp 和buckets  
-  // 只对官方维护的bucket进行更新  
-  let  official_buckets = get_official_buckets_name();
    update_scoop_bar().await ? ;
-  update_all_buckets_bar(official_buckets)?;
+  update_all_buckets_bar( )?;
   update_scoop_config_last_update_time() ; 
     Ok(())
 }

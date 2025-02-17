@@ -3,7 +3,7 @@ use anyhow;
 use command_util_lib::merge::*;
 use crate::command_args::merge_bucket::MergeArgs;
 
-pub async  fn execute_merge_command(args: MergeArgs) -> Result<(), anyhow::Error> {
+pub     fn execute_merge_command(args: MergeArgs) -> Result<(), anyhow::Error> {
    if args.rm_err_manifest {
      println!("{ }", "开始移除格式错误的manifest文件.......".dark_green().bold());
       log::trace!("rm_err_manifest");

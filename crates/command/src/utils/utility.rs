@@ -1,7 +1,9 @@
 use std::cmp::Ordering;
+use std::fmt::format;
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use crate::merge::Merge;
 use crate::utils::system::get_system_current_time;
 
 pub  fn compare_versions(ver1: String, ver2: String) -> Ordering {
@@ -73,6 +75,18 @@ pub fn write_into_log_file (path : &PathBuf) {
 }
 
 
+pub fn  write_into_log_one_time(msg : &Vec<Merge>) {   
+   let  log_file = r"A:\Rust_Project\hyperscoop\manifests.txt"; 
+  let  file = fs::File::create(log_file).unwrap(); 
+  let mut writer = std::io::BufWriter::new(file); 
+  let    mut   str = String::new();  
+  for  merge  in  msg.iter() {
+    str.push_str(&format!("Name :{} Version :{} \n", merge.app_name, merge.app_version));
+  } 
+  writer.write_all(str .as_bytes()).unwrap(); 
+}   
+
+
 pub fn remove_bom_and_control_chars_from_utf8_file<P: AsRef<Path>>(path: P) -> anyhow::Result<String > {
   // 读取文件内容到字节数组
   let data = fs::read(&path)?;
@@ -113,7 +127,7 @@ pub fn remove_bom_and_control_chars_from_utf8_file<P: AsRef<Path>>(path: P) -> a
       Err(_) => {
         // 如果解析失败，跳过当前字节
         idx += 1;
-      }
+      } 
     }
   }
 
