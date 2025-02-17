@@ -306,7 +306,7 @@ fn merge_same_latest_version(
         let  name =   manifest.to_str().unwrap() ;
         if  name.contains("ScoopMaster") {  true } else { false }
       }) ; 
-  // ? cloned 获取引用指向的值,并将值复制到新的变量中  
+  // ? cloned 获取引用指向的值,并将值复制到新的变量中 ,转换&  Vec<T> 到 Vec<T>
   same_latest_version_manifests =scoop_master.into_iter().chain(other.into_iter()).collect::<_>();
     same_latest_version_manifests
         .par_iter()
@@ -342,7 +342,7 @@ fn merge_same_latest_version(
             if count > 1 && manifest.exists() {
                 // write_into_log_file(&manifest);
                 remove_file(&manifest).expect("删除文件失败");
-                group_manifests.insert(app_name.clone(), count - 1);
+                group_manifests.insert(app_name.clone(), count - 1); 
             }
             pb.inc(1);
         })
