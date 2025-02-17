@@ -1,5 +1,7 @@
 use std::cmp::Ordering;
-use std::path::Path;
+use std::fs;
+use std::io::Write;
+use std::path::{Path, PathBuf};
 use crate::utils::system::get_system_current_time;
 
 pub  fn compare_versions(ver1: String, ver2: String) -> Ordering {
@@ -55,9 +57,70 @@ pub  fn  get_official_buckets_name()  -> Vec<String> {
 }
 
 pub fn get_official_bucket_path( bucket_name : String  ) ->String  {
-  format!("{}\\buckets\\{}", std::env::var("SCOOP").unwrap_or("USERPROFILE/scoop".into()), bucket_name) 
+  format!("{}\\buckets\\{}", std::env::var("SCOOP").unwrap_or("USERPROFILE/scoop".into()), bucket_name)
 }
 
+
+pub fn write_into_log_file (path : &PathBuf) {
+  let log_file_path = r"A:\Rust_Project\hyperscoop\log.txt";
+  let file = std::fs::OpenOptions::new()
+    .append(true)
+    .create(true)
+    .open(log_file_path)
+    .unwrap();
+  let mut writer = std::io::BufWriter::new(file);
+  writer.write_all((path.to_str().unwrap().to_string()+"\n").as_bytes()).unwrap();
+}
+
+
+pub fn remove_bom_and_control_chars_from_utf8_file<P: AsRef<Path>>(path: P) -> anyhow::Result<String > {
+  // 读取文件内容到字节数组
+  let data = fs::read(&path)?;
+
+  // 检查是否存在 BOM（0xEF 0xBB 0xBF）
+  let data = if data.starts_with(&[0xEF, 0xBB, 0xBF]) {
+    // 截取 BOM 之后的内容
+    &data[3..]
+  } else {
+    &data
+  };
+
+
+  let mut filtered_data = Vec::new();
+  let mut idx = 0;
+
+  while idx < data.len() {
+    // 跳过控制字符（0x00 到 0x1F 和 0x7F）
+    if data[idx] <= 0x1F || data[idx] == 0x7F && !matches!(data[idx], b'\n' | b'\r' | b' ')  {
+      idx += 1;
+      continue; // 跳过控制字符
+    }
+
+    // 尝试解析 UTF-8 字符
+    match std::str::from_utf8(&data[idx..]) {
+      Ok(s) => {
+        if let Some(c) = s.chars().next() {
+          // 保留空格、制表符、换行、回车等
+          if !c.is_control() || c == ' ' || c == '\t' || c == '\n' || c == '\r' {
+            filtered_data.extend_from_slice(&data[idx..idx + c.len_utf8()]);
+          }
+          idx += c.len_utf8(); // 移动到下一个字符
+        } else {
+          // 空字符串，直接跳过
+          break;
+        }
+      }
+      Err(_) => {
+        // 如果解析失败，跳过当前字节
+        idx += 1;
+      }
+    }
+  }
+
+  fs::write(&path, filtered_data)?;
+  let content = fs::read_to_string(&path)?;
+  Ok(content )
+}
 
 mod tests {
   use super::*;
@@ -65,5 +128,13 @@ mod tests {
   #[test]
   fn test_compare_versions() {
     assert_eq!(compare_versions("1.2.3".to_string(), "1.2.3".to_string()), Ordering::Equal);
-  } 
+  }
+
+  #[test]
+  fn  test_rm_bom(){
+    let path = r"A:\Scoop\buckets\echo\bucket\hdtune.json" ;
+     let content = remove_bom_and_control_chars_from_utf8_file(path).unwrap();
+     let  content = serde_json::from_str::<serde_json::Value>(&content).unwrap();
+  }
+
 }
