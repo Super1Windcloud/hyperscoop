@@ -139,7 +139,6 @@ pub fn get_include_buckets_name() -> anyhow::Result<Vec<String>> {
     let mut finial_bucket_path: Vec<String> = Vec::new();
     let large_community_bucket = [
         "https://github.com/anderlli0053/DEV-tools",
-        "https://github.com/cmontage/scoopbucket",
         "https://github.com/duzyn/scoop-cn",
         "https://github.com/lzwme/scoop-proxy-cn",
         "https://github.com/kkzzhizhou/scoop-apps",

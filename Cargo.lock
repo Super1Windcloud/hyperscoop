@@ -445,6 +445,7 @@ dependencies = [
  "clap",
  "console",
  "crossterm",
+ "dashmap",
  "dialoguer",
  "encoding",
  "git2",

@@ -1,7 +1,5 @@
 ﻿use crate::buckets::{get_buckets_name, get_buckets_path};
-use crate::utils::detect_encoding::{
-    transform_to_only_version_manifest, transform_to_search_manifest_object,
-};
+use crate::manifest::search_manifest::SearchManifest;
 use crate::utils::request::get_git_repo_remote_url;
 use crate::utils::utility::{
     remove_bom_and_control_chars_from_utf8_file, write_into_log_file, write_into_log_one_time,
@@ -9,7 +7,7 @@ use crate::utils::utility::{
 };
 use anyhow::{anyhow, bail};
 use crossterm::style::Stylize;
-use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
+use indicatif::{MultiProgress, ProgressBar, ProgressFinish, ProgressStyle};
 use log::error;
 use rand::{thread_rng, Rng};
 use rayon::prelude::*;
@@ -20,7 +18,6 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 use windows_sys::Win32::Security::Authentication::Identity::X509Certificate;
-use crate::manifest::search_manifest::SearchManifest;
 
 #[derive(Debug, Eq, PartialEq, Hash, Clone)] // 从引用clone出新的完整对象而不是引用
 pub struct Merge {
@@ -55,7 +52,6 @@ pub fn merge_all_buckets() -> Result<(), anyhow::Error> {
         .iter()
         .map(|item| item.to_string() + "\\bucket")
         .collect::<Vec<String>>();
-    paths.reverse();
     //  初始化容器
     let all_bucket_set = Mutex::new(HashMap::<String, Merge>::new());
     // 记录所有旧版本的容器
@@ -78,9 +74,16 @@ pub fn merge_all_buckets() -> Result<(), anyhow::Error> {
             }
         }
     });
-  let all_manifest =all_manifest.lock().unwrap().clone().into_iter().flatten().collect::<Vec<_>>();
 
-    merge_same_latest_version(&mut all_manifest.lock().unwrap());
+    let all_manifest = all_manifest
+        .lock()
+        .unwrap()
+        .clone()
+        .into_iter()
+        .flatten()
+        .collect::<Vec<_>>();
+
+    merge_same_latest_version(all_manifest)?;
 
     println!("{ }", "合并完成".dark_green().bold());
     Ok(())
@@ -90,7 +93,6 @@ fn load_bucket_info(
     path_dir: &Path,
     map: &Mutex<HashMap<String, Merge>>,
 ) -> Result<(), anyhow::Error> {
-
     let path = include_special_dir(path_dir);
     if let Err(_e) = path {
         return Ok(());
@@ -113,8 +115,9 @@ fn load_bucket_info(
         .par_iter()
         .map(|entry| {
             let path = entry.path();
-          let file_type = entry.file_type().ok()?;
-            if  file_type .is_file() &&path.extension().and_then(|ext| ext.to_str()) == Some("json")  {
+            let file_type = entry.file_type().ok()?;
+            if file_type.is_file() && path.extension().and_then(|ext| ext.to_str()) == Some("json")
+            {
                 // 对于 path使用ends_with 只能匹配路径的最后一个元素,不能匹配扩展名
                 let result = extract_info_from_manifest(&path);
                 if let Err(e) = result {
@@ -232,29 +235,38 @@ fn remove_old_manifest(
     let bucket_dir = bucket_dir?;
 
     // 读取目录条目并收集结果（提前处理错误）
-    let entries: Vec<_> = bucket_dir.read_dir()?.par_bridge(). collect::<Result<Vec<_>, _>>()?;
+    let entries: Vec<_> = bucket_dir
+        .read_dir()?
+        .par_bridge()
+        .collect::<Result<Vec<_>, _>>()?;
 
     let same_latest_version_manifests = entries
         .into_par_iter()
         .filter_map(|entry| {
             let path = entry.path();
-          let file_type = entry.file_type().ok()?;
-          if !file_type.is_file()  { return None;  }
+            let file_type = entry.file_type().ok()?;
+            if !file_type.is_file() {
+                return None;
+            }
             if path.extension().and_then(|ext| ext.to_str()) == Some("json") {
-              let app_name = path.file_stem().and_then(|s| s.to_str()).expect("Invalid file stem");
+                let app_name = path
+                    .file_stem()
+                    .and_then(|s| s.to_str())
+                    .expect("Invalid file stem");
                 let app_name = app_name.split("/").last().expect("Invalid path");
                 if latest_buckets_map.lock().unwrap().contains_key(app_name) {
-                  let content = read_to_string(&path).unwrap_or_default();
+                    let content = read_to_string(&path).unwrap_or_default();
                     if content.is_empty() {
-                      remove_file(&path).expect("删除文件失败");
-                      return None;
+                        remove_file(&path).expect("删除文件失败");
+                        return None;
                     }
-                    let json_str  :SearchManifest=serde_json::from_str(&content).unwrap_or_default() ;
+                    let json_str: SearchManifest =
+                        serde_json::from_str(&content).unwrap_or_default();
 
                     let app_version = json_str.get_version().unwrap_or_default();
                     if app_version.is_empty() {
-                      remove_file(&path).expect("删除文件失败");
-                      return None;
+                        remove_file(&path).expect("删除文件失败");
+                        return None;
                     }
                     if app_version.to_string()
                         < latest_buckets_map
@@ -269,48 +281,58 @@ fn remove_old_manifest(
                         return None;
                     } else {
                         //多个相等的manifest最高版本只保留一个
-                        return path.into() ;
+                        return path.into();
                     }
-                }else {None }
-            }else { None }
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
         })
         .collect::<Vec<PathBuf>>();
-  Ok(same_latest_version_manifests)
+    Ok(same_latest_version_manifests)
 }
 
-fn merge_same_latest_version(same_latest_version_manifests:   Vec<Vec<PathBuf>>) {
-    let latest_manifest = same_latest_version_manifests ; 
-    let mut group_manifests = HashMap::new();
-    let mut all_manifest_count = 0;
-    for manifests in latest_manifest {
-        for manifest in manifests.iter() {
-            all_manifest_count += 1;
+fn merge_same_latest_version(
+    mut same_latest_version_manifests: Vec<PathBuf>,
+) -> Result<(), anyhow::Error> {
+    use dashmap::DashMap;
+
+    let group_manifests = DashMap::new();
+    let total_manifest_count = same_latest_version_manifests.len();
+
+      let ( scoop_master  ,other ) :(Vec<_>,Vec<_>)  =same_latest_version_manifests.into_par_iter().partition(|manifest| {
+        let  name =   manifest.to_str().unwrap() ;
+        if  name.contains("ScoopMaster") {  true } else { false }
+      }) ; 
+  // ? cloned 获取引用指向的值,并将值复制到新的变量中  
+  same_latest_version_manifests =scoop_master.into_iter().chain(other.into_iter()).collect::<_>();
+    same_latest_version_manifests
+        .par_iter()
+        .for_each(|manifest| {
             let name = manifest.file_stem().unwrap().to_string_lossy().to_string();
             let app_name = name.split("/").last().unwrap().to_string();
-            if !group_manifests.contains_key(&app_name) {
-                group_manifests.insert(app_name, 1);
-            } else {
-                let count = *group_manifests.get(&app_name).unwrap() + 1;
-                group_manifests.insert(app_name, count);
-            }
-        }
-    }
-    // 初始化进度条
-    let total_manifest_count = all_manifest_count;
-    let styles = [
-        ("Rough bar:", "█  ", "red"),
-        ("Fine bar: ", "█▉▊▋▌▍▎▏  ", "yellow"),
-        ("Vertical: ", "█▇▆▅▄▃▂▁  ", "green"),
-        ("Fade in:  ", "█▓▒░  ", "blue"),
-        ("Blocky:   ", "█▛▌▖  ", "magenta"),
-    ];
-    // let group_manifests_ref = Arc::new(Mutex::new(group_manifests));
-    let m = MultiProgress::new();
-    for manifests in latest_manifest {
-        for manifest in manifests.iter() {
+            *group_manifests.entry(app_name).or_insert(0) += 1;
+        });
+    let pb = ProgressBar::new(total_manifest_count as u64)
+        .with_style(
+            ProgressStyle::default_bar()
+                .template(
+                    "{prefix}  {spinner:.green} [{wide_bar:.cyan/blue}] {pos}/{len} ({eta}) {msg}",
+                )
+                .unwrap()
+                .progress_chars("#>-"),
+        )
+        .with_prefix(format!("🐎 {:<10}", "ProgressBar"))
+        .with_message("Remove Redundant Manifests")
+        .with_finish(ProgressFinish::WithMessage("Done 🎉".into()));
+    // 并行处理文件
+    let _ = same_latest_version_manifests
+        .into_par_iter()
+        .map(|manifest| {
             let name = manifest.file_stem().unwrap().to_string_lossy().to_string();
             let app_name = name.split("/").last().unwrap().to_string();
-            // 异步读取 count
             let count = group_manifests
                 .get(&app_name)
                 .ok_or(anyhow!("应用不存在"))
@@ -318,94 +340,33 @@ fn merge_same_latest_version(same_latest_version_manifests:   Vec<Vec<PathBuf>>)
                 .clone();
 
             if count > 1 && manifest.exists() {
-                remove_file(manifest).expect("删除文件失败");
+                // write_into_log_file(&manifest);
+                remove_file(&manifest).expect("删除文件失败");
                 group_manifests.insert(app_name.clone(), count - 1);
             }
-        }
-    }
-
-    //-----
-
-    let handles: Vec<_> = styles
-        .iter()
-        .map(|s| {
-            let pb = m.add(ProgressBar::new(total_manifest_count as u64));
-            pb.set_style(
-                ProgressStyle::with_template(&format!("{{prefix:.bold}}▕{{bar:.{}}}▏{{msg}}", s.2))
-                    .unwrap()
-                    .progress_chars(s.1),
-            );
-            pb.set_prefix(s.0);
-            let wait = Duration::from_millis(thread_rng().gen_range(10..20));
-            thread::spawn(move || {
-                for i in 0..(total_manifest_count / 50) {
-                    thread::sleep(wait);
-                    pb.inc(50);
-                    pb.set_message(format!("{:3}%", 5000 * i / total_manifest_count));
-                }
-                pb.finish_with_message("处理完成");
-            })
+            pb.inc(1);
         })
-        .collect();
-
-    for h in handles {
-        let _ = h.join();
-    }
-
-    //   println!("检验manifest数量 \n{:? }", group_manifests);
-}
-#[allow(unused)]
-fn finebars(file_finish_count: u64, total_file_count: u64) {
-    let styles = [
-        ("Rough bar:", "█  ", "red"),
-        ("Fine bar: ", "█▉▊▋▌▍▎▏  ", "yellow"),
-        ("Vertical: ", "█▇▆▅▄▃▂▁  ", "green"),
-        ("Fade in:  ", "█▓▒░  ", "blue"),
-        ("Blocky:   ", "█▛▌▖  ", "magenta"),
-    ];
-
-    let m = MultiProgress::new();
-
-    let handles: Vec<_> = styles
-        .iter()
-        .map(|s| {
-            let pb = m.add(ProgressBar::new(total_file_count as u64));
-            pb.set_style(
-                ProgressStyle::with_template(&format!("{{prefix:.bold}}▕{{bar:.{}}}▏{{msg}}", s.2))
-                    .unwrap()
-                    .progress_chars(s.1),
-            );
-            pb.set_prefix(s.0);
-            let wait = Duration::from_millis(thread_rng().gen_range(10..20));
-            thread::spawn(move || {
-                thread::sleep(wait);
-                let move_rate = 1000 / total_file_count;
-                pb.inc(move_rate * 100);
-                pb.set_message(format!("{:3}%", file_finish_count / total_file_count));
-                pb.finish_with_message("100%");
-            })
-        })
-        .collect();
-
-    for h in handles {
-        let _ = h.join();
-    }
+        .collect::<Vec<()>>();
+    Ok(())
 }
 
 fn extract_info_from_manifest(path: &PathBuf) -> Result<Merge, anyhow::Error> {
     let content = std::fs::read_to_string(path).unwrap_or_default();
-   if   content.is_empty() {
-       return Err(anyhow!("文件为空"));
-   }
-    let manifest_json :SearchManifest  = serde_json::from_str(&content ).unwrap_or_default();
+    if content.is_empty() {
+        return Err(anyhow!("文件为空"));
+    }
+    let manifest_json: SearchManifest = serde_json::from_str(&content).unwrap_or_default();
 
     let app_version = manifest_json.version.unwrap_or_default();
     // file_stem 去掉文件的扩展名
-    if app_version.is_empty()   {
+    if app_version.is_empty() {
         println!("删除无效文件{}", path.display());
         remove_file(path).expect("删除文件失败");
     }
-  let app_name = path.file_stem().and_then(|s| s.to_str()).expect("Invalid file stem");
+    let app_name = path
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .expect("Invalid file stem");
     let app_name = app_name
         .split("/")
         .last()
@@ -646,5 +607,43 @@ mod tests {
         let content = std::fs::read_to_string(file).unwrap();
         let result = serde_json::from_str::<serde_json::Value>(&content).unwrap();
         println!("{:?}", result);
+    }
+}
+
+#[allow(unused)]
+fn finebars(file_finish_count: u64, total_file_count: u64) {
+    let styles = [
+        ("Rough bar:", "█  ", "red"),
+        ("Fine bar: ", "█▉▊▋▌▍▎▏  ", "yellow"),
+        ("Vertical: ", "█▇▆▅▄▃▂▁  ", "green"),
+        ("Fade in:  ", "█▓▒░  ", "blue"),
+        ("Blocky:   ", "█▛▌▖  ", "magenta"),
+    ];
+
+    let m = MultiProgress::new();
+
+    let handles: Vec<_> = styles
+        .iter()
+        .map(|s| {
+            let pb = m.add(ProgressBar::new(total_file_count as u64));
+            pb.set_style(
+                ProgressStyle::with_template(&format!("{{prefix:.bold}}▕{{bar:.{}}}▏{{msg}}", s.2))
+                    .unwrap()
+                    .progress_chars(s.1),
+            );
+            pb.set_prefix(s.0);
+            let wait = Duration::from_millis(thread_rng().gen_range(10..20));
+            thread::spawn(move || {
+                thread::sleep(wait);
+                let move_rate = 1000 / total_file_count;
+                pb.inc(move_rate * 100);
+                pb.set_message(format!("{:3}%", file_finish_count / total_file_count));
+                pb.finish_with_message("100%");
+            })
+        })
+        .collect();
+
+    for h in handles {
+        let _ = h.join();
     }
 }

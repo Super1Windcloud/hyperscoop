@@ -64,7 +64,7 @@ pub fn get_official_bucket_path( bucket_name : String  ) ->String  {
 
 
 pub fn write_into_log_file (path : &PathBuf) {
-  let log_file_path = r"A:\Rust_Project\hyperscoop\log.txt";
+  let log_file_path = r"A:\Rust_Project\hyperscoop\redundant_log.txt";
   let file = std::fs::OpenOptions::new()
     .append(true)
     .create(true)
@@ -75,16 +75,16 @@ pub fn write_into_log_file (path : &PathBuf) {
 }
 
 
-pub fn  write_into_log_one_time(msg : &Vec<Merge>) {   
-   let  log_file = r"A:\Rust_Project\hyperscoop\manifests.txt"; 
-  let  file = fs::File::create(log_file).unwrap(); 
-  let mut writer = std::io::BufWriter::new(file); 
-  let    mut   str = String::new();  
+pub fn  write_into_log_one_time(msg : &Vec<Merge>) {
+   let  log_file = r"A:\Rust_Project\hyperscoop\manifests.txt";
+  let  file = fs::File::create(log_file).unwrap();
+  let mut writer = std::io::BufWriter::new(file);
+  let    mut   str = String::new();
   for  merge  in  msg.iter() {
     str.push_str(&format!("Name :{} Version :{} \n", merge.app_name, merge.app_version));
-  } 
-  writer.write_all(str .as_bytes()).unwrap(); 
-}   
+  }
+  writer.write_all(str .as_bytes()).unwrap();
+}
 
 pub const LARGE_COMMUNITY_BUCKET: [&str; 8] = [
 "https://github.com/anderlli0053/DEV-tools",
@@ -136,7 +136,7 @@ pub fn remove_bom_and_control_chars_from_utf8_file<P: AsRef<Path>>(path: P) -> a
       Err(_) => {
         // 如果解析失败，跳过当前字节
         idx += 1;
-      } 
+      }
     }
   }
 
