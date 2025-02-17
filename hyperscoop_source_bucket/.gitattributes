@@ -1,5 +1,0 @@
-# 由于 Scoop 是 Windows 独有的工具，我们可以安全地对所有文本文件使用 CRLF 行尾。
-# 如果 Git 确定内容是文本，则其行尾将在检出时在工作树中标准化为 CRLF。
-# 在 Git 索引/存储库中，文件将始终以 LF 行尾存储。这很好。
-# 因此，我们只需在 .gitattributes 文件中添加以下行：
-*.txt text eol=crlf
