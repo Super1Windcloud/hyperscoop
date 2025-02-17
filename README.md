@@ -43,7 +43,7 @@
 - [x] shim
 - [x] status  
 - [x]  uninstall  
-- [ ]  update  
+- [x]  update  
 - [x]  which 
 - [x] merge 
 ## benchmark
