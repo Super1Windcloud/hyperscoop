@@ -86,7 +86,16 @@ pub fn  write_into_log_one_time(msg : &Vec<Merge>) {
   writer.write_all(str .as_bytes()).unwrap(); 
 }   
 
-
+pub const LARGE_COMMUNITY_BUCKET: [&str; 8] = [
+"https://github.com/anderlli0053/DEV-tools",
+"https://github.com/cmontage/scoopbucket",
+"https://github.com/duzyn/scoop-cn",
+"https://github.com/lzwme/scoop-proxy-cn",
+"https://github.com/kkzzhizhou/scoop-apps",
+"https://github.com/cmontage/scoopbucket-third",
+"https://github.com/okibcn/ScoopMaster",
+"http://github.com/okibcn/ScoopMaster",
+];
 pub fn remove_bom_and_control_chars_from_utf8_file<P: AsRef<Path>>(path: P) -> anyhow::Result<String > {
   // 读取文件内容到字节数组
   let data = fs::read(&path)?;

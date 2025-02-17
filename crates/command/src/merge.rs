@@ -7,13 +7,14 @@ use log::error;
 use rand::{thread_rng, Rng};
 use rayon::prelude::*;
 use std::collections::{HashMap, HashSet};
-use std::fs::remove_file;
+use std::fs::{read_to_string, remove_file};
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::thread;
 use std::time::Duration;
 use windows_sys::Win32::Security::Authentication::Identity::X509Certificate;
-use crate::utils::utility::{remove_bom_and_control_chars_from_utf8_file, write_into_log_file, write_into_log_one_time};
+use crate::utils::request::get_git_repo_remote_url;
+use crate::utils::utility::{remove_bom_and_control_chars_from_utf8_file, write_into_log_file, write_into_log_one_time, LARGE_COMMUNITY_BUCKET};
 
 #[derive(Debug, Eq, PartialEq, Hash, Clone)] // 从引用clone出新的完整对象而不是引用
 pub  struct Merge {
@@ -58,8 +59,8 @@ pub fn merge_all_buckets() -> Result<(), anyhow::Error> {
       load_bucket_info(path_dir, &all_bucket_set).expect("加载bucket失败");
     }
   });
-  let latest_buckets: Vec<Merge> = all_bucket_set.lock().unwrap().values().cloned().collect(); 
-  return  Ok(()) ; 
+  let latest_buckets: Vec<Merge> = all_bucket_set.lock().unwrap().values().cloned().collect();
+  return  Ok(()) ;
     let mut latest_buckets_map: HashMap<String, Merge> = HashMap::new();
     let mut all_manifest = Vec::new();
     for path in &paths {
@@ -105,35 +106,35 @@ fn load_bucket_info(
     let file_name = entry.file_name().to_string_lossy().to_string();
     let path = entry.path();
     if path.is_dir() {
-      return  None 
+      return  None
     } else if exclude_not_json_file(file_name) {
-      return  None  
+      return  None
     } else if path.extension().is_some()
       && path.to_string_lossy().to_string().ends_with(".json")
     {
       // 对于 path使用ends_with 只能匹配路径的最后一个元素,不能匹配扩展名
-      let result = extract_info_from_manifest(&path); 
+      let result = extract_info_from_manifest(&path);
       if  let Err(e) = result {
         eprintln!("{}", e.to_string().dark_blue().bold());
-        return   None 
-      } 
-      let  result = result.unwrap(); 
+        return   None
+      }
+      let  result = result.unwrap();
       return  Some( result ) ;
     } else {
       print!("{}", path.to_str().unwrap().to_string().dark_blue().bold());
       eprintln!("文件类型不支持");
-      return  None 
+      return  None
     }
   })  .collect::<Vec<_>>();
- 
+
   result .into_par_iter().for_each(|merge | {
-        if  merge.is_none() { 
+        if  merge.is_none() {
           return ;
-        } 
-        let  merge = merge.unwrap();  
+        }
+        let  merge = merge.unwrap();
      let mut map = map.lock().unwrap();
      find_latest_version(merge, &mut map).expect("执行合并失败");
-   }) ; 
+   }) ;
    Ok(())
 }
 fn exclude_special_dir(path_dir: &Path) -> Result<PathBuf, anyhow::Error> {
@@ -481,13 +482,21 @@ fn rm_err_manifest_unit(
     pb: &ProgressBar,
     finish_message: String,
 ) -> anyhow::Result<()> {
+  let  git_repo = bucket_path.strip_suffix("bucket").unwrap();
+  let  repo_path = Path::new(git_repo);
+  if !repo_path.exists() {
+    bail!("{} 不存在", repo_path.to_str().unwrap().to_string().dark_red().bold());
+  }
     let bucket_path = Path::new(bucket_path);
     let manifests = bucket_path
         .read_dir()?
         .par_bridge()
         .filter_map(|path| Some(path.ok()))
         .collect::<Vec<_>>();
-
+  let  git_url = get_git_repo_remote_url(repo_path ).unwrap_or_default();
+  if git_url.is_empty() {
+     bail!("{} 不是git仓库", bucket_path.to_str().unwrap().to_string().dark_red().bold());
+  }
     manifests.par_iter().for_each(|manifest_path| {
         pb.inc(1);
         if manifest_path.is_none() {
@@ -503,7 +512,27 @@ fn rm_err_manifest_unit(
                 // crate::utils::utility::write_into_log_file(&manifest_path);
                 return;
             }
-          let content =   remove_bom_and_control_chars_from_utf8_file(&manifest_path);
+
+          if    LARGE_COMMUNITY_BUCKET.contains( &git_url.as_str() ) {
+            let content =   remove_bom_and_control_chars_from_utf8_file(&manifest_path);
+            if content.is_err() {
+              remove_file(&manifest_path).unwrap_or_else(|_| {
+                eprintln!("{} 删除失败", manifest_path.to_str().unwrap().to_string().dark_red().bold());
+              }) ;
+              // crate::utils::utility::write_into_log_file(&manifest_path);
+              return;
+            }
+            let  content = serde_json::from_str::<serde_json::Value>(&content.unwrap()).unwrap_or_default();
+            if content.is_null() {
+              remove_file(&manifest_path).unwrap_or_else(|_| {
+                eprintln!("{} 删除失败", manifest_path.to_str().unwrap().to_string().dark_red().bold());
+              }) ;
+              // crate::utils::utility::write_into_log_file(&manifest_path);
+              return;
+            }
+             return ;
+          }
+           let content =   read_to_string(&manifest_path);
             if content.is_err() {
               remove_file(&manifest_path).unwrap_or_else(|_| {
                 eprintln!("{} 删除失败", manifest_path.to_str().unwrap().to_string().dark_red().bold());

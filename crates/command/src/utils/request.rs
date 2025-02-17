@@ -282,25 +282,25 @@ pub async fn download_third_party_buckets() -> Result<String, anyhow::Error> {
 }
 
 
-pub fn   get_git_repo_remote_url(
-    repo_path : &str,
-) -> Result<String, anyhow::Error> { 
+pub fn   get_git_repo_remote_url<P: AsRef<Path>>(
+    repo_path :P ,
+) -> Result<String, anyhow::Error> {
    use  git2::Repository;
-   let repo = Repository::open(repo_path)?; 
-  for remote in repo.remotes()?.iter() { 
-    if  remote.is_none() { 
+   let repo = Repository::open(repo_path)?;
+  for remote in repo.remotes()?.iter() {
+    if  remote.is_none() {
       continue;
-    } 
-    let remote = remote.unwrap();   
-    let remote= repo.find_remote(remote) ;  
+    }
+    let remote = remote.unwrap();
+    let remote= repo.find_remote(remote) ;
     if remote.is_err() {
       continue;
-    } 
-    let remote = remote.unwrap() ; 
-    let url =  remote.url().unwrap(); 
+    }
+    let remote = remote.unwrap() ;
+    let url =  remote.url().unwrap();
     if url.is_empty() {
       continue;
-    } 
+    }
     return Ok(url.to_string());
   }
  Ok("Not found remote url".to_string())
