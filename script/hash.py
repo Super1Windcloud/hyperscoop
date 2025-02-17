@@ -44,7 +44,7 @@ def  calculate_hash(file_path):
         return None
     with open(file_path, 'rb') as f:
         # 使用 sha1 算法计算哈希值 ,scoop 默认使用sha1 算法
-        return hashlib.sha1(f.read()).hexdigest()
+        return hashlib.sha256(f.read()).hexdigest()
 def  write_to_manifest(hash_value):
     """Write the hash value to the manifest file"""
     manifest_path = os.path.join(os.path.dirname(os.path.dirname(__file__)),
