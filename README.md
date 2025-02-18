@@ -21,7 +21,7 @@
 
 ## CLI Features
 
-- ![img.png](./img/img_1.png)
+- ![img.png](./img/cli.png)
 
 ---
 ## ☑️ TODO
@@ -48,7 +48,7 @@
 - [x] merge 
 --- 
  ## Feature 
-- [ ]  多进度条, 多线程  , 丰富色彩, 命令识别自动补全
+- >   多进度条, 多线程  , 丰富色彩, 命令识别自动补全
 
 --- 
 ## 开发计划
