@@ -21,7 +21,7 @@
 
 ## CLI Features
 
- ![img](hyperscoop_source_bucket/cli.jpg) 
+ ![img](pinpix.png) 
  
 ---
 ## ☑️ TODO
