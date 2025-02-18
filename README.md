@@ -1,4 +1,4 @@
-![](img/cover.jpeg) 
+![](./img/cover.jpeg) 
 
 # hyperscoop 
 
@@ -48,15 +48,15 @@
 - [x] merge 
 ## benchmark
 
-- ![img.png](img/1730643822703.jpg)
+- ![img.png](./img/1730643822703.jpg)
 
 ---
 
-- ![img.png](img/1730896772719.jpg)
+- ![img.png](./img/1730896772719.jpg)
 
 ---
 
-- ![img.png](img/search1731129758178.jpg)
+- ![img.png](./img/search1731129758178.jpg)
 
 ## 开发计划
 
