@@ -21,8 +21,8 @@
 
 ## CLI Features
 
- ![img.png](./img/cli.png)
-
+ ![](./img/cli.png) 
+ 
 ---
 ## ☑️ TODO
 - [x] Bucket
