@@ -116,9 +116,6 @@
 > - > options : -k, --no-cache 不使用下载缓存
     >     >
     >     > - -s, --skip-hash-check 跳过哈希验证 ,
-    >     >
-
-    >     >
 
 >
 
