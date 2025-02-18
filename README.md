@@ -21,7 +21,7 @@
 
 ## CLI Features
 
- ![img](pinpix.png) 
+ ![img](img/pinpix.png) 
  
 ---
 ## ☑️ TODO
