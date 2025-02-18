@@ -46,18 +46,11 @@
 - [x]  update  
 - [x]  which 
 - [x] merge 
-## benchmark
+--- 
+ ## Feature 
+- [ ]  多进度条, 多线程  , 丰富色彩, 命令识别自动补全
 
-- ![img.png](./img/1730643822703.jpg)
-
----
-
-- ![img.png](./img/1730896772719.jpg)
-
----
-
-- ![img.png](./img/search1731129758178.jpg)
-
+--- 
 ## 开发计划
 
 - **[roadmap](./roadmap.md)** 
