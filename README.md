@@ -1,8 +1,8 @@
-![](img/img1.png) 
+![](img/cover.jpeg) 
 
 # hyperscoop 
 
-## 🐼 一个更快,更强, 更精美的  windows 包管理器基于 rust ( 继承自 scoop ) 
+## 🐼 一个更快,更强, 更精美的  windows 包管理器基于 rust ( 继承自 scoop )
 
 ## 快速开始 [source_bucket]( https://gitee.com/SuperWindcloud/hyperscoop_bucket.git)
 
@@ -17,11 +17,11 @@
 |![](https://i.giphy.com/media/CwfC5Pv6Rtp66h4coK/giphy.gif) |
 |:--:|
 | Under construction |
----S
+---
 
 ## CLI Features
 
-- ![img.png](./img/微信图片_20241101140706.png)
+- ![img.png](./img/img_1.png)
 
 ---
 ## ☑️ TODO
