@@ -1,4 +1,4 @@
-![](img/cover.jpeg) 
+![](img/img1.png) 
 
 # hyperscoop 
 
@@ -17,7 +17,7 @@
 |![](https://i.giphy.com/media/CwfC5Pv6Rtp66h4coK/giphy.gif) |
 |:--:|
 | Under construction |
----
+---S
 
 ## CLI Features
 
