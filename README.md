@@ -20,10 +20,9 @@
 ---
 
 ## CLI Features
-
+--- 
  ![pinpix.png](https://imgfans.com/_oONbC)
 
- 
 --- 
 ## ☑️ TODO
 - [x] Bucket
