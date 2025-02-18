@@ -21,7 +21,7 @@
 
 ## CLI Features
 
- ![](./img/cli.png) 
+ ![img](./img/cli.jpg) 
  
 ---
 ## ☑️ TODO
