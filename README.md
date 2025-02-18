@@ -21,7 +21,7 @@
 
 ## CLI Features
 
- ![img](./img/cli.jpg) 
+ ![img](./img/pinpix.png) 
  
 ---
 ## ☑️ TODO
