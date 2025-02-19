@@ -6,26 +6,26 @@ use crate::utils::git::{
 #[allow(unused_imports)]
 use anyhow::bail;
 use rayon::prelude::*;
-use tokio::runtime::Runtime;
+
 
 pub fn update_all_apps() -> Result<(), anyhow::Error> {
     Ok(())
 }
 
 pub fn update_specific_app_without_cache(app_name: String) -> Result<(), anyhow::Error> {
-    log::trace!("update_specific_app_without_cache");
+    log::trace!("update_specific_app_without_cache {}", &app_name);
     Ok(())
 }
 
 pub fn update_specific_app_without_hash_check(app_name: String) -> Result<(), anyhow::Error> {
-    log::trace!("update_specific_app_without_hash_check");
+    log::trace!("update_specific_app_without_hash_check {}", &app_name);
     Ok(())
 }
 
 pub fn update_specific_app_without_cache_and_hash_check(
     app_name: String,
 ) -> Result<(), anyhow::Error> {
-    log::trace!("update_specific_app_without_cache_and_hash_check");
+    log::trace!("update_specific_app_without_cache_and_hash_check {}", &app_name);
     Ok(())
 }
 
@@ -47,7 +47,7 @@ async fn check_scoop_update() -> anyhow::Result<bool> {
 
 use crate::utils::progrees_bar::{
     gen_stats_callback,
-    indicatif::{MultiProgress, ProgressBar, ProgressFinish, ProgressStyle},
+    indicatif::{MultiProgress, ProgressBar, ProgressFinish},
     style, Message, ProgressOptions,
 };
 use crate::utils::request::get_git_repo_remote_url;
@@ -67,7 +67,7 @@ pub async fn update_scoop_bar() -> anyhow::Result<()> {
     let pb = ProgressBar::new(1)
         .with_style(progress_style)
         .with_message("Checking for updates")
-        .with_prefix(format!("🐧{:<10}", "Scoop "))
+        .with_prefix(format!("🐧{:<longest_bucket_name$}", "Scoop "))
         .with_finish(ProgressFinish::WithMessage(FINISH_MESSAGE.into()));
 
     let scoop_status = check_scoop_update().await?;
@@ -120,17 +120,18 @@ pub fn update_all_buckets_bar() -> anyhow::Result<()> {
             Ok(())
         })
         .collect::<Vec<anyhow::Result<()>>>();
+    #[allow(unused_doc_comments)]
     /// replace rayon  iterator  running  with foreach  for  map  method
-    // outdated_buckets.par_iter() // 来自 rayon
-    //     .for_each(|(pb, bucket_path)| {
-    //         let callback = gen_stats_callback(pb);
-    //         let result = git_pull_update_repo(bucket_path, &callback);
-    //         if let Err(e) = result {
-    //             pb.finish_with_message(format!("❌ {}", e));
-    //         } else {
-    //             pb.finish_with_message(FINISH_MESSAGE);
-    //         }
-    //     });
+    /// outdated_buckets.par_iter() // 来自 rayon
+    ///  .for_each(|(pb, bucket_path)| {
+    ///     let callback = gen_stats_callback(pb);
+    ///     let result = git_pull_update_repo(bucket_path, &callback);
+    ///    if let Err(e) = result {
+    ///        pb.finish_with_message(format!("❌ {}", e));
+    ///    } else {
+    ///       pb.finish_with_message(FINISH_MESSAGE);
+    ///   }
+    ///    });
     Ok(())
 }
 
@@ -147,7 +148,7 @@ pub fn get_include_buckets_name() -> anyhow::Result<Vec<String>> {
         "http://github.com/okibcn/ScoopMaster",
     ];
     for path in bucket_path.iter() {
-        let url = get_git_repo_remote_url(path)?; 
+        let url = get_git_repo_remote_url(path)?;
         if !large_community_bucket.iter().any(|&x| x == url) {
             finial_bucket_path.push(path.into());
         }
@@ -163,7 +164,6 @@ pub fn get_include_buckets_name() -> anyhow::Result<Vec<String>> {
 }
 pub fn get_include_buckets_path() -> anyhow::Result<Vec<String>> {
     let bucket_path = get_buckets_path()?;
-    let mut final_bucket_path: Vec<String> = Vec::new();
     let large_community_bucket = [
         "https://github.com/anderlli0053/DEV-tools",
         "https://github.com/cmontage/scoopbucket",
@@ -172,9 +172,9 @@ pub fn get_include_buckets_path() -> anyhow::Result<Vec<String>> {
         "https://github.com/kkzzhizhou/scoop-apps",
         "https://github.com/cmontage/scoopbucket-third",
         "https://github.com/okibcn/ScoopMaster",
-      "http://github.com/okibcn/ScoopMaster",
+        "http://github.com/okibcn/ScoopMaster",
     ];
-    final_bucket_path = bucket_path
+    let  final_bucket_path = bucket_path
         .iter()
         .filter(|path| {
             let url = get_git_repo_remote_url(path).unwrap_or_default();
@@ -187,6 +187,7 @@ pub fn get_include_buckets_path() -> anyhow::Result<Vec<String>> {
 }
 
 mod tests {
+    #[allow(unused_imports)]
     use super::*;
 
     #[test]

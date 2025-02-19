@@ -276,8 +276,6 @@ fn start_fetch(mut remote: Remote, repo: &Repository,
 
 
 mod  tests {
-  use crate::utils::pull::{run, run_pull};
-  use super::*;
   #[test]
   fn test_git_pull () {
     use   crate::utils::pull::RepoArgs;
@@ -290,6 +288,7 @@ mod  tests {
   }
   #[test]
   fn git_pull_update() -> anyhow::Result<()> {
+    use crate::utils::pull::{run };
     let repo_path :String = "A:\\scoop\\buckets\\hp".into() ;
     let repo = git2::Repository::open(&repo_path)?;
     use   crate::utils::pull::RepoArgs;

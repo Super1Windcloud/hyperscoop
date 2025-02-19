@@ -1,6 +1,6 @@
 
 use clap::Parser;
-use git2::{Progress, Repository};
+use git2::{  Repository};
 use std::io::{self, Write};
 use std::str;
 use anyhow::bail;
@@ -102,8 +102,8 @@ fn fast_forward(
     None => String::from_utf8_lossy(lb.name_bytes()).to_string(),
   };
   let msg = format!("Fast-Forward: Setting {} to id: {}", name, rc.id());
-  // println!("{}", msg);  
-  
+  // println!("{}", msg);
+
   lb.set_target(rc.id(), &msg)?;
   repo.set_head(&name)?;
   repo.checkout_head(Some(
@@ -129,9 +129,9 @@ fn normal_merge(
   let mut idx = repo.merge_trees(&ancestor, &local_tree, &remote_tree, None)?;
 
   if idx.has_conflicts() {
-    println!("Merge conflicts detected..."); 
+    println!("Merge conflicts detected...");
     repo.checkout_index(Some(&mut idx), None)?;
-    bail!("Merge conflicts detected"); 
+    bail!("Merge conflicts detected");
   }
   let result_tree = repo.find_tree(idx.write_tree_to(repo)?)?;
   // now create the merge commit
@@ -207,7 +207,7 @@ pub fn run(args: RepoArgs ,  repo_path: String ) -> Result<(), anyhow::Error> {
   let fetch_commit = do_fetch_default_cli(&repo, &[remote_branch], &mut remote  )?;
   do_merge(&repo, &remote_branch, fetch_commit)
 }
-///   当使用indicatif 进度条时 , 如果控制台缓存区输出字符串会导致进度条重新渲染, log::trace,info,warn, println! 等 
+///   当使用indicatif 进度条时 , 如果控制台缓存区输出字符串会导致进度条重新渲染, log::trace,info,warn, println! 等
  pub fn  run_pull <'a> (args: RepoArgs, repo_path: String,
                   callback: ProgressCallback<'_> )
    -> anyhow::Result<()> {

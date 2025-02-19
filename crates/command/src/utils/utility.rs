@@ -1,5 +1,4 @@
 use std::cmp::Ordering;
-use std::fmt::format;
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -146,8 +145,8 @@ pub fn remove_bom_and_control_chars_from_utf8_file<P: AsRef<Path>>(path: P) -> a
 }
 
 mod tests {
+  #[allow(unused_imports)]
   use super::*;
-
   #[test]
   fn test_compare_versions() {
     assert_eq!(compare_versions("1.2.3".to_string(), "1.2.3".to_string()), Ordering::Equal);

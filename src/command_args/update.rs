@@ -17,5 +17,8 @@ pub struct UpdateArgs {
   pub(crate) skip_hash_check: bool,
 
   #[arg(short , long, help = "更新所有APP")]
-  pub  all : bool,
+  pub  all : bool, 
+  
+  #[arg (short, long, help = "不保留旧的App可执行程序")]
+  pub   no_retain_out_app : bool, 
 }

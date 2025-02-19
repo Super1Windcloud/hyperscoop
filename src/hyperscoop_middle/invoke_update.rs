@@ -1,9 +1,8 @@
 ﻿use crossterm::style::Stylize;
-use command_util_lib::import::write_into_scoop_config;
 use crate::command_args::update::UpdateArgs;
 use command_util_lib::update::*;
-use command_util_lib::utils::utility::{get_official_buckets_name, update_scoop_config_last_update_time};
-
+use command_util_lib::utils::utility::{ update_scoop_config_last_update_time};
+#[allow(unused)]
 pub  async fn execute_update_command(update_args: UpdateArgs) -> Result<(), anyhow::Error> {
     if update_args.update_self {
 
@@ -35,23 +34,20 @@ pub  async fn execute_update_command(update_args: UpdateArgs) -> Result<(), anyh
       }
       update_specific_app(app_name.clone())?;
       return Ok(());
- 
+
     }
 
     Ok(())
 }
 
 async fn update_buckets() -> Result<(), anyhow::Error> {
-    log::trace!("Calling update_buckets()");
-
    update_scoop_bar().await ? ;
   update_all_buckets_bar( )?;
-  update_scoop_config_last_update_time() ; 
+  update_scoop_config_last_update_time() ;
     Ok(())
 }
 
 fn update_hp() -> Result<(), anyhow::Error> {
-    log::trace!("Calling update_scoop()");
   update_specific_app("hp".into())? ;
   Ok(())
 }

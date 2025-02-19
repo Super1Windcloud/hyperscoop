@@ -2,13 +2,12 @@
 use crate::manifest::search_manifest::SearchManifest;
 use crate::utils::request::get_git_repo_remote_url;
 use crate::utils::utility::{
-    remove_bom_and_control_chars_from_utf8_file, write_into_log_file, write_into_log_one_time,
+    remove_bom_and_control_chars_from_utf8_file,
     LARGE_COMMUNITY_BUCKET,
 };
 use anyhow::{anyhow, bail};
 use crossterm::style::Stylize;
 use indicatif::{MultiProgress, ProgressBar, ProgressFinish, ProgressStyle};
-use log::error;
 use rand::{thread_rng, Rng};
 use rayon::prelude::*;
 use std::collections::{HashMap, HashSet};
@@ -17,7 +16,6 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
-use windows_sys::Win32::Security::Authentication::Identity::X509Certificate;
 
 #[derive(Debug, Eq, PartialEq, Hash, Clone)] // 从引用clone出新的完整对象而不是引用
 pub struct Merge {
@@ -48,7 +46,7 @@ pub fn merge_all_buckets() -> Result<(), anyhow::Error> {
     //  1. 读取所有bucket的manifest文件
     println!("{ }", "正在合并所有冗余的manifest文件".dark_green().bold());
     let paths = get_buckets_path()?;
-    let mut paths = paths
+    let paths = paths
         .iter()
         .map(|item| item.to_string() + "\\bucket")
         .collect::<Vec<String>>();
@@ -384,7 +382,7 @@ fn display_repeat_app(merge: &Merge) {
         println!("{} 重复", app_name.clone().dark_blue().bold());
     }
 }
-
+#[allow(dead_code)]
 fn exclude_not_json_file(file_name: String) -> bool {
     // 排除非json文件 , 匹配 .开头和_开头的文件
     if file_name.starts_with(".") || file_name.starts_with("_") {
@@ -398,10 +396,8 @@ fn exclude_not_json_file(file_name: String) -> bool {
 pub fn rm_err_manifest() -> Result<(), anyhow::Error> {
     use crate::utils::progrees_bar::{
         indicatif::{MultiProgress, ProgressBar, ProgressFinish},
-        style, Message, ProgressOptions,
     };
     const FINISH_MESSAGE: &'static str = "✅";
-    let progress_style = style(Some(ProgressOptions::Hide), Some(Message::suffix()));
     let bucket_paths = get_buckets_path()?;
     let buckets_name = get_buckets_name()?;
 
@@ -457,7 +453,7 @@ pub fn rm_err_manifest() -> Result<(), anyhow::Error> {
                 .find(|item| item.ends_with(&(bucket.clone() + "\\bucket")))
                 .unwrap_or(bucket);
             let result =
-                rm_err_manifest_unit(bucket_path, pb, FINISH_MESSAGE.clone().parse().unwrap());
+                rm_err_manifest_unit(bucket_path, pb, FINISH_MESSAGE.parse().unwrap());
             if let Err(e) = result {
                 pb.finish_with_message(format!("❌ {}", e.to_string()));
             }
