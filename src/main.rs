@@ -1,11 +1,14 @@
 #![feature(str_as_str)]
 #![deny(clippy::shadow)]
 mod command_args;
+
+use std::io::stdout;
 use clap::{command, Parser};
 use clap::builder::Styles;
 use clap::builder::styling::{AnsiColor, Effects};
 use clap_verbosity_flag;
-use crossterm::style::Stylize;
+use crossterm::execute;
+use crossterm::style::{Print, Stylize};
 mod command;
 mod hyperscoop_middle;
 use command::Commands;
@@ -51,7 +54,7 @@ async fn main() -> Result<(), anyhow::Error> {
         "次世代更快更强更精美的Windows包管理器".magenta().bold()
     );
     let cli = Cli::parse();
-    return match cli.command {
+    let  result =  match cli.command {
         None => {
             eprintln!("No command provided. Run `hp  --help` to see available commands.");
             Ok(())
@@ -86,5 +89,11 @@ async fn main() -> Result<(), anyhow::Error> {
             }
         }
     };
-    Ok(())
+  if let Err(err) = result {
+    let red_err = err.to_string().on_red().bold();
+    execute!(stdout(), Print(red_err))?;
+    println!();
+  }
+
+  Ok(())
 }

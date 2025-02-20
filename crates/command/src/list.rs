@@ -14,23 +14,24 @@ pub fn list_specific_installed_apps(query: &String) {
     let app_update_date = package.3;
     // let (mut app_name, mut version, mut source,
     //   mut update_date) = (String::new(), String::new(), String::new(), String::new());
-    for i in 0..app_name_list.len() {
-        if app_name_list[i].to_lowercase() == query.clone().to_lowercase() {
-            println!(
-                "{:<30}\t\t\t\t{:<30}\t\t\t{:<30}\t\t\t{:<30} ",
-                "Name".dark_green().bold(),
-                "Version".dark_green().bold(),
-                "Bucket".dark_green().bold(),
-                "UpDate".dark_green().bold()
-            );
-            println!(
-                "{:<30}\t\t\t\t{:<30}\t\t\t{:<30}\t\t\t{:<30} ",
-                "____".dark_green().bold(),
-                "_______".dark_green().bold(),
-                "______".dark_green().bold(),
-                "______".dark_green().bold()
-            );
+  println!(
+    "{:<30}\t\t\t\t{:<30}\t\t\t{:<30}\t\t\t{:<30} ",
+    "Name".dark_green().bold(),
+    "Version".dark_green().bold(),
+    "Bucket".dark_green().bold(),
+    "UpDate".dark_green().bold()
+  );
+  println!(
+    "{:<30}\t\t\t\t{:<30}\t\t\t{:<30}\t\t\t{:<30} ",
+    "____".dark_green().bold(),
+    "_______".dark_green().bold(),
+    "______".dark_green().bold(),
+    "______".dark_green().bold()
+  );
 
+  for i in 0..app_name_list.len() {
+        if app_name_list[i].to_lowercase() == query.clone().to_lowercase() || app_name_list[i].contains(query) {
+        
             println!(
                 "{:<30}\t{:<23}\t{:<20}\t{:<10} ",
                 app_name_list[i], app_version[i], app_source_bucket[i], app_update_date[i]

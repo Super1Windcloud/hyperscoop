@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 #[allow(clippy::unsafe_derive_deserialize)]
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
-pub struct Manifest {
+pub struct  Manifest {
   #[serde(skip)]
   bucket: Option<String>,
   #[serde(skip)]
@@ -36,6 +36,17 @@ pub struct Manifest {
   //在用户路径上可用的程序（可执行文件或脚本）的字符串或字符串数 组
   pub bin: Option<String>,    //可执行文件所在的目录。
   pub checksum: Option<String>,  //文件的校验和
+  /**
+  要下载的一个或多个文件的 URL。如果有多个 URL，可以使用 JSON 数组，例如 "url": [ "http://example.org/program.zip", "http://example.org/dependencies.zip" ] 。 URL 可以是 HTTP、HTTPS 或 FTP。
+
+    To change the filename of the downloaded URL, you can append a URL fragment (starting with #) to URLs. For example,
+    要更改下载的 URL 的文件名，您可以将 URL 片段（以#开头）附加到 URL。例如，
+    "http://example.org/program.exe" -> "http://example.org/program.exe#/dl.7z"
+    Note the fragment must start with #/ for this to work.
+    请注意，片段必须以#/开头才能正常工作。
+    In the above example, Scoop will download program.exe but save it as dl.7z, which will then be extracted automatically with 7-Zip. This technique is commonly used in Scoop manifests to bypass executable installers which might have undesirable side-effects like registry changes, files placed outside the install directory, or an admin elevation prompt.
+    在上面的示例中，Scoop 将下载program.exe ，但将其另存为dl.7z ，然后使用 7-Zip 自动解压。此技术通常在 Scoop 清单中使用，以绕过可执行安装程序，这些安装程序可能会产生不良副作用，例如注册表更改、放置在安装目录之外的文件或管理员提升提示。
+  */
   pub url: Option<String>,
 
   //字符串或字符串数组，其中包含url中每个 URL 的文件哈希值。默认情况下，
@@ -74,38 +85,3 @@ pub struct Manifest {
 }
 
 
-impl Manifest {
-  #[must_use]
-
-  pub unsafe fn name(&self) -> &str {
-    unsafe { self.name.as_ref().unwrap_unchecked() }
-  }
-
-  #[must_use]
-  /// Get the name of the manifest, or [`None`] if it is not set
-  pub fn name_opt(&self) -> Option<&str> {
-    self.name.as_deref()
-  }
-
-  /// Set the name of the manifest
-  pub fn set_name(&mut self, name: impl Into<String>) {
-    self.name = Some(name.into());
-  }
-
-  #[must_use]
-
-  pub unsafe fn bucket(&self) -> &str {
-    unsafe { self.bucket.as_ref().unwrap_unchecked() }
-  }
-
-  #[must_use]
-  /// Get the bucket the manifest is from, or [`None`] if it is not set
-  pub fn bucket_opt(&self) -> Option<&str> {
-    self.bucket.as_deref()
-  }
-
-  /// Set the bucket the manifest is from
-  pub fn set_bucket(&mut self, bucket: impl Into<String>) {
-    self.bucket = Some(bucket.into());
-  }
-}

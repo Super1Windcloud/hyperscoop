@@ -18,19 +18,19 @@ e.g. 安装应用程序的通常方法（使用您的本地buckets）： hp inst
      "#)]
 pub struct InstallArgs  {
   #[arg(help = "下载APP的名称", required = false )]
-  app_name: Option<String>,
+  pub  app_name: Option<String>,
 
 
   #[arg(short='k' , long, help = "不启用下载缓存", required = false )]
-  no_cache : bool,
+   pub no_cache : bool,
 
 
   #[arg(short, long, help = "跳过下载哈希校验", required = false )]
-  ship_hash_check : bool,
+  pub ship_hash_check : bool,
   #[arg(short='u' , long, help = "安装之前不更新hp和bucket", required = false )]
-  not_update_hp_and_bucket : bool,
+  pub not_update_hp_and_bucket : bool,
 
   #[arg(short='a', long, help = "指定安装架构, 如果支持的话",
     required = false ,default_value ="64bit" ,value_name="<32bit|64bit|arm64>")]
-  arch : Option<String>,
+  pub arch : Option<String>,
 }
