@@ -14,7 +14,7 @@ macro_rules! arch_specific_field {
                     if $field.is_some() {
                         ret = $field;
                     }
-                }
+                }   
             }
 
             if cfg!(target_arch = "x86_64") {
@@ -64,7 +64,7 @@ pub struct InstallManifest {
   script和args可用的变量： $fname （上次下载的文件）， $manifest （反序列化的清单引用），
   $architecture （ 64bit或32bit ）， $dir （安装目录）
   在scoop install和scoop update期间调用。*/
-  pub installer: Option<ManifestObj>,   
+  pub installer: Option<ManifestObj>,
 
   ///  指定在开始菜单中可用的快捷方式值
   /**
