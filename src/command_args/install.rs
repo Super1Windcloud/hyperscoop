@@ -14,7 +14,6 @@ e.g. 安装应用程序的通常方法（使用您的本地buckets）： hp inst
 安装应用程序的不同版本,如果存在多版本清单 :  hp install gh@2.7.0
 
 从计算机上的指定路径清单中安装应用程序 :   hp install \path\to\app.json
-
      "#)]
 pub struct InstallArgs  {
   #[arg(help = "下载APP的名称", required = false )]

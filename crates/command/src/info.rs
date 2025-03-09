@@ -4,7 +4,8 @@ use std::io;
 use chrono::{DateTime, Local};
 use serde_json::Value;
 
-pub fn display_app_info(app_name: String, bucket_paths: Vec<String>) {
+pub fn display_app_info(app_name: String, bucket_paths: Vec<String>) { 
+  let app_name = app_name.clone().trim().to_lowercase() ;
     if  app_name.contains('/')&&  !app_name.split('/').last().unwrap().is_empty(){
        #[cfg(debug_assertions) ]
         dbg!(&app_name) ;

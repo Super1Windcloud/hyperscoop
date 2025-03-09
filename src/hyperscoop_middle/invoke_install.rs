@@ -7,8 +7,12 @@ use command_util_lib::manifest::install_manifest::* ;
 pub  async fn  execute_install_command(args: InstallArgs) -> Result< () , anyhow::Error>{
   if args.app_name.is_none() { 
     return  Ok(());
-  }
+  } 
+  
   let app_name = args.app_name.unwrap();
+  if  contains_special_char(app_name.as_str()) {
+    bail!("指定的APP格式错误")
+  }
   if  Path::new(&app_name).exists()  && Path::new(&app_name).is_file()  {
      log::trace!("manifest file {}" , app_name);  
     if  args.arch.is_some() {
@@ -50,6 +54,15 @@ pub  async fn  execute_install_command(args: InstallArgs) -> Result< () , anyhow
       bail!("指定的APP格式错误")
     }
   }
+  if  contains_special_char(app_name.as_str()) {
+    bail!("指定的APP格式错误")
+  } 
  install_app (app_name.as_str()  ).await? ; 
   Ok(())
  }
+
+fn contains_special_char(s: &str) -> bool {
+  let special_chars = r#"!#$%^&*()+-=\[]\{}|;':",.<>?~"#;
+  s.chars().any(|c| special_chars.contains(c))
+}
+ 
