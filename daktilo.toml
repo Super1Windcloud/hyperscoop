@@ -1,4 +1,3 @@
-
 [[sound_preset]]
 name = "default"
 key_config = [
@@ -13,9 +12,7 @@ key_config = [
   ] },
 ]
 
-# Basic Typing Sounds
-# For the minimalist typist - just a simple "newline" sound on Return and "keystroke" for all other keys.
-# Some arrow keys are muted for distraction-free typing.
+
 [[sound_preset]]
 name = "basic"
 key_config = [
@@ -26,12 +23,8 @@ key_config = [
     { path = "keystroke.mp3" },
   ] },
 ]
-# Disabled arrow keys to keep focus: Up, Down, Left, Right, and Backspace.
-disabled_keys = ["UpArrow", "DownArrow", "LeftArrow", "RightArrow", "Backspace"]
 
-# It dings, and it dongs. Nuff' said.
-# With this rather more calming experience maybe you will think twice
-# before typing down passive aggressive emails.
+
 [[sound_preset]]
 name = "musicbox"
 key_config = [
@@ -47,9 +40,68 @@ key_config = [
   ], strategy = "random" },
 ]
 
-# The Ducktilo Experience
-# When you type, you'll hear ducks! A quick quack for regular keys, and a special "quack2" for Return.
-# Enjoy a unique typing journey with delightful duck sounds.
+[[sound_preset]]
+name = "mechanical"
+key_config = [
+
+  { event = "press", keys = ".*", files = [
+    { path = "1.wav" },
+    { path = "2.wav" },
+    { path = "3.wav" },
+    { path = "4.wav" },
+    { path = "5.wav" },
+  ], strategy = "random" },
+]
+
+[[sound_preset]]
+name = "drum"
+key_config = [
+  { event = "press", key = "backspace", files = [
+    { path = "backspace.wav" }
+  ] }
+  ,
+  { event = "press", key = "enter", files = [
+    { path = "enter.wav" }
+  ] }
+  ,
+  { event = "press", key = "space", files = [
+    { path = "space.wav" }
+  ] }
+  ,
+  { event = "press", keys = ".*", files = [
+    { path = "1.wav" },
+    { path = "2.wav" },
+    { path = "3.wav" },
+    { path = "4.wav" },
+  ]  ,strategy ="random"}
+]
+
+[[sound_preset]]
+name = "typewriter"
+key_config = [
+  { event = "press", key = "backspace", files = [
+    { path = "backspace.wav" }
+  ] }
+  ,
+  { event = "press", key = "return", files = [
+    { path = "return.wav" }
+  ] }
+  ,
+  { event = "press", key = "space", files = [
+    { path = "space.wav" }
+  ] }
+  ,
+  { event = "press", keys = ".*", files = [
+    { path = "1.wav" },
+    { path = "2.wav" },
+    { path = "3.wav" },
+    { path = "4.wav" },
+    { path = "5.wav" },
+  ]  ,strategy ="random"}
+
+]
+
+
 [[sound_preset]]
 name = "ducktilo"
 key_config = [
@@ -61,8 +113,6 @@ key_config = [
   ] },
 ]
 
-# Drumkit
-# Dum, tss, cha!
 [[sound_preset]]
 name = "drumkit"
 key_config = [
@@ -84,45 +134,15 @@ key_config = [
 name = "sparks"
 key_config = [
   { event = "press", keys = "Backspace", files = [
-	{path = "derase.mp3"},
+    { path = "derase.mp3" },
   ], strategy = "random" },
   { event = "press", keys = ".*", files = [
     { path = "dspark1.mp3" },
     { path = "dspark2.mp3" },
-	{ path = "dspark3.mp3" },
-	{ path = "dspark4.mp3" },
-	{ path = "dspark5.mp3" },
-	{ path = "dspark6.mp3" },
+    { path = "dspark3.mp3" },
+    { path = "dspark4.mp3" },
+    { path = "dspark5.mp3" },
+    { path = "dspark6.mp3" },
   ], strategy = "random" },
 ]
 
-
-
- [[sound_preset]]
- # Custom sound preset named "custom"
- name = "custom"
- # Key configurations for various events
- key_config = [
-   # When a key starting with "Key" is pressed, play 1.mp3, 2.mp3, and 3.mp3 sequentially
-   { event = "press", keys = "Key*", files = [
-     { path = "1.mp3" },
-     { path = "2.mp3" },
-     { path = "3.mp3" },
-   ], strategy = "sequential" },
-   # When a key starting with "Key" is released, play 4.mp3
-   { event = "release", keys = "Key*", files = [
-     { path = "4.mp3" },
-   ] },
-   # When a key starting with "Num" is pressed, play num.mp3 at a very high volume (10.0)
-   { event = "press", keys = "Num*", files = [
-     { path = "num.mp3", volume = 10.0 },
-   ] },
-   # When any key is pressed, play a random sound from cat.mp3, dog.mp3, or bird.mp3
-   { event = "press", keys = ".*", files = [
-     { path = "cat.mp3" },
-     { path = "dog.mp3" },
-     { path = "bird.mp3" },
-   ], strategy = "random" },
- ]
- # Disabled keys that won't trigger any sound events
- disabled_keys = ["CapsLock", "NumLock"]

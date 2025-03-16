@@ -110,12 +110,21 @@ codegen-units = 256
 debug-assertions = true
 rpath = false
 [build-dependencies]  # 这些依赖项仅在构建脚本（build.rs 文件）中使用
-criterion = "0.5.1"
+xmake = "0.2.3"
 
 
 
 [target.x86_64-pc-windows-msvc.dependencies] # 依赖项仅在 Windows 平台上使用。
 criterion = "0.5.1"
+
+[target.macos.dependencies]
+core-foundation = "0.10.0"
+
+[target.windows.dependencies]
+windows = "0.60.0"
+
+[target.linux.dependencies]
+nix = "0.29.0"
 
 
 [package.metadata.release]
