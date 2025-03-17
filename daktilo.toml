@@ -45,7 +45,7 @@ name = "mechanical"
 key_config = [
 
   { event = "press", keys = ".*", files = [
-    { path = "1.wav" },
+    { path = "1.wav" },  
     { path = "2.wav" },
     { path = "3.wav" },
     { path = "4.wav" },
@@ -56,15 +56,15 @@ key_config = [
 [[sound_preset]]
 name = "drum"
 key_config = [
-  { event = "press", key = "backspace", files = [
+  { event = "press", key = "Backspace", files = [
     { path = "backspace.wav" }
   ] }
   ,
-  { event = "press", key = "enter", files = [
+  { event = "press", key = "Return", files = [
     { path = "enter.wav" }
   ] }
   ,
-  { event = "press", key = "space", files = [
+  { event = "press", key = "Space", files = [
     { path = "space.wav" }
   ] }
   ,
@@ -79,15 +79,15 @@ key_config = [
 [[sound_preset]]
 name = "typewriter"
 key_config = [
-  { event = "press", key = "backspace", files = [
+  { event = "press", key = "Backspace", files = [
     { path = "backspace.wav" }
   ] }
   ,
-  { event = "press", key = "return", files = [
+  { event = "press", key = "Return", files = [
     { path = "return.wav" }
   ] }
   ,
-  { event = "press", key = "space", files = [
+  { event = "press", key = "Space", files = [
     { path = "space.wav" }
   ] }
   ,

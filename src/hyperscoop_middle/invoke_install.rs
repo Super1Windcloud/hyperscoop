@@ -13,7 +13,7 @@ pub  async fn  execute_install_command(args: InstallArgs) -> Result< () , anyhow
   if  contains_special_char(app_name.as_str()) {
     bail!("指定的APP格式错误")
   }
-  if  Path::new(&app_name).exists()  && Path::new(&app_name).is_file()  {
+  if  Path::new(&app_name).exists()      {
      log::trace!("manifest file {}" , app_name);  
     if  args.arch.is_some() {
       install_app_from_local_manifest_file(   &app_name ,  Some(args.arch.unwrap()) ).await?;

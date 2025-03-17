@@ -101,7 +101,7 @@ fn build_version_map(bucket_path: String) -> Result<HashMap<String, String>, any
     .filter_map(|entry| {
       let entry = entry.ok()?;
       let path = entry.path();
-      if !path.is_file() || path.extension().unwrap_or_default() != "json" {
+      if     path.extension().unwrap_or_default() != "json" {
         return None;
       }
 
