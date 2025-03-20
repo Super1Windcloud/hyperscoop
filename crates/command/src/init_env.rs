@@ -1,9 +1,9 @@
 ﻿use std::env;
 
 pub fn init_env_path() -> String {
-    let mut path = env::var("Scoop").unwrap();
+    let mut path = env::var("SCOOP").unwrap_or(String::new()); 
     if path.is_empty() {
-        path = env::var("USERPROFILE").unwrap();
+        path = env::var("USERPROFILE").unwrap()+"\\scoop";
     }
     return path;
 }

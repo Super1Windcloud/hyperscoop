@@ -9,7 +9,7 @@
 
 ```bash
  scoop bucket add hp https://gitee.com/SuperWindcloud/hyperscoop_bucket.git
- scoop  install  -u  hp/hp   
+ scoop  install  -u  -s   hp/hp   
  
 ```
 
