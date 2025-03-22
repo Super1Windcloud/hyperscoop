@@ -1,6 +1,7 @@
 use serde_json::Value;
 use std::io::{self, Write};
 use std::process::Command;
+use crate::manifest::uninstall_manifest::UninstallManifest;
 
 // 钩子类型枚举
 #[derive(Debug, Clone, Copy)]

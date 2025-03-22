@@ -47,8 +47,9 @@ struct Cli {
 #[allow(unused_variables)]
 #[allow(unused)]
 #[allow(unreachable_code, unreachable_patterns)]
-async fn main() -> Result<(), anyhow::Error> {
+async fn main() ->   anyhow::Result<()> {
     init_logger();
+    color_eyre::install().unwrap(); 
     println!(
         "{ }!   \n ",
         "次世代更快更强更精美的Windows包管理器".magenta().bold()

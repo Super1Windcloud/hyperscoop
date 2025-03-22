@@ -3,29 +3,34 @@ use std::path::Path;
 use anyhow::bail;
 use command_util_lib::install::* ;
 use crate::command_args::install::InstallArgs;
-use command_util_lib::manifest::install_manifest::* ; 
+use command_util_lib::manifest::install_manifest::* ;
+
 pub  async fn  execute_install_command(args: InstallArgs) -> Result< () , anyhow::Error>{
-  if args.app_name.is_none() { 
+
+  if args.app_name.is_none() {
     return  Ok(());
-  } 
-  
-  let app_name = args.app_name.unwrap();
-  if  contains_special_char(app_name.as_str()) {
-    bail!("指定的APP格式错误")
   }
+
+  let app_name = args.app_name.unwrap();
+  let  app_name = convert_path(app_name.trim()) ;
   if  Path::new(&app_name).exists()      {
-     log::trace!("manifest file {}" , app_name);  
+    log::trace!("manifest file {}" , app_name);
     if  args.arch.is_some() {
       install_app_from_local_manifest_file(   &app_name ,  Some(args.arch.unwrap()) ).await?;
 
-    } else { 
+    } else {
       install_app_from_local_manifest_file(   &app_name,  None ).await?;
     }
-    return Ok(()); 
-  } 
-  if app_name.contains("/"){ 
-    if  app_name.contains('@') { 
-      bail!("指定的App格式不正确") 
+    return Ok(());
+  }
+  
+  if  contains_special_char(app_name.as_str()) {
+    bail!("指定的APP格式错误 error char")
+  }
+
+  if app_name.contains("/"){
+    if  app_name.contains('@') {
+      bail!("指定的App格式不正确")
     }
     let split_arg = app_name.split('/').collect::<Vec<&str>>();
     if split_arg.iter().count() ==2 {
@@ -50,19 +55,26 @@ pub  async fn  execute_install_command(args: InstallArgs) -> Result< () , anyhow
       }
       install_app_specific_version(app_name, app_version).await?;
       return Ok(());
-    }else if    split_version.len()==1 || split_version.len()  >2  { 
+    }else if    split_version.len()==1 || split_version.len()  >2  {
       bail!("指定的APP格式错误")
     }
   }
   if  contains_special_char(app_name.as_str()) {
     bail!("指定的APP格式错误")
-  } 
- install_app (app_name.as_str()  ).await? ; 
+  }
+ install_app (app_name.as_str()  ).await? ;
   Ok(())
  }
 
 fn contains_special_char(s: &str) -> bool {
-  let special_chars = r#"!#$%^&*()+-=\[]\{}|;':",.<>?~"#;
+  
+  let special_chars = r#"!#$%^&*()+=\[]\{}|;':",.<>?~`"#;
   s.chars().any(|c| special_chars.contains(c))
 }
- 
+
+
+fn convert_path(path : &str) -> String {
+  let  path = path.replace("\\", "/");
+  log::trace!("convert path {}", path);
+  path
+}

@@ -4,6 +4,7 @@ use anyhow::bail;
 use crossterm::style::Stylize;
 use serde_json::Value;
 use std::path::{Path, PathBuf};
+use crate::manifest::uninstall_manifest::UninstallManifest;
 
 pub fn uninstall_app_with_purge(app_name: &str) -> Result<(), anyhow::Error> {
   uninstall_app(app_name)?;
@@ -83,27 +84,29 @@ pub fn uninstall_app(app_name: &str) -> Result<(), anyhow::Error> {
           bail!("{} is not  existing ", manifest_path.display());
         }
         let contents = std::fs::read_to_string(manifest_path)?;
-        let manifest: serde_json::Value = serde_json::from_str(&contents)?;
-        let version = manifest["version"].as_str().unwrap_or("Unknown");
+        let manifest :  UninstallManifest  = serde_json::from_str(&contents)?;
+        let version = &manifest.version; 
+        if version.is_none(){ bail!("version is not existing") } ; 
+        let version = version.clone(). unwrap();
         let install_info = std::fs::read_to_string(install_path)?;
         let install_info: serde_json::Value = serde_json::from_str(&install_info)?;
         let arch = install_info["architecture"].as_str().unwrap_or("Unknown");
-        invoke_hook_script(HookType::PreUninstall, &manifest, arch)?;
+        // invoke_hook_script(HookType::PreUninstall, &manifest, arch)?;
         println!(
           "Uninstalling '{}'  ({})",
           app_name.dark_red().bold(),
           version.dark_red().bold()
         );
-        invoke_hook_script(HookType::Uninstaller, &manifest, arch)?;
-        env_path_var_rm(&current_path, &manifest)?;
-        env_var_rm(&manifest)?;
-        rm_shim_file(shim_path.clone(), &manifest, app_name)?;
-        rm_start_menu_shortcut(&manifest)?;
-        println!("Unlinking {}", &current_path.display());
-
-        invoke_hook_script(HookType::PostUninstall, &manifest, arch)?;
-
-        uninstall_psmodule(&manifest)?;
+        // invoke_hook_script(HookType::Uninstaller, &manifest, arch)?;
+        // env_path_var_rm(&current_path, &manifest)?;
+        // env_var_rm(&manifest)?;
+        // rm_shim_file(shim_path.clone(), &manifest, app_name)?;
+        // rm_start_menu_shortcut(&manifest)?;
+        // println!("Unlinking {}", &current_path.display());
+        // 
+        // invoke_hook_script(HookType::PostUninstall, &manifest, arch)?;
+        // 
+        // uninstall_psmodule(&manifest)?;
         rm_all_dir(path.clone())? ;
         return Ok(());
       }
@@ -378,6 +381,7 @@ fn rm_start_menu_shortcut(manifest: &Value) -> Result<(), anyhow::Error> {
   Ok(())
 }
 
+type  bin_type = Vec<String> ;
 
 fn rm_shim_file(shim_path: String, manifests: &Value, app_name: &str) -> Result<(), anyhow::Error> {
   let app_name = app_name.to_lowercase() + ".json";
@@ -447,6 +451,7 @@ fn rm_shim_file(shim_path: String, manifests: &Value, app_name: &str) -> Result<
       }
     }
     Value::Array(a) => {
+      
       for item in a {
         let mut s = item.as_str().unwrap().to_string();
         if s.contains('\\') {
@@ -511,9 +516,11 @@ fn rm_shim_file(shim_path: String, manifests: &Value, app_name: &str) -> Result<
         }
       }
     }
+    
     _ => {
       bail!("can't parser this bin object type ")
     }
+    
   }
   Ok(())
 }
