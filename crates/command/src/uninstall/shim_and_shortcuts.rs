@@ -1,0 +1,263 @@
+use crate::manifest::manifest_deserialize::{
+    ArrayOrDoubleDimensionArray, StringOrArrayOrDoubleDimensionArray,
+};
+use crate::manifest::uninstall_manifest::UninstallManifest;
+use anyhow::bail;
+use crossterm::style::Stylize;
+use serde_json::Value;
+use std::path::{Path, PathBuf};
+use windows_sys::s;
+
+pub fn rm_start_menu_shortcut(manifest: &UninstallManifest) -> Result<(), anyhow::Error> {
+    let shortcut = manifest.clone().shortcuts;
+    if shortcut.is_none() {
+        return Ok(());
+    }
+    if let Some(shortcut) = shortcut {
+        match shortcut {
+            ArrayOrDoubleDimensionArray::Null => return Ok(()),
+            ArrayOrDoubleDimensionArray::StringArray(shortcut) => {
+                let arg_len = shortcut.len();
+                if arg_len < 2 {
+                    eprintln!(
+                        "{} ",
+                        "Failed to find shortcut, maybe manifest json file format error"
+                            .dark_yellow()
+                            .bold()
+                    );
+                }
+                let shortcut_name = shortcut[1].clone();
+                if shortcut_name.is_empty() {
+                    return Ok(());
+                }
+
+                let path = std::env::var("APPDATA").unwrap_or("".into());
+                if path.is_empty() {
+                    bail!("{} ", "Failed to find APPDATA env".dark_red().bold());
+                }
+                let scoop_link = r"Microsoft\Windows\Start Menu\Programs\Scoop Apps";
+                let path = PathBuf::from(path).join(scoop_link);
+                if path.exists() && path.is_dir() {
+                    let path = path.join(shortcut_name);
+
+                    if path.exists() && path.is_file() {
+                        println!(
+                            "Removing start menu shortcut '{}'",
+                            path.display().to_string().dark_blue().bold()
+                        );
+                        std::fs::remove_file(path)?;
+                    }
+                }
+            }
+            ArrayOrDoubleDimensionArray::DoubleDimensionArray(shortcut) => {
+                let arg_len = shortcut.len();
+                if arg_len < 1 {
+                    eprintln!(
+                        "{} ",
+                        "Failed to find shortcut, maybe manifest json file format error"
+                            .dark_yellow()
+                            .bold()
+                    );
+                }
+                for shortcut_item in shortcut {
+                    let arg_len = shortcut_item.len();
+                    if arg_len < 2 {
+                        eprintln!(
+                            "{} ",
+                            "Failed to find shortcut, maybe manifest json file format error"
+                                .dark_yellow()
+                                .bold()
+                        );
+                    }
+                    let shortcut_name = shortcut_item[1].clone();
+                    if shortcut_name.is_empty() {
+                        return Ok(());
+                    }
+                    let path = std::env::var("APPDATA").unwrap_or("".into());
+                    if path.is_empty() {
+                        bail!("{} ", "Failed to find APPDATA env".dark_red().bold());
+                    }
+                    let scoop_link = r"Microsoft\Windows\Start Menu\Programs\Scoop Apps";
+                    let path = PathBuf::from(path).join(scoop_link);
+                    if path.exists() && path.is_dir() {
+                        let path = path.join(shortcut_name);
+
+                        if path.exists() && path.is_file() {
+                            println!(
+                                "Removing start menu shortcut '{}'",
+                                path.display().to_string().dark_blue().bold()
+                            );
+                            std::fs::remove_file(path)?;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
+pub fn rm_shim_file(
+    shim_path: String,
+    manifests: &UninstallManifest,
+    app_name: &str,
+) -> Result<(), anyhow::Error> {
+    let app_name = app_name.to_lowercase() + ".json";
+    let shim_path = Path::new(shim_path.as_str());
+    let manifest_bin = manifests.clone().bin;
+    if manifest_bin.is_none() {
+        eprintln!(
+            "'{}' ,{}",
+            app_name.dark_yellow().bold(),
+            "don't have  shim file".dark_yellow().bold(),
+        );
+        return Ok(());
+    }
+    match manifest_bin.unwrap() {
+        StringOrArrayOrDoubleDimensionArray::String(s) => {
+            rm_default_shim_name_file(s, shim_path)?;
+        }
+        StringOrArrayOrDoubleDimensionArray::StringArray(a) => {
+            for item in a {
+                rm_default_shim_name_file(item, shim_path)?;
+            }
+        }
+        StringOrArrayOrDoubleDimensionArray::DoubleDimensionArray(a) => {
+            for item in a {
+                let len = item.len();
+                if len == 1 {
+                    rm_default_shim_name_file((&item[0]).to_string(), shim_path)?;
+                }
+                if len == 2 || len == 3 {
+                    let exe_name = item[0].clone();
+                    let alias_name = item[1].clone();
+                    rm_alias_shim_name_file(exe_name, alias_name, shim_path)?;
+                }
+            }
+        }
+        StringOrArrayOrDoubleDimensionArray::NestedStringArray(a) => {
+            for item in a {
+                match item {
+                    StringOrArrayOrDoubleDimensionArray::String(s) => {
+                        rm_default_shim_name_file(s, shim_path)?;
+                    }
+                    StringOrArrayOrDoubleDimensionArray::StringArray(item ) => {
+                      let len = item.len();
+                      if len == 1 {
+                        rm_default_shim_name_file((&item[0]).to_string(), shim_path)?;
+                      }
+                      if len == 2 || len == 3 {
+                        let exe_name = item[0].clone();
+                        let alias_name = item[1].clone();
+                        rm_alias_shim_name_file(exe_name, alias_name, shim_path)?;
+                      }
+                    }
+                    _ => {
+                        println!(" what the fuck bin?   {:?}", item);
+                    }
+                }
+            }
+        }
+        _ => {
+            bail!("can't parser this bin object type ")
+        }
+    }
+    Ok(())
+}
+
+fn rm_alias_shim_name_file(
+    exe_name: String,
+    alias_name: String,
+    shim_path: &Path,
+) -> anyhow::Result<()> { 
+  
+  
+  
+    Ok(())
+}
+
+fn rm_default_shim_name_file(s: String, shim_path: &Path) -> anyhow::Result<()> {
+    let mut s = s.clone();
+    if s.contains('\\') {
+        let split = s.split(r"\").collect::<Vec<&str>>();
+        s = split.last().unwrap().to_string();
+    }
+    if s.contains('/') {
+        let split = s.split(r"/").collect::<Vec<&str>>();
+        s = split.last().unwrap().to_string();
+    }
+
+    let suffix = s.split(".").last().unwrap();
+    let prefix = s.split(".").next().unwrap();
+    let shim_file = shim_path.join(s.clone());
+    if shim_file.exists() && suffix == "exe" {
+        println!(
+            "Removing shim file {}",
+            shim_file.display().to_string().dark_blue().bold()
+        );
+        std::fs::remove_file(&shim_file)?;
+        let shim = prefix.to_string() + ".shim";
+        let shim_file = shim_path.join(shim);
+        if !shim_file.exists() {
+            return Ok(());
+        }
+        println!(
+            "Removing shim file {}",
+            shim_file.display().to_string().dark_blue().bold()
+        );
+        std::fs::remove_file(shim_file)?;
+    }
+    if suffix == "bat" {
+        if shim_file.exists() {
+            println!(
+                "Removing shim file {}",
+                shim_file.display().to_string().dark_blue().bold()
+            );
+            std::fs::remove_file(&shim_file)?;
+        }
+        let cmd_str = prefix.to_string() + ".cmd";
+        let shell_file = shim_path.join(prefix);
+        let cmd_file = shim_path.join(cmd_str);
+        if shell_file.exists() {
+            println!(
+                "Removing shim file {}",
+                shell_file.display().to_string().dark_blue().bold()
+            );
+            std::fs::remove_file(&shell_file)?;
+        }
+        if cmd_file.exists() {
+            println!(
+                "Removing shim file {}",
+                cmd_file.display().to_string().dark_blue().bold()
+            );
+            std::fs::remove_file(&cmd_file)?;
+        }
+    }
+
+    if shim_file.exists() && suffix == "ps1" {
+        println!(
+            "Removing shim file {}",
+            shim_file.display().to_string().dark_blue().bold()
+        );
+        std::fs::remove_file(&shim_file)?;
+
+        let cmd_str = prefix.to_string() + ".cmd";
+        let shell_file = shim_path.join(prefix);
+        let cmd_file = shim_path.join(cmd_str);
+        if shell_file.exists() {
+            println!(
+                "Removing shim file {}",
+                shell_file.display().to_string().dark_blue().bold()
+            );
+            std::fs::remove_file(&shell_file)?;
+        }
+        if cmd_file.exists() {
+            println!(
+                "Removing shim file {}",
+                cmd_file.display().to_string().dark_blue().bold()
+            );
+            std::fs::remove_file(&cmd_file)?;
+        }
+    }
+    Ok(())
+}

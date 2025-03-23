@@ -1,3 +1,4 @@
+use std::path::Path;
 use serde::{Deserialize, Serialize};
 use crate::manifest::manifest_deserialize::*  ;
 
@@ -57,7 +58,6 @@ pub struct UninstallManifest {
   script和args可用的变量： $fname （上次下载的文件）， $manifest （反序列化的清单引用），
   $architecture （ 64bit或32bit ）， $dir （安装目录）
   在scoop install和scoop update期间调用。*/
-  #[serde(skip)]
   pub installer: Option<ManifestObj>,
 
 
@@ -222,6 +222,13 @@ impl UninstallManifest {
     self.name.clone()
   }
 
+
+  pub fn  new<P  : AsRef<Path>> ( path:  P  )  ->  Self  {
+
+    let  content =std::fs::read_to_string(  path ).unwrap();
+    let  manifest :UninstallManifest = serde_json::from_str(&content).unwrap();
+    manifest
+  }
 }
 
 
@@ -233,7 +240,6 @@ mod test {
   use crate::buckets::get_buckets_path;
   use super::* ;
   use  rayon::prelude::*;
-  #[test]
   fn test_extract(){
 
   }
@@ -251,28 +257,88 @@ mod test {
       let  content = std::fs::read_to_string(&path) ;
       if  content.is_err() {
           println!("decode   error {:?}",path.display());
-          return;
+        continue
       }
       let   content = content.unwrap();
       let    manifest   = serde_json::from_str::<UninstallManifest>(&content) ;
       if manifest.is_err() {
-        eprintln!("error file  {:?} " , path.display());
-        println!("decode manifest error {:?}",manifest.err() );
-        return;
+        continue
       }
       let manifest:UninstallManifest  = manifest.unwrap() ;
        let  uninstaller = manifest.uninstaller;
+       let  installer = manifest.installer;
       let  psmodule = manifest.psmodule ;
-      let  shortcuts = manifest.shortcuts ; 
+      let  shortcuts = manifest.shortcuts ;
       let  bin = manifest.bin  ;
-      let  pre_uninstall = manifest.pre_uninstall; 
-      let  post_uninstall = manifest.post_uninstall; 
+      let  pre_uninstall = manifest.pre_uninstall;
+      let  post_uninstall = manifest.post_uninstall;
       let  env_add_path = manifest.env_add_path;
       let env_set = manifest.env_set;
-      let persist = manifest.persist; 
-      
-      
-      
-    }
+      let persist = manifest.persist;
+      let  mut  count  =0 ;
+      /*if   env_add_path .is_some()  {
+        let  env_add_path = env_add_path.unwrap();
+        if let  ArrayOrString::StringArray( env_path ) =env_add_path {
+          for  path in env_path {
+            println!("env_add_path  {}",path);
+          }
+          println!("env_add_path  {}",path.display());
+          return;
+        }
+        println!("env_add_path  {:?}",env_add_path);
+        println!("path  {}" , path.display());
+      }*/
+    /*  if shortcuts.is_some() {
+        let  shortcuts = shortcuts.unwrap();
+        if let  ArrayOrDoubleDimensionArray::DoubleDimensionArray( shortcuts ) = shortcuts {
+           continue
+        }
+        else if let  ArrayOrDoubleDimensionArray::StringArray( shortcuts ) = shortcuts {
+          for  shortcut in shortcuts {
+            println!("shortcut_item  {}",shortcut);
+            println!("path {}" ,path.display());
+            return
+          }
+        } else if let  ArrayOrDoubleDimensionArray::Null = shortcuts {
+          continue
+        }
+      }
+      */
+
+
+      if bin.is_some() {
+        let  bin = bin.unwrap();
+        match bin {
+          StringOrArrayOrDoubleDimensionArray::String(s) => {
+          }
+          StringOrArrayOrDoubleDimensionArray::StringArray(a) => { 
+             println!("bin  {:?}",a); 
+              return ;  
+          }
+          StringOrArrayOrDoubleDimensionArray::DoubleDimensionArray(a) => {
+             // println!("bin  {:?}",a);
+            // return ;  
+          }
+          StringOrArrayOrDoubleDimensionArray::Null => {
+             println!("bin  null");
+          }
+          StringOrArrayOrDoubleDimensionArray::NestedStringArray(nested_arr ) => {
+            for   nest_arr  in nested_arr {
+              match nest_arr {
+                StringOrArrayOrDoubleDimensionArray::String(s) => {
+                  println!("bin  {}",s);
+                }
+                StringOrArrayOrDoubleDimensionArray::StringArray(a) => {
+                  println!("bin  {:?}",a);
+                }
+                _=> {
+                  println!(" what the fuck bin?   {:?}",nest_arr);
+                }}
+            }
+            return ;
+           }
+          }
+        }
+      }
   }
 }

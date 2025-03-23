@@ -193,22 +193,25 @@ fn sort_result_by_bucket_name(mut result: Vec<(String, String, String)>) {
 }
 
 fn get_apps_names(path: &PathBuf, query: &String) -> Result<Vec<(String, PathBuf)>, anyhow::Error> {
+  let  query = query.trim().to_string().to_lowercase(); 
     let app_names = path
         .read_dir()?
         .into_iter()
         .par_bridge()
         .filter_map(|entry| {
-            let path = entry.unwrap().path();
-            if path.is_file() && path.extension().unwrap_or_default() == "json" {
+          let entry = entry.ok().unwrap();
+            let path = entry.path();
+          let  file_type =entry. file_type().unwrap();
+          if file_type.is_file() && path.extension().unwrap_or_default() == "json" {
                 let app_name = path.file_stem().unwrap().to_str().unwrap();
                 let app_name = app_name.to_string().to_lowercase();
-                if app_name == *query || app_name.contains(query) {
+                if app_name ==  query || app_name.contains(&query) {
                     let app_path = path.clone();
                     Some((app_name.to_string(), app_path))
                 } else {
                     None
                 }
-            } else {
+            } else { 
                 None
             }
         })
@@ -254,7 +257,7 @@ pub fn get_all_manifest_package_name_slow(
     let all_json_manifests: Vec<PathBuf> = all_manifests_path
         .into_par_iter()
         .filter_map(|file_path| {
-          // !  千万不要使用 is_file 方法,  path.is_file() 是一个系统调用,系统开销巨大,严重影响性能 
+          // !  千万不要使用 is_file 方法,  path.is_file() 是一个系统调用,系统开销巨大,严重影响性能
             if    file_path .is_file() && file_path.extension().unwrap_or_default() == "json" {
                 Some(file_path)
             } else {

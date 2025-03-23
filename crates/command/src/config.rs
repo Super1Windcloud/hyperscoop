@@ -29,6 +29,20 @@ pub  fn  display_all_config() {
   }
 }
 
+
+pub  fn  get_all_config() -> serde_json::Value {
+  let config_path = std::env::var("XDG_CONFIG_HOME").unwrap_or_else(|_| {
+    let home_dir = std::env::var("USERPROFILE").unwrap();
+    format!("{}\\.config\\scoop\\config.json", home_dir)
+  } );  
+  let config_path =  Path::new(&config_path);
+  if config_path.exists() {
+    let config_file = std::fs::File::open(config_path).unwrap();
+    let config_json: serde_json::Value = serde_json::from_reader(config_file).unwrap();
+    return config_json;
+  } 
+  serde_json::Value::Null 
+}
 pub fn display_config_value (name : &str) {
   let config_path = std::env::var("XDG_CONFIG_HOME").unwrap_or_else(|_| {
     let home_dir = std::env::var("USERPROFILE").unwrap();

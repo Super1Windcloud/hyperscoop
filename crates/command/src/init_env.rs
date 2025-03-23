@@ -8,6 +8,24 @@ pub fn init_env_path() -> String {
     return path;
 }
 
+pub fn  init_scoop_global_path ()-> String { 
+  let  mut   path  =env::var("SCOOP_GLOBAL").unwrap_or(String::new());
+  if path.is_empty() {
+    path = env::var("ProgramData").unwrap()+"\\scoop";
+  }
+  return path; 
+}
+
+pub fn  get_old_scoop_dir ()  -> String { 
+   let   path = env::var("LocalAppData").unwrap_or(String::new());
+  return  path+"\\scoop";
+}
+
+pub fn  get_scoop_cfg_path () -> String {
+  let  path  = env::var("USERPROFILE").unwrap(); 
+  return path+"\\.config\\scoop\\config.json";
+}
+
 #[derive(Debug)]
 pub struct HyperScoop {
     pub scoop_path: String,

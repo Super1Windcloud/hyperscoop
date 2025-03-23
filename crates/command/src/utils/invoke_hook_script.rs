@@ -1,14 +1,18 @@
+use crate::config::get_all_config;
+use crate::init_env::{
+    get_old_scoop_dir, get_scoop_cfg_path, init_env_path, init_scoop_global_path,
+};
+use crate::manifest::manifest_deserialize::ArrayOrString;
+use crate::manifest::uninstall_manifest::UninstallManifest;
 use serde_json::Value;
+use serde_json::Value::Array;
+use std::collections::HashMap;
 use std::io::{self, Write};
 use std::process::Command;
-use crate::manifest::uninstall_manifest::UninstallManifest;
 
 // 钩子类型枚举
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum HookType {
-    Installer,
-    PreInstall,
-    PostInstall,
     Uninstaller,
     PreUninstall,
     PostUninstall,
@@ -16,78 +20,140 @@ pub enum HookType {
 }
 
 // 处理器架构枚举
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum ProcessorArchitecture {
     Bit32,
     Bit64,
     Arm64,
 }
 
-#[allow(dead_code)]
-struct Manifest {
-    // 假设清单包含钩子脚本
-    installer_script: Option<String>,
-    pre_install_script: Option<String>,
-    post_install_script: Option<String>,
-    uninstaller_script: Option<String>,
-    pre_uninstall_script: Option<String>,
-    post_uninstall_script: Option<String>,
-}
-#[allow(unused)]
-fn arch_specific(hook_type: HookType, manifest: &Value, arch: &str) -> Option<String> {
+fn arch_specific(hook_type: HookType, manifest: &UninstallManifest, arch: &str) -> Option<String> {
     match hook_type {
-        HookType::Installer => match manifest.get("installer")?.as_str() {
-            None => manifest["installer"]
-                .as_object()
-                .map(|o| serde_json::to_string(o).unwrap()),
-            Some(installer) => Some(String::from(installer)),
-        },
-        HookType::PreInstall => manifest["pre_install"].as_array().and_then(|arr| {
-            let joined = arr
-                .iter()
-                .filter_map(|v| v.as_str())
-                .collect::<Vec<_>>()
-                .join("\n");
-            Some(joined)
-        }),
-        HookType::PostInstall => manifest["post_install"].as_array().and_then(|arr| {
-            let joined = arr
-                .iter()
-                .filter_map(|v| v.as_str())
-                .collect::<Vec<_>>()
-                .join("\n");
-            Some(joined)
-        }),
-        HookType::Uninstaller => match manifest["uninstaller"].as_str() {
-            None => manifest["uninstaller"]
-                .as_object()
-                .map(|o| serde_json::to_string(o).unwrap()),
-            Some(uninstaller) => Some(String::from(uninstaller)),
-        },
-        HookType::PreUninstall => manifest["pre_uninstall"].as_array().and_then(|arr| {
-            let joined = arr
-                .iter()
-                .filter_map(|v| v.as_str())
-                .collect::<Vec<_>>()
-                .join("\n");
-            Some(joined)
-        }),
-        HookType::PostUninstall => manifest["post_uninstall"].as_array().and_then(|arr| {
-            let joined = arr
-                .iter()
-                .filter_map(|v| v.as_str())
-                .collect::<Vec<_>>()
-                .join("\n");
-            Some(joined)
-        }),
-       _ => None,
+        HookType::Uninstaller => {
+            let uninstaller = manifest.clone().uninstaller;
+            if uninstaller.is_none() {
+                return None;
+            }
+            let uninstaller = uninstaller.unwrap();
+            let script = uninstaller.get("script").unwrap_or(&Value::Null);
+            let result = match script {
+                Value::String(s) => Some(s.clone()),
+                Value::Array(arr) => {
+                    let mut result = String::new();
+                    for item in arr {
+                        if let Value::String(s) = item {
+                            result += s.as_str();
+                            result.push('\n');
+                        }
+                    }
+                    Some(result)
+                }
+                _ => None,
+            };
+            if result.is_some() {
+                return Some(result.unwrap().to_string());
+            }
+            None
+        }
+        HookType::PreUninstall => {
+            let pre_uninstall = manifest.clone().pre_uninstall;
+            if pre_uninstall.is_none() {
+                return None;
+            }
+            let pre_uninstall = pre_uninstall.unwrap();
+            let result = match pre_uninstall {
+                ArrayOrString::String(s) => Some(s),
+                ArrayOrString::StringArray(arr) => {
+                    let mut result = String::new();
+                    for item in arr {
+                        result += item.as_str();
+                        result.push('\n');
+                    }
+                    Some(result)
+                }
+                _ => None,
+            };
+            if result.is_some() {
+                return Some(result.unwrap());
+            }
+            None
+        }
+        HookType::PostUninstall => {
+            let post_uninstall = manifest.clone().post_uninstall;
+            if post_uninstall.is_none() {
+                return None;
+            }
+            let post_uninstall = post_uninstall.unwrap();
+            let result = match post_uninstall {
+                ArrayOrString::String(s) => Some(s),
+                ArrayOrString::StringArray(arr) => {
+                    let mut result = String::new();
+                    for item in arr {
+                        result += item.as_str();
+                        result.push('\n');
+                    }
+                    Some(result)
+                }
+                _ => None,
+            };
+
+            if result.is_some() {
+                return Some(result.unwrap());
+            }
+            None
+        }
+        HookType::PsModule => None,
     }
 }
 
 // 模拟的 Invoke-HookScript 函数
-pub fn invoke_hook_script(hook_type: HookType, manifest: &Value, arch: &str) -> io::Result<()> {
-    // 获取钩子脚本
-    let script = arch_specific(hook_type, manifest, arch);
+pub fn invoke_hook_script(
+    hook_type: HookType,
+    manifest: &UninstallManifest,
+    arch: &str,
+) -> io::Result<()> {
+    let script = arch_specific(hook_type.clone(), manifest, arch);
+    let app_name = manifest.name.clone().unwrap_or(String::new());
+    let app_version = manifest.version.clone().unwrap_or(String::new());
+    let cfg = get_all_config();
+    let scoop_home = init_env_path();
+    let global_scoop_home = init_scoop_global_path();
+    let cfg = serde_json::to_string(&cfg).unwrap_or(String::new());
+    let cfg_obj = format!(
+        "$json =  '{}'; $cfg = $json | ConvertFrom-Json; $obj | ConvertTo-Json -Depth 10",
+        cfg
+    );
+    let manifest_str = serde_json::to_string(&manifest).unwrap_or(String::new());
+    let manifest_obj = format!(
+        "$json =  '{}'; $manifest = $json | ConvertFrom-Json; $obj | ConvertTo-Json -Depth 10",
+        manifest_str
+    );
+    let app_dir = format!(
+        r#"function app_dir($other_app) {{
+    return    "{scoop_home}\apps\$other_app\current" ;
+  }}"#
+    );
+    let old_scoop_dir = get_old_scoop_dir();
+    let cfg_path = get_scoop_cfg_path();
+    let injects_var = format!(
+        r#"
+      $app = "{app_name}" ;
+      $version = "{app_version}" ;
+      $architecture = "{arch}" ;
+      $cmd ="uninstall" ;
+      $global = $false  ;
+      $scoopdir ="{scoop_home}" ;
+      $dir = "{scoop_home}\apps\$app" ;
+      $globaldir  ="{global_scoop_home}";
+      $oldscoopdir  = "{old_scoop_dir}" ;
+      $original_dir = "{scoop_home}\apps\$app\$version";
+      $modulesdir  = "{scoop_home}\modules";
+      $cachedir  =  "{scoop_home}\cache";
+      $bucketsdir  = "{scoop_home}\buckets";
+      $persist_dir  = "{scoop_home}\persist\$app"; 
+      $cfgpath   ="{cfg_path}" ; 
+  "#
+    );
 
     if let Some(script) = script {
         // 输出提示信息
@@ -97,6 +163,10 @@ pub fn invoke_hook_script(hook_type: HookType, manifest: &Value, arch: &str) -> 
 
         let output = Command::new("powershell")
             .arg("-Command")
+            .arg(cfg_obj)
+            .arg(manifest_obj)
+            .arg(app_dir)
+            .arg(injects_var)
             .arg(&script)
             .output()?;
 
