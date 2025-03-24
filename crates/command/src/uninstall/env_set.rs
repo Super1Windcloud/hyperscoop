@@ -4,7 +4,6 @@ use crate::init_env::{
 };
 use crate::manifest::uninstall_manifest::UninstallManifest;
 use anyhow::bail;
-use std::path::Path;
 use winreg::enums::*;
 use winreg::RegKey;
 

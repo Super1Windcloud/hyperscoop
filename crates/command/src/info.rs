@@ -1,4 +1,4 @@
-use dashmap::{DashMap, DashSet};
+use dashmap::{  DashSet};
 use crossterm::style::Stylize;
 use std::fs;
 use std::io;

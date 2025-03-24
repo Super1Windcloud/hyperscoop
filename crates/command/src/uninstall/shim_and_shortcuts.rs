@@ -4,9 +4,32 @@ use crate::manifest::manifest_deserialize::{
 use crate::manifest::uninstall_manifest::UninstallManifest;
 use anyhow::bail;
 use crossterm::style::Stylize;
-use serde_json::Value;
 use std::path::{Path, PathBuf};
-use windows_sys::s;
+use serde_json::json;
+
+pub   fn get_all_shortcuts_link_paths() -> Vec<PathBuf> {
+  let paths = vec![
+    PathBuf::from("C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\Startup"),
+    PathBuf::from("C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs"),
+    PathBuf::from("C:\\Users\\Public\\Desktop"),
+    PathBuf::from(format!(
+      "C:\\Users\\{}\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup",
+      std::env::var("USERNAME").unwrap_or_else(|_| "Default".to_string())
+    )),
+    PathBuf::from(format!(
+      "C:\\Users\\{}\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs",
+      std::env::var("USERNAME").unwrap_or_else(|_| "Default".to_string())
+    )),
+    PathBuf::from(format!(
+      "C:\\Users\\{}\\Desktop",
+      std::env::var("USERNAME").unwrap_or_else(|_| "Default".to_string())
+    )), 
+    PathBuf::from( format!( r"C:\Users\{}\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Scoop Apps" ,
+     std::env::var("USERNAME").unwrap_or_else(|_| "Default".to_string())  
+    )) 
+  ];
+  paths
+}
 
 pub fn rm_start_menu_shortcut(manifest: &UninstallManifest) -> Result<(), anyhow::Error> {
     let shortcut = manifest.clone().shortcuts;
@@ -26,28 +49,24 @@ pub fn rm_start_menu_shortcut(manifest: &UninstallManifest) -> Result<(), anyhow
                             .bold()
                     );
                 }
-                let shortcut_name = shortcut[1].clone();
+                let shortcut_name = shortcut[1].clone()+".lnk";
                 if shortcut_name.is_empty() {
                     return Ok(());
                 }
-
-                let path = std::env::var("APPDATA").unwrap_or("".into());
-                if path.is_empty() {
-                    bail!("{} ", "Failed to find APPDATA env".dark_red().bold());
-                }
-                let scoop_link = r"Microsoft\Windows\Start Menu\Programs\Scoop Apps";
-                let path = PathBuf::from(path).join(scoop_link);
-                if path.exists() && path.is_dir() {
-                    let path = path.join(shortcut_name);
-
-                    if path.exists() && path.is_file() {
-                        println!(
-                            "Removing start menu shortcut '{}'",
-                            path.display().to_string().dark_blue().bold()
-                        );
-                        std::fs::remove_file(path)?;
+                let scoop_links  =  get_all_shortcuts_link_paths() ; 
+                for scoop_link in scoop_links {
+                  if scoop_link.exists()   {
+                    let path = scoop_link.join(&shortcut_name);
+                    if path.exists()    { 
+                      println!(
+                        "Removing start menu shortcut '{}'",
+                        path.display().to_string().dark_blue().bold()
+                      );
+                      std::fs::remove_file(path)?;
                     }
+                  }
                 }
+               
             }
             ArrayOrDoubleDimensionArray::DoubleDimensionArray(shortcut) => {
                 let arg_len = shortcut.len();
@@ -69,27 +88,23 @@ pub fn rm_start_menu_shortcut(manifest: &UninstallManifest) -> Result<(), anyhow
                                 .bold()
                         );
                     }
-                    let shortcut_name = shortcut_item[1].clone();
+                    let shortcut_name = shortcut_item[1].clone()+".lnk";
                     if shortcut_name.is_empty() {
                         return Ok(());
                     }
-                    let path = std::env::var("APPDATA").unwrap_or("".into());
-                    if path.is_empty() {
-                        bail!("{} ", "Failed to find APPDATA env".dark_red().bold());
+                  let scoop_links  =  get_all_shortcuts_link_paths() ;
+                  for scoop_link in scoop_links {
+                    if scoop_link.exists()   {
+                      let path = scoop_link.join(&shortcut_name); 
+                      if path.exists()    {
+                         println!(
+                          "Removing start menu shortcut '{}'",
+                          path.display().to_string().dark_blue().bold()
+                        );
+                        std::fs::remove_file(path)?;
+                      }
                     }
-                    let scoop_link = r"Microsoft\Windows\Start Menu\Programs\Scoop Apps";
-                    let path = PathBuf::from(path).join(scoop_link);
-                    if path.exists() && path.is_dir() {
-                        let path = path.join(shortcut_name);
-
-                        if path.exists() && path.is_file() {
-                            println!(
-                                "Removing start menu shortcut '{}'",
-                                path.display().to_string().dark_blue().bold()
-                            );
-                            std::fs::remove_file(path)?;
-                        }
-                    }
+                  }
                 }
             }
         }

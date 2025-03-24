@@ -233,16 +233,12 @@ impl UninstallManifest {
 
 
 
-mod test {
-  use std::path::Path;
-  use std::str::FromStr;
-  use anyhow::anyhow;
+mod test { 
+  #[allow(unused_imports)]
   use crate::buckets::get_buckets_path;
   use super::* ;
   use  rayon::prelude::*;
-  fn test_extract(){
-
-  }
+   
   #[allow(unused)]
   #[test]
   fn test_installer_uninstaller(){

@@ -1,5 +1,4 @@
-﻿use std::any::Any;
-use crate::init_hyperscoop;
+﻿use crate::init_hyperscoop;
 use crate::utils::get_file_or_dir_metadata::get_dir_updated_time;
 use crate::utils::safe_check::is_directory_empty;
 use crossterm::style::Stylize;

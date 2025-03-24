@@ -5,8 +5,6 @@ use crate::init_env::{
 use crate::manifest::manifest_deserialize::ArrayOrString;
 use crate::manifest::uninstall_manifest::UninstallManifest;
 use serde_json::Value;
-use serde_json::Value::Array;
-use std::collections::HashMap;
 use std::io::{self, Write};
 use std::process::Command;
 
