@@ -39,7 +39,7 @@ color-eyre = "0.6.3"
 [workspace.dependencies]
 human-panic = "2.0.2"
 reqwest = "0.12.9"
-
+indicatif = "0.17.11"
 serde = { version = "1.0.213", features = ["derive"] }
 log = "0.4.22"
 clap = { version = "4.5.20", features = ["derive"] }
@@ -85,6 +85,7 @@ unreachable_pub = "warn"
 [dev-dependencies] # 依赖项仅在开发和测试过程中使用，
 # 例如 `cargo test` 或 `cargo bench` , 'cargo build --tests` ,`cargo build --examples` |
 criterion = "0.5.1"
+indicatif =   { workspace = true }
 trybuild = "1.0.101"
 
 [profile.release]
@@ -150,4 +151,8 @@ labels = ["release"]
 features = ["default"]
 
 
+
+[[example]]
+name = "pg_bar"
+path = "examples/indicatif_demo.rs"
 
