@@ -37,7 +37,7 @@ pub(crate) enum ConfigSubcommand {
 pub struct ConfigArgs  {
   #[clap(subcommand)]
   pub(crate) command: Option<ConfigSubcommand>,
- 
+
   #[clap(short, long ,help ="显示配置帮助信息")]
   pub config_help  : bool,
 
@@ -149,7 +149,7 @@ ignore_running_processes: $true|$false
 
 private_hosts:
       Array of private hosts that need additional authentication.
-      For example, if you want to access a private GitHub repository,
+      For examples, if you want to access a private GitHub repository,
       you need to add the host to this list with 'match' and 'headers' strings.
 
 hold_update_until:

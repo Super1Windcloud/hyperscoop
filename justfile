@@ -24,5 +24,8 @@ chestra :
 real_type:
  daktilo --variate-tempo 0.9,0.4 --variate-volume 0.1,0.5
 
+progress_bar:
+   cargo run  --example    indicatif_demo.rs
+
 
 

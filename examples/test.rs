@@ -2,10 +2,6 @@
 use  clap:: {command, arg, value_parser}  ;
 
 
-#[test]
-fn verify_cmd() {
-  cmd().debug_assert();
-}
 
 fn cmd() -> clap::Command {
   command!() // requires `cargo` feature

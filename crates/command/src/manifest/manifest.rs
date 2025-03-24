@@ -39,12 +39,12 @@ pub struct  Manifest {
   /**
   要下载的一个或多个文件的 URL。如果有多个 URL，可以使用 JSON 数组，例如 "url": [ "http://example.org/program.zip", "http://example.org/dependencies.zip" ] 。 URL 可以是 HTTP、HTTPS 或 FTP。
 
-    To change the filename of the downloaded URL, you can append a URL fragment (starting with #) to URLs. For example,
+    To change the filename of the downloaded URL, you can append a URL fragment (starting with #) to URLs. For examples,
     要更改下载的 URL 的文件名，您可以将 URL 片段（以#开头）附加到 URL。例如，
     "http://example.org/program.exe" -> "http://example.org/program.exe#/dl.7z"
     Note the fragment must start with #/ for this to work.
     请注意，片段必须以#/开头才能正常工作。
-    In the above example, Scoop will download program.exe but save it as dl.7z, which will then be extracted automatically with 7-Zip. This technique is commonly used in Scoop manifests to bypass executable installers which might have undesirable side-effects like registry changes, files placed outside the install directory, or an admin elevation prompt.
+    In the above examples, Scoop will download program.exe but save it as dl.7z, which will then be extracted automatically with 7-Zip. This technique is commonly used in Scoop manifests to bypass executable installers which might have undesirable side-effects like registry changes, files placed outside the install directory, or an admin elevation prompt.
     在上面的示例中，Scoop 将下载program.exe ，但将其另存为dl.7z ，然后使用 7-Zip 自动解压。此技术通常在 Scoop 清单中使用，以绕过可执行安装程序，这些安装程序可能会产生不良副作用，例如注册表更改、放置在安装目录之外的文件或管理员提升提示。
   */
   pub url: Option<String>,

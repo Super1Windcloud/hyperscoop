@@ -110,7 +110,7 @@ fn fast_forward(
     git2::build::CheckoutBuilder::default()
       // For some reason the force is required to make the working directory actually get updated
       // I suspect we should be adding some logic to handle dirty working directory states
-      // but this is just an example so maybe not.
+      // but this is just an examples so maybe not.
       .force(),
   ))?;
   Ok(())
