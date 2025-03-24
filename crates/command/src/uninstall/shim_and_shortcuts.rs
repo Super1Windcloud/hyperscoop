@@ -141,16 +141,16 @@ pub fn rm_shim_file(
                     StringOrArrayOrDoubleDimensionArray::String(s) => {
                         rm_default_shim_name_file(s, shim_path)?;
                     }
-                    StringOrArrayOrDoubleDimensionArray::StringArray(item ) => {
-                      let len = item.len();
-                      if len == 1 {
-                        rm_default_shim_name_file((&item[0]).to_string(), shim_path)?;
-                      }
-                      if len == 2 || len == 3 {
-                        let exe_name = item[0].clone();
-                        let alias_name = item[1].clone();
-                        rm_alias_shim_name_file(exe_name, alias_name, shim_path)?;
-                      }
+                    StringOrArrayOrDoubleDimensionArray::StringArray(item) => {
+                        let len = item.len();
+                        if len == 1 {
+                            rm_default_shim_name_file((&item[0]).to_string(), shim_path)?;
+                        }
+                        if len == 2 || len == 3 {
+                            let exe_name = item[0].clone();
+                            let alias_name = item[1].clone();
+                            rm_alias_shim_name_file(exe_name, alias_name, shim_path)?;
+                        }
                     }
                     _ => {
                         println!(" what the fuck bin?   {:?}", item);
@@ -169,10 +169,98 @@ fn rm_alias_shim_name_file(
     exe_name: String,
     alias_name: String,
     shim_path: &Path,
-) -> anyhow::Result<()> { 
-  
-  
-  
+) -> anyhow::Result<()> {
+    let mut s = exe_name.clone();
+    if s.contains(r"\") {
+        let split = s.split(r"\").collect::<Vec<&str>>();
+        s = split.last().unwrap().to_string();
+    }
+    if s.contains("/") {
+        let split = s.split(r"/").collect::<Vec<&str>>();
+        s = split.last().unwrap().to_string();
+    }
+
+    let suffix = s.split(".").last().unwrap();
+    let prefix = alias_name.trim(); 
+      
+    let shim_file = shim_path.join(prefix.clone()); 
+    let origin_shim_file  =shim_path .join(s.clone()) ; 
+     if  origin_shim_file.exists() {  
+       println!( "origin exe shim file {}" ,origin_shim_file.display().to_string().dark_blue().bold() );
+       std::fs::remove_file(origin_shim_file)?;
+     } 
+ 
+    if suffix == "exe" {  
+      let  exe_file =  prefix.to_string () +".exe" ; 
+      let  shim_file = shim_path.join( exe_file ); 
+      if  shim_file.exists() {
+        println!(
+          "Removing shim file {}",
+          shim_file.display().to_string().dark_blue().bold()
+        );
+        std::fs::remove_file(&shim_file)?;
+      }
+        let shim = prefix.to_string() + ".shim";
+        let shim_file = shim_path.join(shim);
+        if !shim_file.exists() {
+            return Ok(());
+        }
+        println!(
+            "Removing shim file {}",
+            shim_file.display().to_string().dark_blue().bold()
+        );
+        std::fs::remove_file(shim_file)?;
+    }
+    if suffix == "bat"  || suffix == "cmd"  {
+        if shim_file.exists() {
+            println!(
+                "Removing shim file {}",
+                shim_file.display().to_string().dark_blue().bold()
+            );
+            std::fs::remove_file(&shim_file)?;
+        }
+        let cmd_str = prefix.to_string() + ".cmd";
+        let cmd_file = shim_path.join(cmd_str);
+       
+        if cmd_file.exists() {
+            println!(
+                "Removing shim file {}",
+                cmd_file.display().to_string().dark_blue().bold()
+            );
+            std::fs::remove_file(&cmd_file)?;
+        }
+    }
+
+    if   suffix == "ps1" {
+      let ps_file  = prefix.to_string() + ".ps1";
+      let  shim_file = shim_path .join(ps_file); 
+    
+      if shim_file.exists() {
+        println!(
+          "Removing shim file {}",
+          shim_file.display().to_string().dark_blue().bold()
+        );
+        std::fs::remove_file(&shim_file)?;
+
+      }
+        let cmd_str = prefix.to_string() + ".cmd";
+        let shell_file = shim_path.join(prefix);
+        let cmd_file = shim_path.join(cmd_str);
+        if shell_file.exists() {
+            println!(
+                "Removing shim file {}",
+                shell_file.display().to_string().dark_blue().bold()
+            );
+            std::fs::remove_file(&shell_file)?;
+        }
+        if cmd_file.exists() {
+            println!(
+                "Removing shim file {}",
+                cmd_file.display().to_string().dark_blue().bold()
+            );
+            std::fs::remove_file(&cmd_file)?;
+        }
+    }
     Ok(())
 }
 
@@ -260,4 +348,16 @@ fn rm_default_shim_name_file(s: String, shim_path: &Path) -> anyhow::Result<()> 
         }
     }
     Ok(())
+}
+
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn test_shim_alias_files() {
+        let shim_dir = Path::new(r"A:\Scoop\shims");
+        rm_alias_shim_name_file("superwindcloud.exe".into()
+                                , "superwc".into(), shim_dir).unwrap();
+    }
 }
