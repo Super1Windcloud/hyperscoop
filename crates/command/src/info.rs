@@ -3,7 +3,6 @@ use crossterm::style::Stylize;
 use std::fs;
 use std::io;
 use chrono::{DateTime, Local};
-use color_eyre::owo_colors::OwoColorize;
 use serde_json::Value;
 use rayon::prelude::*;
 
@@ -138,7 +137,6 @@ fn   print_pretty_info( info    : DashSet<Vec<(String, String)>>)  {
   | vec.iter().map(|(key, _)| key.len()).collect::<Vec<_>>()).max().unwrap_or(0);
  let  max_value_length = info.iter().flat_map(|vec
   | vec.iter().map(|(_, value)| value.len()).collect::<Vec<_>>()).max().unwrap_or(0);
-  let max_width = max_key_length.max(max_value_length);
 
   for vec in info {
     for (key, value) in vec {

@@ -25,7 +25,7 @@ pub enum ProcessorArchitecture {
     Arm64,
 }
 
-fn arch_specific(hook_type: HookType, manifest: &UninstallManifest, arch: &str) -> Option<String> {
+fn arch_specific(hook_type: HookType, manifest: &UninstallManifest ) -> Option<String> {
     match hook_type {
         HookType::Uninstaller => {
             let uninstaller = manifest.clone().uninstaller;
@@ -110,7 +110,7 @@ pub fn invoke_hook_script(
     manifest: &UninstallManifest,
     arch: &str,
 ) -> io::Result<()> {
-    let script = arch_specific(hook_type.clone(), manifest, arch);
+    let script = arch_specific(hook_type.clone(), manifest );
     let app_name = manifest.name.clone().unwrap_or(String::new());
     let app_version = manifest.version.clone().unwrap_or(String::new());
     let cfg = get_all_config();

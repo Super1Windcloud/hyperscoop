@@ -96,7 +96,8 @@ pub fn env_var_rm(manifest: &UninstallManifest) -> Result<(), anyhow::Error> {
 
 
 
-mod test {
+mod test { 
+  #[allow(unused_imports )]
     use super::*;
     #[test]
     fn test_rm_env() {

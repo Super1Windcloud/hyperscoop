@@ -235,13 +235,15 @@ impl UninstallManifest {
 
 mod test { 
   #[allow(unused_imports)]
-  use crate::buckets::get_buckets_path;
   use super::* ;
+  #[allow(unused_imports)]
   use  rayon::prelude::*;
-   
+
   #[allow(unused)]
   #[test]
   fn test_installer_uninstaller(){
+    use crate::buckets::get_buckets_path;
+    
     let   bucket = get_buckets_path().unwrap();
     let   buckets = bucket.iter().par_bridge().map(|path|
     Path::new(path ).join("bucket")). collect::<Vec<_>>();

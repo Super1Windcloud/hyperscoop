@@ -5,7 +5,6 @@ use crate::manifest::uninstall_manifest::UninstallManifest;
 use anyhow::bail;
 use crossterm::style::Stylize;
 use std::path::{Path, PathBuf};
-use serde_json::json;
 
 pub   fn get_all_shortcuts_link_paths() -> Vec<PathBuf> {
   let paths = vec![
@@ -198,7 +197,7 @@ fn rm_alias_shim_name_file(
     let suffix = s.split(".").last().unwrap();
     let prefix = alias_name.trim(); 
       
-    let shim_file = shim_path.join(prefix.clone()); 
+    let shim_file = shim_path.join(prefix ); 
     let origin_shim_file  =shim_path .join(s.clone()) ; 
      if  origin_shim_file.exists() {  
        println!( "origin exe shim file {}" ,origin_shim_file.display().to_string().dark_blue().bold() );
@@ -366,9 +365,8 @@ fn rm_default_shim_name_file(s: String, shim_path: &Path) -> anyhow::Result<()> 
 }
 
 mod tests {
-
+    #[allow(unused_imports )]
     use super::*;
-
     #[test]
     fn test_shim_alias_files() {
         let shim_dir = Path::new(r"A:\Scoop\shims");
