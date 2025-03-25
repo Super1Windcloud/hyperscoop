@@ -14,7 +14,7 @@ update_hash:
 push:
     python   ./script/hash.py
     cd  hyperscoop_source_bucket
-    git add -A  &&  (git commit -m ":panda_face:   update hash "  ||  true ) &&  (git push origin    master || true)
+    git add -A  &&  (git commit -m ":panda_face:   update hash " ) &&  (git push origin    master )
     cd ..
     git add    -A   && git commit -m ":panda_face:    update hash" && git push repo   master
 
