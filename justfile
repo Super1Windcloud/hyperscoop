@@ -2,14 +2,22 @@
 
 set shell := ["pwsh.exe", "-NoProfile", "-c"]
 
-default:
+release:
+    just  push
     cargo build  --release
+
+
 
 update_hash:
     python  script/hash.py
 
 push:
-    git add -A  && git commit -m ":panda_face:     update " && git push repo   master
+    python   ./script/hash.py
+    cd  hyperscoop_source_bucket
+    git add -A  && git commit -m ":panda_face:     update hash " && git push repo   master
+    cd ..
+    git add -A  && git commit -m ":panda_face:     update hash" && git push repo   master
+
 pull   :
     git pull repo master
 
