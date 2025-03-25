@@ -10,6 +10,7 @@ release:
 
 update_hash:
     python  script/hash.py
+    git add -A  && git commit -m ":panda_face:     update hash " && git push repo   master
 
 push:
     python   ./script/hash.py
