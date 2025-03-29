@@ -1,42 +1,5 @@
 ﻿use crate::manifest::manifest_deserialize::*;
 use serde::{Deserialize, Serialize};
-#[allow(unused)]
-#[macro_export]
-macro_rules! arch_specific_field {
-    ($self:ident, $field:ident) => {{
-        let mut ret = $self.inner.$field.as_ref();
-
-        if let Some(arch) = $self.inner.architecture.as_ref() {
-            if cfg!(target_arch = "x86") {
-                if let Some(ia32) = &arch.ia32 {
-                    let $field = ia32.$field.as_ref();
-                    if $field.is_some() {
-                        ret = $field;
-                    }
-                }
-            }
-
-            if cfg!(target_arch = "x86_64") {
-                if let Some(amd64) = &arch.amd64 {
-                    let $field = amd64.$field.as_ref();
-                    if $field.is_some() {
-                        ret = $field;
-                    }
-                }
-            }
-
-            if cfg!(target_arch = "aarch64") {
-                if let Some(aarch64) = &arch.aarch64 {
-                    let $field = aarch64.$field.as_ref();
-                    if $field.is_some() {
-                        ret = $field;
-                    }
-                }
-            }
-        }
-        ret
-    }};
-}
 
 #[allow(clippy::unsafe_derive_deserialize)]
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
@@ -47,7 +10,7 @@ pub struct InstallManifest {
     pub(crate) name: Option<String>,
 
     /// 版本号
-    pub version: Option<String>,
+    pub version: Option<String>, // !complete 
 
     ///运行非 MSI 安装程序的说明。
     /**
@@ -74,7 +37,7 @@ pub struct InstallManifest {
 
     /**
     如果应用程序不是 32 位，则可以使用架构来包装差异（示例）。
-    "64bit": {
+         "64bit": {
               "url": "https://www.7-zip.org/a/7z2409-x64.msi",
               "hash": "ec6af1ea0367d16dde6639a89a080a524cebc4d4bedfe00ed0cac4b865a918d8",
               "extract_dir": "Files\\7-Zip"
@@ -95,8 +58,8 @@ pub struct InstallManifest {
               ]
           }
       32bit|64bit|arm64 ：包含特定于体系结构的指令（ bin 、 checkver 、 extract_dir 、 hash 、 installer 、
-    pre_install 、 post_install 、 shortcuts 、 uninstaller 、 url和msi [ msi已弃用]）*/
-    pub architecture: Option<ManifestObj>,
+    pre_install 、 post_install 、 shortcuts 、 uninstaller 、 url  */
+    pub architecture: Option<ArchitectureObject>,
     ///定义如何自动更新清单。
 
     ///将自动安装的应用程序的运行时依赖项。另请参阅suggest （如下）
@@ -108,7 +71,7 @@ pub struct InstallManifest {
       例如 "JDK": [ "extras/oraclejdk", "openjdk" ]
       如果已经安装了针对该功能建议的任何应用程序，则该功能将被视为“已完成”，并且用户将不会看到任何建议。
     */
-    pub suggest: Option<ManifestObj>,
+    pub suggest: Option<ManifestObj>, // !complete
     /**
     在用户路径上可用的程序（可执行文件或脚本）的字符串或字符串数组。
      您还可以创建一个别名填充程序，它使用与实际可执行文件不同的名称，
@@ -130,25 +93,37 @@ pub struct InstallManifest {
     此技术通常在 Scoop 清单中使用，以绕过可执行安装程序，这些安装程序可能会产生不良副作用，
     例如注册表更改、放置在安装目录之外的文件或管理员提升提示。
     */
-    pub url: Option<ArrayOrString>,
+    pub url: Option<ArrayOrStringOrObject>,
 
     ///字符串或字符串数组，其中包含url中每个 URL 的文件哈希值。默认情况下，
     /// 哈希值是 SHA256，但您可以通过在哈希字符串前添加“sha512:”、“sha1:”或“md5:”前缀来使用 SHA512、SHA1 或 MD5
-    pub hash: Option<ArrayOrString>,
+    pub hash: Option<ObjectArrayOrStringOrObject>,
     ///   如果url指向压缩文件（支持 .zip、.7z、.tar、.gz、.lzma 和 .lzh），Scoop 将仅提取其中指定的目录
     pub extract_dir: Option<String>,
     /// 如果url指向压缩文件（支持 .zip、.7z、.tar、.gz、.lzma 和 .lzh），Scoop 会将所有内容提取到指定目录
-    pub extract_to: Option<ArrayOrString>,
+    pub extract_to: Option<StringArrayOrString>,
     ///将此目录添加到用户路径（如果使用--global则添加到系统路径）。
     /// 该目录是相对于安装目录的，并且必须位于安装目录内。
-    pub env_add_path: Option<ArrayOrString>, // 添加到 PATH 环境变量的路径。
+    pub env_add_path: Option<StringArrayOrString>,  // !complete 
     ///如果安装程序基于 InnoSetup，则设置为布尔值true
     pub innosetup: Option<bool>,
 
     ///：单行字符串或字符串数组，其中包含在安装应用程序后显示的消息。
-    pub notes: Option<ArrayOrString>,
+    pub notes: Option<StringArrayOrString>, //  !complete
 
-    ///保存在应用程序的数据目录中的目录和文件的字符串或字符串数组。持久数据 , 二维数组定义目录别名
+    ///保存在应用程序的数据目录中的目录和文件的字符串或字符串数组。持久数据 ,
+    ///  如果是二维 NestedStringArray(Vec<StringOrArrayOrDoubleDimensionArray>),
+    /// 那么 其中的String依旧是要建立符号链接的子目录, 而Array里面的只能有两个元素,
+    ///  "persist": [
+    ///         "cli",
+    ///         [
+    ///              "php.ini-production",
+    /// /            "cli\\php.ini"
+    ///         ]
+    ///     ],
+    /// 第一个元素是源目录的文件或者目录  , 第二个元素是要复制到Persist的目标路径
+    /// 如果是持久化文件, 直接指定复制的文件目标路径,可以对文件重命名,如果指定父目录的话,文件名不变
+    /// 如果是持久化目录 , 直接指定目标路径, 可以对目录重命名,  如果指定父目录的话,目录名不变
     pub persist: Option<StringOrArrayOrDoubleDimensionArray>,
 
     ///作为 PowerShell 模块安装在~/scoop/modules中。
@@ -156,7 +131,7 @@ pub struct InstallManifest {
     pub psmodule: Option<ManifestObj>,
 
     /// 为用户（或系统，如果使用--global ）设置一个或多个环境变量
-    pub env_set: Option<ManifestObj>,
+    pub env_set: Option<ManifestObj>, // !complete 
     /**
     appdir
     参考另一个勺应用程序。例如，要检查是否安装了另一个应用程序，您可以使用：
@@ -183,26 +158,13 @@ pub struct InstallManifest {
     $architecture ,  64bit或32bit  已安装应用程序的CPU架构
     $app  ,  应用程序的名称（清单文件的名称） ,
     */
-    pub pre_install: Option<ArrayOrString>, // 安装前执行的命令
+    pub pre_install: Option<StringArrayOrString>, // 安装前执行的命令
     /// 安装应用程序后要执行的命令的一行字符串或字符串数组。这些可以使用$dir 、 $persist_dir和$version等变量
-    pub post_install: Option<ArrayOrString>, // 安装后执行的命令
+    pub post_install: Option<StringArrayOrString>, // 安装后执行的命令
 
     #[serde(skip)]
     pub description: Option<String>,
-    /**
-     "autoupdate": {
-        "architecture": {
-            "64bit": {
-                "url": "https://www.7-zip.org/a/7z$cleanVersion-x64.msi"
-            },
-            "32bit": {
-                "url": "https://www.7-zip.org/a/7z$cleanVersion.msi"
-            },
-            "arm64": {
-                "url": "https://www.7-zip.org/a/7z$cleanVersion-arm64.exe"
-            }
-        }
-    }*/
+
     #[serde(skip)]
     pub autoupdate: Option<ManifestObj>,
     #[serde(skip)]
@@ -212,9 +174,9 @@ pub struct InstallManifest {
     #[serde(skip)]
     pub uninstaller: Option<ManifestObj>,
     #[serde(skip)]
-    pub pre_uninstall: Option<ArrayOrString>, // 卸载前执行的命令
+    pub pre_uninstall: Option<StringArrayOrString>, // 卸载前执行的命令
     #[serde(skip)]
-    pub post_uninstall: Option<ArrayOrString>, // 卸载后执行的命令
+    pub post_uninstall: Option<StringArrayOrString>, // 卸载后执行的命令
     /**
     序的软件许可证的字符串或哈希值。对于知名许可证，请使用https://spdx.org/licenses中找到的标识符。
     对于其他许可证，请使用许可证的 URL（如果有）。否则，请酌情使用“免费软件”、“专有软件”、“公共领域”、
@@ -229,7 +191,7 @@ pub struct InstallManifest {
     /// 包含注释的单行字符串或字符串数组
     #[serde(rename = "##")]
     #[serde(skip)]
-    manifest_comment: Option<ArrayOrString>,
+    manifest_comment: Option<StringArrayOrString>,
 
     ///应用程序维护人员和开发人员可以使用bin/checkver工具来检查应用程序的更新版本
     /// 。清单中的checkver属性是一个正则表达式，可用于匹配应用程序主页中应用程序的当前稳定版本
@@ -241,10 +203,141 @@ impl InstallManifest {
     pub fn set_name(&mut self, path: &String) -> &mut Self {
         let arr = path.split('/').collect::<Vec<&str>>();
         let name = arr.last().unwrap();
+        let name = name.split('.').collect::<Vec<&str>>();
+        let name = name.iter().next().unwrap();
         self.name = Some(name.to_string());
         self
     }
     pub fn get_name(&self) -> Option<String> {
         self.name.clone()
     }
+}
+
+mod test {
+  use std::path::PathBuf;
+  #[allow(unused_imports)]
+    use super::*;
+    #[allow(unused_imports)]
+    use rayon::prelude::*;
+
+    #[test]
+    fn test_install_manifest() {
+        use crate::buckets::get_buckets_path;
+        use std::path::Path;
+
+        let bucket = get_buckets_path().unwrap();
+        let buckets = bucket
+            .iter()
+            .par_bridge()
+            .map(|path| Path::new(path).join("bucket"))
+            .collect::<Vec<_>>();
+
+        let files = buckets
+            .iter()
+            .flat_map(|path| path.read_dir().unwrap().map(|res| res.unwrap().path()))
+            .collect::<Vec<_>>();
+        let mut  i=0 ; 
+        for path in files {
+            let content = std::fs::read_to_string(&path);
+            if content.is_err() {
+                println!("decode   error {:?}", path.display());
+                continue;
+            }
+            let content = content.unwrap();
+            let manifest = serde_json::from_str::<InstallManifest>(&content);
+            if manifest.is_err() {
+                continue;
+            } 
+            
+            let manifest: InstallManifest = manifest.unwrap();
+           // find_architecture_test(&manifest, &path );
+       
+        }
+    }
+
+  fn find_architecture_test(manifest : &InstallManifest,   path : &PathBuf) {
+    let architecture = manifest.clone() . architecture;
+    if architecture.is_some() {
+      let architecture = architecture.unwrap();
+      let x64 = architecture.x64bit;
+      if x64.is_some() {
+        let x64 = x64.unwrap();
+        let installer = x64.installer;
+        if installer.is_some() {
+          // dorado :   another-redis-desktop-manager 
+          println!("installer {:?}", installer.unwrap());
+          println!(" path {}" , path.display());
+          return ;
+        }
+        let bin = x64.bin;
+        if bin.is_some() {
+           // dorado : fasttracker2-clone.json
+          println!("bin {:?}", bin.unwrap());
+          println!(" path {}" , path.display());
+          return ;
+        }
+        let extract_dir = x64.extract_dir;
+        if  extract_dir.is_some() {
+           //  lemon : abstreet.json 
+          println!("extract_dir {:?}", extract_dir.unwrap());
+          println!(" path {}" , path.display());
+          return ;
+        }
+        let  uninstaller= x64.uninstaller;
+        if uninstaller.is_some() {
+          //  DEV-tools  :lagarith-lossless-video-codec.json 
+          println!("uninstaller {:?}", uninstaller.unwrap());
+          println!(" path {}" , path.display());
+          return ;
+
+        }
+        let shortcuts = x64.shortcuts;
+        if shortcuts.is_some() {
+          // dorado  :  crystaldiskinfo-aoi-edition.json 
+          println!("shortcuts {:?}", shortcuts.unwrap());
+          println!(" path {}", path.display());
+          return ;
+
+        }
+        let checkver = x64.checkver;
+        if checkver.is_some() {
+          let checkver = checkver.unwrap();
+          println!("checkver {:?}", checkver);
+          println!(" path {}", path.display());
+          return ;
+        }
+        let pre_install = x64.pre_install;
+        if pre_install.is_some() {
+           // cmontage : abricotine.json 
+          println!("pre_install {:?}", pre_install.unwrap());
+          println!(" path {}", path.display());
+          return ;
+
+        }
+        let post_install = x64.post_install;
+        if   post_install .is_some() {
+          // extras  :  rstudio.json 
+          println!("post_install {:?}", post_install.unwrap());
+          println!(" path {}", path.display());
+          return ;
+
+        }
+      }
+    }
+  }
+
+  fn find_env_add_oath(manifest : &InstallManifest, path : &PathBuf) -> u8  {
+     let  env_add_path = &manifest.env_add_path;
+     if env_add_path.is_some() { 
+       let env_add_path = env_add_path.clone(); 
+        if  env_add_path.is_some() {
+          let env_add_path = env_add_path.unwrap(); 
+          println!("env_add_path {:?}", env_add_path);
+          println!(" path {}", path.display());  
+          return 1 ; 
+        }
+     }
+      0 
+  } 
+  
 }

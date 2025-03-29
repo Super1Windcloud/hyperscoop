@@ -1,14 +1,14 @@
 use crate::init_hyperscoop;
-use crate::manifest::manifest_deserialize::ArrayOrString;
+use crate::manifest::manifest_deserialize::StringArrayOrString;
 use crate::manifest::uninstall_manifest::UninstallManifest;
 use crate::utils::invoke_hook_script::*;
 use anyhow::bail;
 use crossterm::style::Stylize;
 use serde_json::Value;
 use std::path::{Path, PathBuf};
-mod  env_set; 
-use env_set::* ; 
-mod shim_and_shortcuts; 
+mod  env_set;
+use env_set::* ;
+mod shim_and_shortcuts;
 use shim_and_shortcuts::* ;
 pub fn uninstall_app_with_purge(app_name: &str) -> Result<(), anyhow::Error> {
     uninstall_app(app_name)?;
@@ -89,9 +89,9 @@ pub fn uninstall_app(app_name: &str) -> Result<(), anyhow::Error> {
                 }
                 let contents = std::fs::read_to_string(manifest_path)?;
                 let  mut  manifest: UninstallManifest = serde_json::from_str(&contents)?;
-                manifest.set_name(&app_name.to_string()); // 先进行可变借用 
-              
-                let version = &manifest.version; 
+                manifest.set_name(&app_name.to_string()); // 先进行可变借用
+
+                let version = &manifest.version;
                 if version.is_none() {
                     bail!("version is not existing")
                 };
@@ -109,8 +109,8 @@ pub fn uninstall_app(app_name: &str) -> Result<(), anyhow::Error> {
                 invoke_hook_script(HookType::PostUninstall, &manifest, arch)?;
                 uninstall_psmodule(&manifest)?;
 
-                env_path_var_rm(&current_path, &manifest)?; 
-              
+                env_path_var_rm(&current_path, &manifest)?;
+
                 env_var_rm(&manifest)?;
                 rm_shim_file(shim_path.clone(), &manifest, app_name)?;
                 rm_start_menu_shortcut(&manifest)?;
@@ -132,7 +132,7 @@ pub fn uninstall_app(app_name: &str) -> Result<(), anyhow::Error> {
 fn env_path_var_rm(current: &PathBuf, manifest: &UninstallManifest) -> Result<(), anyhow::Error> {
     use winreg::enums::*;
     use winreg::RegKey;
-    if let Some(ArrayOrString::String(env_add_path_str)) = manifest.env_add_path.clone() {
+    if let Some(StringArrayOrString::String(env_add_path_str)) = manifest.env_add_path.clone() {
         let path_var = current.join(env_add_path_str);
         if path_var.exists() {
             let hkcu = RegKey::predef(HKEY_CURRENT_USER);
@@ -162,7 +162,7 @@ fn env_path_var_rm(current: &PathBuf, manifest: &UninstallManifest) -> Result<()
                 bail!("Failed to remove path var");
             }
         }
-    } else if let Some(ArrayOrString::StringArray(env_add_path_arr)) = manifest.env_add_path.clone()
+    } else if let Some(StringArrayOrString::StringArray(env_add_path_arr)) = manifest.env_add_path.clone()
     {
         let env_add_path_arr = env_add_path_arr
             .iter()

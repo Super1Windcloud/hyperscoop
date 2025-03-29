@@ -2,7 +2,7 @@ use crate::config::get_all_config;
 use crate::init_env::{
     get_old_scoop_dir, get_scoop_cfg_path, init_env_path, init_scoop_global_path,
 };
-use crate::manifest::manifest_deserialize::ArrayOrString;
+use crate::manifest::manifest_deserialize::StringArrayOrString;
 use crate::manifest::uninstall_manifest::UninstallManifest;
 use serde_json::Value;
 use std::io::{self, Write};
@@ -60,8 +60,8 @@ fn arch_specific(hook_type: HookType, manifest: &UninstallManifest ) -> Option<S
             }
             let pre_uninstall = pre_uninstall.unwrap();
             let result = match pre_uninstall {
-                ArrayOrString::String(s) => Some(s),
-                ArrayOrString::StringArray(arr) => {
+                StringArrayOrString::String(s) => Some(s),
+                StringArrayOrString::StringArray(arr) => {
                     let mut result = String::new();
                     for item in arr {
                         result += item.as_str();
@@ -83,8 +83,8 @@ fn arch_specific(hook_type: HookType, manifest: &UninstallManifest ) -> Option<S
             }
             let post_uninstall = post_uninstall.unwrap();
             let result = match post_uninstall {
-                ArrayOrString::String(s) => Some(s),
-                ArrayOrString::StringArray(arr) => {
+                StringArrayOrString::String(s) => Some(s),
+                StringArrayOrString::StringArray(arr) => {
                     let mut result = String::new();
                     for item in arr {
                         result += item.as_str();
@@ -148,8 +148,8 @@ pub fn invoke_hook_script(
       $modulesdir  = "{scoop_home}\modules";
       $cachedir  =  "{scoop_home}\cache";
       $bucketsdir  = "{scoop_home}\buckets";
-      $persist_dir  = "{scoop_home}\persist\$app"; 
-      $cfgpath   ="{cfg_path}" ; 
+      $persist_dir  = "{scoop_home}\persist\$app";
+      $cfgpath   ="{cfg_path}" ;
   "#
     );
 

@@ -3,6 +3,8 @@ use crate::utils::git::{
     git_pull_update_repo, git_pull_update_repo_with_scoop, local_scoop_latest_commit,
     remote_latest_scoop_commit,
 };
+pub(crate) mod update ;  
+
 #[allow(unused_imports)]
 use anyhow::bail;
 use rayon::prelude::*;

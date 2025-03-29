@@ -73,6 +73,5 @@ fn contains_special_char(s: &str) -> bool {
 
 fn convert_path(path : &str) -> String {
   let  path = path.replace("\\", "/");
-  log::trace!("convert path {}", path);
   path
 }

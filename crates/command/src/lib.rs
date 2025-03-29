@@ -10,20 +10,20 @@ pub use init_env::HyperScoop;
 pub use list::{display_app_info, list_specific_installed_apps};
 pub use std::process::exit;
 // pub use manifest::search_manifest;
+pub mod cache;
+pub mod export;
 pub mod home;
-pub mod manifest;
-pub mod   cache ;
 pub mod info;
-pub mod  export  ;
+pub mod manifest;
 pub fn init_hyperscoop() -> Result<HyperScoop, anyhow::Error> {
     let hyperscoop = init_env::HyperScoop::new();
     Ok(hyperscoop)
 }
 
-pub mod  uninstall ; 
-pub mod  config ;
-pub mod reset ;
-pub mod  import ; 
-pub mod  shim ; 
-pub mod  update ; 
-pub  mod install ; 
+pub mod config;
+pub mod import;
+pub mod install;
+pub mod reset;
+pub mod shim;
+pub mod uninstall;
+pub mod update;

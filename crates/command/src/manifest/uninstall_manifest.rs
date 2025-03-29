@@ -33,11 +33,11 @@ pub struct UninstallManifest {
   pub bin: Option<StringOrArrayOrDoubleDimensionArray>,
   ///  与installer相同的选项，但运行文件/脚本来卸载应用程序。在scoop uninstall和scoop update期间调用
   pub uninstaller: Option<ManifestObj>,
-  pub pre_uninstall: Option<ArrayOrString>,
-  pub post_uninstall: Option<ArrayOrString >,
+  pub pre_uninstall: Option<StringArrayOrString>,
+  pub post_uninstall: Option<StringArrayOrString >,
   ///将此目录添加到用户路径（如果使用--global则添加到系统路径）。
   /// 该目录是相对于安装目录的，并且必须位于安装目录内。
-  pub env_add_path: Option<ArrayOrString>, // 添加到 PATH 环境变量的路径。
+  pub env_add_path: Option<StringArrayOrString>, // 添加到 PATH 环境变量的路径。
   ///保存在应用程序的数据目录中的目录和文件的字符串或字符串数组。持久数据 , 二维数组定义目录别名
   pub persist: Option<StringOrArrayOrDoubleDimensionArray>,
   ///作为 PowerShell 模块安装在~/scoop/modules中。
@@ -113,12 +113,12 @@ pub struct UninstallManifest {
   例如注册表更改、放置在安装目录之外的文件或管理员提升提示。
   */
   #[serde(skip)]
-  pub url: Option<ArrayOrString>,
+  pub url: Option<StringArrayOrString>,
 
   ///字符串或字符串数组，其中包含url中每个 URL 的文件哈希值。默认情况下，
   /// 哈希值是 SHA256，但您可以通过在哈希字符串前添加“sha512:”、“sha1:”或“md5:”前缀来使用 SHA512、SHA1 或 MD5
   #[serde(skip)]
-  pub hash: Option<ArrayOrString>,
+  pub hash: Option<StringArrayOrString>,
   ///如果安装程序基于 InnoSetup，则设置为布尔值true
   #[serde(skip)]
   pub innosetup: Option<bool>,
@@ -129,10 +129,10 @@ pub struct UninstallManifest {
   pub extract_dir: Option<String>,
   /// 如果url指向压缩文件（支持 .zip、.7z、.tar、.gz、.lzma 和 .lzh），Scoop 会将所有内容提取到指定目录
   #[serde(skip)]
-  pub extract_to: Option<ArrayOrString >,
+  pub extract_to: Option<StringArrayOrString >,
   ///：单行字符串或字符串数组，其中包含在安装应用程序后显示的消息。
   #[serde(skip)]
-  pub notes: Option<ArrayOrString >,
+  pub notes: Option<StringArrayOrString >,
   /**
   appdir
   参考另一个勺应用程序。例如，要检查是否安装了另一个应用程序，您可以使用：
@@ -160,10 +160,10 @@ pub struct UninstallManifest {
   $app  ,  应用程序的名称（清单文件的名称） ,
   */
   #[serde(skip)]
-  pub pre_install: Option<ArrayOrString>,
+  pub pre_install: Option<StringArrayOrString>,
   /// 安装应用程序后要执行的命令的一行字符串或字符串数组。这些可以使用$dir 、 $persist_dir和$version等变量
   #[serde(skip) ]
-  pub post_install: Option<ArrayOrString>,
+  pub post_install: Option<StringArrayOrString>,
 
   #[serde(skip)]
   pub description: Option<String>,
@@ -201,7 +201,7 @@ pub struct UninstallManifest {
   /// 包含注释的单行字符串或字符串数组
   #[serde(rename = "##")]
   #[serde(skip)]
-  manifest_comment : Option<ArrayOrString>,
+  manifest_comment : Option<StringArrayOrString>,
 
   ///应用程序维护人员和开发人员可以使用bin/checkver工具来检查应用程序的更新版本
   /// 。清单中的checkver属性是一个正则表达式，可用于匹配应用程序主页中应用程序的当前稳定版本
@@ -212,9 +212,11 @@ pub struct UninstallManifest {
 
 
 impl UninstallManifest {
-  pub fn set_name(&mut self, path  : &String)  -> &mut Self     {
-    let   arr = path.split('/').collect::<Vec<&str>>();
-    let   name = arr.last().unwrap();
+  pub fn set_name(&mut self, path: &String) -> &mut Self {
+    let arr = path.split('/').collect::<Vec<&str>>();
+    let name = arr.last().unwrap();
+    let name = name.split('.').collect::<Vec<&str>>();
+    let name = name.iter().next().unwrap();
     self.name = Some(name.to_string());
     self
   }
@@ -233,7 +235,7 @@ impl UninstallManifest {
 
 
 
-mod test { 
+mod test {
   #[allow(unused_imports)]
   use super::* ;
   #[allow(unused_imports)]
@@ -243,7 +245,7 @@ mod test {
   #[test]
   fn test_installer_uninstaller(){
     use crate::buckets::get_buckets_path;
-    
+
     let   bucket = get_buckets_path().unwrap();
     let   buckets = bucket.iter().par_bridge().map(|path|
     Path::new(path ).join("bucket")). collect::<Vec<_>>();
@@ -276,7 +278,7 @@ mod test {
       let  mut  count  =0 ;
       /*if   env_add_path .is_some()  {
         let  env_add_path = env_add_path.unwrap();
-        if let  ArrayOrString::StringArray( env_path ) =env_add_path {
+        if let  StringArrayOrString::StringArray( env_path ) =env_add_path {
           for  path in env_path {
             println!("env_add_path  {}",path);
           }
@@ -309,13 +311,13 @@ mod test {
         match bin {
           StringOrArrayOrDoubleDimensionArray::String(s) => {
           }
-          StringOrArrayOrDoubleDimensionArray::StringArray(a) => { 
-             println!("bin  {:?}",a); 
-              return ;  
+          StringOrArrayOrDoubleDimensionArray::StringArray(a) => {
+             println!("bin  {:?}",a);
+              return ;
           }
           StringOrArrayOrDoubleDimensionArray::DoubleDimensionArray(a) => {
              // println!("bin  {:?}",a);
-            // return ;  
+            // return ;
           }
           StringOrArrayOrDoubleDimensionArray::Null => {
              println!("bin  null");

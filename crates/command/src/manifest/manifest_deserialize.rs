@@ -2,21 +2,38 @@ use serde::{Deserialize, Serialize};
 
 pub type ManifestObj = serde_json::Value;
 
-
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(untagged)] // 允许处理多种类型
-pub enum ArrayOrString {
+pub enum StringArrayOrString {
     StringArray(Vec<String>), // 数组类型
     #[default]
     Null,
     String(String), // 字符串类型
 }
 
-// impl Default for ArrayOrString {
-//     fn default() -> Self {
-//         ArrayOrString::Null
-//     }
-// }
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+// #[serde(untagged)]    // 只能用于枚举
+pub struct ArchitectureObject {
+    #[serde(rename = "64bit")]
+    pub x64bit: Option<BaseArchitecture>,
+    #[serde(rename = "32bit")]
+    pub x86bit: Option<BaseArchitecture>,
+    pub arm64: Option<BaseArchitecture>,
+}
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub struct BaseArchitecture {
+    pub bin: Option<StringOrArrayOrDoubleDimensionArray>,
+    pub checkver: Option<ObjectOrString>,
+    pub extract_dir: Option<String>,
+    pub hash: Option<ObjectArrayOrStringOrObject>,
+    pub installer: Option<ManifestObj>,
+    pub uninstaller: Option<ManifestObj>,
+    pub url: Option<ArrayOrStringOrObject>,
+    pub shortcuts: Option<ArrayOrDoubleDimensionArray>,
+    pub pre_install: Option<StringArrayOrString>,
+    pub post_install: Option<StringArrayOrString>,
+}
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(untagged)]
 pub enum ObjectOrArray {
@@ -52,6 +69,26 @@ pub enum StringOrArrayOrDoubleDimensionArray {
     StringArray(Vec<String>),
     DoubleDimensionArray(Vec<Vec<String>>),
     NestedStringArray(Vec<StringOrArrayOrDoubleDimensionArray>),
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(untagged)]
+pub enum ArrayOrStringOrObject {
+    #[default]
+    Null,
+    String(String), // 字符串类型
+    StringArray(Vec<String>),
+    ManifestObj(serde_json::Value),
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(untagged)]
+pub enum ObjectArrayOrStringOrObject {
+    #[default]
+    Null,
+    String(String), // 字符串类型
+    ObjectArray(Vec<ManifestObj>),
+    ManifestObj(serde_json::Value),
 }
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(untagged)]

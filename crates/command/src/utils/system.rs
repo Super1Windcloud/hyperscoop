@@ -170,6 +170,21 @@ pub fn get_system_current_time() -> Result<String, anyhow::Error> {
 }
 
 
+pub  fn  get_system_default_arch() -> Result<String, anyhow::Error> {
+
+  if cfg!(target_arch = "x86_64") {
+    Ok("64bit".to_string())
+  } else if cfg!(target_arch = "x86") {
+    Ok("32bit".to_string())
+  } else if cfg!(target_arch = "arm") {
+    Ok("arm64".to_string())
+  } else if cfg!(target_arch = "aarch64") {
+    Ok("arm64".to_string())
+  } else {
+    Ok( String::new() )
+  }
+}
+
 mod test {
     #[allow(unused_imports)]
     use super::*;

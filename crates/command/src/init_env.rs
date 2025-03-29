@@ -1,28 +1,31 @@
 ﻿use std::env;
 
 pub fn init_env_path() -> String {
-    let mut path = env::var("SCOOP").unwrap_or(String::new()); 
+    let mut path = env::var("SCOOP").unwrap_or(String::new());
     if path.is_empty() {
         path = env::var("USERPROFILE").unwrap()+"\\scoop";
     }
     return path;
 }
-
-pub fn  init_scoop_global_path ()-> String { 
+pub fn  get_app_current_dir (  app_name : String   ) -> String {
+  let  scoop_home = init_env_path();
+  return format!("{}\\apps\\{}\\current", scoop_home, app_name);
+}
+pub fn  init_scoop_global_path ()-> String {
   let  mut   path  =env::var("SCOOP_GLOBAL").unwrap_or(String::new());
   if path.is_empty() {
     path = env::var("ProgramData").unwrap()+"\\scoop";
   }
-  return path; 
+  return path;
 }
 
-pub fn  get_old_scoop_dir ()  -> String { 
+pub fn  get_old_scoop_dir ()  -> String {
    let   path = env::var("LocalAppData").unwrap_or(String::new());
   return  path+"\\scoop";
 }
 
 pub fn  get_scoop_cfg_path () -> String {
-  let  path  = env::var("USERPROFILE").unwrap(); 
+  let  path  = env::var("USERPROFILE").unwrap();
   return path+"\\.config\\scoop\\config.json";
 }
 
@@ -50,13 +53,13 @@ impl HyperScoop {
     pub fn get_apps_path(&self) -> String {
         self.apps_path.clone()
     }
-  pub fn get_psmodule_path(&self) -> String { 
-      format!("{}\\modules", self.scoop_path) 
+  pub fn get_psmodule_path(&self) -> String {
+      format!("{}\\modules", self.scoop_path)
   }
     pub fn get_persist_path(&self) -> String {
         self.persist_path.clone()
     }
-  
+
     pub fn get_bucket_path(&self) -> String {
         self.bucket_path.clone()
     }
