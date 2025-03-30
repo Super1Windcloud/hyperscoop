@@ -19,7 +19,7 @@ pub async fn install_app_from_local_manifest_file(
     let mut install_arch = String::new();
     if arch.is_some() {
         let arch = arch.unwrap();
-        if (arch != "64bit" && arch != "32bit" && arch != "arm64") {
+        if arch != "64bit" && arch != "32bit" && arch != "arm64" {
             bail!("选择安装的架构错误 ,(64bit,32bit,arm64)")
         };
         install_arch = arch

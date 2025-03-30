@@ -102,8 +102,7 @@ pub enum StringOrArrayOrDotDimensionArrayOrObject {
 }
 
 mod tests {
-  use crate::manifest::install_manifest::InstallManifest;
-
+  #[test]
   fn test_serde_json() {
         let json = r#"
        {
@@ -113,8 +112,8 @@ mod tests {
            "amd64": {
              "installer": "innosetup"
            }
-         }, 
-           "shortcuts": [ [ "zigmod.exe" , "zigmod fuck you" ] ],  
+         },
+           "shortcuts": [ [ "zigmod.exe" , "zigmod fuck you" ] ],
          "suggest" : {
          "JDK": "1.8+"
          },
@@ -125,23 +124,24 @@ mod tests {
      "#;
         let manifest: serde_json::Value = serde_json::from_str(json).unwrap();
         let suggest = manifest["suggest"].as_object().unwrap();
-        let depends = manifest["depends"].as_object().unwrap(); 
-       let   shortcuts  = manifest["shortcuts"].as_array().unwrap(); 
+        let depends = manifest["depends"].as_object().unwrap();
+       let   shortcuts  = manifest["shortcuts"].as_array().unwrap();
         println!("suggest {:?}", suggest);
-        println!("depends {:?}", depends.values().collect::<Vec<_>>()); 
+        println!("depends {:?}", depends.values().collect::<Vec<_>>());
         println!("shortcuts {:?}",  shortcuts);
     }
   #[test]
-  fn  test_manifest_file(){ 
-     let  file = r"A:\Scoop\buckets\ScoopMaster\bucket\zigmod.json"; 
-     let  content  = std::fs::read_to_string(file).unwrap();  
+  fn  test_manifest_file(){
+    use crate::manifest::install_manifest::InstallManifest;
+     let  file = r"A:\Scoop\buckets\ScoopMaster\bucket\zigmod.json";
+     let  content  = std::fs::read_to_string(file).unwrap();
       let manifest  : InstallManifest = serde_json::from_str(&content).unwrap();
-      let  shortcuts = manifest.shortcuts; 
+      let  shortcuts = manifest.shortcuts;
        if shortcuts.is_some(){
           let  shortcuts = shortcuts.unwrap();
          println!("shortcuts {:?}", shortcuts);
-       }else { 
-         println!("shortcuts is none "); 
+       }else {
+         println!("shortcuts is none ");
        }
-  }  
+  }
 }

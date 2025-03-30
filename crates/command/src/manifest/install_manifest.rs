@@ -254,7 +254,7 @@ mod test {
 
         }
     }
-
+  #[allow(unused)]
   fn find_architecture_test(manifest : &InstallManifest,   path : &PathBuf) {
     let architecture = manifest.clone() . architecture;
     if architecture.is_some() {
@@ -325,7 +325,7 @@ mod test {
       }
     }
   }
-
+  #[allow(unused)]
   fn find_env_add_oath(manifest : &InstallManifest, path : &PathBuf) -> u8  {
      let  env_add_path = &manifest.env_add_path;
      if env_add_path.is_some() {

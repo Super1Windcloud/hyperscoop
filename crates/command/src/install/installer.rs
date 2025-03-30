@@ -1,4 +1,3 @@
-use std::path::PathBuf;
 use anyhow::bail;
 use crossterm::style::Stylize;
 use windows_sys::Win32::System::Registry::HKEY_CURRENT_USER;

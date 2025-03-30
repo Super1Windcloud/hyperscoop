@@ -4,6 +4,11 @@ set shell := ["pwsh.exe", "-NoProfile", "-c"]
 release:
     just  update_hash
     cargo build  --release
+    python  script/publish_release.py
+
+publish:
+    python  script/publish_release.py
+
 
 
 # 每条命令都是全新的 SHell 环境

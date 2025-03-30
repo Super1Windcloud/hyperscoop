@@ -214,11 +214,12 @@ fn start_create_shortcut<P: AsRef<Path>>(start_menu_path : P, link_target_path :
 
 
 mod test{
-  use crate::install::create_start_menu_shortcuts;
-  use crate::manifest::install_manifest::InstallManifest;
+  
 
   #[test]   
   fn test_create_shortcuts(){
+    use crate::install::create_start_menu_shortcuts;
+    use crate::manifest::install_manifest::InstallManifest;
     let  file = r"A:\Scoop\buckets\ScoopMaster\bucket\zigmod.json" ;
     let  content  = std::fs::read_to_string(file).unwrap();
     let manifest  : InstallManifest = serde_json::from_str(&content).unwrap();

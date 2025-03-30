@@ -3,6 +3,8 @@ use crossterm::style::Stylize;
 use git2::{FetchOptions, Repository};
 use crate::utils::utility::{get_official_bucket_path, get_official_buckets_name};
 
+
+#[allow(unused)]
 pub fn check_bucket_update_status ()  -> anyhow::Result<()> {  
     let official_buckets = get_official_buckets_name(); 
   let   official_buckets_path  =  official_buckets.iter().map( |b|
@@ -41,7 +43,8 @@ pub fn check_bucket_update_status ()  -> anyhow::Result<()> {
 } 
 
 mod test{
-  use crate::update::update::check_bucket_update_status;
+  #[allow(unused)]
+  use super::*; 
 
   #[test]
   fn  check_update(){ 
