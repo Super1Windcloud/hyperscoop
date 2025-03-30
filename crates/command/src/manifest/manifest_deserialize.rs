@@ -52,7 +52,7 @@ pub enum ObjectOrString {
     String(String),                 // 字符串类型
 }
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(untagged)]
+#[serde(untagged, deny_unknown_fields )]
 pub enum ArrayOrDoubleDimensionArray {
     #[default]
     Null,
@@ -102,8 +102,9 @@ pub enum StringOrArrayOrDotDimensionArrayOrObject {
 }
 
 mod tests {
-    #[test]
-    fn test_serde_json() {
+  use crate::manifest::install_manifest::InstallManifest;
+
+  fn test_serde_json() {
         let json = r#"
        {
          "name": "hp",
@@ -112,7 +113,8 @@ mod tests {
            "amd64": {
              "installer": "innosetup"
            }
-         },
+         }, 
+           "shortcuts": [ [ "zigmod.exe" , "zigmod fuck you" ] ],  
          "suggest" : {
          "JDK": "1.8+"
          },
@@ -123,8 +125,23 @@ mod tests {
      "#;
         let manifest: serde_json::Value = serde_json::from_str(json).unwrap();
         let suggest = manifest["suggest"].as_object().unwrap();
-        let depends = manifest["depends"].as_object().unwrap();
+        let depends = manifest["depends"].as_object().unwrap(); 
+       let   shortcuts  = manifest["shortcuts"].as_array().unwrap(); 
         println!("suggest {:?}", suggest);
-        println!("depends {:?}", depends.values().collect::<Vec<_>>());
+        println!("depends {:?}", depends.values().collect::<Vec<_>>()); 
+        println!("shortcuts {:?}",  shortcuts);
     }
+  #[test]
+  fn  test_manifest_file(){ 
+     let  file = r"A:\Scoop\buckets\ScoopMaster\bucket\zigmod.json"; 
+     let  content  = std::fs::read_to_string(file).unwrap();  
+      let manifest  : InstallManifest = serde_json::from_str(&content).unwrap();
+      let  shortcuts = manifest.shortcuts; 
+       if shortcuts.is_some(){
+          let  shortcuts = shortcuts.unwrap();
+         println!("shortcuts {:?}", shortcuts);
+       }else { 
+         println!("shortcuts is none "); 
+       }
+  }  
 }

@@ -3,47 +3,52 @@
 pub fn init_env_path() -> String {
     let mut path = env::var("SCOOP").unwrap_or(String::new());
     if path.is_empty() {
-        path = env::var("USERPROFILE").unwrap()+"\\scoop";
+        path = env::var("USERPROFILE").unwrap() + "\\scoop";
     }
     return path;
 }
-pub fn  get_app_current_dir (  app_name : String   ) -> String {
-  let  scoop_home = init_env_path();
-  return format!("{}\\apps\\{}\\current", scoop_home, app_name);
+pub fn get_app_current_dir(app_name: String) -> String {
+    let scoop_home = init_env_path();
+    return format!("{}\\apps\\{}\\current", scoop_home, app_name);
 }
 
-pub  fn  get_app_dir ( app_name :&String ) -> String {
-  let  scoop_home = init_env_path();
-  return format!("{}\\apps\\{}", scoop_home, app_name);
+pub fn get_app_dir(app_name: &String) -> String {
+    let scoop_home = init_env_path();
+    return format!("{}\\apps\\{}", scoop_home, app_name);
 }
-pub fn  get_app_version_dir (app_name :&String , version :&String ) ->String { 
-  let  scoop_home = init_env_path();
-  return format!("{}\\apps\\{}\\{}", scoop_home, app_name ,  version);
+pub fn get_app_version_dir(app_name: &String, version: &String) -> String {
+    let scoop_home = init_env_path();
+    return format!("{}\\apps\\{}\\{}", scoop_home, app_name, version);
 }
-pub  fn  get_app_dir_install_json(app_name : &String ) ->String {
-  let  scoop_home = init_env_path();
-  return format!("{}\\apps\\{}\\current\\install.json", scoop_home, app_name);
+pub fn get_app_dir_install_json(app_name: &String) -> String {
+    let scoop_home = init_env_path();
+    return format!("{}\\apps\\{}\\current\\install.json", scoop_home, app_name);
+}
+pub fn get_app_dir_manifest_json(app_name: &String) -> String {
+    let scoop_home = init_env_path();
+    return format!("{}\\apps\\{}\\current\\manifest.json", scoop_home, app_name);
+}
+pub fn init_scoop_global_path() -> String {
+    let mut path = env::var("SCOOP_GLOBAL").unwrap_or(String::new());
+    if path.is_empty() {
+        path = env::var("ProgramData").unwrap() + "\\scoop";
+    }
+    return path;
+}
+pub  fn  get_app_current_bin_path(app_name : String , bin_name  :String ) -> String  {
+  let scoop_home = init_env_path();
+    format!("{}\\apps\\{}\\current\\{}", scoop_home, app_name  ,bin_name)  
 } 
-pub fn  get_app_dir_manifest_json( app_name : &String ) -> String { 
-  let  scoop_home = init_env_path(); 
-  return format!("{}\\apps\\{}\\current\\manifest.json", scoop_home, app_name); 
-}
-pub fn  init_scoop_global_path ()-> String {
-  let  mut   path  =env::var("SCOOP_GLOBAL").unwrap_or(String::new());
-  if path.is_empty() {
-    path = env::var("ProgramData").unwrap()+"\\scoop";
-  }
-  return path;
+
+
+pub fn get_old_scoop_dir() -> String {
+    let path = env::var("LocalAppData").unwrap_or(String::new());
+    return path + "\\scoop";
 }
 
-pub fn  get_old_scoop_dir ()  -> String {
-   let   path = env::var("LocalAppData").unwrap_or(String::new());
-  return  path+"\\scoop";
-}
-
-pub fn  get_scoop_cfg_path () -> String {
-  let  path  = env::var("USERPROFILE").unwrap();
-  return path+"\\.config\\scoop\\config.json";
+pub fn get_scoop_cfg_path() -> String {
+    let path = env::var("USERPROFILE").unwrap();
+    return path + "\\.config\\scoop\\config.json";
 }
 
 #[derive(Debug)]
@@ -58,7 +63,7 @@ pub struct HyperScoop {
 
 impl HyperScoop {
     pub fn new() -> Self {
-          Self {
+        Self {
             scoop_path: init_env_path(),
             bucket_path: format!("{}\\buckets", init_env_path()),
             cache_path: format!("{}\\cache", init_env_path()),
@@ -70,9 +75,9 @@ impl HyperScoop {
     pub fn get_apps_path(&self) -> String {
         self.apps_path.clone()
     }
-  pub fn get_psmodule_path(&self) -> String {
-      format!("{}\\modules", self.scoop_path)
-  }
+    pub fn get_psmodule_path(&self) -> String {
+        format!("{}\\modules", self.scoop_path)
+    }
     pub fn get_persist_path(&self) -> String {
         self.persist_path.clone()
     }
@@ -97,4 +102,10 @@ impl HyperScoop {
         println!("Persist: {}", self.persist_path);
         println!("Apps: {}", self.apps_path);
     }
+}
+
+
+pub fn  get_shims_path() -> String {
+  let  hyper_scoop = HyperScoop::new();
+  hyper_scoop.get_shims_path()
 }

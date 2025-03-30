@@ -8,7 +8,7 @@ use serde_json::Value;
 use std::path::{Path, PathBuf};
 mod env_set;
 use env_set::*;
-mod shim_and_shortcuts;
+pub(crate) mod shim_and_shortcuts;
 use shim_and_shortcuts::*;
 pub fn uninstall_app_with_purge(app_name: &str) -> Result<(), anyhow::Error> {
     uninstall_app(app_name)?;

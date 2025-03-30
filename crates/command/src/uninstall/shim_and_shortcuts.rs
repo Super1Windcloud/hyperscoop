@@ -32,13 +32,13 @@ pub   fn get_all_shortcuts_link_paths() -> Vec<PathBuf> {
 }
 
 pub fn rm_start_menu_shortcut(manifest: &UninstallManifest) -> Result<(), anyhow::Error> {
-    let shortcut = manifest.clone().shortcuts; 
+    let shortcuts = manifest.clone().shortcuts; 
     let architecture = manifest.clone().architecture;
-    if shortcut.is_none()  && architecture.is_none() {
+    if shortcuts.is_none()  && architecture.is_none() {
         return Ok(());
     }
   
-    if let Some(shortcut) = shortcut {
+    if let Some(shortcut) = shortcuts {
         match shortcut {
             ArrayOrDoubleDimensionArray::Null => return Ok(()),
             ArrayOrDoubleDimensionArray::StringArray(shortcut) => {

@@ -20,16 +20,17 @@ pub fn check_before_install(name: &String, version: &String) -> anyhow::Result<u
                 "{}",
                 format!("WARNING  '{name }' ({version}) is already installed")
                     .to_string()
-                    .dark_yellow()
+                    .dark_cyan()
                     .bold(),
             );
+          println!("{}" ,format!("You can use 'hp update {name}' to  install another version").to_string().dark_cyan().bold());
             return Ok(1);
         }
     } else if  app_version_path.exists() && !app_current_path.exists()  {
         println!(
           "{}",
           "WARNING  修复缺失的链接和快捷方式".to_string()
-                .dark_yellow()
+                .dark_cyan()
                 .bold()
         );
         println!(
@@ -37,15 +38,15 @@ pub fn check_before_install(name: &String, version: &String) -> anyhow::Result<u
             format!("Resetting '{name}' ({version})").dark_cyan().bold()
         );
         create_dir_symbolic_link(&app_version_dir, &app_current_dir)?;
-       let  manifest_json = get_app_dir_manifest_json(name) ; 
-        create_shim_or_shortcuts(manifest_json)?; 
+       let  manifest_json = get_app_dir_manifest_json(name) ;  
+        create_shim_or_shortcuts(manifest_json ,name )?;  
         let install_json = app_version_dir.clone() + "\\install.json";
         if Path::new(&install_json).exists() {
             println!(
                 "{}",
                 format!("WARNING  '{name}' ({version}) is already installed")
                     .to_string()
-                    .dark_yellow()
+                    .dark_cyan()
                     .bold(),
             );
             return Ok(1);
@@ -53,7 +54,7 @@ pub fn check_before_install(name: &String, version: &String) -> anyhow::Result<u
             println!(
                 "{}",
                 format!("WARNING  '{name}' 先清除之前安装失败的文件")
-                    .dark_yellow()
+                    .dark_cyan()
                     .bold(),
             );
             println!(
@@ -74,7 +75,7 @@ pub fn check_before_install(name: &String, version: &String) -> anyhow::Result<u
 }
 
 pub fn create_dir_symbolic_link(version_dir: &String, current_dir: &String) -> anyhow::Result<()> {
-    std::os::windows::fs::symlink_dir(version_dir, current_dir)?;
+    std::os::windows::fs::symlink_dir(version_dir, current_dir)?;    
     println!("Linking  {}", format!("{version_dir}  => {current_dir}").dark_green().bold());
     Ok(())
 }

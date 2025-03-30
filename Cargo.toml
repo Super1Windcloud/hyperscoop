@@ -149,7 +149,7 @@ labels = ["release"]
 
 [package.metadata.docs.rs]
 features = ["default"]
-
+default-target = "x86_64-pc-windows-msvc"
 
 
 [[example]]

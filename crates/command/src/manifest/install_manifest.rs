@@ -25,7 +25,6 @@ pub struct InstallManifest {
     在scoop install和scoop update期间调用。*/
     pub installer: Option<ManifestObj>,
 
-    ///  指定在开始菜单中可用的快捷方式值
     /**
     该数组必须包含可执行文件/标签对。第三和第四个元素是可选的。
      目标文件的路径[必需]
@@ -33,7 +32,7 @@ pub struct InstallManifest {
      启动参数[可选]
      图标文件的路径[可选]
     */
-    pub shortcuts: Option<ArrayOrDoubleDimensionArray>,
+    pub shortcuts: Option<ArrayOrDoubleDimensionArray>, 
 
     /**
     如果应用程序不是 32 位，则可以使用架构来包装差异（示例）。
