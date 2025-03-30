@@ -210,7 +210,7 @@ pub  fn  create_start_menu_shortcuts(shortcuts : ArrayOrDoubleDimensionArray , a
 fn start_create_shortcut<P: AsRef<Path>>(start_menu_path : P, link_target_path :String ,app_name :&String    ) -> anyhow::Result<()> {
   use mslnk::ShellLink;
    let  link = start_menu_path.as_ref().to_str().unwrap() ;
-  println!("{} {} => {}","Created Shortcuts for".to_string().dark_blue().bold(), 
+  println!("{} {} => {}","Created Shortcuts for".to_string().dark_blue().bold(),
            app_name.to_string().dark_cyan(), link.to_string().dark_green().bold());
    let   shell_link =ShellLink::new(link_target_path)?;
    shell_link.create_lnk(start_menu_path)?;
@@ -231,10 +231,9 @@ mod test{
     let app_name =  "zigmod".to_string() ;
      create_start_menu_shortcuts(shortcuts, app_name ).unwrap();
   }
-  
-  
-  #[test] 
-  fn  test_create_shims(){ 
-    
+
+  #[test]
+  fn  test_create_shims(){
+
   }
 }
