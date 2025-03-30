@@ -73,7 +73,7 @@ async fn main() ->   anyhow::Result<()> {
                 Commands::Import( args ) =>  execute_import_command( args),
                 Commands::Info(info) => execute_info_command(info),
                 Commands::Install(args )  => execute_install_command( args).await    ,
-                Commands::List(query_app) => execute_list_installed_apps(query_app.name.as_ref()),
+                Commands::List(query_app) => execute_list_installed_apps(query_app.name),
                 Commands::Prefix( prefix ) =>  execute_prefix_command( prefix ),
                 Commands::Reset( args ) =>  execute_reset_command( args)   ,
                 Commands::Search(search_app) => execute_search_command(search_app),

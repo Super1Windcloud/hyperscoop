@@ -188,10 +188,6 @@ pub  fn  create_start_menu_shortcuts(shortcuts : ArrayOrDoubleDimensionArray , a
         if scoop_link_home.exists()   {
           let start_menu_link_path = scoop_link_home.join(&shortcut_name);
           if !start_menu_link_path.exists()    {
-            println!(
-              "Creating start menu shortcut '{}'",
-              start_menu_link_path.display().to_string().dark_green().bold()
-            );
             let  target_path  =  get_app_current_bin_path( app_name.clone()  , bin_name_with_extension.clone()) ;
             if  !Path::new(&target_path).exists() {
               bail!(format!("链接目标文件 {target_path} 不存在"))
@@ -206,12 +202,11 @@ pub  fn  create_start_menu_shortcuts(shortcuts : ArrayOrDoubleDimensionArray , a
   Ok(())
 }
 
-
 fn start_create_shortcut<P: AsRef<Path>>(start_menu_path : P, link_target_path :String ,app_name :&String    ) -> anyhow::Result<()> {
   use mslnk::ShellLink;
    let  link = start_menu_path.as_ref().to_str().unwrap() ;
-  println!("{} {} => {}","Created Shortcuts for".to_string().dark_blue().bold(),
-           app_name.to_string().dark_cyan(), link.to_string().dark_green().bold());
+  println!("{} {} => {}","Creating Shortcuts for".to_string().dark_blue().bold(),
+           app_name.to_string().dark_cyan().bold() , link.to_string().dark_green().bold());
    let   shell_link =ShellLink::new(link_target_path)?;
    shell_link.create_lnk(start_menu_path)?;
    Ok(())
@@ -222,7 +217,7 @@ mod test{
   use crate::install::create_start_menu_shortcuts;
   use crate::manifest::install_manifest::InstallManifest;
 
-  #[test]
+  #[test]   
   fn test_create_shortcuts(){
     let  file = r"A:\Scoop\buckets\ScoopMaster\bucket\zigmod.json" ;
     let  content  = std::fs::read_to_string(file).unwrap();

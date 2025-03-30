@@ -6,14 +6,20 @@ use rayon::prelude::*;
 use regex::Regex;
 use std::fs::{read_dir, remove_dir_all};
 use std::io::read_to_string;
-pub fn list_specific_installed_apps(query: &String) {
+pub fn list_specific_installed_apps(query: Vec<String>) {
     let package = list_all_installed_apps();
     let app_name_list = package.0;
     let app_version = package.1;
     let app_source_bucket = package.2;
     let app_update_date = package.3;
-    // let (mut app_name, mut version, mut source,
-    //   mut update_date) = (String::new(), String::new(), String::new(), String::new());
+    let found_flag = app_name_list.iter().any(|name| {
+        let flag = query.iter().any(|q| name == q);
+        return flag;
+    });
+    if !found_flag {
+        println!("{}", "No app To Found !".to_string().dark_cyan().bold());
+        return;
+    }
     println!(
         "{:<30}\t\t\t\t{:<30}\t\t\t{:<30}\t\t\t{:<30} ",
         "Name".dark_green().bold(),
@@ -30,37 +36,39 @@ pub fn list_specific_installed_apps(query: &String) {
     );
 
     for i in 0..app_name_list.len() {
+      for query in query.iter() {
         if app_name_list[i].to_lowercase() == query.clone().to_lowercase()
-            || app_name_list[i].contains(query)
+          || app_name_list[i].contains(query)
         {
-            println!(
-                "{:<30}\t{:<23}\t{:<20}\t{:<10} ",
-                app_name_list[i], app_version[i], app_source_bucket[i], app_update_date[i]
-            );
+          println!(
+            "{:<30}\t{:<23}\t{:<20}\t{:<10} ",
+            app_name_list[i], app_version[i], app_source_bucket[i], app_update_date[i]
+          );
         };
-    }
+      }
+    } 
 }
 
 pub fn get_all_installed_apps_name() -> Vec<String> {
-  let apps_path = init_hyperscoop().unwrap().apps_path;
-  let app_name_list: Vec<String> = read_dir(&apps_path)
-    .unwrap()
-    .par_bridge() // 将标准迭代器转换为并行迭代器
-    .filter_map(|entry| {
-      let entry = entry.ok()?;
-      let  file_type = entry.file_type().ok()?;
-      let path = entry.path();
-      
-      if file_type.is_dir() {
-        let app_name = path.file_name()?.to_str()?;
-        if app_name != "scoop" {
-          return Some(app_name.to_string());
-        }
-      }
-      None
-    })
-    .collect();
-  return app_name_list;
+    let apps_path = init_hyperscoop().unwrap().apps_path;
+    let app_name_list: Vec<String> = read_dir(&apps_path)
+        .unwrap()
+        .par_bridge() // 将标准迭代器转换为并行迭代器
+        .filter_map(|entry| {
+            let entry = entry.ok()?;
+            let file_type = entry.file_type().ok()?;
+            let path = entry.path();
+
+            if file_type.is_dir() {
+                let app_name = path.file_name()?.to_str()?;
+                if app_name != "scoop" {
+                    return Some(app_name.to_string());
+                }
+            }
+            None
+        })
+        .collect();
+    return app_name_list;
 }
 pub fn list_all_installed_apps() -> (Vec<String>, Vec<String>, Vec<String>, Vec<String>) {
     let apps_path = init_hyperscoop().unwrap().apps_path;
@@ -69,9 +77,9 @@ pub fn list_all_installed_apps() -> (Vec<String>, Vec<String>, Vec<String>, Vec<
         .par_bridge() // 将标准迭代器转换为并行迭代器
         .filter_map(|entry| {
             let entry = entry.ok()?;
-             let file_type = entry.file_type().ok()?;
+            let file_type = entry.file_type().ok()?;
             let path = entry.path();
-            if  file_type.is_dir() {
+            if file_type.is_dir() {
                 let app_name = path.file_name()?.to_str()?;
                 if app_name != "scoop" {
                     return Some(app_name.to_string());
@@ -95,38 +103,92 @@ pub fn list_all_installed_apps() -> (Vec<String>, Vec<String>, Vec<String>, Vec<
 }
 pub fn display_app_info() {
     let package = list_all_installed_apps();
+
+    let col_widths = [
+        &package.0.iter().map(|s| s.len() + 4).max().unwrap_or(0),
+        &package.1.iter().map(|s| s.len() + 4).max().unwrap_or(0),
+        &package.2.iter().map(|s| s.len() + 4).max().unwrap_or(0),
+        &package.3.iter().map(|s| s.len() + 4).max().unwrap_or(0),
+    ];
+
     let app_name_list = package.0;
     let app_version = package.1;
     let app_source_bucket = package.2;
     let app_update_date = package.3;
-    println!("Installed Apps Count:{} \n", app_name_list.len());
     println!(
-        "{:<30}\t\t\t\t{:<30}\t\t\t{:<30}\t\t\t{:<30} ",
-        "Name".dark_green().bold(),
-        "Version".dark_green().bold(),
-        "Bucket".dark_green().bold(),
-        "UpDate".dark_green().bold()
-    );
-    println!(
-        "{:<30}\t\t\t\t{:<30}\t\t\t{:<30}\t\t\t{:<30} ",
-        "____".dark_green().bold(),
-        "_______".dark_green().bold(),
-        "______".dark_green().bold(),
-        "______".dark_green().bold()
+        "{} :{} \n",
+        "Installed Apps Count".dark_cyan().bold(),
+        app_name_list.len().to_string().dark_cyan().bold()
     );
 
+    // println!(
+    //     "{:<30}\t\t\t\t{:<30}\t\t\t{:<30}\t\t\t{:<30} ",
+    //     "Name".dark_green().bold(),
+    //     "Version".dark_green().bold(),
+    //     "Bucket".dark_green().bold(),
+    //     "UpDate".dark_green().bold()
+    // );
+    // println!(
+    //     "{:<30}\t\t\t\t{:<30}\t\t\t{:<30}\t\t\t{:<30} ",
+    //     "____".dark_green().bold(),
+    //     "_______".dark_green().bold(),
+    //     "______".dark_green().bold(),
+    //     "______".dark_green().bold()
+    //   );
+    let all_widths = col_widths
+        .iter()
+        .cloned()
+        .map(|width| *width)
+        .sum::<usize>();
+    println!(
+        "{}",
+        "-".to_string().repeat(all_widths + 8).dark_green().bold()
+    );
+    println!(
+        "{:<width1$} {:<width2$} {:<width3$} {:<width4$}",
+        "| Name",
+        "| Version",
+        "| Bucket",
+        "| Update",
+        width1 = col_widths[0],
+        width2 = col_widths[1],
+        width3 = col_widths[2],
+        width4 = col_widths[3]
+    );
+    println!(
+        "{:<width1$} {:<width2$} {:<width3$} {:<width4$}",
+        "| ____",
+        "| _______",
+        "| ______",
+        "| ______",
+        width1 = col_widths[0],
+        width2 = col_widths[1],
+        width3 = col_widths[2],
+        width4 = col_widths[3]
+    );
     for i in 0..app_name_list.len() {
         println!(
-            "{:<30}\t{:<23}\t{:<20}\t{:<10} ",
-            app_name_list[i], app_version[i], app_source_bucket[i], app_update_date[i]
+            "{:<width1$} {:<width2$} {:<width3$} {:<width4$}",
+            "| ".to_string() + &app_name_list[i],
+            "| ".to_string() + &app_version[i],
+            "| ".to_string() + &app_source_bucket[i],
+            "| ".to_string() + &app_update_date[i],
+            width1 = col_widths[0],
+            width2 = col_widths[1],
+            width3 = col_widths[2],
+            width4 = col_widths[3]
         );
     }
+    println!(
+        "{}",
+        "-".to_string().repeat(all_widths + 8).dark_green().bold()
+    );
 }
 fn get_apps_update_date(apps_path: &String) -> Vec<String> {
     let mut app_update_date = vec![];
     for apps_file in read_dir(apps_path).unwrap() {
         let apps_file = apps_file.unwrap();
-      let  file_type= apps_file.file_type().unwrap();
+        let file_type = apps_file.file_type().unwrap();
         let apps_file = apps_file.path();
         if apps_file.file_name().unwrap().to_str().unwrap() == "scoop" {
             continue;
@@ -144,9 +206,9 @@ fn get_apps_source_bucket(apps_path: &String) -> Vec<String> {
     let mut app_source_bucket = Vec::new();
     for apps_file in read_dir(apps_path).unwrap() {
         let apps_file = apps_file.unwrap();
-      let  file_type= apps_file.file_type().unwrap();
+        let file_type = apps_file.file_type().unwrap();
         let apps_file = apps_file.path();
-           if file_type.is_dir()  {
+        if file_type.is_dir() {
             //检测目录安全性
             if is_directory_empty(&apps_file) {
                 println!("{} is empty, removing it", apps_file.to_str().unwrap());
@@ -158,7 +220,7 @@ fn get_apps_source_bucket(apps_path: &String) -> Vec<String> {
             }
             let install_file = apps_file.join("current\\install.json");
 
-            if  install_file.exists() {
+            if install_file.exists() {
                 let install_file = install_file.to_str().unwrap().to_string();
                 let reader = std::io::BufReader::new(std::fs::File::open(install_file).unwrap());
                 let install_file = read_to_string(reader).expect("Unable to read install file");
@@ -187,7 +249,7 @@ fn get_apps_version(apps_path: &String) -> Vec<String> {
     let mut app_version: Vec<String> = Vec::new();
     for entry in read_dir(apps_path).unwrap() {
         let entry = entry.unwrap();
-        let  file_type =entry.file_type().unwrap();
+        let file_type = entry.file_type().unwrap();
         let path = entry.path();
 
         if is_directory_empty(&path) {
@@ -203,10 +265,10 @@ fn get_apps_version(apps_path: &String) -> Vec<String> {
 
             for version_dir in read_dir(path).unwrap() {
                 let version_dir = version_dir.unwrap();
-                let  file_type = version_dir.file_type().unwrap();
+                let file_type = version_dir.file_type().unwrap();
                 let version_path = version_dir.path();
 
-                if   file_type.is_dir()  {
+                if file_type.is_dir() {
                     // 检查目录安全性
                     if is_directory_empty(&version_path) {
                         println!("{} is empty, removing it", version_path.to_str().unwrap());

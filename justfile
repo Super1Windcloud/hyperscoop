@@ -6,7 +6,7 @@ release:
     cargo build  --release
 
 
-# 每天命令都是全新的 SHell 环境
+# 每条命令都是全新的 SHell 环境
 update_hash:
     python  script/hash.py
     cd  hyperscoop_source_bucket  &&  just  update
@@ -14,7 +14,6 @@ update_hash:
 
 push:
     git add -A  && git commit -m ":panda_face:     update hash " && git push repo   master
-
 
 
 pull   :

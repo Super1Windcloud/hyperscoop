@@ -40,7 +40,7 @@ pub fn check_before_install(name: &String, version: &String) -> anyhow::Result<u
         create_dir_symbolic_link(&app_version_dir, &app_current_dir)?;
        let  manifest_json = get_app_dir_manifest_json(name) ;  
         create_shim_or_shortcuts(manifest_json ,name )?;  
-        let install_json = app_version_dir.clone() + "\\install.json";
+        let install_json = app_current_dir.clone() + "\\install.json";
         if Path::new(&install_json).exists() {
             println!(
                 "{}",
@@ -49,6 +49,7 @@ pub fn check_before_install(name: &String, version: &String) -> anyhow::Result<u
                     .dark_cyan()
                     .bold(),
             );
+            println!("{}" ,format!("You can use 'hp update {name}' to  install another version").to_string().dark_cyan().bold());
             return Ok(1);
         } else if !app_version_path.exists() &&  app_current_path.exists() {
             println!(
