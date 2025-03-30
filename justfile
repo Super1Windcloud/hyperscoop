@@ -2,20 +2,19 @@
 set shell := ["pwsh.exe", "-NoProfile", "-c"]
 
 release:
-    just  push
+    just  update_hash
     cargo build  --release
 
 
-
+# 每天命令都是全新的 SHell 环境
 update_hash:
     python  script/hash.py
-    cd  hyperscoop_source_bucket
+    cd  hyperscoop_source_bucket  &&  just  update
     git add -A  && git commit -m ":panda_face:     update hash " && git push repo   master
-    git  add -A  && git commit -m ":panda_face:     update hash " && git push origin master
 
 push:
-    just update_hash
     git add -A  && git commit -m ":panda_face:     update hash " && git push repo   master
+
 
 
 pull   :
