@@ -11,7 +11,7 @@ pub fn   show_suggest (suggest : &ManifestObj)  -> anyhow::Result<()> {
   let pretty_json = serde_json::to_string_pretty(suggest)?;
   println!("建议安装以下依赖包 : {} \n", pretty_json.dark_yellow().bold()   );
 
-  
+
   Ok(() )
 }
 
@@ -28,7 +28,7 @@ pub fn show_notes (  notes : &StringArrayOrString)  -> anyhow::Result<()> {
       println!("Notes : {}", note.clone() .dark_grey().bold() );
     }
     StringArrayOrString::Null => {}
-  } 
+  }
   Ok(() )
 }
 
@@ -42,7 +42,7 @@ pub fn handle_env_set (env_set : &ManifestObj, manifest : &InstallManifest) ->  
   let app_version = manifest.version.clone().unwrap_or(String::new());
   let scoop_home = init_env_path();
   let global_scoop_home = init_scoop_global_path();
- 
+
   let app_dir = format!(
     r#"function app_dir($other_app) {{
       return    "{scoop_home}\apps\$other_app\current" ;
@@ -69,22 +69,22 @@ pub fn handle_env_set (env_set : &ManifestObj, manifest : &InstallManifest) ->  
   "#
   );
 
-  if let serde_json::Value::Object(env_set) = env_set { 
+  if let serde_json::Value::Object(env_set) = env_set {
     for (key, env_value ) in env_set {
-      let  mut env_value = env_value.to_string().trim().to_string();  
+      let  mut env_value = env_value.to_string().trim().to_string();
       if env_value.is_empty() {
         continue;
       }
-      if env_value.contains('/')  { 
+      if env_value.contains('/')  {
           env_value = env_value.replace('/', r"\");
       }
-      if   env_value.contains(r"\\") { 
+      if   env_value.contains(r"\\") {
           env_value = env_value.replace(r"\\", r"\");
       }
       let cmd = format!(r#"Set-ItemProperty -Path "HKCU:\Environment" -Name "{key}" -Value {env_value}"#);
-       
-      
-     println!("cmd: {}", cmd); 
+
+
+     println!("cmd: {}", cmd);
       let output = std::process::Command::new("powershell")
         .arg("-Command" )
         .arg(&app_dir)
@@ -100,11 +100,11 @@ pub fn handle_env_set (env_set : &ManifestObj, manifest : &InstallManifest) ->  
                 , env_value.dark_cyan().bold() );
     }
   }
-  Ok(()) 
+  Ok(())
 }
 
 
-pub  fn handle_env_add_path (env_add_path: StringArrayOrString, app_current_dir: String) ->  anyhow::Result<()> { 
+pub  fn handle_env_add_path (env_add_path: StringArrayOrString, app_current_dir: String) ->  anyhow::Result<()> {
   let  app_current_dir = app_current_dir.replace('/', r"\");
   if  let StringArrayOrString::StringArray(paths) = env_add_path {
      for  path  in  paths {
@@ -112,8 +112,8 @@ pub  fn handle_env_add_path (env_add_path: StringArrayOrString, app_current_dir:
      }
   }else if let StringArrayOrString::String(path) = env_add_path {
          add_bin_to_path(path ,&app_current_dir)? ;
-  } 
- 
+  }
+
   Ok(())
 }
 pub  fn  add_bin_to_path ( path : String , app_current_dir :&String ) -> anyhow::Result<()> {
@@ -123,9 +123,9 @@ pub  fn  add_bin_to_path ( path : String , app_current_dir :&String ) -> anyhow:
   let hkcu = RegKey::predef(HKEY_CURRENT_USER);
   let environment_key = hkcu.open_subkey("Environment")?;
   let user_path: String = environment_key.get_value("PATH")?;
- 
-  let  user_path =  format!("{user_path};{path}") ; 
-  log::trace!("\n 更新后的用户的 PATH: {}", user_path); 
+
+  let  user_path =  format!("{user_path};{path}") ;
+  log::trace!("\n 更新后的用户的 PATH: {}", user_path);
 
   let script = format!(
     r#"[System.Environment]::SetEnvironmentVariable("PATH","{user_path}", "User")"#
@@ -137,6 +137,6 @@ pub  fn  add_bin_to_path ( path : String , app_current_dir :&String ) -> anyhow:
   if !output.status.success() {
     bail!("Failed to remove path var");
   }
-  
+
   Ok(())
 }

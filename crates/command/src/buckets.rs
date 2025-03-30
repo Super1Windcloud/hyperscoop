@@ -47,7 +47,6 @@ impl Buckets {
         }
       }
     }
-    error!("");
     Err(anyhow!("bucket not found").context("没有这个名字的bucket"))
   }
   fn delete_dir_recursively(&self, bucket_path: &Path) -> Result<(), anyhow::Error> {

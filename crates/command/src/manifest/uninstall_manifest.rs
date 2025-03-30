@@ -85,8 +85,7 @@ pub struct UninstallManifest {
         }
     32bit|64bit|arm64 ：包含特定于体系结构的指令（ bin 、 checkver 、 extract_dir 、 hash 、 installer 、
   pre_install 、 post_install 、 shortcuts 、 uninstaller 、 url和msi [ msi已弃用]）*/
-  #[serde(skip)]
-  pub architecture: Option<ManifestObj> ,
+  pub architecture: Option<ArchitectureObject>,
 
   ///将自动安装的应用程序的运行时依赖项。另请参阅suggest （如下）
   #[serde(skip)]

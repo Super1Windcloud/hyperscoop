@@ -13,7 +13,7 @@ pub fn execute_uninstall_command(args: UninstallArgs) ->Result<() ,anyhow::Error
          log::info!("Uninstalling app {}", &app_name);
          uninstall_app(&app_name)?;
          println!("'{}' {}", app_name.dark_green().bold(), "has been uninstalled".dark_green().bold());
-          
+         
        }
      }
   

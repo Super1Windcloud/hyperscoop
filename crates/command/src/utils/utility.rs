@@ -2,6 +2,7 @@ use std::cmp::Ordering;
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use crate::init_env::init_env_path;
 use crate::merge::Merge;
 use crate::utils::system::get_system_current_time;
 
@@ -57,8 +58,9 @@ pub  fn  get_official_buckets_name()  -> Vec<String> {
      exclude_dirs.iter().map(|s| s.to_string()).collect()
 }
 
-pub fn get_official_bucket_path( bucket_name : String  ) ->String  {
-  format!("{}\\buckets\\{}", std::env::var("SCOOP").unwrap_or("USERPROFILE/scoop".into()), bucket_name)
+pub fn get_official_bucket_path( bucket_name : String  ) ->String  { 
+  let scoop_home = init_env_path(); 
+  format!("{}\\buckets\\{}", scoop_home ,  bucket_name) 
 }
 
 

@@ -11,6 +11,23 @@ pub fn  get_app_current_dir (  app_name : String   ) -> String {
   let  scoop_home = init_env_path();
   return format!("{}\\apps\\{}\\current", scoop_home, app_name);
 }
+
+pub  fn  get_app_dir ( app_name :&String ) -> String {
+  let  scoop_home = init_env_path();
+  return format!("{}\\apps\\{}", scoop_home, app_name);
+}
+pub fn  get_app_version_dir (app_name :&String , version :&String ) ->String { 
+  let  scoop_home = init_env_path();
+  return format!("{}\\apps\\{}\\{}", scoop_home, app_name ,  version);
+}
+pub  fn  get_app_dir_install_json(app_name : &String ) ->String {
+  let  scoop_home = init_env_path();
+  return format!("{}\\apps\\{}\\current\\install.json", scoop_home, app_name);
+} 
+pub fn  get_app_dir_manifest_json( app_name : &String ) -> String { 
+  let  scoop_home = init_env_path(); 
+  return format!("{}\\apps\\{}\\current\\manifest.json", scoop_home, app_name); 
+}
 pub fn  init_scoop_global_path ()-> String {
   let  mut   path  =env::var("SCOOP_GLOBAL").unwrap_or(String::new());
   if path.is_empty() {

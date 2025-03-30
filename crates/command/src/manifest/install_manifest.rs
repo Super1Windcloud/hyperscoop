@@ -10,7 +10,7 @@ pub struct InstallManifest {
     pub(crate) name: Option<String>,
 
     /// 版本号
-    pub version: Option<String>, // !complete 
+    pub version: Option<String>, // !complete
 
     ///运行非 MSI 安装程序的说明。
     /**
@@ -104,7 +104,7 @@ pub struct InstallManifest {
     pub extract_to: Option<StringArrayOrString>,
     ///将此目录添加到用户路径（如果使用--global则添加到系统路径）。
     /// 该目录是相对于安装目录的，并且必须位于安装目录内。
-    pub env_add_path: Option<StringArrayOrString>,  // !complete 
+    pub env_add_path: Option<StringArrayOrString>,  // !complete
     ///如果安装程序基于 InnoSetup，则设置为布尔值true
     pub innosetup: Option<bool>,
 
@@ -131,7 +131,7 @@ pub struct InstallManifest {
     pub psmodule: Option<ManifestObj>,
 
     /// 为用户（或系统，如果使用--global ）设置一个或多个环境变量
-    pub env_set: Option<ManifestObj>, // !complete 
+    pub env_set: Option<ManifestObj>, // !complete
     /**
     appdir
     参考另一个勺应用程序。例如，要检查是否安装了另一个应用程序，您可以使用：
@@ -165,6 +165,7 @@ pub struct InstallManifest {
     #[serde(skip)]
     pub description: Option<String>,
 
+    /// bucket维护人员用于自动更新当前 manifest的 Version和 URL和 Hash值
     #[serde(skip)]
     pub autoupdate: Option<ManifestObj>,
     #[serde(skip)]
@@ -236,7 +237,7 @@ mod test {
             .iter()
             .flat_map(|path| path.read_dir().unwrap().map(|res| res.unwrap().path()))
             .collect::<Vec<_>>();
-        let mut  i=0 ; 
+        let mut  i=0 ;
         for path in files {
             let content = std::fs::read_to_string(&path);
             if content.is_err() {
@@ -247,11 +248,11 @@ mod test {
             let manifest = serde_json::from_str::<InstallManifest>(&content);
             if manifest.is_err() {
                 continue;
-            } 
-            
+            }
+
             let manifest: InstallManifest = manifest.unwrap();
            // find_architecture_test(&manifest, &path );
-       
+
         }
     }
 
@@ -264,7 +265,7 @@ mod test {
         let x64 = x64.unwrap();
         let installer = x64.installer;
         if installer.is_some() {
-          // dorado :   another-redis-desktop-manager 
+          // dorado :   another-redis-desktop-manager
           println!("installer {:?}", installer.unwrap());
           println!(" path {}" , path.display());
           return ;
@@ -278,14 +279,14 @@ mod test {
         }
         let extract_dir = x64.extract_dir;
         if  extract_dir.is_some() {
-           //  lemon : abstreet.json 
+           //  lemon : abstreet.json
           println!("extract_dir {:?}", extract_dir.unwrap());
           println!(" path {}" , path.display());
           return ;
         }
         let  uninstaller= x64.uninstaller;
         if uninstaller.is_some() {
-          //  DEV-tools  :lagarith-lossless-video-codec.json 
+          //  DEV-tools  :lagarith-lossless-video-codec.json
           println!("uninstaller {:?}", uninstaller.unwrap());
           println!(" path {}" , path.display());
           return ;
@@ -293,7 +294,7 @@ mod test {
         }
         let shortcuts = x64.shortcuts;
         if shortcuts.is_some() {
-          // dorado  :  crystaldiskinfo-aoi-edition.json 
+          // dorado  :  crystaldiskinfo-aoi-edition.json
           println!("shortcuts {:?}", shortcuts.unwrap());
           println!(" path {}", path.display());
           return ;
@@ -308,7 +309,7 @@ mod test {
         }
         let pre_install = x64.pre_install;
         if pre_install.is_some() {
-           // cmontage : abricotine.json 
+           // cmontage : abricotine.json
           println!("pre_install {:?}", pre_install.unwrap());
           println!(" path {}", path.display());
           return ;
@@ -316,7 +317,7 @@ mod test {
         }
         let post_install = x64.post_install;
         if   post_install .is_some() {
-          // extras  :  rstudio.json 
+          // extras  :  rstudio.json
           println!("post_install {:?}", post_install.unwrap());
           println!(" path {}", path.display());
           return ;
@@ -328,16 +329,16 @@ mod test {
 
   fn find_env_add_oath(manifest : &InstallManifest, path : &PathBuf) -> u8  {
      let  env_add_path = &manifest.env_add_path;
-     if env_add_path.is_some() { 
-       let env_add_path = env_add_path.clone(); 
+     if env_add_path.is_some() {
+       let env_add_path = env_add_path.clone();
         if  env_add_path.is_some() {
-          let env_add_path = env_add_path.unwrap(); 
+          let env_add_path = env_add_path.unwrap();
           println!("env_add_path {:?}", env_add_path);
-          println!(" path {}", path.display());  
-          return 1 ; 
+          println!(" path {}", path.display());
+          return 1 ;
         }
      }
-      0 
-  } 
-  
+      0
+  }
+
 }
