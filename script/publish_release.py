@@ -32,7 +32,7 @@ def  upload_hp_to_release(access_token):
                 }
       data = {
                "access_token": "1fba69da2f34d7b0b42c6812153d6d12",
-               "tag_name": "3.3.3",
+               "tag_name": "3.3.4",
                "name": "here we go ",
                "target_commitish": "master" ,
                "body": "start to enjoy it ",
@@ -79,8 +79,8 @@ def create_new_release(access_token):
 
 def main() :
   access_token="1fba69da2f34d7b0b42c6812153d6d12"
-#   create_new_release(access_token)
-  upload_hp_to_release(access_token)
+  create_new_release(access_token)
+#   upload_hp_to_release(access_token)
 
 
 
