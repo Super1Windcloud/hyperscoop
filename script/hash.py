@@ -2,7 +2,28 @@
 import  os
 import  json
 
-#  更新文件的hash version 和 下载URL
+def   get_gitee_latest_version () :
+      host = "gitee.com"
+      url = "/api/v5/repos/SuperWindcloud/hyperscoop/releases/latest"
+      headers = {
+          "Content-Type": "application/json;charset=UTF-8"
+      }
+
+      data = {
+          "access_token": "1fba69da2f34d7b0b42c6812153d6d12",
+      }
+
+      json_data = json.dumps(data)
+
+      conn = http.client.HTTPSConnection(host)
+      conn.request("POST", url, body=json_data, headers=headers)
+
+      response = conn.getresponse()
+      print("Status:", response.status, response.reason)
+      response = json.loads(response.read().decode())
+      conn.close()
+      return response.get("tag_name")
+
 
 def  update_version_and_url() :
       version_toml= r'A:\Rust_Project\hyperscoop\Cargo.toml'

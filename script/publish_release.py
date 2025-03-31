@@ -24,7 +24,13 @@ def  upload_hp_to_release(access_token):
 
       hp_path = get_hp_bin_path()
       hp_buffer = read_file(hp_path)
-      hp_buffer = base64.b64encode(hp_buffer).decode("utf-8")
+      form_data = {
+          'file': {
+              'filename': 'hp.exe',
+              'content_type': 'application/octet-stream',  # 根据实际文件类型修改
+              'data': base64.b64encode(hp_buffer).decode('utf-8')  # 转换为 base64 字符串
+          }
+      }
       host = "gitee.com"
       url = "/api/v5/repos/SuperWindcloud/hyperscoop/releases/1/attach_files"
       headers = {
@@ -33,20 +39,15 @@ def  upload_hp_to_release(access_token):
       data = {
                "access_token": "1fba69da2f34d7b0b42c6812153d6d12",
                "tag_name": "3.3.4",
-               "name": "here we go ",
-               "target_commitish": "master" ,
-               "body": "start to enjoy it ",
-               "prerelease": "false",
-               "file":  hp_buffer
+               "file":  form_data
            }
+
       json_data = json.dumps(data)
       conn = http.client.HTTPSConnection(host)
       conn.request("POST", url, body=json_data, headers=headers)
-
       response = conn.getresponse()
       print("Status:", response.status, response.reason)
       print("Response:", response.read().decode())
-
       conn.close()
 
 def create_new_release(access_token):
@@ -58,9 +59,9 @@ def create_new_release(access_token):
 
        data = {
            "access_token": "1fba69da2f34d7b0b42c6812153d6d12",
-           "tag_name": "3.3.3",
+           "tag_name": "3.3.4",
            "name": "here we go ",
-           "body": "start to enjoy it ",
+           "body": "add install shim feature",
            "prerelease": "false",
            "target_commitish": "master"
        }
@@ -81,8 +82,6 @@ def main() :
   access_token="1fba69da2f34d7b0b42c6812153d6d12"
   create_new_release(access_token)
 #   upload_hp_to_release(access_token)
-
-
 
 main()
 

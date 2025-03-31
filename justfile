@@ -13,6 +13,7 @@ publish:
 
 # 每条命令都是全新的 SHell 环境
 update_hash:
+    just publish
     python  script/hash.py
     cd  hyperscoop_source_bucket  &&  just  update
     git add -A  && git commit -m ":panda_face:     update hash " && git push repo   master
