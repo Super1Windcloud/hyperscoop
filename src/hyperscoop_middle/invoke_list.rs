@@ -3,7 +3,7 @@
 pub fn execute_list_installed_apps(option: Option<Vec<String>>) -> Result<(), anyhow::Error> {
   match option {
     Some(query) => {
-      list_specific_installed_apps(query)
+      list_specific_installed_apps(query)? 
     }
     None => {
       display_app_info()

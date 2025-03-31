@@ -1,0 +1,22 @@
+[package]
+name = "shim"
+edition.workspace = true
+publish.workspace = true
+authors.workspace = true
+description.workspace = true
+license.workspace = true
+repository.workspace = true
+readme.workspace = true
+homepage.workspace = true
+rust-version.workspace = true
+categories.workspace = true
+keywords.workspace = true
+exclude.workspace = true
+include.workspace = true
+version.workspace = true
+
+[dependencies]
+winapi = "0.3.9"
+
+[lints]
+workspace = true

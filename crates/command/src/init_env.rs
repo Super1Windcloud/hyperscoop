@@ -109,3 +109,8 @@ pub fn  get_shims_path() -> String {
   let  hyper_scoop = HyperScoop::new();
   hyper_scoop.get_shims_path()
 }
+
+pub  fn get_apps_path() -> String {
+  let  hyper_scoop = HyperScoop::new();
+  hyper_scoop.get_apps_path()
+}

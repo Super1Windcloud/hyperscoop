@@ -1,3 +1,6 @@
+use std::{env, fs};
+use std::fs::File;
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use anyhow::bail;
 use crossterm::style::Stylize;
@@ -116,17 +119,6 @@ pub  fn  create_shims_file(bin  : StringOrArrayOrDoubleDimensionArray) ->anyhow:
   Ok(())
 }
 
-fn create_alias_shim_name_file(exe_name : String, alias_name: String, shim_dir: &String  ) -> anyhow::Result<()>{
-
-
-  Ok(())
-}
-
-fn create_default_shim_name_file(exe_name  : String,   shim_dir  : &String) ->  anyhow::Result<()>{
-
-
-  Ok(())
-}
 
 pub  fn  create_start_menu_shortcuts(shortcuts : ArrayOrDoubleDimensionArray , app_name :String ) ->anyhow::Result<()>{
 
@@ -202,7 +194,7 @@ pub  fn  create_start_menu_shortcuts(shortcuts : ArrayOrDoubleDimensionArray , a
   Ok(())
 }
 
-fn start_create_shortcut<P: AsRef<Path>>(start_menu_path : P, link_target_path :String ,app_name :&String    ) -> anyhow::Result<()> {
+pub fn start_create_shortcut<P: AsRef<Path>>(start_menu_path : P, link_target_path :String ,app_name :&String    ) -> anyhow::Result<()> {
   use mslnk::ShellLink;
    let  link = start_menu_path.as_ref().to_str().unwrap() ;
   println!("{} {} => {}","Creating Shortcuts for".to_string().dark_blue().bold(),
@@ -213,10 +205,53 @@ fn start_create_shortcut<P: AsRef<Path>>(start_menu_path : P, link_target_path :
 }
 
 
-mod test{
-  
+pub fn create_alias_shim_name_file(exe_name : String, alias_name: String, shim_dir: &String  ) -> anyhow::Result<()>{
 
-  #[test]   
+
+  Ok(())
+}
+
+pub  fn create_default_shim_name_file(exe_name  : String,   shim_dir  : &String) ->  anyhow::Result<()>{
+  let  shim_path = PathBuf::from(shim_dir);
+
+  Ok(())
+}
+pub fn create_path_shim_file <P: AsRef<Path>>(target_path: P,  output_dir :P ) -> Result<(), Box<dyn std::error::Error>> {
+   let  target_path = target_path.as_ref().to_str().unwrap();
+  let target_name = Path::new(target_path)
+    .file_stem()
+    .and_then(|s| s.to_str())
+    .ok_or("Invalid target executable name")?;
+
+  // Create the shim content
+  let content = format!("path = \"{}\"", target_path);
+
+  // Determine the shim file name
+  let shim_name = format!("{}.shim", target_name);
+  let shim_path = env::current_dir()?.join(&shim_name);
+
+  // Write the shim file
+  let mut file = File::create(&shim_path)?;
+  file.write_all(content.as_bytes())?;
+  println!("Created shim file  for {}", shim_path.display());
+
+  #[cfg(windows)]
+  {
+    let exe_name = format!("{}.exe", target_name);
+    let current_exe = env::current_exe()?;
+
+    // Copy the current executable to act as the shim
+    fs::copy(current_exe, env::current_dir()?.join(exe_name))?;
+  }
+
+  Ok(())
+}
+
+
+mod test{
+
+
+  #[test]
   fn test_create_shortcuts(){
     use crate::install::create_start_menu_shortcuts;
     use crate::manifest::install_manifest::InstallManifest;
@@ -230,6 +265,10 @@ mod test{
 
   #[test]
   fn  test_create_shims(){
+    use std::str::FromStr;
+      use scoop_shim::Shim;
+    let path = r"path = A:\Scoop\apps\zigmod\r92\zigmod.exe";
+    let shim =Shim::from_str(path ) .unwrap();
 
   }
 }

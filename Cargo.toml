@@ -52,6 +52,7 @@ tokio = { version = "1.0.0", features = ["rt", "rt-multi-thread", "macros"] }
 dashmap = "6.1.0"
 quote = "1.0.37"
 syn = "2.0.91"
+scoop-shim = "0.1.1"
 
 [[bin]]
 name = "hp"
@@ -59,7 +60,7 @@ path = "src/main.rs"
 
 
 [workspace]  # 定义一个工作区
-members = ["crates/command", ".", "crates/hscoop_macro"]  # 显式把src根目录也一并添加到工作区
+members = ["crates/command", ".", "crates/hscoop_macro", "crates/shim"]  # 显式把src根目录也一并添加到工作区
 resolver = "2"
 [workspace.package]
 edition = "2021"
