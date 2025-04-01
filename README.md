@@ -7,11 +7,12 @@
 
 ## 快速开始 [source_bucket]( https://gitee.com/SuperWindcloud/hyperscoop_bucket.git)
 
-
-##  By Powershell or cmd 
+###   By Powershell or cmd 
 -  `scoop bucket add hp https://gitee.com/SuperWindcloud/hyperscoop_bucket.git` 
 -  `scoop  install  -u  -s   hp/hp`    
 
+###    下载[exe](https://gitee.com/SuperWindcloud/hyperscoop/releases)使用,并添加到 `$env:Path`
+ 
 ## 🏗 Project Status   (WIP) 
 
 |![](https://i.giphy.com/media/CwfC5Pv6Rtp66h4coK/giphy.gif) |
