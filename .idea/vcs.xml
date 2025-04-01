@@ -3,5 +3,6 @@
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/hyperscoop_source_bucket" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/shim_proxy" vcs="Git" />
   </component>
 </project>
