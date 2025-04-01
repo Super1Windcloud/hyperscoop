@@ -10,8 +10,6 @@ use std::fs::File;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::{env, fs};
-use std::env::current_exe;
-use std::process::Command;
 use gix_object::Exists;
 const DRIVER_SHIM_BYTES: &[u8]  = include_bytes!("..\\bin\\shim.exe")  ;
 
@@ -22,7 +20,7 @@ pub fn create_shim_or_shortcuts(manifest_json: String, app_name: &String) -> any
     let architecture = serde_obj.architecture;
     let shortcuts = serde_obj.shortcuts;
     if bin.is_some() {
-        create_shims_file(bin.unwrap())?;
+        create_shims_file(bin.unwrap(), app_name)?;
     }
     if shortcuts.is_some() {
         create_start_menu_shortcuts(shortcuts.unwrap(), app_name.into())?;
@@ -41,7 +39,7 @@ pub fn create_shim_or_shortcuts(manifest_json: String, app_name: &String) -> any
                 return Ok(());
             }
             let bin = bin.unwrap();
-            create_shims_file(bin)?;
+            create_shims_file(bin ,app_name )?;
             let shortcuts = x64.shortcuts;
             if shortcuts.is_none() {
                 return Ok(());
@@ -59,7 +57,7 @@ pub fn create_shim_or_shortcuts(manifest_json: String, app_name: &String) -> any
                 return Ok(());
             }
             let bin = bin.unwrap();
-            create_shims_file(bin)?;
+            create_shims_file(bin ,app_name )?;
             let shortcuts = x86.shortcuts;
             if shortcuts.is_none() {
                 return Ok(());
@@ -77,7 +75,7 @@ pub fn create_shim_or_shortcuts(manifest_json: String, app_name: &String) -> any
                 return Ok(());
             }
             let bin = bin.unwrap();
-            create_shims_file(bin)?;
+            create_shims_file(bin ,app_name )?;
             let shortcuts = arm64.shortcuts;
             if shortcuts.is_none() {
                 return Ok(());
@@ -89,45 +87,51 @@ pub fn create_shim_or_shortcuts(manifest_json: String, app_name: &String) -> any
     Ok(())
 }
 
-pub fn create_shims_file(bin: StringOrArrayOrDoubleDimensionArray) -> anyhow::Result<()> {
+pub fn create_shims_file(bin: StringOrArrayOrDoubleDimensionArray , app_name :&String ) -> anyhow::Result<()> {
     let shim_path = get_shims_path();
     match bin {
         StringOrArrayOrDoubleDimensionArray::String(s) => {
-            create_default_shim_name_file(s, &shim_path)?;
+            create_default_shim_name_file(s, &shim_path , app_name)?;
         }
         StringOrArrayOrDoubleDimensionArray::StringArray(a) => {
             for item in a {
-                create_default_shim_name_file(item, &shim_path)?;
+                create_default_shim_name_file(item, &shim_path ,app_name )?;
             }
         }
         StringOrArrayOrDoubleDimensionArray::DoubleDimensionArray(a) => {
             for item in a {
                 let len = item.len();
                 if len == 1 {
-                    create_default_shim_name_file((&item[0]).to_string(), &shim_path)?;
+                    create_default_shim_name_file((&item[0]).to_string(), &shim_path ,app_name)?;
                 }
-                if len == 2 || len == 3 {
+                if len == 2 {
                     let exe_name = item[0].clone();
-                    let alias_name = item[1].clone();
-                    create_alias_shim_name_file(exe_name, alias_name, &shim_path)?;
+                    let alias_name = item[1].clone(); 
+                    create_alias_shim_name_file(exe_name, alias_name, &shim_path, app_name)?;
                 }
+              if len ==3 { 
+                  let exe_name = item[0].clone();
+                  let alias_name = item[1].clone(); 
+                  let  params = item[2].clone();  
+                  create_alias_shim_name_file_width_params(exe_name, alias_name, &shim_path ,params )?;
+              }
             }
         }
         StringOrArrayOrDoubleDimensionArray::NestedStringArray(a) => {
             for item in a {
                 match item {
                     StringOrArrayOrDoubleDimensionArray::String(s) => {
-                        create_default_shim_name_file(s, &shim_path)?;
+                        create_default_shim_name_file(s, &shim_path ,app_name )?;
                     }
                     StringOrArrayOrDoubleDimensionArray::StringArray(item) => {
                         let len = item.len();
                         if len == 1 {
-                            create_default_shim_name_file((&item[0]).to_string(), &shim_path)?;
+                            create_default_shim_name_file((&item[0]).to_string(), &shim_path ,app_name )?;
                         }
                         if len == 2 || len == 3 {
                             let exe_name = item[0].clone();
                             let alias_name = item[1].clone();
-                            create_alias_shim_name_file(exe_name, alias_name, &shim_path)?;
+                            create_alias_shim_name_file(exe_name, alias_name, &shim_path ,app_name )?;
                         }
                     }
                     _ => {
@@ -142,6 +146,8 @@ pub fn create_shims_file(bin: StringOrArrayOrDoubleDimensionArray) -> anyhow::Re
     }
     Ok(())
 }
+
+
 
 pub fn create_start_menu_shortcuts(
     shortcuts: ArrayOrDoubleDimensionArray,
@@ -251,33 +257,73 @@ pub fn start_create_shortcut<P: AsRef<Path>>(
 pub fn create_alias_shim_name_file(
     exe_name: String,
     alias_name: String,
-    shim_dir: &String,
+    shim_dir: &String, 
+    app_name :&String
 ) -> anyhow::Result<()> {
-    Ok(())
+  let out_dir  = PathBuf::from(shim_dir);
+  let target_path = get_app_current_bin_path(app_name.into() , exe_name );
+  if  !out_dir.exists(){
+    bail!(format!("shim 目录 {shim_dir} 不存在"));
+  }
+  if!Path::new(&target_path).exists() {
+    bail!(format!("链接目标文件 {target_path} 不存在"))
+  };
+  create_exe_type_shim_file_and_shim_bin(target_path, out_dir  , Some(alias_name) ,None  )?;
+  Ok(())
 }
 
-pub fn create_default_shim_name_file(exe_name: String, shim_dir: &String) -> anyhow::Result<()> {
-    let shim_path = PathBuf::from(shim_dir);
+fn create_alias_shim_name_file_width_params( exe_name: String,
+                                             alias_name: String,
+                                             shim_dir: &String, 
+                                              program_params : String) -> anyhow::Result<()> {
+  
+   
+  
+  Ok(() )
+}
 
+pub fn create_default_shim_name_file(exe_name: String, shim_dir: &String ,app_name :&String ) -> anyhow::Result<()> {
+    let out_dir  = PathBuf::from(shim_dir); 
+    let target_path = get_app_current_bin_path(app_name.into() , exe_name );
+   if  !out_dir.exists(){ 
+      bail!(format!("shim 目录 {shim_dir} 不存在")); 
+   }
+    if!Path::new(&target_path).exists() {
+        bail!(format!("链接目标文件 {target_path} 不存在"))
+    };
+  create_exe_type_shim_file_and_shim_bin(target_path, out_dir, None ,None )?;    
     Ok(())
 }
-pub fn create_path_shim_file_and_shim_bin<P1 : AsRef<Path>  , P2 :AsRef<Path>>(
+pub fn create_exe_type_shim_file_and_shim_bin<P1 : AsRef<Path>  , P2 :AsRef<Path>>(
     target_path: P1,
     output_dir: P2 , 
+    alias_name : Option<String>,  program_params : Option<String> 
 ) ->  anyhow::Result<()> {
     let target_path = target_path.as_ref().to_str().unwrap(); 
     let output_dir = output_dir.as_ref().to_path_buf(); 
-    let target_name = Path::new(target_path)
-        .file_stem()
-        .and_then(|s| s.to_str())
-        .ok_or("Invalid target executable name");
+ 
+    let target_name =
+      if alias_name.is_none() {
+        Path::new(target_path)
+          .file_stem()
+          .and_then(|s| s.to_str().and_then(|s| Some(s.to_lowercase())))
+          .ok_or("Invalid target executable name")
+      } else { 
+          Ok(alias_name.unwrap().to_string()) 
+      } ; 
+ 
    if target_name.is_err() {
      bail!("Invalid target executable name {}", target_path)
    } 
-    let content = format!("path = \"{}\"", target_path);
+    let content = if  program_params.is_none() { format!("path = \"{}\"", target_path)} 
+    else {
+        let program_params = program_params.unwrap(); 
+       format!(r#"path = {target_path }
+                  args = {program_params}"# )
+    }; 
     let target_name = target_name.unwrap(); 
     // Determine the shim file name
-    let shim_name = format!("{}.shim", target_name);
+    let shim_name = format!("#{}.shim", target_name);
     let shim_path = output_dir.join(&shim_name);
     if  !shim_path.exists() { 
         fs::create_dir_all(&output_dir)?;
@@ -285,7 +331,7 @@ pub fn create_path_shim_file_and_shim_bin<P1 : AsRef<Path>  , P2 :AsRef<Path>>(
     // Write the shim file
     let mut file = File::create(&shim_path)?;
     file.write_all(content.as_bytes())?;
-    println!("{} {}", "Created shim file  for ".to_string().dark_blue().bold() ,
+    println!("{} {}", "Created  shim  file => ".to_string().dark_blue().bold() ,
              &shim_path.to_str().unwrap().dark_green().bold());
   
    if DRIVER_SHIM_BYTES.is_empty() {
@@ -299,7 +345,8 @@ pub fn create_path_shim_file_and_shim_bin<P1 : AsRef<Path>  , P2 :AsRef<Path>>(
         if !parent_dir.exists() {
             fs::create_dir_all(&parent_dir)?; // 递归创建所有不存在的父目录 
         }
-        log::trace!("output driver shim {}", &output_shim_exe.display());
+          println!("{} {}", "Created  shim  bin =>" .dark_blue().bold(), &output_shim_exe.display()
+            .to_string().dark_green().bold() );
         fs::write(&output_shim_exe, DRIVER_SHIM_BYTES)?;  // WTF? 会自动调用? 
     }
     Ok(())
@@ -329,7 +376,9 @@ mod test_shim {
          println!("{:?}", shim_exe);
         }
       let  target_path = r#"A:\Scoop\apps\zig\current\zig.exe"#; 
-      let  output_dir = cwd.join("src\\bin\\output");
-      create_path_shim_file_and_shim_bin(target_path, output_dir ).unwrap(); 
+      let  output_dir = cwd.join("src\\bin\\output"); 
+       let  args  =    "run -h "; 
+      create_exe_type_shim_file_and_shim_bin(target_path, output_dir , 
+                                             None, Some(args.into()) ).unwrap(); 
     }
 }
