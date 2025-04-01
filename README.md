@@ -3,7 +3,7 @@
 
 # hyperscoop 
 
-## 🐼 一个更快,更强, 更精美的  windows 包管理器基于 rust ( 继承自 scoop )
+## 🐼 一个更快,更强, 更精美的  windows 包管理器,By Rust( 继承自 scoop )
 
 ## 快速开始 [source_bucket]( https://gitee.com/SuperWindcloud/hyperscoop_bucket.git)
 ## 两种方式 
@@ -54,7 +54,7 @@
 --- 
 ## 开发计划
 
-- **[roadmap](./roadmap.md)** 
+- **[ROADMAP](./roadmap.md)** 
 
 
 ![img ](./img/sea.jpg)
