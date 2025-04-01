@@ -7,11 +7,10 @@
 
 ## 快速开始 [source_bucket]( https://gitee.com/SuperWindcloud/hyperscoop_bucket.git)
 
-```bash
+
+##  By Powershell or cmd 
  `scoop bucket add hp https://gitee.com/SuperWindcloud/hyperscoop_bucket.git`
  `scoop  install  -u  -s   hp/hp`    
- 
-```
 
 ## 🏗 Project Status   (WIP) 
 
