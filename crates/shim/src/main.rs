@@ -1,223 +1,294 @@
-use std::collections::HashMap;
-use std::env;
-use std::fs::{self, File};
-use std::io::{BufRead, BufReader, Write};
-use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::ffi::{ OsString};
+use std::fs::File;
+use std::io::{BufRead, BufReader};
+use std::os::windows::prelude::*;
+use std::path::PathBuf;
+use std::process::Command;
+use windows::core::{s, BOOL, PCWSTR, PWSTR};
+use windows::Win32::Foundation::*;
+use windows::Win32::Storage::FileSystem::FILE_FLAGS_AND_ATTRIBUTES;
+use windows::Win32::System::Console::*;
+use windows::Win32::System::JobObjects::CreateJobObjectW;
+use windows::Win32::System::JobObjects::*;
+use windows::Win32::System::LibraryLoader::*;
+use windows::Win32::UI::Shell::{
+    PathUnquoteSpacesW, SHGetFileInfoW, ShellExecuteW, SEE_MASK_NOCLOSEPROCESS, SHFILEINFOW,
+    SHGFI_EXETYPE,
+};
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-  // Check if we're in shim creation mode
-  if let Some(path_arg) = env::args().nth(1) {
-    if path_arg == "--path" {
-      if let Some(target_path) = env::args().nth(2) {
-        return create_path_shim_file(&target_path);
-      } else {
-        eprintln!("Usage: {} --path <target_executable_path>", env::args().next().unwrap_or_default());
-        std::process::exit(1);
-      }
-    }
-  }
+use windows::Win32::UI::WindowsAndMessaging::SW_SHOW;
+use windows::Win32::{
+    Foundation::{HANDLE },
+    UI::Shell::{ShellExecuteExW, SHELLEXECUTEINFOW},
+};
 
-  // Otherwise run normally as a shim
-  let exit_code = run()?;
-  std::process::exit(exit_code);
+type WStringOpt = Option<String>;
+
+#[derive(Debug)]
+struct ShimInfo {
+    pub path: WStringOpt,
+    pub args: WStringOpt,
 }
 
-pub fn create_path_shim_file (target_path: &str) -> Result<(), Box<dyn std::error::Error>> {
-  // Get the name for the shim from the target executable
-  let target_name = Path::new(target_path)
-    .file_stem()
-    .and_then(|s| s.to_str())
-    .ok_or("Invalid target executable name")?;
-
-  // Create the shim content
-  let content = format!("path = \"{}\"", target_path);
-
-  // Determine the shim file name
-  let shim_name = format!("{}.shim", target_name);
-  let shim_path = env::current_dir()?.join(&shim_name);
-
-  // Write the shim file
-  let mut file = File::create(&shim_path)?;
-  file.write_all(content.as_bytes())?;
-  println!("Created shim file: {}", shim_path.display());
-
-  // On Windows, we can also create an exe with the same name
-  #[cfg(windows)]
-  {
-    let exe_name = format!("{}.exe", target_name);
-    let current_exe = env::current_exe()?;
-
-    // Copy the current executable to act as the shim
-    fs::copy(current_exe, env::current_dir()?.join(exe_name))?;
-    println!("Created shim executable");
-  }
-
-  Ok(())
+fn get_directory(exe_path: &str) -> String {
+    let path = PathBuf::from(exe_path);
+    path.parent()
+        .map(|p| p.to_string_lossy().into_owned())
+        .unwrap_or_else(|| ".".to_string())
 }
 
-fn run() -> Result<i32, Box<dyn std::error::Error>> {
-  let exe_path = env::current_exe()?;
-  let dir = exe_path.parent().ok_or("No parent directory")?;
-  let name = exe_path
-    .file_stem()
-    .and_then(|s| s.to_str())
-    .ok_or("Invalid executable name")?;
-
-  let config_path = dir.join(format!("{}.shim", name));
-  if !config_path.exists() {
-    eprintln!(
-      "Couldn't find {} in {}",
-      config_path.file_name().unwrap_or_default().to_string_lossy(),
-      dir.display()
-    );
-    return Ok(1);
-  }
-
-  let config = read_config(&config_path)?;
-  let path = config.get("path").map(|s| s.as_str()).unwrap_or("");
-  if path.is_empty() {
-    eprintln!("No 'path' specified in shim config");
-    return Ok(1);
-  }
-
-  let add_args = config.get("args").map(|s| s.as_str()).unwrap_or("");
-  let cmd_args = get_command_line_args(add_args)?;
-
-  // First try to execute directly
-  match execute_directly(path, &cmd_args) {
-    Ok(exit_code) => Ok(exit_code),
-    Err(e) => {
-      // If direct execution fails, try with shell execute
-      if is_elevation_required(&e) {
-        match execute_with_shell(path, &cmd_args) {
-          Ok(exit_code) => Ok(exit_code),
-          Err(e) => {
-            eprintln!("Failed to execute {}: {}", path, e);
-            Ok(1)
-          }
+fn normalize_args(args: &mut WStringOpt, cur_dir: &str) {
+    if let Some(arg_str) = args {
+        if arg_str.contains("%~dp0") {
+            *arg_str = arg_str.replace("%~dp0", cur_dir);
         }
-      } else {
-        Err(e.into())
-      }
     }
-  }
 }
 
-fn execute_directly(program: &str, args: &str) -> Result<i32, std::io::Error> {
-  let mut cmd = Command::new(program);
+fn get_shim_info() -> color_eyre::Result<ShimInfo> {
+    let mut exe_path = vec![0u16; MAX_PATH as usize];
+    let exe_len = unsafe { GetModuleFileNameW(None, &mut exe_path) } as usize;
+    if exe_len == 0 {
+        eprintln!("Error: Unable to retrieve module file name.");
+        return Ok(ShimInfo {
+            path: None,
+            args: None,
+        });
+    }
 
-  if !args.is_empty() {
-    cmd.args(args.split_whitespace());
-  }
+    let exe_str = String::from_utf16_lossy(&exe_path[..exe_len]);
+    let mut shim_file_path = exe_str.clone();
+    shim_file_path.truncate(shim_file_path.len() - 3);
+    shim_file_path.push_str("shim");
 
-  cmd.stdin(Stdio::inherit())
-    .stdout(Stdio::inherit())
-    .stderr(Stdio::inherit());
+    let file = File::open(&shim_file_path).ok();
+    let reader = file.map(BufReader::new);
 
-  let status = cmd.status()?;
-  Ok(status.code().unwrap_or(1))
-}
+    let mut path: WStringOpt = None;
+    let mut args: WStringOpt = None;
 
-fn execute_with_shell(program: &str, args: &str) -> Result<i32, std::io::Error> {
-  #[cfg(windows)]
-  let status = if !args.is_empty() {
-    Command::new("cmd")
-      .args(&["/C", &format!("{} {}", program, args)])
-      .stdin(Stdio::inherit())
-      .stdout(Stdio::inherit())
-      .stderr(Stdio::inherit())
-      .status()?
-  } else {
-    Command::new("cmd")
-      .args(&["/C", program])
-      .stdin(Stdio::inherit())
-      .stdout(Stdio::inherit())
-      .stderr(Stdio::inherit())
-      .status()?
-  };
+    if let Some(reader) = reader {
+        for line in reader.lines().flatten() {
+            if line.starts_with("path = ") {
+                path = Some(line[7..].trim().to_string());
+            } else if line.starts_with("args = ") {
+                args = Some(line[7..].trim().to_string());
+            }
+        }
+    }
 
-  #[cfg(not(windows))]
-  let status = if !args.is_empty() {
-    Command::new("sh")
-      .args(&["-c", &format!("{} {}", program, args)])
-      .stdin(Stdio::inherit())
-      .stdout(Stdio::inherit())
-      .stderr(Stdio::inherit())
-      .status()?
-  } else {
-    Command::new("sh")
-      .args(&["-c", program])
-      .stdin(Stdio::inherit())
-      .stdout(Stdio::inherit())
-      .stderr(Stdio::inherit())
-      .status()?
-  };
+    let cur_dir = get_directory(&exe_str);
+    normalize_args(&mut args, &cur_dir);
 
-  Ok(status.code().unwrap_or(1))
+    Ok(ShimInfo { path, args })
 }
 
 fn is_elevation_required(error: &std::io::Error) -> bool {
-  #[cfg(windows)]
-  {
-    error.raw_os_error() == Some(740) // ERROR_ELEVATION_REQUIRED
-  }
-  #[cfg(not(windows))]
-  {
-    false
-  }
-}
-
-fn read_config(path: &Path) -> Result<HashMap<String, String>, std::io::Error> {
-  let file = File::open(path)?;
-  let reader = BufReader::new(file);
-  let mut config = HashMap::new();
-
-  for line in reader.lines() {
-    let line = line?;
-    if let Some((key, value)) = line.split_once('=') {
-      config.insert(key.trim().to_string(), value.trim().to_string());
+    #[cfg(windows)]
+    {
+        error.raw_os_error() == Some(740) // ERROR_ELEVATION_REQUIRED
     }
-  }
-
-  Ok(config)
-}
-
-fn get_command_line_args(add_args: &str) -> Result<String, std::io::Error> {
-  let mut args = env::args().skip(1); // Skip program name
-
-  let mut combined_args = String::new();
-
-  if !add_args.is_empty() {
-    combined_args.push_str(add_args);
-  }
-
-  for arg in args {
-    if !combined_args.is_empty() {
-      combined_args.push(' ');
+    #[cfg(not(windows))]
+    {
+        false
     }
-    combined_args.push_str(&arg);
-  }
+}
 
-  Ok(combined_args)
+
+fn  remove_extra_quotes ( str: &str ) -> String {
+  str .trim_matches(|c| c == '\'' || c == '"').to_string()
+}
+fn make_process(info: &ShimInfo) -> Option<std::process::Child> {
+    let path = info.path.as_ref()?; 
+   let  path = remove_extra_quotes(path);
+    let args = info.args.as_ref()?.to_string(); 
+   let  args = remove_extra_quotes(&args); 
+    let  args_split = args.split_whitespace().collect::<Vec<_>>().join(" ");
+    let process = Command::new(&path).args(args.split_whitespace()).spawn();
+
+    match process {
+        Ok(child) => Some(child),
+        Err(e) => {
+            eprintln!("Error starting process: {}. Trying as admin...", e);
+            //  **尝试使用管理员权限启动**
+            if is_elevation_required(&e) {
+                if elevate_process(&path, &args) {
+                    None // 进程已提权启动，不返回 `Child`
+                } else {
+                    eprintln!("Failed to start process as administrator.");
+                    None
+                }
+            } else {
+                eprintln!("Failed to start process. {:?}", e);
+                None
+            }
+        }
+    }
+}
+
+/// *以管理员权限启动进程*
+fn elevate_process(exe_path: &str, params: &str) -> bool {
+    let path_wide: Vec<u16> = exe_path.encode_utf16().chain(std::iter::once(0)).collect();
+    let args_wide: Vec<u16> = params.encode_utf16().chain(std::iter::once(0)).collect();
+
+    // 初始化 SHELLEXECUTEINFOW 结构体
+    let mut sei = SHELLEXECUTEINFOW {
+        cbSize: size_of::<SHELLEXECUTEINFOW>() as u32,
+        fMask: SEE_MASK_NOCLOSEPROCESS,
+        hwnd: Default::default(),
+        lpVerb: Default::default(),
+        lpFile: PCWSTR(path_wide.as_ptr()),
+        lpParameters: if args_wide.is_empty() {
+            PCWSTR::null()
+        } else {
+            PCWSTR(args_wide.as_ptr())
+        },
+        lpDirectory: Default::default(),
+        nShow: SW_SHOW.0,
+        hInstApp: Default::default(),
+        lpIDList: std::ptr::null_mut(),
+        lpClass: Default::default(),
+        hkeyClass: Default::default(),
+        dwHotKey: 0,
+        Anonymous: Default::default(),
+        hProcess: Default::default(),
+    };
+
+    let pi = unsafe {
+        let result = ShellExecuteExW(&mut sei);
+        if result.is_err() {
+            let error = GetLastError();
+            eprintln!("Failed to create elevated process: error {}", error.0);
+            Err(color_eyre::eyre::eyre!(
+                "Failed to create elevated process: error {}",
+                error.0
+            ))
+        } else {
+            Ok(sei.hProcess)
+        }
+    };
+    if let Ok(pi) = pi {
+        true
+    } else {
+        eprintln!("Failed to create elevated process.");
+        false
+    }
+}
+
+fn create_job_object() -> Option<HANDLE> {
+    let job = unsafe { CreateJobObjectW(None, None) }.unwrap();
+    if job.is_invalid() {
+        return None;
+    }
+
+    let mut jeli = JOBOBJECT_EXTENDED_LIMIT_INFORMATION::default();
+    jeli.BasicLimitInformation.LimitFlags =
+        JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE | JOB_OBJECT_LIMIT_SILENT_BREAKAWAY_OK;
+
+    let result = unsafe {
+        SetInformationJobObject(
+            job,
+            JobObjectExtendedLimitInformation,
+            &jeli as *const _ as *const _,
+            size_of::<JOBOBJECT_EXTENDED_LIMIT_INFORMATION>() as u32,
+        )
+    };
+    if result.is_err() {
+        println!("Error setting job object limit. {:?}", result.unwrap_err());
+    }
+    Some(job)
+}
+fn set_console_ctrl_handler() {
+    unsafe {
+        SetConsoleCtrlHandler(Some(ctrl_handler), TRUE.into()).expect("TODO: panic message");
+    }
+}
+
+pub unsafe extern "system" fn ctrl_handler(_ctrl_type: u32) -> BOOL {
+    TRUE // 忽略所有 Ctrl+C 等信号
+}
+
+fn is_windows_gui_app(exe_path: &str) -> bool {
+    let mut wide_path: Vec<u16> = OsString::from(exe_path).encode_wide().collect();
+    wide_path.push(0); // Null 终止符
+                       // 去除路径中的引号
+    unsafe {
+        let _ = PathUnquoteSpacesW(PWSTR(wide_path.as_mut_ptr()));
+    }
+    let dw_file_attributes: FILE_FLAGS_AND_ATTRIBUTES = FILE_FLAGS_AND_ATTRIBUTES(u32::MAX);
+    let mut sfi = SHFILEINFOW::default();
+    let ret = unsafe {
+        SHGetFileInfoW(
+            PWSTR(wide_path.as_mut_ptr()),
+            dw_file_attributes,
+            Some(&mut sfi),
+            std::mem::size_of::<SHFILEINFOW>() as u32,
+            SHGFI_EXETYPE,
+        )
+    };
+    ret != 0 && ret & 0xFFFF_0000 != 0
+}
+
+fn main() -> color_eyre::Result<()> {
+    let shim_info = get_shim_info()?;
+
+    if shim_info.path.is_none() {
+        eprintln!("Error: Could not read shim file.");
+        std::process::exit(1);
+    }
+
+    let path = shim_info.path.clone().unwrap();
+    let args = shim_info.args.clone().unwrap_or_default();
+
+    // 解析当前命令行参数并追加
+    let cmd_line = std::env::args().skip(1).collect::<Vec<String>>().join(" ");
+    let full_args = if args.is_empty() {
+        cmd_line
+    } else {
+        format!("{} {}", args, cmd_line)
+    };
+
+    let is_gui = is_windows_gui_app(&path);
+    if is_gui {
+        unsafe { FreeConsole() }?; // GUI 进程，释放控制台
+    }
+
+    set_console_ctrl_handler();
+    let job = create_job_object();
+
+    if let Some(mut child) = make_process(&ShimInfo {
+        path: Some(path),
+        args: Some(full_args),
+    }) {
+        if let Some(job) = job {
+            unsafe {
+                AssignProcessToJobObject(job, HANDLE(child.as_raw_handle()))?;
+            }
+        }
+
+        let status = child.wait().expect("Failed to wait for process");
+        match status.code() {
+            Some(code) => std::process::exit(code),
+            None => std::process::exit(1),
+        }
+    } else {
+        std::process::exit(1);
+    }
 }
 
 
 
-mod test_shim {
-
-  #[test]
-  fn test_create_shim() {
-    use crate::create_path_shim_file;
-    use std::process::Command;  
-    let  target_path = r"A:\Scoop\apps\zigmod\current\zigmod.exe";
-    create_path_shim_file(target_path).unwrap(); 
-     let  workspace= std::env::current_dir().unwrap();
-    let  shim_exe=  workspace.join("shim.exe");   
-    let   zigmod = workspace.join("zigmod.exe");
-     println!("shim exe is {:?}", shim_exe);
-     std::fs::copy(shim_exe, &zigmod).unwrap(); 
-    let result = Command::new(zigmod); 
-      
-  }
+#[test]
+fn test_create_process(){ 
+  let path = r#""A:\Scoop\apps\zigmod\current\zigmod.exe""#; 
+  println!("{}", path);
+    let result   =Command::new(path).spawn(); 
+      match result {
+        Ok(child) => {
+            println!("Process started successfully. PID: {}", child.id());
+        }
+        Err(e) => {
+            eprintln!("Failed to start process: {}", e);
+        }
+      }  
 }

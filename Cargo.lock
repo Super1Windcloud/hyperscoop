@@ -507,7 +507,6 @@ dependencies = [
  "regex",
  "reqwest",
  "rust_file_encode_mode_convert",
- "scoop-shim",
  "serde",
  "serde_json",
  "thiserror 2.0.11",
@@ -3189,15 +3188,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "scoop-shim"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dd91df5a1b2e63a867898739aa6807f04f393a221885bb0a071a7d4de03b56c8"
-dependencies = [
- "thiserror 1.0.66",
-]
-
-[[package]]
 name = "scopeguard"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3315,7 +3305,8 @@ checksum = "24188a676b6ae68c3b2cb3a01be17fbf7240ce009799bb56d5b1409051e78fde"
 name = "shim"
 version = "7.7.7"
 dependencies = [
- "winapi",
+ "color-eyre",
+ "windows 0.61.1",
 ]
 
 [[package]]

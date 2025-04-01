@@ -189,29 +189,29 @@ fn sort_result_by_bucket_name(mut result: Vec<(String, String, String)>) {
         }
     }
 
-    display_result(&result)
+    display_result(&mut result)
 }
 
 fn get_apps_names(path: &PathBuf, query: &String) -> Result<Vec<(String, PathBuf)>, anyhow::Error> {
-  let  query = query.trim().to_string().to_lowercase(); 
+    let query = query.trim().to_string().to_lowercase();
     let app_names = path
         .read_dir()?
         .into_iter()
         .par_bridge()
         .filter_map(|entry| {
-          let entry = entry.ok().unwrap();
+            let entry = entry.ok().unwrap();
             let path = entry.path();
-          let  file_type =entry. file_type().unwrap();
-          if file_type.is_file() && path.extension().unwrap_or_default() == "json" {
+            let file_type = entry.file_type().unwrap();
+            if file_type.is_file() && path.extension().unwrap_or_default() == "json" {
                 let app_name = path.file_stem().unwrap().to_str().unwrap();
                 let app_name = app_name.to_string().to_lowercase();
-                if app_name ==  query || app_name.contains(&query) {
+                if app_name == query || app_name.contains(&query) {
                     let app_path = path.clone();
                     Some((app_name.to_string(), app_path))
                 } else {
                     None
                 }
-            } else { 
+            } else {
                 None
             }
         })
@@ -257,8 +257,8 @@ pub fn get_all_manifest_package_name_slow(
     let all_json_manifests: Vec<PathBuf> = all_manifests_path
         .into_par_iter()
         .filter_map(|file_path| {
-          // !  千万不要使用 is_file 方法,  path.is_file() 是一个系统调用,系统开销巨大,严重影响性能
-            if    file_path .is_file() && file_path.extension().unwrap_or_default() == "json" {
+            // !  千万不要使用 is_file 方法,  path.is_file() 是一个系统调用,系统开销巨大,严重影响性能
+            if file_path.is_file() && file_path.extension().unwrap_or_default() == "json" {
                 Some(file_path)
             } else {
                 None
@@ -310,42 +310,66 @@ fn get_exact_search_apps_names(
     let query_lower = query.to_lowercase();
     let app_names = par_read_dir(path)?
         .filter_map(|de| {
-          let path = de.path();
-          let file_type = de.file_type().ok()?;
-          if file_type.is_file() && path.extension().and_then(|ext| ext.to_str()) == Some("json") {
-            let app_name = path.file_stem().and_then(|stem| stem.to_str())?;
-            if app_name.to_lowercase() == query_lower {
-              Some((app_name.to_string(), path))
+            let path = de.path();
+            let file_type = de.file_type().ok()?;
+            if file_type.is_file() && path.extension().and_then(|ext| ext.to_str()) == Some("json")
+            {
+                let app_name = path.file_stem().and_then(|stem| stem.to_str())?;
+                if app_name.to_lowercase() == query_lower {
+                    Some((app_name.to_string(), path))
+                } else {
+                    None
+                }
             } else {
-              None
+                None
             }
-          } else {
-            None
-          }
         })
         .collect::<Vec<_>>();
     Ok(app_names)
 }
 
-fn display_result(result: &Vec<(String, String, String)>) {
+fn display_result(result: &mut Vec<(String, String, String)>) { 
+     result.sort_by(|a, b|  a.0.cmp(&b.0));
+    let name_width = result.iter().map(|(name, _, _)| name.len()).max().unwrap();
+    let version_width = result
+        .iter()
+        .map(|(_, version, _)| version.len())
+        .max()
+        .unwrap();
+    let bucket_width = result
+        .iter()
+        .map(|(_, _, bucket)| bucket.len())
+        .max()
+        .unwrap();
     for i in 0..result.len() {
         if i == 0 {
             println!(
-                "{:<40}\t\t\t\t\t\t{:<40}\t\t\t\t\t\t{:<30}",
-                "Name".dark_green().bold(),
-                "Version".dark_green().bold(),
-                "Source_Bucket".dark_green().bold()
+                "{:<name_width$ }\t{:<version_width$}\t{:<bucket_width$ }",
+                "Name",
+                "Version",
+                "Source_Bucket",
+                name_width = name_width + 4,
+                version_width = version_width+4  ,
+                bucket_width = bucket_width
             );
             println!(
-                "{:<40}\t\t\t\t\t\t{:<40}\t\t\t\t\t\t{:<30}",
-                "____".dark_green().bold(),
-                "_______".dark_green().bold(),
-                "_____________".dark_green().bold()
+                "{:<name_width$ }\t{:<version_width$}\t{:<bucket_width$ }",
+                "____",
+                "_______",
+                "_____________",
+                name_width = name_width + 4,
+                version_width = version_width+4,
+                bucket_width = bucket_width
             );
         }
         println!(
-            "{:<40}\t{:<40}\t{:<30}",
-            result[i].0, result[i].1, result[i].2,
+            "{:<name_width$ }\t{:<version_width$}\t{:<bucket_width$ }",
+            result[i].0,
+            result[i].1,
+            result[i].2,
+            name_width = name_width + 4,
+            version_width = version_width+4 ,
+            bucket_width = bucket_width
         );
     }
 }

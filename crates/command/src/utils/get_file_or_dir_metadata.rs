@@ -35,5 +35,5 @@ pub fn get_file_updated_time(file_path: &Path) -> String {
   let updated_time_cst = updated_time_utc.with_timezone(&Local);
   let updated_time_formatted = updated_time_cst.format("%Y-%m-%d %H:%M:%S").to_string();
 
-  return updated_time_formatted;
+  updated_time_formatted
 }

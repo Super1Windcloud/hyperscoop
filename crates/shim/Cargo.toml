@@ -16,7 +16,14 @@ include.workspace = true
 version.workspace = true
 
 [dependencies]
-winapi = "0.3.9"
+windows = { version = "0.61.1", features = ["Win32", 
+  "Win32_System", "Win32_UI", "Win32_UI_Shell", 
+  "Win32_UI_WindowsAndMessaging", "Win32_System_JobObjects",
+  "Win32_System_Console", "Win32_System_Threading",
+  "Win32_System_LibraryLoader", "Win32_Security", 
+  "Win32_Storage_FileSystem", "Win32_Foundation", 
+  "Win32_System_Registry"] }
 
+color-eyre = {workspace =  true }
 [lints]
 workspace = true
