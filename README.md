@@ -6,12 +6,12 @@
 ## 🐼 一个更快,更强, 更精美的  windows 包管理器基于 rust ( 继承自 scoop )
 
 ## 快速开始 [source_bucket]( https://gitee.com/SuperWindcloud/hyperscoop_bucket.git)
-
-###   By Powershell or cmd 
+## 两种方式 
+###  1.  By Powershell or cmd 
 -  `scoop bucket add hp https://gitee.com/SuperWindcloud/hyperscoop_bucket.git` 
 -  `scoop  install  -u  -s   hp/hp`    
-
-###    下载[exe](https://gitee.com/SuperWindcloud/hyperscoop/releases)使用,并添加到 `$env:Path`
+--- 
+###   2.  下载[exe](https://gitee.com/SuperWindcloud/hyperscoop/releases)使用,并添加到 `$env:Path`
  
 ## 🏗 Project Status   (WIP) 
 
