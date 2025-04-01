@@ -1,1 +1,2 @@
-path = A:\Scoop\apps\zig\current\zig.exe
+path = A:\Scoop\apps\zig\current\zig.exe 
+args = run -h
