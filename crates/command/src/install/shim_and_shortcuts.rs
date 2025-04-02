@@ -155,7 +155,7 @@ pub fn create_shims_file(
                                 app_name,
                                 Some(params),
                             )?;
-                          
+
                         }
                     }
                     _ => {
@@ -305,21 +305,18 @@ pub fn create_alias_shim_name_file(
     Ok(())
 }
 
-fn create_alias_shim_name_file_width_params(
-    exe_name: String,
-    alias_name: String,
-    shim_dir: &String,
-    program_params: String,
-) -> anyhow::Result<()> {
-    Ok(())
-}
 
 pub fn create_default_shim_name_file(
     exe_name: String,
     shim_dir: &String,
     app_name: &String,
 ) -> anyhow::Result<()> {
-    let out_dir = PathBuf::from(shim_dir);
+    let out_dir = PathBuf::from(shim_dir); 
+    let  temp =exe_name.clone();
+    let   suffix = temp. split('.').last().unwrap();
+   if suffix.is_empty() {
+      bail!(format!("shim 文件名 {exe_name} 后缀为空 WTF?"))
+   }
     let target_path = get_app_current_bin_path(app_name.into(), exe_name);
     if !out_dir.exists() {
         bail!(format!("shim 目录 {shim_dir} 不存在"));
@@ -327,7 +324,19 @@ pub fn create_default_shim_name_file(
     if !Path::new(&target_path).exists() {
         bail!(format!("链接目标文件 {target_path} 不存在"))
     };
+  if suffix == "exe"  || suffix == "com" {
     create_exe_type_shim_file_and_shim_bin(target_path, out_dir, None, None)?;
+  } else  if suffix == "cmd"  ||"bat" == suffix {
+
+  }else if suffix=="ps1" {
+    
+  }else if  suffix=="jar" {
+    
+  }else if suffix=="py" { 
+    
+  }else { 
+    bail!(format!(" 后缀{suffix} 不支持 WTF?"))
+  }
     Ok(())
 }
 pub fn create_exe_type_shim_file_and_shim_bin<P1: AsRef<Path>, P2: AsRef<Path>>(

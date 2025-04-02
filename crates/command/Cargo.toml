@@ -53,6 +53,7 @@ dashmap = "6.1.0"
 color-eyre = "0.6.3"
 windows = "0.61.1"
 mslnk = "0.1.8"
+textwrap = { version = "0.16.2"   }
 
 [lib]
 name = "command_util_lib"
