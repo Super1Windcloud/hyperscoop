@@ -1,8 +1,8 @@
-use std::os::windows::fs::symlink_dir;
 use crate::init_env::*;
 use crate::install::create_shim_or_shortcuts;
 use crate::list::VersionJSON;
 use crossterm::style::Stylize;
+use std::os::windows::fs::symlink_dir;
 use std::path::Path;
 
 pub fn check_before_install(name: &String, version: &String) -> anyhow::Result<u8> {
@@ -15,7 +15,7 @@ pub fn check_before_install(name: &String, version: &String) -> anyhow::Result<u
     let app_current_dir = get_app_current_dir(name.into());
     let app_version_path = Path::new(&app_version_dir);
     let app_current_path = Path::new(&app_current_dir);
-    if app_version_path.exists() && app_current_path.exists() {
+    if app_current_path.exists() {
         let install_json = get_app_dir_install_json(name);
         if Path::new(&install_json).exists() {
             println!(
@@ -69,113 +69,49 @@ pub fn check_before_install(name: &String, version: &String) -> anyhow::Result<u
             return Ok(1);
         }
         Ok(0)
-    } else if app_current_path.exists() {
-        let manifest_json = get_app_dir_manifest_json(name);
-        let version = if Path::new(&manifest_json).exists() {
-            let content = std::fs::read_to_string(manifest_json)?;
-            let obj: VersionJSON = serde_json::from_str(&content)?;
-            if let Some(version) = obj.version {
-                version
-            } else {
-                String::new()
-            }
-        } else {
-            String::new()
-        }; 
-       if version.is_empty() {
-         println!(
-           "{}",
-           format!("WARNING  '{name}' 先清除之前安装失败的文件")
-             .dark_cyan()
-             .bold(),
-         );
-         println!(
-           "{}",
-           format!("ERROR   '{name}' isn't installed correctly")
-             .dark_red()
-             .bold(),
-         );
-         println!(
-           "{}",
-           format!("'{name}' was uninstalled ").dark_green().bold(),
-         );
-         return  Ok(0) ; 
-       } 
-      let version_dir = get_app_version_dir(name, &version);
-      if Path::new(&version_dir).exists() {
-        println!(
-            "{}",
-            format!("WARNING  '{name}' 已经存在旧版本, 请使用 'hp update {name}' 来更新,或者uninstall 之后再install")
-               .dark_cyan()
-               .bold(),
-        );
-        println!(
-          "{}",
-          format!("WARNING  '{name}' ({version}) is already installed")
-            .to_string()
-            .dark_cyan()
-            .bold(),
-        );
-        return  Ok(1) ; 
-      }
-      println!(
-        "{}",
-        format!("WARNING  '{name}' 先清除之前安装失败的文件")
-          .dark_cyan()
-          .bold(),
-      );
-      println!(
-        "{}",
-        format!("ERROR   '{name}' isn't installed correctly")
-          .dark_red()
-          .bold(),
-      );
-      println!(
-        "{}",
-        format!("'{name}' was uninstalled ").dark_green().bold(),
-      );
-      std::fs::remove_dir_all(app_dir_path)?;
-      Ok(0)
-    } else if std::fs::symlink_metadata(&app_current_dir).is_ok() && !app_current_path.exists() //exists默认会解析符号链接 
+    } else if std::fs::symlink_metadata(&app_current_dir).is_ok() && !app_current_path.exists()
+    //exists默认会解析符号链接
     {
-        println!(
-            "{}",
-            format!("WARNING  '{name}' 先清除之前安装失败的文件")
-                .dark_cyan()
-                .bold(),
-        );
-       check_child_directory(& app_dir)?;
         println!(
             "{}",
             format!("ERROR   '{name}' isn't installed correctly")
                 .dark_red()
                 .bold(),
         );
-      
+
+        println!(
+            "{}",
+            format!("WARNING  '{name}' 先清除之前安装失败的文件")
+                .dark_cyan()
+                .bold(),
+        );
+        check_child_directory(&app_dir)?;
+
         println!(
             "{}",
             format!("'{name}' was uninstalled ").dark_green().bold(),
         );
-       std::fs::remove_dir_all(app_dir_path)?;
+        std::fs::remove_dir_all(app_dir_path)?;
         Ok(0)
     } else if !app_version_path.exists() && std::fs::symlink_metadata(app_current_dir).is_err() {
-      println!(
-        "{}",
-        format!("WARNING  '{name}' 先清除之前安装失败的文件")
-          .dark_cyan()
-          .bold(),
-      );
-      check_child_directory(& app_dir)?;
-      println!(
-        "{}",
-        format!("ERROR   '{name}' isn't installed correctly")
-          .dark_red()
-          .bold(),
-      );
-      println!(
-        "{}",
-        format!("'{name}' was uninstalled ").dark_green().bold(),
-      );
+        println!(
+            "{}",
+            format!("ERROR   '{name}' isn't installed correctly")
+                .dark_red()
+                .bold(),
+        );
+        println!(
+            "{}",
+            format!("WARNING  '{name}' 先清除之前安装失败的文件")
+                .dark_cyan()
+                .bold(),
+        );
+        check_child_directory(&app_dir)?;
+
+        println!(
+            "{}",
+            format!("'{name}' was uninstalled ").dark_green().bold(),
+        );
         std::fs::remove_dir_all(app_dir_path)?;
         Ok(0)
     } else {
@@ -189,19 +125,17 @@ pub fn check_before_install(name: &String, version: &String) -> anyhow::Result<u
     }
 }
 
-fn check_child_directory(app_dir : &String) -> anyhow::Result<()> {
-   let dirs = std::fs::read_dir(app_dir)?;
-   for dir in dirs {
-     let dir = dir?;
-     let path = dir.path();  
-     if Path::new(&path).exists() { 
-       println!("Removing {}", path.to_string_lossy().dark_cyan().bold());
-     }
-   }
-   Ok(())
-} 
-
- 
+fn check_child_directory(app_dir: &String) -> anyhow::Result<()> {
+    let dirs = std::fs::read_dir(app_dir)?;
+    for dir in dirs {
+        let dir = dir?;
+        let path = dir.path();
+        if Path::new(&path).exists() {
+            println!("Removing {}", path.to_string_lossy().dark_cyan().bold());
+        }
+    }
+    Ok(())
+}
 
 pub fn create_dir_symbolic_link(version_dir: &String, current_dir: &String) -> anyhow::Result<()> {
     symlink_dir(version_dir, current_dir)?;
