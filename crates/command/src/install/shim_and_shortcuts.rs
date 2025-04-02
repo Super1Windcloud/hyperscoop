@@ -6,7 +6,6 @@ use crate::manifest::manifest_deserialize::{
 use crate::utils::system::get_system_default_arch;
 use anyhow::bail;
 use crossterm::style::Stylize;
-use gix_object::Exists;
 use std::fs::File;
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -14,7 +13,7 @@ use std::{env, fs};
 const DRIVER_SHIM_BYTES: &[u8] = include_bytes!("..\\bin\\shim.exe");
 
 pub fn create_shim_or_shortcuts(manifest_json: String, app_name: &String) -> anyhow::Result<()> {
-    let content = std::fs::read_to_string(manifest_json)?;
+    let content = fs::read_to_string(manifest_json)?;
     let serde_obj: InstallManifest = serde_json::from_str(&content)?;
     let bin = serde_obj.bin;
     let architecture = serde_obj.architecture;
@@ -283,25 +282,42 @@ pub fn create_alias_shim_name_file(
     app_name: &String,
     program_args: Option<String>,
 ) -> anyhow::Result<()> {
-    let out_dir = PathBuf::from(shim_dir);
-    let target_path = get_app_current_bin_path(app_name.into(), exe_name);
+    let out_dir = PathBuf::from(shim_dir); 
+     let  temp =exe_name.clone(); 
+    let   suffix = temp. split('.').last().unwrap();
+    log::trace!("Origin file type {}",suffix);
+
+  let target_path = get_app_current_bin_path(app_name.into(), exe_name);
     if !out_dir.exists() {
         bail!(format!("shim 目录 {shim_dir} 不存在"));
     }
     if !Path::new(&target_path).exists() {
         bail!(format!("链接目标文件 {target_path} 不存在"))
     };
+  if suffix == "exe"  || suffix == "com" {
     if program_args.is_some() {
-        let program_args = program_args.unwrap();
-        create_exe_type_shim_file_and_shim_bin(
-            target_path,
-            out_dir,
-            Some(alias_name),
-            Some(program_args),
-        )?;
+      let program_args = program_args.unwrap();
+      create_exe_type_shim_file_and_shim_bin(
+        target_path,
+        out_dir,
+        Some(alias_name),
+        Some(program_args),
+      )?;
     } else {
-        create_exe_type_shim_file_and_shim_bin(target_path, out_dir, Some(alias_name), None)?;
+      create_exe_type_shim_file_and_shim_bin(target_path, out_dir, Some(alias_name), None)?;
     }
+  } else  if suffix == "cmd"  ||"bat" == suffix {
+
+  }else if suffix=="ps1" {
+
+  }else if  suffix=="jar" {
+
+  }else if suffix=="py" {
+
+  }else {
+    bail!(format!(" 后缀{suffix}类型文件不支持, WTF?"))
+  }
+
     Ok(())
 }
 
@@ -311,9 +327,10 @@ pub fn create_default_shim_name_file(
     shim_dir: &String,
     app_name: &String,
 ) -> anyhow::Result<()> {
-    let out_dir = PathBuf::from(shim_dir); 
+    let out_dir = PathBuf::from(shim_dir);
     let  temp =exe_name.clone();
-    let   suffix = temp. split('.').last().unwrap();
+    let   suffix = temp. split('.').last().unwrap(); 
+  log::trace!("Origin file type {}",suffix); 
    if suffix.is_empty() {
       bail!(format!("shim 文件名 {exe_name} 后缀为空 WTF?"))
    }
@@ -327,18 +344,25 @@ pub fn create_default_shim_name_file(
   if suffix == "exe"  || suffix == "com" {
     create_exe_type_shim_file_and_shim_bin(target_path, out_dir, None, None)?;
   } else  if suffix == "cmd"  ||"bat" == suffix {
-
+     create_cmd_bat_shim_scripts ()?; 
   }else if suffix=="ps1" {
-    
+
   }else if  suffix=="jar" {
-    
-  }else if suffix=="py" { 
-    
-  }else { 
-    bail!(format!(" 后缀{suffix} 不支持 WTF?"))
+
+  }else if suffix=="py" {
+
+  }else {
+    bail!(format!(" 后缀{suffix}类型文件不支持, WTF?"))
   }
     Ok(())
 }
+
+fn create_cmd_bat_shim_scripts() ->  anyhow::Result<()>  {
+   
+  
+  Ok(() )
+}
+
 pub fn create_exe_type_shim_file_and_shim_bin<P1: AsRef<Path>, P2: AsRef<Path>>(
     target_path: P1,
     output_dir: P2,
@@ -393,9 +417,10 @@ pub fn create_exe_type_shim_file_and_shim_bin<P1: AsRef<Path>, P2: AsRef<Path>>(
         if !parent_dir.exists() {
             fs::create_dir_all(&parent_dir)?; // 递归创建所有不存在的父目录
         }
+      
         println!(
             "{} {}",
-            "Created  shim  bin =>".dark_blue().bold(),
+            "Created  shim  proxy launcher =>".dark_blue().bold(),
             &output_shim_exe.display().to_string().dark_green().bold()
         );
         fs::write(&output_shim_exe, DRIVER_SHIM_BYTES)?;
@@ -411,7 +436,7 @@ mod test_shim {
         use crate::install::create_start_menu_shortcuts;
         use crate::manifest::install_manifest::InstallManifest;
         let file = r"A:\Scoop\buckets\ScoopMaster\bucket\zigmod.json";
-        let content = std::fs::read_to_string(file).unwrap();
+        let content = fs::read_to_string(file).unwrap();
         let manifest: InstallManifest = serde_json::from_str(&content).unwrap();
         let shortcuts = manifest.shortcuts.unwrap();
         let app_name = "zigmod".to_string();
@@ -420,7 +445,7 @@ mod test_shim {
 
     #[test]
     fn test_create_shims() {
-        let cwd = std::env::current_dir().unwrap();
+        let cwd = env::current_dir().unwrap();
         println!("{}", cwd.display());
         let shim_exe = cwd.join("src\\bin\\shim.exe");
         if shim_exe.exists() {

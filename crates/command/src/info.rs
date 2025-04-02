@@ -162,7 +162,6 @@ fn process_manifest_file(
         ("Shortcuts".to_string(), short_str.to_string()),
         ("Notes\t".to_string(), notes.to_string()),
     ];
-
     Ok(info)
 }
 

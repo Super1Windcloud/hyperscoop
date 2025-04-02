@@ -488,7 +488,6 @@ dependencies = [
  "anyhow",
  "chrono",
  "clap",
- "color-eyre",
  "console",
  "crossterm",
  "dashmap",
