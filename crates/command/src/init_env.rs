@@ -129,11 +129,15 @@ mod   test_path {
      }
   }
   #[test]
-  fn   test_get_suffix (){ 
+  fn   test_get_suffix (){
     let  exe_name = "zig/zig.cmd" ;
-    let  suffix = exe_name.split(".").last().unwrap_or(""); 
-    let  prefix  = exe_name.split(".").next().unwrap_or(""); 
-    println! ("{suffix}  {prefix}"); 
-    
+    let  exe_name = "zig//zig.cmd" ;
+    let  exe_name = "zig.cmd" ;
+    let  exe_name = r"bin\zig.cmd" ;
+    let  exe_name = r"bin\\zig.cmd" ;
+    let  suffix = exe_name.split(".").last().unwrap_or("");
+    let  prefix  = exe_name.split(".").next().unwrap_or("");
+    println! ("{suffix}  {prefix}");
+
   }
 }

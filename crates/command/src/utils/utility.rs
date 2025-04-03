@@ -1,5 +1,6 @@
 use std::cmp::Ordering;
 use std::fs;
+use std::fs::File;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use crate::init_env::init_env_path;
@@ -145,6 +146,14 @@ pub fn remove_bom_and_control_chars_from_utf8_file<P: AsRef<Path>>(path: P) -> a
   let content = fs::read_to_string(&path)?;
   Ok(content )
 }
+
+
+pub  fn write_utf8_file(path: &String , content: &str) -> anyhow::Result<()> {
+  let mut file = File::create(path)?;
+  file.write_all(content.as_bytes())?;
+  Ok(())
+}
+
 
 mod tests {
   #[allow(unused_imports)]
