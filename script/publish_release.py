@@ -37,7 +37,7 @@ def  upload_hp_to_release(access_token):
                "Content-Type": "application/json;charset=UTF-8"
                 }
       data = {
-               "access_token": "1fba69da2f34d7b0b42c6812153d6d12",
+               "access_token": access_token ,
                "tag_name": "3.3.4",
                "file":  form_data
            }
@@ -58,7 +58,7 @@ def create_new_release(access_token):
        }
 
        data = {
-           "access_token": "1fba69da2f34d7b0b42c6812153d6d12",
+           "access_token": access_token ,
            "tag_name": "3.3.4",
            "name": "here we go ",
            "body": "add install shim feature",
@@ -77,9 +77,16 @@ def create_new_release(access_token):
 
        conn.close()
 
-
+def get_access_token():
+   current_file_path =Path(__file__).absolute()
+   root = current_file_path.parent.parent
+   hp_bin = join_paths(root, ".env")
+   with open (hp_bin ,"r" ,encoding="utf-8") as  file:
+        content = file.read()
+   print(content )
+   return content
 def main() :
-  access_token="1fba69da2f34d7b0b42c6812153d6d12"
+  access_token = get_access_token()
   create_new_release(access_token)
 #   upload_hp_to_release(access_token)
 

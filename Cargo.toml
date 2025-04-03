@@ -33,6 +33,7 @@ command_util_lib = { path = "crates/command" }
 regex = "1.11.1"
 rayon = "1.10.0"
 color-eyre = "0.6.3"
+reqwest = { workspace = true }
 
 
 [workspace.dependencies]

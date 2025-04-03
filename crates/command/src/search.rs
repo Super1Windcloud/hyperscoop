@@ -329,57 +329,59 @@ fn get_exact_search_apps_names(
 }
 
 fn display_result(result: &mut Vec<(String, String, String)>) {
-     result.sort_by(|a, b|  a.0.cmp(&b.0));
-    let name_width = result.iter().map(|(name, _, _)| name.len()).max().unwrap();
+    result.sort_by(|a, b| a.0.cmp(&b.0));
+    let name_width = result.iter().map(|(name, _, _)| name.len()).max().unwrap()+10 ;
     let version_width = result
         .iter()
         .map(|(_, version, _)| version.len())
         .max()
-        .unwrap();
+        .unwrap() +10 ;
     let bucket_width = result
         .iter()
         .map(|(_, _, bucket)| bucket.len())
         .max()
-        .unwrap();
-  let  total_width = name_width + version_width + bucket_width + 17  ;
+        .unwrap()  ;
+    let total_width = name_width + version_width + bucket_width +2  ; // 一个空格是一个字符宽度
 
-  for i in 0..result.len() {
-        if i == 0
-        {
-            println!(" {}", "-".repeat(total_width).dark_magenta().bold()) ;
+    for i in 0..result.len() {
+        if i == 0 {
+            println!(" {}", "-".repeat(total_width).dark_magenta().bold());
             println!(
-                "{} {:<name_width$ }\t{:<version_width$}\t{:<bucket_width$ } {}",
-                 "|".dark_magenta().bold(), 
+                "{} {:<name_width$ }{:<version_width$}{:<bucket_width$ } {}",
+                "|".dark_magenta().bold(),
                 "Name",
                 "Version",
-                "Source","|".dark_magenta().bold(), 
-                name_width = name_width + 4,
-                version_width = version_width+4  ,
+                "Source",
+                "|".dark_magenta().bold(),
+                name_width = name_width ,
+                version_width = version_width ,
                 bucket_width = bucket_width
             );
             println!(
-                "{} {:<name_width$ }\t{:<version_width$}\t{:<bucket_width$ } {}",
-                 "|".dark_magenta().bold() ,"____",
+                "{} {:<name_width$ }{:<version_width$}{:<bucket_width$ } {}",
+                "|".dark_magenta().bold(),
+                "____",
                 "_______",
-                "______", "|".dark_magenta().bold(), 
-                name_width = name_width + 4,
-                version_width = version_width+4,
+                "______",
+                "|".dark_magenta().bold(),
+                name_width = name_width ,
+                version_width = version_width ,
                 bucket_width = bucket_width
             );
         }
         println!(
-            "{} {:<name_width$ }\t{:<version_width$}\t{:<bucket_width$ } {}",
-             "|".dark_magenta().bold(), result[i].0,
+            "{} {:<name_width$ }{:<version_width$}{:<bucket_width$ } {}",
+            "|".dark_magenta().bold(),
+            result[i].0,
             result[i].1,
-            result[i].2,  "|".dark_magenta().bold(), 
-            name_width = name_width + 4,
-            version_width = version_width+4 ,
+            result[i].2,
+            "|".dark_magenta().bold(),
+            name_width = name_width ,
+            version_width = version_width ,
             bucket_width = bucket_width
         );
-
     }
-  println!(" {}", "-".repeat(total_width).dark_magenta().bold()) ;
-  
+    println!(" {}", "-".repeat(total_width).dark_magenta().bold());
 }
 #[allow(unused)]
 fn is_installed(app_name: &str) -> bool {

@@ -46,7 +46,6 @@ pub async fn install_app_from_local_manifest_file(
         return Ok(());
     }; 
   
-  
     let suggest = serde_obj.suggest.clone().unwrap_or(ManifestObj::Null);
     let notes = serde_obj.notes.clone().unwrap_or(Default::default());
     let env_set = serde_obj.env_set.clone().unwrap_or(ManifestObj::Null);

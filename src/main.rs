@@ -2,6 +2,7 @@
 #![deny(clippy::shadow)]
 mod command_args;
 
+use std::env::args;
 use std::io::stdout;
 use clap::{command, Parser};
 use clap::builder::Styles;
@@ -15,7 +16,8 @@ use command::Commands;
 use hyperscoop_middle::*;
 mod logger_err;
 use logger_err::init_logger;
-
+mod check_self_update; 
+use check_self_update::*; 
 const WONDERFUL_STYLES: Styles = Styles::styled()
   .header(AnsiColor::Green.on_default().effects(Effects::BOLD))
   .usage(AnsiColor::Green.on_default().effects(Effects::BOLD))
@@ -43,11 +45,11 @@ struct Cli {
     #[command(flatten)]
     verbose: clap_verbosity_flag::Verbosity,
 }
-#[tokio::main] // 异步运行 main 函数
+#[tokio::main] 
 #[allow(unused_variables)]
 #[allow(unused)]
 #[allow(unreachable_code, unreachable_patterns)]
-async fn main() ->   anyhow::Result<()> {
+async fn main() ->   anyhow::Result<()> { 
     init_logger();
     color_eyre::install().unwrap(); 
     println!(
@@ -55,6 +57,7 @@ async fn main() ->   anyhow::Result<()> {
         "次世代更快更强更精美的Windows包管理器".magenta().bold()
     );
     let cli = Cli::parse();
+  
     let  result =  match cli.command {
         None => {
             eprintln!("No command provided. Run `hp  --help` to see available commands.");
@@ -72,7 +75,9 @@ async fn main() ->   anyhow::Result<()> {
                 Commands::Home(home) => execute_home_command(home),
                 Commands::Import( args ) =>  execute_import_command( args),
                 Commands::Info(info) => execute_info_command(info),
-                Commands::Install(args )  => execute_install_command( args).await    ,
+                Commands::Install(args )  =>  {
+                  auto_check_hp_update( ).await? ;
+                  execute_install_command( args).await   }  ,
                 Commands::List(query_app) => execute_list_installed_apps(query_app.name),
                 Commands::Prefix( prefix ) =>  execute_prefix_command( prefix ),
                 Commands::Reset( args ) =>  execute_reset_command( args)   ,
@@ -80,7 +85,9 @@ async fn main() ->   anyhow::Result<()> {
                 Commands::Shim( args ) =>  execute_shim_command( args)   ,
                 Commands::Status(_) =>  execute_status_command() ,
                 Commands::Uninstall( args ) => execute_uninstall_command( args)  ,
-                Commands::Update(update_args) => execute_update_command(update_args).await,
+                Commands::Update(update_args) => {
+                  auto_check_hp_update( ).await? ;
+                  execute_update_command(update_args).await},
                 Commands::Which(which ) =>  execute_which_command( which ),
                 Commands::Merge(args ) => execute_merge_command(args )  ,
                 _ => {
