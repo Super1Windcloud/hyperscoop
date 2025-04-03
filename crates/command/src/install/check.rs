@@ -1,6 +1,5 @@
 use crate::init_env::*;
 use crate::install::create_shim_or_shortcuts;
-use crate::list::VersionJSON;
 use crossterm::style::Stylize;
 use std::os::windows::fs::symlink_dir;
 use std::path::Path;

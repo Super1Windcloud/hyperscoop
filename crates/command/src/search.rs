@@ -53,7 +53,7 @@ pub fn fuzzy_search(query: String) {
         let result_info = get_result_source_and_version(match_result).unwrap();
         let count = result_info.len();
         println!(
-            "{} {}",
+            "\t{} {}",
             count.to_string().dark_green().bold(),
             "Results from local buckets...\n".dark_green().bold()
         );
@@ -169,7 +169,7 @@ fn search_app_in_specific_bucket(buckets_path: Vec<String>, bucket: &String, app
             count.to_string().dark_green().bold(),
             "Results from local buckets...\n".dark_green().bold()
         );
-        // println!("加载完毕");
+
         sort_result_by_bucket_name(result_info);
     }
 }
@@ -328,7 +328,7 @@ fn get_exact_search_apps_names(
     Ok(app_names)
 }
 
-fn display_result(result: &mut Vec<(String, String, String)>) { 
+fn display_result(result: &mut Vec<(String, String, String)>) {
      result.sort_by(|a, b|  a.0.cmp(&b.0));
     let name_width = result.iter().map(|(name, _, _)| name.len()).max().unwrap();
     let version_width = result
@@ -341,37 +341,45 @@ fn display_result(result: &mut Vec<(String, String, String)>) {
         .map(|(_, _, bucket)| bucket.len())
         .max()
         .unwrap();
-    for i in 0..result.len() {
-        if i == 0 {
+  let  total_width = name_width + version_width + bucket_width + 17  ;
+
+  for i in 0..result.len() {
+        if i == 0
+        {
+            println!(" {}", "-".repeat(total_width).dark_magenta().bold()) ;
             println!(
-                "{:<name_width$ }\t{:<version_width$}\t{:<bucket_width$ }",
+                "{} {:<name_width$ }\t{:<version_width$}\t{:<bucket_width$ } {}",
+                 "|".dark_magenta().bold(), 
                 "Name",
                 "Version",
-                "Source_Bucket",
+                "Source","|".dark_magenta().bold(), 
                 name_width = name_width + 4,
                 version_width = version_width+4  ,
                 bucket_width = bucket_width
             );
             println!(
-                "{:<name_width$ }\t{:<version_width$}\t{:<bucket_width$ }",
-                "____",
+                "{} {:<name_width$ }\t{:<version_width$}\t{:<bucket_width$ } {}",
+                 "|".dark_magenta().bold() ,"____",
                 "_______",
-                "_____________",
+                "______", "|".dark_magenta().bold(), 
                 name_width = name_width + 4,
                 version_width = version_width+4,
                 bucket_width = bucket_width
             );
         }
         println!(
-            "{:<name_width$ }\t{:<version_width$}\t{:<bucket_width$ }",
-            result[i].0,
+            "{} {:<name_width$ }\t{:<version_width$}\t{:<bucket_width$ } {}",
+             "|".dark_magenta().bold(), result[i].0,
             result[i].1,
-            result[i].2,
+            result[i].2,  "|".dark_magenta().bold(), 
             name_width = name_width + 4,
             version_width = version_width+4 ,
             bucket_width = bucket_width
         );
+
     }
+  println!(" {}", "-".repeat(total_width).dark_magenta().bold()) ;
+  
 }
 #[allow(unused)]
 fn is_installed(app_name: &str) -> bool {

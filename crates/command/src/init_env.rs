@@ -35,10 +35,10 @@ pub fn init_scoop_global_path() -> String {
     }
     return path;
 }
-pub  fn  get_app_current_bin_path(app_name : String , bin_name  :String ) -> String  {
+pub  fn  get_app_current_bin_path(app_name : String , bin_name  :& String ) -> String  {
   let scoop_home = init_env_path();
-    format!("{}\\apps\\{}\\current\\{}", scoop_home, app_name  ,bin_name)  
-} 
+    format!("{}\\apps\\{}\\current\\{}", scoop_home, app_name  ,bin_name)
+}
 
 
 pub fn get_old_scoop_dir() -> String {
@@ -113,4 +113,27 @@ pub fn  get_shims_path() -> String {
 pub  fn get_apps_path() -> String {
   let  hyper_scoop = HyperScoop::new();
   hyper_scoop.get_apps_path()
+}
+
+
+mod   test_path {
+  #[allow(unused)]
+   use super::*;
+  #[test]
+  fn  get_current_bin_path() {
+      let app_name = "zigmod" ;
+      let  exe_name = "zig/zig.exe" ;
+     let path = get_app_current_bin_path( app_name.to_string(), &exe_name.to_string() );
+     if std::path::Path::new(&path).exists() {
+       println!("{}",path );
+     }
+  }
+  #[test]
+  fn   test_get_suffix (){ 
+    let  exe_name = "zig/zig.cmd" ;
+    let  suffix = exe_name.split(".").last().unwrap_or(""); 
+    let  prefix  = exe_name.split(".").next().unwrap_or(""); 
+    println! ("{suffix}  {prefix}"); 
+    
+  }
 }

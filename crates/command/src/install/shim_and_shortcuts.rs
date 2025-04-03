@@ -10,6 +10,8 @@ use std::fs::File;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::{env, fs};
+use clap::arg;
+
 const DRIVER_SHIM_BYTES: &[u8] = include_bytes!("..\\bin\\shim.exe");
 
 pub fn create_shim_or_shortcuts(manifest_json: String, app_name: &String) -> anyhow::Result<()> {
@@ -197,7 +199,7 @@ pub fn create_start_menu_shortcuts(
                 let start_menu_link_path = scoop_link_home.join(&shortcut_name);
                 if !start_menu_link_path.exists() {
                     let target_path =
-                        get_app_current_bin_path(app_name, bin_name_with_extension.clone());
+                        get_app_current_bin_path(app_name, &bin_name_with_extension);
                     start_create_shortcut(
                         start_menu_link_path,
                         target_path,
@@ -238,7 +240,7 @@ pub fn create_start_menu_shortcuts(
                     if !start_menu_link_path.exists() {
                         let target_path = get_app_current_bin_path(
                             app_name.clone(),
-                            bin_name_with_extension.clone(),
+                            & bin_name_with_extension,
                         );
                         if !Path::new(&target_path).exists() {
                             bail!(format!("链接目标文件 {target_path} 不存在"))
@@ -275,6 +277,9 @@ pub fn start_create_shortcut<P: AsRef<Path>>(
     Ok(())
 }
 
+
+
+///   *-------------------------------------------*  
 pub fn create_alias_shim_name_file(
     exe_name: String,
     alias_name: String,
@@ -282,12 +287,12 @@ pub fn create_alias_shim_name_file(
     app_name: &String,
     program_args: Option<String>,
 ) -> anyhow::Result<()> {
-    let out_dir = PathBuf::from(shim_dir); 
-     let  temp =exe_name.clone(); 
+    let out_dir = PathBuf::from(shim_dir);
+     let  temp =exe_name.clone();
     let   suffix = temp. split('.').last().unwrap();
     log::trace!("Origin file type {}",suffix);
 
-  let target_path = get_app_current_bin_path(app_name.into(), exe_name);
+  let target_path = get_app_current_bin_path(app_name.into(), &exe_name);
     if !out_dir.exists() {
         bail!(format!("shim 目录 {shim_dir} 不存在"));
     }
@@ -329,12 +334,12 @@ pub fn create_default_shim_name_file(
 ) -> anyhow::Result<()> {
     let out_dir = PathBuf::from(shim_dir);
     let  temp =exe_name.clone();
-    let   suffix = temp. split('.').last().unwrap(); 
-  log::trace!("Origin file type {}",suffix); 
+    let   suffix = temp. split('.').last().unwrap();
+     log::trace!("Origin file type {}",suffix);
    if suffix.is_empty() {
       bail!(format!("shim 文件名 {exe_name} 后缀为空 WTF?"))
    }
-    let target_path = get_app_current_bin_path(app_name.into(), exe_name);
+    let target_path = get_app_current_bin_path(app_name.into(), &exe_name);
     if !out_dir.exists() {
         bail!(format!("shim 目录 {shim_dir} 不存在"));
     }
@@ -344,7 +349,9 @@ pub fn create_default_shim_name_file(
   if suffix == "exe"  || suffix == "com" {
     create_exe_type_shim_file_and_shim_bin(target_path, out_dir, None, None)?;
   } else  if suffix == "cmd"  ||"bat" == suffix {
-     create_cmd_bat_shim_scripts ()?; 
+     let result  = exclude_scoop_self_scripts( &exe_name , None   )? ; 
+     if result !=0   { bail!("Origin 二进制名或者该二进制别名 '{exe_name}' 与scoop 内置脚本的shim 冲突, 禁止覆盖")}
+    create_cmd_or_bat_shim_scripts (target_path ,  out_dir,None, None )?;
   }else if suffix=="ps1" {
 
   }else if  suffix=="jar" {
@@ -356,11 +363,60 @@ pub fn create_default_shim_name_file(
   }
     Ok(())
 }
+/// *-----------------------------------------------------------------* 
 
-fn create_cmd_bat_shim_scripts() ->  anyhow::Result<()>  {
-   
-  
-  Ok(() )
+
+pub fn exclude_scoop_self_scripts(script_name : &String,   alias_name :Option<String> ) -> anyhow::Result<(u8)> {
+  let  split = script_name.split(".").collect::<Vec<&str>>();
+  if split.len() !=2 {  bail!("shim target {script_name} 文件名格式错误, WTF?") }
+  if alias_name.is_some() {
+     let  script_name = alias_name.unwrap();
+    let exclude_list = vec!["scoop", "scoop-pre" , "scoop-premake" , "scoop-rm_nm"];
+    if exclude_list.contains(&script_name.as_str()) {
+      return Ok(1);
+    }
+    return Ok(0 );
+  }
+
+  let script_name = split.get(0).unwrap();
+   let exclude_list = vec!["scoop", "scoop-pre" , "scoop-premake" , "scoop-rm_nm"];
+   if exclude_list.contains(&script_name) {
+     return Ok(1 );
+   }
+    Ok(0 )
+}
+
+pub  fn create_cmd_or_bat_shim_scripts(target_path: String, out_dir: PathBuf,
+                               alias_name: Option<String>, program_args: Option<String> 
+     ) ->  anyhow::Result<()>  {
+
+  let target_name = if alias_name.is_none() {
+    Path::new(& target_path)
+      .file_stem()
+      .and_then(|s| s.to_str().and_then(|s| Some(s.to_lowercase())))
+      .ok_or("Invalid target executable name")
+  } else {
+    Ok(alias_name.unwrap().to_string())
+  };
+  if target_name.is_err() {
+    let target_name = target_name.unwrap();
+    bail!("Invalid target executable name {target_path} \n Error TargetName :{target_name}")
+  } 
+  let target_name = target_name.unwrap(); 
+  let cmd_content = format!("@rem {target_path}\r\n@\"{target_path}\" $arg %*\r\n");
+  // let shim_cmd_path =format!("{}:shim.sh", out_dir);
+  // let mut cmd_file = File::create(format!("{}.cmd", shim_cmd_path))?;
+  // cmd_file.write_all(cmd_content.as_bytes())?;
+  // 
+  // // Create shell script file
+  // let sh_content = format!(
+  //   "#!/bin/sh\n# {}\nMSYS2_ARG_CONV_EXCL=/C cmd.exe /C \"{}\" {} \"$@\"\n",
+  //   resolved_path, resolved_path, arg
+  // );
+  // let mut sh_file = File::create(shim)?;
+  // sh_file.write_all(sh_content.as_bytes())?;
+
+  Ok(())
 }
 
 pub fn create_exe_type_shim_file_and_shim_bin<P1: AsRef<Path>, P2: AsRef<Path>>(
@@ -382,7 +438,8 @@ pub fn create_exe_type_shim_file_and_shim_bin<P1: AsRef<Path>, P2: AsRef<Path>>(
     };
 
     if target_name.is_err() {
-        bail!("Invalid target executable name {}", target_path)
+         let target_name = target_name.unwrap(); 
+        bail!("Invalid target executable name {target_path} \n Error TargetName :{target_name}")
     }
     let content = if program_params.is_none() {
         format!("path = \"{}\"", target_path)
@@ -417,7 +474,7 @@ pub fn create_exe_type_shim_file_and_shim_bin<P1: AsRef<Path>, P2: AsRef<Path>>(
         if !parent_dir.exists() {
             fs::create_dir_all(&parent_dir)?; // 递归创建所有不存在的父目录
         }
-      
+
         println!(
             "{} {}",
             "Created  shim  proxy launcher =>".dark_blue().bold(),
@@ -429,7 +486,7 @@ pub fn create_exe_type_shim_file_and_shim_bin<P1: AsRef<Path>, P2: AsRef<Path>>(
 }
 
 mod test_shim {
-    #[allow(unused)]
+  #[allow(unused)]
     use super::*;
     #[test]
     fn test_create_shortcuts() {
@@ -457,4 +514,96 @@ mod test_shim {
         create_exe_type_shim_file_and_shim_bin(target_path, output_dir, None, Some(args.into()))
             .unwrap();
     }
+
+  #[test]
+  fn  find_cmd_bat_ps_scripts_alias(){ 
+    use  rayon::prelude::*; 
+    use crate::buckets::get_buckets_path;
+
+    let   bucket = get_buckets_path().unwrap();
+    let   buckets = bucket.iter().par_bridge().map(|path|
+      Path::new(path ).join("bucket")). collect::<Vec<_>>();
+
+    let  files = buckets.iter().flat_map(|path| {
+      path.read_dir().unwrap().map(|res| res.unwrap().path())
+    }).collect::<Vec<_>>();
+    for path in files {
+      let content = std::fs::read_to_string(&path);
+      if content.is_err() {
+        println!("decode   error {:?}", path.display());
+        continue
+      }
+      let content = content.unwrap();
+      let manifest = serde_json::from_str::<InstallManifest>(&content); 
+      if manifest.is_err() { 
+        println!("decode manifest error {:?}", path.display()); 
+        eprintln!("Error : {:?}", manifest.unwrap_err());
+        return ; 
+      }
+      let  manifest = manifest.unwrap(); 
+       let  bin = manifest.bin; 
+      if bin.is_some() {
+        let bin = bin.unwrap(); 
+         match  bin {
+           StringOrArrayOrDoubleDimensionArray::Null => {}
+           StringOrArrayOrDoubleDimensionArray::String(_) => {}
+           StringOrArrayOrDoubleDimensionArray::StringArray(_) => {}
+           StringOrArrayOrDoubleDimensionArray::DoubleDimensionArray(arrs ) => {
+             for arr in arrs {
+                if  arr.len() ==2  { 
+                  let  exe_name = arr[0].clone();
+                  let suffix  =exe_name.split('.').last().unwrap(); 
+                  let  alias_name = arr[1].clone();
+                  if suffix == "cmd" || suffix == "bat" {
+                    println!("{:?}", arr); 
+                    println!("script path {:?}", path.display() ); 
+                  }
+                } 
+                if arr.len() ==3 {
+                  let  exe_name = arr[0].clone();
+                  let suffix  =exe_name.split('.').last().unwrap();
+                  let  alias_name = arr[1].clone();
+                  if suffix == "cmd" || suffix == "bat" {
+                    println!("{:?}", arr);
+                    println!("script path has  args {:?}", path.display() ); 
+                    return;
+                  }
+                }
+             } 
+           }
+           StringOrArrayOrDoubleDimensionArray::NestedStringArray(nested_arr ) => {
+             for  arr  in nested_arr { 
+               match  arr {
+                 StringOrArrayOrDoubleDimensionArray::DoubleDimensionArray(arrs) => {
+                   for arr in arrs {
+                     if  arr.len() ==2  {
+                       let  exe_name = arr[0].clone();
+                       let suffix  =exe_name.split('.').last().unwrap();
+                       let  alias_name = arr[1].clone();
+                       if suffix == "cmd" || suffix == "bat" {
+                         println!("{:?}", arr);
+                         println!("script path {:?}", path.display() ); 
+                       }
+                     }
+                     if arr.len() ==3 {
+                       let  exe_name = arr[0].clone();
+                       let suffix  =exe_name.split('.').last().unwrap();
+                       let  alias_name = arr[1].clone();
+                       if suffix == "cmd" || suffix == "bat" {
+                         println!("{:?}", arr);
+                         println!("script path has  args {:?}", path.display() );
+                         return;
+                       }
+                     }
+                   }
+                 }
+                 _=>{} 
+               }
+             }
+             
+           }
+         }
+      }
+    }
+  }
 }
