@@ -1,6 +1,6 @@
 [package]
 name = "hp"
-version = "7.7.7"
+version.workspace = true
 edition.workspace = true
 publish = { workspace = true }
 authors = { workspace = true }
@@ -19,7 +19,6 @@ default = []  # 默认所有feature禁用
 
 
 [dependencies]
-# 只适用于当前包 ,可以直接使用这些依赖，而工作区的其他成员包无法自动继承这些依赖。
 # 当依赖被标记为 "可选 optional" 时，意味着它默认不会被编译
 serde = { version = "1.0.213" }
 log = { workspace = true }
@@ -53,12 +52,15 @@ dashmap = "6.1.0"
 quote = "1.0.37"
 syn = "2.0.91"
 color-eyre = "0.6.3"
+bat = { version = "0.25.0", features = ["regex-onig","regex-fancy"], default-features = false }
+git2 = "0.20.1"
+
 [[bin]]
 name = "hp"
 path = "src/main.rs"
 
 
-[workspace]  # 定义一个工作区
+[workspace]
 members = ["crates/command", ".", "crates/hscoop_macro", "crates/shim"]  # 显式把src根目录也一并添加到工作区
 resolver = "2"
 [workspace.package]
@@ -75,7 +77,7 @@ categories = ["command-line-utilities", "development-tools", "command-line-inter
 keywords = ["scoop", "windows", "package-manager", "rust", "powerful-tool"]
 exclude = ["target", "hyperscoop_source_bucket", "script", "node_modules"]
 include = ["src/**/*", "Cargo.toml", "build.rs", "Cargo.lock"]
-version = "7.7.7"
+version = "3.3.3"
 [workspace.lints.rust]
 unsafe_code = "warn"
 unreachable_pub = "warn"
@@ -84,9 +86,8 @@ unreachable_pub = "warn"
 
 [dev-dependencies] # 依赖项仅在开发和测试过程中使用，
 # 例如 `cargo test` 或 `cargo bench` , 'cargo build --tests` ,`cargo build --examples` |
-criterion = "0.5.1"
-indicatif =   { workspace = true }
-trybuild = "1.0.101"
+criterion = { version = "0.5.1"   }
+trybuild = { version = "1.0.101" }
 
 [profile.release]
 debug = false
@@ -111,8 +112,9 @@ incremental = true
 codegen-units = 256
 debug-assertions = true
 rpath = false
+
 [build-dependencies]  # 这些依赖项仅在构建脚本（build.rs 文件）中使用
-xmake = "0.2.3"
+xmake =  { version = "0.2.3" ,optional = true  }
 
 
 

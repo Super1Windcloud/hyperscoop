@@ -11,6 +11,7 @@ pub fn execute_cat_command(cat: CatArgs) -> Result<(), anyhow::Error> {
     #[cfg(debug_assertions)]
     dbg!(&app_name);
     log::info!("info : {:?}", &app_name);
-    catch_manifest(bucket_paths, app_name);
+    catch_manifest(bucket_paths, app_name)? ; 
+  
     Ok(())
 }
