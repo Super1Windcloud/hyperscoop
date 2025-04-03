@@ -176,7 +176,7 @@ fn print_pretty_info(info: DashSet<Vec<(String, String)>>) {
         .flat_map(|vec| {
             vec.iter()
                 .filter(|(key, _)| key.trim() != "Notes")
-                .map(|(key, value)| value.len())
+                .map(|(_ , value)| value.len())
                 .collect::<Vec<_>>()
         })
         .collect::<Vec<usize>>();
@@ -276,12 +276,7 @@ fn print_pretty_info(info: DashSet<Vec<(String, String)>>) {
     }
 }
 
-fn auto_align_width_terminal( content : String) {
-
-
-
-}
-
+ 
 fn get_file_modified_time(file_path: &str) -> io::Result<String> {
     let metadata = fs::metadata(file_path)?;
     let time = metadata.modified()?;

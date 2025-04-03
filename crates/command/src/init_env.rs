@@ -3,7 +3,7 @@
 pub fn init_env_path() -> String {
     let mut path = env::var("SCOOP").unwrap_or(String::new());
     if path.is_empty() {
-        path = env::var("USERPROFILE").unwrap() + "\\scoop";
+        path = env::var("USERPROFILE").unwrap() + "\\scoop"; // 可以使用or_else 替代
     }
     return path;
 }

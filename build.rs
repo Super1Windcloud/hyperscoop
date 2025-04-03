@@ -1,12 +1,17 @@
-﻿use std::process::Command;
-fn main() {
-    let status = Command::new("echo")
-        .arg("Running custom build steps...")
-        .status();
+﻿use std::env;
 
-    match status {
-        Ok(status) if status.success() => println!("Command executed successfully"),
-        Ok(status) => eprintln!("Command executed with status: {}", status),
-        Err(e) => eprintln!("Failed to execute command: {}", e),
-    };
+
+
+fn main() {  
+   let  lang =  env::var("LANG").or(env::var("LC_ALL"))
+     .or(env::var("LC_CTYPE")).unwrap_or_default(); 
+   let  lang_prefix  = lang.split("_").next().unwrap_or("en");  
+  
+   println!("cargo:rustc-env=BUILD_SYSTEM_LANG={}" ,lang_prefix); 
+  
+   if  lang_prefix =="zh" {
+      println!("cargo:rustc-cfg=system_lang_zh");
+   }
 }
+
+

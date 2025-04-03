@@ -10,7 +10,7 @@ use crossterm::style::Stylize;
 use std::fs::File;
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::{env, fs};
+use std::{  fs};
 
 const DRIVER_SHIM_BYTES: &[u8] = include_bytes!("..\\bin\\shim.exe");
 
@@ -635,7 +635,7 @@ fi
 pub fn exclude_scoop_self_scripts(
     script_name: &String,
     alias_name: Option<String>,
-) -> anyhow::Result<(u8)> {
+) -> anyhow::Result< u8> {
     let split = script_name.split(".").collect::<Vec<&str>>();
     if split.len() != 2 {
         bail!("shim target {script_name} 文件名格式错误, WTF?")
@@ -792,6 +792,8 @@ pub fn create_exe_type_shim_file_and_shim_bin<P1: AsRef<Path>, P2: AsRef<Path>>(
 mod test_shim {
     #[allow(unused)]
     use super::*;
+    #[allow(unused)]
+     use std::env ; 
     #[test]
     fn test_create_shortcuts() {
         use crate::install::create_start_menu_shortcuts;
