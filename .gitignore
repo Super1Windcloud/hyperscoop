@@ -16,9 +16,11 @@ package-lock.json
 submodule
 
 *.txt
-
+shim_proxy
 
 .env
+
+
 
 
 
