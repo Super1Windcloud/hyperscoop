@@ -53,12 +53,11 @@ struct Cli {
 #[allow(unreachable_code, unreachable_patterns)]
 async fn main() ->   anyhow::Result<()> {
     let cli = Cli::parse();
-  
     init_logger(&cli );
     color_eyre::install().unwrap();
     println!(
-        "{ }!   \n ",
-        "次世代更快更强更精美的Windows包管理器".magenta().bold()
+        "{ } \n ",
+        "次世代更快更强更精美的Windows包管理器!".dark_magenta().bold()
     );
 
     let  result =  match cli.command {
@@ -67,7 +66,6 @@ async fn main() ->   anyhow::Result<()> {
             Ok(())
         }
         Some(input_command) => {
-
             match input_command {
 
                 Commands::Bucket(bucket) => execute_bucket_command(&bucket.command).await,
