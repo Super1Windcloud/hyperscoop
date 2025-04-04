@@ -18,3 +18,7 @@ submodule
 *.txt
 
 
+.env
+
+
+

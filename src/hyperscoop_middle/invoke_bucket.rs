@@ -15,7 +15,13 @@ pub async fn execute_bucket_command(args: &Option<BucketSubcommands>) -> Result<
                         .await?;
                 }
                 (true, false) => {
-                    buckets.add_buckets(&None, &add_args.name).await?;
+                    let first = add_args.name.clone().unwrap_or(String::new());
+                    if buckets.is_valid_url(&first) {
+                        let url =first ; 
+                        buckets.add_buckets(&None,  &Some(url )).await?;
+                    } else {
+                        buckets.add_buckets(&add_args.name, &None).await?;
+                    }
                 }
 
                 _ => {
@@ -32,16 +38,16 @@ pub async fn execute_bucket_command(args: &Option<BucketSubcommands>) -> Result<
         }
         BucketSubcommands::Rm(rm_args) => {
             println!(
-                " {} {} ",
+                "{} {} ",
                 "准备删除桶:".to_string().blue(),
-                &rm_args.name.clone().dark_blue()
+                &rm_args.name.clone().dark_green().bold() 
             );
             buckets.rm_buckets(&rm_args.name).await?;
         }
 
-      BucketSubcommands::Update(_) => {
-        crate::hyperscoop_middle::invoke_update::update_buckets().await? ;
-      }
+        BucketSubcommands::Update(_) => {
+            crate::hyperscoop_middle::invoke_update::update_buckets().await?;
+        }
     }
     Ok(())
 }

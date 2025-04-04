@@ -40,7 +40,7 @@ pub struct KnownArgs {}
 #[command(about = "删除一个bucket   \n---hp bucket rm <repo_name>")]
 #[command(arg_required_else_help = true, subcommand_negates_reqs = true)]
 pub struct RmArgs {
-    #[arg(required = true)]
+    #[arg(required = true , help="删除的仓库名称")]
     pub(crate) name: String,
 }
 

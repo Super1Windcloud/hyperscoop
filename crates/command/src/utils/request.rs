@@ -1,19 +1,17 @@
-﻿use crossterm::style::Stylize;
+﻿use anyhow::bail;
+use crossterm::style::Stylize;
+use git2::{FetchOptions, Progress, RemoteCallbacks, Repository};
 use indicatif::{ProgressBar, ProgressStyle};
 use regex::Regex;
 use reqwest::get;
-#[allow(unused)]
-use std::cmp::min;
 use std::fs::{create_dir_all, read_dir, remove_dir, remove_dir_all, remove_file, rename, File};
-use std::io;
 use std::io::{copy, Read, Write};
 use std::path::Path;
-use std::process::Stdio;
-#[allow(unused_imports)]
-use std::process::{exit, Command};
-use std::time::Duration;
+use std::process::{Command, Stdio};
+use std::time::{Duration, Instant};
 use tokio::time;
 use zip::ZipArchive;
+use crate::utils::utility::write_into_log_file;
 
 pub async fn request_download_git_repo(
     url: &str,
@@ -88,11 +86,7 @@ pub async fn request_download_git_repo(
         let path = entry.expect(error_message.as_str()).path();
         let entry: &Path = path.as_ref();
         let target_path = entry.to_string_lossy().trim().replace(&repo_name, "");
-        //println!("{}", repo_name);   将/换成\
 
-        // println!(" entry {:?} ", entry.to_string_lossy());
-        //   打印出来的是\\ ,但是在原始字符串中是\, 所以在替换的时候只需把\替换成""即可
-        // println!("target {:?} ", target_path);
         let target_path = Path::new(&target_path);
         if entry.is_dir() {
             rename(&entry, &target_path).expect("Failed to rename directory路径错误");
@@ -104,108 +98,111 @@ pub async fn request_download_git_repo(
     Ok("下载成功!!! ".dark_green().bold().to_string())
 }
 
-#[allow(unused)]
 pub async fn request_download_git_clone(
     repo_url: &str,
     destination: &str,
-) -> Result<String, io::Error> {
-    // 创建一个新的命令
-
+) -> Result<String, anyhow::Error> {
     if Path::new(destination).exists() {
         remove_dir_all(destination).expect("Failed to delete directory for bucket ");
     }
     if !Path::new(destination).exists() {
         create_dir_all(destination).expect("Failed to create directory for bucket ");
     }
-    println!("正在下载 {} 到 {}", repo_url, destination);
-    let mut output = Command::new("git")
+
+    println!(
+        "正在下载 {} =>  {}",
+        repo_url.dark_green().bold(),
+        destination.dark_green().bold()
+    );
+    let output = Command::new("git")
         .arg("clone")
         .arg("--progress")
-        .arg(repo_url)
-        .arg(destination)
+        .arg(&repo_url)
+        .arg(&destination)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
-        .spawn()
-        .expect("Failed to execute git clone");
+        .spawn();
+    if output.is_err() {
+        return request_git_clone_by_git2(repo_url, destination.to_string()).await;
+    }
+    let mut output = output?;
 
     let status = output.wait().expect("Failed to wait on child process");
 
-    let mut stdout = output.stdout.take().unwrap();
     let mut stderr = output.stderr.unwrap();
     let mut str = String::new();
-    stderr.read_to_string(&mut str).unwrap();
-    // println!("stderr: {}", str);
+    stderr.read_to_string(&mut str)?;
+
     let mut downloaded: f32 = 0.0;
-    let size_re = Regex::new(r"(\d+\.\d+\s\w+)").unwrap();
-    let speed_regex = Regex::new(r"(\d+\.\d+)\s\w+\/s").unwrap();
+    let size_re = Regex::new(r"(\d+\.\d+\s\w+)")?;
+    let speed_regex = Regex::new(r"(\d+\.\d+)\s\w+/s")?;
     let total_size = (|| {
         // 从输出中提取下载大小  KB 或者MB
-        if let Some(size_caps) = size_re.captures(&str) {
+        return if let Some(size_caps) = size_re.captures(&str) {
             let result = &size_caps[1].trim(); // 提取总大小
             let result = (|| {
-                if result.contains("KiB") {
-                    return result
+                return if result.contains("KiB") {
+                    result
                         .replace("KiB", "")
                         .trim()
                         .to_string()
                         .parse::<f32>()
                         .unwrap()
-                        * 1024.0;
+                        * 1024.0
                 } else {
-                    return result
+                    result
                         .replace("MiB", "")
                         .trim()
                         .to_string()
                         .parse::<f32>()
                         .unwrap()
                         * 1024.0
-                        * 1024.0;
-                }
+                        * 1024.0
+                };
             })();
-            return result;
+            result
         } else {
             println!("Failed to extract total size from output");
-            return 0.0;
-        }
+            0.0
+        };
     })();
     let downloaded_speed = (|| {
         // KB/S 或者 MB/S 的下载速度
-        if let Some(speed_caps) = speed_regex.captures(&str) {
+        return if let Some(speed_caps) = speed_regex.captures(&str) {
             let result = &speed_caps[0].trim(); // 提取下载速度
                                                 // 提取字符串中的数字
                                                 // let result = result.replace("KB/s", ""); // &str 存在栈区会被释放 ,需要返回String
                                                 // let result = result.replace("MiB/s", "").trim().to_string();
             let result = (|| {
-                if result.contains("KiB/s") {
-                    return result
+                return if result.contains("KiB/s") {
+                    result
                         .replace("KiB/s", "")
                         .trim()
                         .to_string()
                         .parse::<f32>()
                         .unwrap()
-                        * 1024.0;
+                        * 1024.0
                 } else {
-                    return result
+                    result
                         .replace("MiB/s", "")
                         .trim()
                         .to_string()
                         .parse::<f32>()
                         .unwrap()
                         * 1024.0
-                        * 1024.0;
-                }
+                        * 1024.0
+                };
             })();
 
-            return result;
+            result
         } else {
             println!("Failed to extract download speed from output");
-            return 0.0;
-        }
+            0.0
+        };
     })();
     // ---
     let pb = ProgressBar::new(total_size as u64);
-    pb.set_style(ProgressStyle::with_template("{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({bytes_per_sec}, {eta})")
-    .unwrap()
+    pb.set_style(ProgressStyle::with_template("{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({bytes_per_sec}, {eta})")?
     .progress_chars("#>-"));
     while downloaded < total_size {
         let new = (downloaded + downloaded_speed).min(total_size);
@@ -219,7 +216,6 @@ pub async fn request_download_git_clone(
 
     pb.finish_with_message("downloaded");
 
-    // 检查命令是否成功执行
     if status.success() {
         Ok("下载成功!!! ".dark_green().bold().to_string())
     } else {
@@ -229,13 +225,108 @@ pub async fn request_download_git_clone(
             .read_to_end(&mut stderr_bytes)
             .expect("Failed to read stderr");
 
-        let error_message = String::from_utf8_lossy(&stderr_bytes);
+        let error_message = String::from_utf8_lossy(&stderr_bytes).to_string();
         println!("克隆失败: {}", error_message);
-        Err(io::Error::new(io::ErrorKind::Other, "克隆失败"))
+        bail!(error_message);
     }
 }
-#[allow(unused)]
 
+pub async fn request_git_clone_by_git2(
+    repo_url: &str,
+    destination: String,
+) -> Result<String, anyhow::Error> {
+    if Path::new(&destination).exists() {
+        remove_dir_all(&destination).expect("Failed to delete directory for bucket ");
+    }
+    if !Path::new(&destination).exists() {
+        create_dir_all(&destination).expect("Failed to create directory for bucket ");
+    }
+
+    match Repository::clone(repo_url, &destination) {
+        // {:?} 会调用 Display的trait 实现
+        Ok(_) => println!("✅ 仓库已克隆到 {}", destination.dark_green().bold()),
+        Err(e) => eprintln!("❌ 克隆失败: {}", e),
+    }
+    Ok("下载成功!!! ".dark_green().bold().to_string())
+}
+
+pub async fn request_git_clone_by_git2_with_progress(
+    repo_url: &str,
+    destination: &String,
+) -> Result<String, anyhow::Error> {
+    if Path::new(destination).exists() {
+        remove_dir_all(destination).expect("Failed to delete directory for bucket ");
+    }
+    if !Path::new(destination).exists() {
+        create_dir_all(destination).expect("Failed to create directory for bucket ");
+    }
+    let pb = ProgressBar::new(100);
+    pb.set_style(
+      ProgressStyle::with_template("[{elapsed_precise}] [{bar:40.cyan/blue}] {pos}% ({objs}/{total_objs} objects, {objs_per_sec} objs/s)")?
+            .progress_chars("#>-"),
+    );
+    let start_time = Instant::now();
+    let mut last_received = 0;
+    let mut last_time = start_time;
+    
+    let mut callbacks = RemoteCallbacks::new();
+    callbacks.transfer_progress(|stats: Progress| {
+         
+        let received_objects = stats.received_objects();
+        let total_objects = if stats.total_objects() > 0 {
+            stats.total_objects()
+        } else {
+            stats.indexed_objects()
+        };
+        if total_objects > 0 {
+            let percent = (received_objects as f64 / total_objects as f64) * 100.0;
+
+            // 计算下载速率（单位：对象数/s）
+            let now = Instant::now();
+            let elapsed = now.duration_since(last_time);
+            let delta_objects = received_objects - last_received;
+
+            let speed = if elapsed.as_secs_f64() > 0.0 {
+                delta_objects as f64 / elapsed.as_secs_f64()
+            } else {
+                0.0
+            };
+            write_into_log_file();
+            pb.set_position(percent as u64);
+            pb.set_message(format!(
+                "{} / {} objects, {:.2} objs/s",
+                received_objects, total_objects, speed
+            ));
+
+            last_received = received_objects;
+            last_time = now;
+        }
+        true // 继续下载
+    });
+    let mut fo = FetchOptions::new();
+    fo.remote_callbacks(callbacks);
+
+    let mut builder = git2::build::RepoBuilder::new();
+    builder.fetch_options(fo);
+
+    // 执行克隆
+    match builder.clone(repo_url, Path::new(destination)) {
+        Ok(_) => {
+            pb.finish_with_message(format!(
+                "✅ 仓库已克隆到 {}",
+                destination.to_string().dark_green().bold()
+            ));
+             println!("✅ 仓库已克隆到 {}", destination.to_string(). dark_green().bold()); 
+            Ok("下载成功!!! ".dark_green().bold().to_string())
+        }
+        Err(e) => {
+            pb.finish_with_message("❌ 克隆失败！");
+            bail!("❌ 克隆失败: {}", e);
+        }
+    }
+}
+
+#[allow(unused)]
 pub async fn download_third_party_buckets() -> Result<String, anyhow::Error> {
     let third_buckets = vec![
         "https://github.com/DoveBoy/Apps",
@@ -278,30 +369,27 @@ pub async fn download_third_party_buckets() -> Result<String, anyhow::Error> {
         request_download_git_clone(url, &download_path).await?;
     }
 
-    Ok(("下载成功!!! ".dark_green().bold().to_string()))
+    Ok("下载成功!!! ".dark_green().bold().to_string())
 }
 
-
-pub fn   get_git_repo_remote_url<P: AsRef<Path>>(
-    repo_path :P ,
-) -> Result<String, anyhow::Error> {
-   use  git2::Repository;
-   let repo = Repository::open(repo_path)?;
-  for remote in repo.remotes()?.iter() {
-    if  remote.is_none() {
-      continue;
+pub fn get_git_repo_remote_url<P: AsRef<Path>>(repo_path: P) -> Result<String, anyhow::Error> {
+    use git2::Repository;
+    let repo = Repository::open(repo_path)?;
+    for remote in repo.remotes()?.iter() {
+        if remote.is_none() {
+            continue;
+        }
+        let remote = remote.unwrap();
+        let remote = repo.find_remote(remote);
+        if remote.is_err() {
+            continue;
+        }
+        let remote = remote?;
+        let url = remote.url().unwrap();
+        if url.is_empty() {
+            continue;
+        }
+        return Ok(url.to_string());
     }
-    let remote = remote.unwrap();
-    let remote= repo.find_remote(remote) ;
-    if remote.is_err() {
-      continue;
-    }
-    let remote = remote.unwrap() ;
-    let url =  remote.url().unwrap();
-    if url.is_empty() {
-      continue;
-    }
-    return Ok(url.to_string());
-  }
- Ok("Not found remote url".to_string())
+    Ok("Not found remote url".to_string())
 }

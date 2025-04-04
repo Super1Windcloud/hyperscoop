@@ -1,6 +1,6 @@
 ﻿use crate::init_hyperscoop;
-use crate::utils::request::{get_git_repo_remote_url, request_download_git_clone};
-use anyhow::anyhow;
+use crate::utils::request::{get_git_repo_remote_url, request_git_clone_by_git2_with_progress};
+use anyhow::{anyhow, bail};
 use chrono::{DateTime, Utc};
 use crossterm::style::Stylize;
 use log::error;
@@ -21,22 +21,30 @@ pub struct Buckets {
     pub buckets_path: Vec<String>,
     pub buckets_name: Vec<String>,
 }
+
+impl Buckets {
+    pub fn is_valid_url(&self, url: &String) -> bool {
+        let re = Regex::new(r"^(http|https)://[a-zA-Z0-9-\.]+\.[a-zA-Z]{2,}(/\S*)?$").unwrap();
+        re.is_match(url)
+    }
+}
+
 pub fn get_buckets_path() -> Result<Vec<String>, anyhow::Error> {
     let bucket = Buckets::new();
     let buckets_path = bucket.buckets_path;
-    return Ok(buckets_path);
+    Ok(buckets_path)
 }
 
 pub fn get_buckets_name() -> Result<Vec<String>, anyhow::Error> {
     let bucket = Buckets::new();
     let buckets_name = bucket.buckets_name;
-    return Ok(buckets_name);
+    Ok(buckets_name)
 }
 impl Buckets {
     //参数传递尽量以借用为主，避免拷贝大量数据
     pub async fn rm_buckets(&self, name: &String) -> Result<(), anyhow::Error> {
-        let (bucket_paths, buckets_name) = self.get_bucket_self()?;
-        for bucket_name in buckets_name {
+        let (bucket_paths, buckets_names) = self.get_bucket_self()?;
+        for bucket_name in buckets_names {
             if &bucket_name == name {
                 for bucket_path in &bucket_paths {
                     if bucket_path.ends_with(name) {
@@ -52,22 +60,16 @@ impl Buckets {
         Err(anyhow!("bucket not found").context("没有这个名字的bucket"))
     }
     fn delete_dir_recursively(&self, bucket_path: &Path) -> Result<(), anyhow::Error> {
-        println!("正在删除目录 : {:?}", bucket_path);
-        for entry in read_dir(bucket_path)? {
-            let path = entry?.path();
-
-            if path.is_dir() {
-                remove_dir_all(&path)?;
-            } else {
-                remove_file(&path)?
-            }
-        }
-        remove_dir(bucket_path)?;
+        println!(
+            "{}{}",
+            "正在删除目录 : ".to_string().dark_blue().bold(),
+            &bucket_path.display().to_string().dark_green().bold()
+        );
+        remove_dir_all(bucket_path)?;
         Ok(())
     }
 }
 
-//option 代表可选参数 ,Result 代表Promise的reject 和 resolve
 impl Buckets {
     pub async fn add_buckets(
         &self,
@@ -79,7 +81,12 @@ impl Buckets {
             .clone()
             .unwrap_or_else(|| url.clone().unwrap().split("/").last().unwrap().to_string());
         let hyperscoop = init_hyperscoop().expect("Failed to initialize hyperscoop");
-        let url = url.clone().expect("Failed to initialize hyperscoop"); // 调用 option或Result函数才使用 ?
+        let url = if url.is_some() {
+            url.clone().unwrap()
+        } else {
+            bail!("URL 不能为空")
+        };
+        check_name_is_valid(&bucket_name)?;
         if !url.contains("http://") && !url.contains("https://") {
             error!("");
             return Err(anyhow!("Invalid URL: {}", url).context("请输入正确的 URL"));
@@ -92,6 +99,7 @@ impl Buckets {
         println!("{}", result);
         Ok(())
     }
+
     pub async fn download_bucket(
         &self,
         url: &str,
@@ -99,18 +107,15 @@ impl Buckets {
         bucket_path: &str,
     ) -> Result<String, anyhow::Error> {
         let bucket_path = bucket_path.to_string() + "\\" + bucket_name;
-        // println!("{:?}  ,  {:?}", bucket_path, url);
-        // println!("{:?}", bucket_name);
+
         println!("{} ", "正在下载...... ".dark_green().bold());
 
-        // let result = download_third_party_buckets().await?;
-        let result = request_download_git_clone(&url, &bucket_path).await?;
+        let result = request_git_clone_by_git2_with_progress(url, &bucket_path).await?;
         println!("{} ", result);
-        return Ok(format!("bucket添加成功\t{}", bucket_path)
-            .dark_cyan()
-            .bold()
-            .to_string());
+        Ok("bucket添加成功".to_string().dark_cyan().bold().to_string())
     }
+  
+  
     pub fn check_file_ishave_content(&self, bucket_path: &str) -> Result<(), anyhow::Error> {
         //检查目录是否包含文件
         if !Path::new(bucket_path).read_dir()?.next().is_none() {
@@ -191,11 +196,7 @@ impl Buckets {
             let path = entry.expect(error_message.as_str()).path();
             let entry: &Path = path.as_ref();
             let target_path = entry.to_string_lossy().trim().replace(&repo_name, "");
-            //println!("{}", repo_name);   将/换成\
 
-            // println!(" entry {:?} ", entry.to_string_lossy());
-            //   打印出来的是\\ ,但是在原始字符串中是\, 所以在替换的时候只需把\替换成""即可
-            // println!("target {:?} ", target_path);
             let target_path = Path::new(&target_path);
             if entry.is_dir() {
                 rename(&entry, &target_path).expect("Failed to rename directory路径错误");
@@ -206,6 +207,14 @@ impl Buckets {
         remove_dir(current_dir)?;
         Ok("下载成功!!! ".dark_green().bold().to_string())
     }
+}
+
+fn check_name_is_valid(app_name: &String) -> anyhow::Result<()> {
+    let re = Regex::new(r"^[a-zA-Z0-9_-]+$")?;
+    if !re.is_match(app_name) {
+        bail!("Repo Name 格式无效,请使用字母、数字、下划线或连字符")
+    }
+    Ok(())
 }
 
 impl Buckets {
@@ -222,7 +231,8 @@ impl Buckets {
             .iter()
             .map(|e| e.0.len())
             .max()
-            .unwrap_or(0) +10 ;
+            .unwrap_or(0)
+            + 10;
         let max_manifest_len = combined_buckets
             .iter()
             .map(|e| e.3.len())
@@ -232,29 +242,37 @@ impl Buckets {
             .iter()
             .map(|e| e.1.len())
             .max()
-            .unwrap_or(0)+4 ;
+            .unwrap_or(0)
+            + 4;
         let max_updated_len = combined_buckets
             .iter()
             .map(|e| e.2.len())
             .max()
-            .unwrap_or(0)+10 ;
+            .unwrap_or(0)
+            + 10;
 
         println!(
             "{:<max_name_len$}{}{:<max_source_len$}{}{:<max_updated_len$}{}{:<max_manifest_len$}",
-            "BucketName".dark_cyan().bold()," ".repeat(max_name_len-10  ),
-            "SourceUrl".dark_cyan().bold(), " ".repeat(max_source_len  -9 ),
-            "UpdatedTime".dark_cyan().bold(), " ".repeat(max_updated_len- 11  ),
+            "BucketName".dark_cyan().bold(),
+            " ".repeat(max_name_len - 10),
+            "SourceUrl".dark_cyan().bold(),
+            " ".repeat(max_source_len - 9),
+            "UpdatedTime".dark_cyan().bold(),
+            " ".repeat(max_updated_len - 11),
             "Manifests".dark_cyan().bold(),
             max_name_len = max_name_len,
             max_source_len = max_source_len,
             max_updated_len = max_updated_len,
             max_manifest_len = max_manifest_len
         );
-      println!(
+        println!(
             "{:<max_name_len$}{}{:<max_source_len$}{}{:<max_updated_len$}{}{:<max_manifest_len$}",
-            "__________".dark_cyan().bold(), " ".repeat(max_name_len-10 ),
-            "_________".dark_cyan().bold(), " ".repeat(max_source_len-9 ),
-            "___________".dark_cyan().bold()," ".repeat(max_updated_len -11  ),
+            "__________".dark_cyan().bold(),
+            " ".repeat(max_name_len - 10),
+            "_________".dark_cyan().bold(),
+            " ".repeat(max_source_len - 9),
+            "___________".dark_cyan().bold(),
+            " ".repeat(max_updated_len - 11),
             "_________".dark_cyan().bold(),
             max_name_len = max_name_len,
             max_source_len = max_source_len,
@@ -268,9 +286,9 @@ impl Buckets {
                 source,
                 updated,
                 manifest,
-                max_name_len = max_name_len ,
-                max_source_len = max_source_len ,
-                max_updated_len = max_updated_len ,
+                max_name_len = max_name_len,
+                max_source_len = max_source_len,
+                max_updated_len = max_updated_len,
                 max_manifest_len = max_manifest_len
             );
         }
@@ -284,12 +302,12 @@ impl Buckets {
         let bucket_updated = Self::get_updated_time(&bucket_source);
         let bucket_manifest = Self::get_manifest_version(&bucket_source);
 
-        return (
+        (
             bucket_name,
             bucket_source_url,
             bucket_updated,
             bucket_manifest,
-        );
+        )
     }
 
     fn get_updated_time(bucket_source: &Vec<String>) -> Vec<String> {
@@ -308,7 +326,7 @@ impl Buckets {
             let updated_time_formatted = updated_time_utc.format("%Y-%m-%d %H:%M:%S").to_string();
             bucket_updated.push(updated_time_formatted.trim_matches('"').into());
         }
-        return bucket_updated;
+        bucket_updated
     }
 
     fn get_manifest_version(path: &Vec<String>) -> Vec<String> {
@@ -321,7 +339,7 @@ impl Buckets {
             bucket_manifest.push(count.to_string());
         }
 
-        return bucket_manifest;
+        bucket_manifest
     }
 
     fn get_bucket_source_url() -> Vec<String> {
@@ -344,7 +362,7 @@ impl Buckets {
         let hyperscoop = init_hyperscoop().expect("Failed to initialize hyperscoop");
         let bucket_path = hyperscoop.bucket_path.clone();
         // 遍历 bucket_path 下的所有文件夹，并将文件夹名加入 buckets_path
-        let buckets_path: Vec<String> = std::fs::read_dir(&bucket_path)
+        let buckets_path: Vec<String> = read_dir(&bucket_path)
             .expect("Failed to read bucket_path")
             .filter_map(|e| e.ok())
             .filter(|e| e.path().is_dir())
@@ -368,7 +386,7 @@ impl Buckets {
         let content: serde_json::Value = serde_json::from_reader(reader_buffer)?;
         let mut known_name: Vec<String> = Vec::new();
         let mut known_source: Vec<String> = Vec::new();
-        let re = Regex::new(r#""(https?://[^\s]+)""#).unwrap();
+        let re = Regex::new(r#""(https?://[^\s]+)""#)?;
         for bucket in content.as_object().unwrap() {
             let name = bucket.0.to_string();
             let source = bucket.1.to_string();
@@ -380,7 +398,7 @@ impl Buckets {
             };
             known_name.push(name);
         }
-        return Ok((known_name, known_source));
+        Ok((known_name, known_source))
     }
 
     //iter() 用于获取集合中元素的不可变引用，允许直接访问元素。

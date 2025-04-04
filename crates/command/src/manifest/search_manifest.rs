@@ -8,11 +8,7 @@ pub struct SearchManifest {
   //Serde 会自动忽略 JSON 文件中不存在的字段或者在结构体中没有定义的字段。
   #[serde(skip_serializing_if = "Option::is_none")] // 只序列化非空值
   pub version: Option<String>,
-
-  // pub description: Option<String>,
-
-  //  主页 URL
-  // pub homepage: Option<String>,
+ 
 }
 
 
