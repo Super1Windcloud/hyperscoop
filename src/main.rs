@@ -58,7 +58,7 @@ async fn main() ->   anyhow::Result<()> {
     println!(
         "{ } \n ",
         "次世代更快更强更精美的Windows包管理器!".dark_magenta().bold()
-    );
+    ); 
 
     let  result =  match cli.command {
         None => {
