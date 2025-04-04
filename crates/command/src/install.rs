@@ -14,8 +14,8 @@ pub mod   cli_options_store;
 pub use cli_options_store::*; 
 pub struct ArchStruct {}
 pub async fn install_app_from_local_manifest_file(
-    manifest_path: &String,
-    arch: Option<String>,
+  manifest_path: &String,
+  arch: Option<String>,
 ) -> Result<()> {
     log::info!("install from local manifest file {}", manifest_path);
     let mut install_arch = String::new();

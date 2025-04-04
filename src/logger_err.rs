@@ -1,5 +1,4 @@
-﻿use clap::CommandFactory;
-use env_logger;
+﻿use env_logger;
 use env_logger::init;
 #[allow(unused_imports)]
 use log::{debug, error, info, trace};

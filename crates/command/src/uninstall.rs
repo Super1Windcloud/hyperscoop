@@ -4,7 +4,6 @@ use crate::manifest::uninstall_manifest::UninstallManifest;
 use crate::utils::invoke_hook_script::*;
 use anyhow::bail;
 use crossterm::style::Stylize;
-use serde_json::Value;
 use std::path::{Path, PathBuf};
 mod env_set;
 use env_set::*;

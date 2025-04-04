@@ -4,20 +4,18 @@ use command_util_lib::install::* ;
 use crate::command_args::install::InstallArgs;
 
 pub  async fn  execute_install_command(args: InstallArgs) -> Result< () , anyhow::Error>{
-
   if args.app_name.is_none() {
     return  Ok(());
-  }
-
+  } 
+  inject_user_options()? ; 
   let app_name = args.app_name.unwrap();
   let  app_name = convert_path(app_name.trim()) ;
   if  Path::new(&app_name).exists()      {
     log::trace!("manifest file {}" , app_name);
     if  args.arch.is_some() {
-      install_app_from_local_manifest_file(   &app_name ,  Some(args.arch.unwrap()) ).await?;
-
+      install_app_from_local_manifest_file(   &app_name ,  Some(args.arch.unwrap())  ).await?;
     } else {
-      install_app_from_local_manifest_file(   &app_name,  None ).await?;
+      install_app_from_local_manifest_file(&app_name, None, ).await?;
     }
     return Ok(());
   }
@@ -63,6 +61,12 @@ pub  async fn  execute_install_command(args: InstallArgs) -> Result< () , anyhow
  install_app (app_name.as_str()  ).await? ;
   Ok(())
  }
+
+fn inject_user_options() ->  anyhow::Result<()> {
+  
+  
+  Ok(())
+}
 
 fn contains_special_char(s: &str) -> bool {
   
