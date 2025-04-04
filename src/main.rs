@@ -89,7 +89,7 @@ async fn main() ->   anyhow::Result<()> {
                 Commands::Status(_) =>  execute_status_command() ,
                 Commands::Uninstall( args ) => execute_uninstall_command( args)  ,
                 Commands::Update(update_args) => {
-                  auto_check_hp_update( ).await? ;
+                  auto_check_hp_update( ).await?;
                   execute_update_command(update_args).await},
                 Commands::Which(which ) =>  execute_which_command( which ),
                 Commands::Merge(args ) => execute_merge_command(args )  ,
