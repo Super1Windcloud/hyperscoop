@@ -35,7 +35,7 @@ const WONDERFUL_STYLES: Styles = Styles::styled()
   disable_version_flag = false
 )]
 
-#[command(after_help = "For more i nformation about a command, run: hp  COMMAND -h/--help", after_long_help = None)]
+#[command(after_help = "For more information about a command, run: hp  [COMMAND] -h/--help", after_long_help = None)]
 #[command(disable_colored_help = false , styles = WONDERFUL_STYLES )]
 struct Cli {
     #[command(subcommand)]
@@ -58,11 +58,11 @@ async fn main() ->   anyhow::Result<()> {
     println!(
         "{ } \n ",
         "次世代更快更强更精美的Windows包管理器!".dark_magenta().bold()
-    ); 
+    );
 
     let  result =  match cli.command {
         None => {
-            eprintln!("No command provided. Run `hp  --help` to see available commands.");
+            eprintln!("No command provided. Run `hp  --help` to see available commands!");
             Ok(())
         }
         Some(input_command) => {
