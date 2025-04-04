@@ -1,6 +1,6 @@
 ﻿use crate::manifest::manifest_deserialize::*;
 use serde::{Deserialize, Serialize};
-
+#[must_use]
 #[allow(clippy::unsafe_derive_deserialize)]
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct InstallManifest {

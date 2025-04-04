@@ -31,4 +31,8 @@ pub struct InstallArgs  {
   #[arg(short='a', long, help = "指定安装架构, 如果支持的话",
     required = false ,default_value ="64bit" ,value_name="<32bit|64bit|arm64>")]
   pub arch : Option<String>,
+
+  #[arg(from_global)]
+  pub  global :bool
+  
 }

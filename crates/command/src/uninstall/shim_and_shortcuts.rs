@@ -650,8 +650,9 @@ fn rm_alias_shim_name_file(
         let shim_file = shim_path.join(exe_file);
         if shim_file.exists() {
             println!(
-                "Removing shim file {}",
-                shim_file.display().to_string().dark_cyan().bold()
+                "{} {}",
+                "Removing shim file".dark_blue().bold(),
+                shim_file.display().to_string().dark_green().bold()
             );
             std::fs::remove_file(&shim_file)?;
         }
@@ -661,16 +662,18 @@ fn rm_alias_shim_name_file(
             return Ok(());
         }
         println!(
-            "Removing shim file {}",
-            shim_file.display().to_string().dark_cyan().bold()
+            "{} {}",
+            "Removing shim file".dark_blue().bold(),
+            shim_file.display().to_string().dark_green().bold()
         );
         std::fs::remove_file(shim_file)?;
     }
     if suffix == "bat" || suffix == "cmd" {
         if shim_file.exists() {
             println!(
-                "Removing shim file {}",
-                shim_file.display().to_string().dark_cyan().bold()
+                "{} {}",
+                "Removing shim file".dark_blue().bold(),
+                shim_file.display().to_string().dark_green().bold()
             );
             std::fs::remove_file(&shim_file)?;
         }
@@ -679,8 +682,9 @@ fn rm_alias_shim_name_file(
 
         if cmd_file.exists() {
             println!(
-                "Removing shim file {}",
-                cmd_file.display().to_string().dark_cyan().bold()
+                "{} {}",
+                "Removing shim file".dark_blue().bold(),
+                cmd_file.display().to_string().dark_green().bold()
             );
             std::fs::remove_file(&cmd_file)?;
         }
@@ -692,8 +696,9 @@ fn rm_alias_shim_name_file(
 
         if shim_file.exists() {
             println!(
-                "Removing shim file {}",
-                shim_file.display().to_string().dark_cyan().bold()
+                "{} {}",
+                "Removing shim file".dark_blue().bold(),
+                shim_file.display().to_string().dark_green().bold()
             );
             std::fs::remove_file(&shim_file)?;
         }
@@ -702,15 +707,17 @@ fn rm_alias_shim_name_file(
         let cmd_file = shim_path.join(cmd_str);
         if shell_file.exists() {
             println!(
-                "Removing shim file {}",
-                shell_file.display().to_string().dark_cyan().bold()
+                "{} {}",
+                "Removing shim file".dark_blue().bold(),
+                shell_file.display().to_string().dark_green().bold()
             );
             std::fs::remove_file(&shell_file)?;
         }
         if cmd_file.exists() {
             println!(
-                "Removing shim file {}",
-                cmd_file.display().to_string().dark_cyan().bold()
+                "{} {}",
+                "Removing shim file".dark_blue().bold(),
+                cmd_file.display().to_string().dark_green().bold()
             );
             std::fs::remove_file(&cmd_file)?;
         }
@@ -735,8 +742,9 @@ fn rm_default_shim_name_file(s: String, shim_path: &Path) -> anyhow::Result<()> 
     let shim_file = shim_path.join(s.clone());
     if shim_file.exists() && suffix == "exe" {
         println!(
-            "Removing shim file {}",
-            shim_file.display().to_string().dark_cyan().bold()
+            "{} {}",
+            "Removing shim file".dark_blue().bold(),
+            shim_file.display().to_string().dark_green().bold()
         );
         std::fs::remove_file(&shim_file)?;
         let shim = prefix.to_string() + ".shim";
@@ -745,16 +753,18 @@ fn rm_default_shim_name_file(s: String, shim_path: &Path) -> anyhow::Result<()> 
             return Ok(());
         }
         println!(
-            "Removing shim file {}",
-            shim_file.display().to_string().dark_cyan().bold()
+            "{} {}",
+            "Removing shim file".dark_blue().bold(),
+            shim_file.display().to_string().dark_green().bold()
         );
         std::fs::remove_file(shim_file)?;
     }
     if suffix == "bat" || suffix == "cmd" {
         if shim_file.exists() {
             println!(
-                "Removing shim file {}",
-                shim_file.display().to_string().dark_cyan().bold()
+                "{} {}",
+                "Removing shim file".dark_blue().bold(),
+                shim_file.display().to_string().dark_green().bold()
             );
             std::fs::remove_file(&shim_file)?;
         }
@@ -763,15 +773,17 @@ fn rm_default_shim_name_file(s: String, shim_path: &Path) -> anyhow::Result<()> 
         let cmd_file = shim_path.join(cmd_str);
         if shell_file.exists() {
             println!(
-                "Removing shim file {}",
-                shell_file.display().to_string().dark_cyan().bold()
+                "{} {}",
+                "Removing shim file".dark_blue().bold(),
+                shell_file.display().to_string().dark_green().bold()
             );
             std::fs::remove_file(&shell_file)?;
         }
         if cmd_file.exists() {
             println!(
-                "Removing shim file {}",
-                cmd_file.display().to_string().dark_cyan().bold()
+                "{} {}",
+                "Removing shim file".dark_blue().bold(),
+                cmd_file.display().to_string().dark_green().bold()
             );
             std::fs::remove_file(&cmd_file)?;
         }
@@ -779,8 +791,9 @@ fn rm_default_shim_name_file(s: String, shim_path: &Path) -> anyhow::Result<()> 
 
     if shim_file.exists() && suffix == "ps1" {
         println!(
-            "Removing shim file {}",
-            shim_file.display().to_string().dark_cyan().bold()
+            "{} {}",
+            "Removing shim file".dark_blue().bold(),
+            shim_file.display().to_string().dark_green().bold()
         );
         std::fs::remove_file(&shim_file)?;
 
@@ -789,15 +802,17 @@ fn rm_default_shim_name_file(s: String, shim_path: &Path) -> anyhow::Result<()> 
         let cmd_file = shim_path.join(cmd_str);
         if shell_file.exists() {
             println!(
-                "Removing shim file {}",
-                shell_file.display().to_string().dark_cyan().bold()
+                "{} {}",
+                "Removing shim file".dark_blue().bold(),
+                shell_file.display().to_string().dark_green().bold()
             );
             std::fs::remove_file(&shell_file)?;
         }
         if cmd_file.exists() {
             println!(
-                "Removing shim file {}",
-                cmd_file.display().to_string().dark_cyan().bold()
+                "{} {}",
+                "Removing shim file".dark_blue().bold(),
+                cmd_file.display().to_string().dark_green().bold()
             );
             std::fs::remove_file(&cmd_file)?;
         }

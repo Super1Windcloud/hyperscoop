@@ -28,7 +28,7 @@ use clap::Subcommand;
     arg_required_else_help = true,
     next_line_help = false,
     disable_help_subcommand = true
-)] //帮助信息换行
+)]  
 pub(crate) enum Commands {
     Bucket(BucketArgs),
 
@@ -51,6 +51,7 @@ pub(crate) enum Commands {
 
     Shim(ShimArgs),
     Status(StatusArgs),
+    #[clap(alias = "un")]
     Uninstall(UninstallArgs),
     Update(UpdateArgs),
     Which(WhichArgs),

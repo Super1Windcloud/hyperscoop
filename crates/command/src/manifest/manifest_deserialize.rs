@@ -11,6 +11,7 @@ pub enum StringArrayOrString {
     String(String), // 字符串类型
 }
 
+#[must_use]
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 // #[serde(untagged)]    // 只能用于枚举
 pub struct ArchitectureObject {
@@ -20,6 +21,7 @@ pub struct ArchitectureObject {
     pub x86bit: Option<BaseArchitecture>,
     pub arm64: Option<BaseArchitecture>,
 }
+#[must_use]
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct BaseArchitecture {
     pub bin: Option<StringOrArrayOrDoubleDimensionArray>,

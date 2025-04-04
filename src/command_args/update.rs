@@ -20,5 +20,9 @@ pub struct UpdateArgs {
   pub  all : bool, 
   
   #[arg (short, long, help = "不保留旧的App可执行程序")]
-  pub   no_retain_out_app : bool, 
+  pub   no_retain_out_app : bool,
+
+  #[arg(from_global)]
+  pub  global :bool
+  
 }

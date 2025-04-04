@@ -2,7 +2,7 @@ use std::path::Path;
 use serde::{Deserialize, Serialize};
 use crate::manifest::manifest_deserialize::*  ;
 
-
+#[must_use]
 #[allow(clippy::unsafe_derive_deserialize)]
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct UninstallManifest {

@@ -1,5 +1,7 @@
 ﻿use clap::Args;
 
+
+
 #[derive(Args, Debug)]
 #[command(arg_required_else_help = true, subcommand_negates_reqs = true)]
 #[command(about = "🐼          显示App的manifest清单文件内容")]
@@ -7,3 +9,7 @@
 pub struct CatArgs {
     pub app_name: String,
 }
+
+
+
+ 

@@ -2,7 +2,6 @@
 #![deny(clippy::shadow)]
 mod command_args;
 
-use std::env::args;
 use std::io::stdout;
 use clap::{command, Parser};
 use clap::builder::Styles;
@@ -16,8 +15,8 @@ use command::Commands;
 use hyperscoop_middle::*;
 mod logger_err;
 use logger_err::init_logger;
-mod check_self_update; 
-use check_self_update::*; 
+mod check_self_update;
+use check_self_update::*;
 const WONDERFUL_STYLES: Styles = Styles::styled()
   .header(AnsiColor::Green.on_default().effects(Effects::BOLD))
   .usage(AnsiColor::Green.on_default().effects(Effects::BOLD))
@@ -40,31 +39,37 @@ const WONDERFUL_STYLES: Styles = Styles::styled()
 #[command(disable_colored_help = false , styles = WONDERFUL_STYLES )]
 struct Cli {
     #[command(subcommand)]
-    command: Option<Commands>,
-
+    pub command: Option<Commands>,
+   #[arg(short, long , required = false,global = true, help="安装到系统目录",help_heading = "Global Options")]
+    pub global : bool,
+    #[arg(short, long, required = false,global = true , help = "开启日志调试模式", help_heading = "Global Options")]
+    pub debug : bool,
     #[command(flatten)]
     verbose: clap_verbosity_flag::Verbosity,
 }
-#[tokio::main] 
+#[tokio::main]
 #[allow(unused_variables)]
 #[allow(unused)]
 #[allow(unreachable_code, unreachable_patterns)]
-async fn main() ->   anyhow::Result<()> { 
-    init_logger();
-    color_eyre::install().unwrap(); 
+async fn main() ->   anyhow::Result<()> {
+    let cli = Cli::parse();
+  
+    init_logger(&cli );
+    color_eyre::install().unwrap();
     println!(
         "{ }!   \n ",
         "次世代更快更强更精美的Windows包管理器".magenta().bold()
     );
-    let cli = Cli::parse();
-  
+
     let  result =  match cli.command {
         None => {
             eprintln!("No command provided. Run `hp  --help` to see available commands.");
             Ok(())
         }
         Some(input_command) => {
+
             match input_command {
+
                 Commands::Bucket(bucket) => execute_bucket_command(&bucket.command).await,
                 Commands::Cat(cat) => execute_cat_command(cat),
                 Commands::Cache(cache_args) => execute_cache_command(cache_args) ,
@@ -98,10 +103,9 @@ async fn main() ->   anyhow::Result<()> {
         }
     };
   if let Err(err) = result {
-    let red_err = err.to_string().on_red().bold();
+    let red_err = err.to_string().dark_red().bold();
     execute!(stdout(), Print(red_err))?;
     println!();
   }
-
   Ok(())
 }

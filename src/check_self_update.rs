@@ -1,17 +1,17 @@
-use anyhow::{anyhow, bail};
+use anyhow::{anyhow };
 use clap::CommandFactory;
 use crossterm::style::Stylize;
 use reqwest::Client;
 use serde::Deserialize;
 use crate::Cli;
 
-
-
-#[derive(Debug, Deserialize)]
+#[allow(clippy::unsafe_derive_deserialize)]
+#[allow(dead_code)]
+#[derive(Debug, Clone, Default, Deserialize )]
 struct GiteeRelease {
   tag_name: String,
-  name : String, 
-  body : String, 
+  name : Option <String>, 
+  body : Option <String> , 
 }
 
 
@@ -44,10 +44,10 @@ async fn get_latest_version_from_gitee() -> anyhow::Result<String> {
 }
 
 mod  test_auto_update{
-  use  super::auto_check_hp_update;
 
   #[tokio::test]
   async  fn test_auto_check_hp_update () {
+      use  super::auto_check_hp_update;
       auto_check_hp_update().await.unwrap() ;
 
   }
