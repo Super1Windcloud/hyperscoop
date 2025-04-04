@@ -11,7 +11,7 @@ use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
 use tokio::time;
 use zip::ZipArchive;
-use crate::utils::utility::write_into_log_file;
+use crate::utils::utility::{ write_into_log_file_append_mode};
 
 pub async fn request_download_git_repo(
     url: &str,
@@ -219,7 +219,6 @@ pub async fn request_download_git_clone(
     if status.success() {
         Ok("下载成功!!! ".dark_green().bold().to_string())
     } else {
-        // 读取 stderr 的内容
         let mut stderr_bytes = Vec::new();
         stderr
             .read_to_end(&mut stderr_bytes)
@@ -262,16 +261,16 @@ pub async fn request_git_clone_by_git2_with_progress(
     }
     let pb = ProgressBar::new(100);
     pb.set_style(
-      ProgressStyle::with_template("[{elapsed_precise}] [{bar:40.cyan/blue}] {pos}% ({objs}/{total_objs} objects, {objs_per_sec} objs/s)")?
+      ProgressStyle::with_template("[{elapsed_precise}] [{bar:40.cyan/blue}] {pos}%  {msg}")?
             .progress_chars("#>-"),
     );
     let start_time = Instant::now();
     let mut last_received = 0;
     let mut last_time = start_time;
-    
+
     let mut callbacks = RemoteCallbacks::new();
     callbacks.transfer_progress(|stats: Progress| {
-         
+
         let received_objects = stats.received_objects();
         let total_objects = if stats.total_objects() > 0 {
             stats.total_objects()
@@ -291,7 +290,9 @@ pub async fn request_git_clone_by_git2_with_progress(
             } else {
                 0.0
             };
-            write_into_log_file();
+            write_into_log_file_append_mode("git2_clone.txt" ,
+format!("speed {speed:.2}, total_objects {total_objects}, received_objects {received_objects},percent {percent:.2}
+                                                      "));
             pb.set_position(percent as u64);
             pb.set_message(format!(
                 "{} / {} objects, {:.2} objs/s",
@@ -309,19 +310,17 @@ pub async fn request_git_clone_by_git2_with_progress(
     let mut builder = git2::build::RepoBuilder::new();
     builder.fetch_options(fo);
 
-    // 执行克隆
     match builder.clone(repo_url, Path::new(destination)) {
         Ok(_) => {
-            pb.finish_with_message(format!(
-                "✅ 仓库已克隆到 {}",
-                destination.to_string().dark_green().bold()
-            ));
-             println!("✅ 仓库已克隆到 {}", destination.to_string(). dark_green().bold()); 
+            pb.finish_with_message("✅ 成功".to_string());
+             println!("✅ 仓库已克隆到 {}", destination.to_string(). dark_green().bold());
+             pb.finish_and_clear(); 
             Ok("下载成功!!! ".dark_green().bold().to_string())
         }
         Err(e) => {
             pb.finish_with_message("❌ 克隆失败！");
-            bail!("❌ 克隆失败: {}", e);
+           pb.finish_and_clear();
+          bail!("❌ 失败: {}", e);
         }
     }
 }
