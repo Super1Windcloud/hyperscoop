@@ -7,7 +7,7 @@ pub  async fn  execute_install_command(args: InstallArgs) -> Result< () , anyhow
   if args.app_name.is_none() {
     return  Ok(());
   } 
-  inject_user_options()? ; 
+  inject_user_options(&args )? ; 
   let app_name = args.app_name.unwrap();
   let  app_name = convert_path(app_name.trim()) ;
   if  Path::new(&app_name).exists()      {
@@ -62,7 +62,7 @@ pub  async fn  execute_install_command(args: InstallArgs) -> Result< () , anyhow
   Ok(())
  }
 
-fn inject_user_options() ->  anyhow::Result<()> {
+fn inject_user_options(install_args : &InstallArgs) ->  anyhow::Result<()> {
   
   
   Ok(())

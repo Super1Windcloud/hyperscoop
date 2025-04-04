@@ -1,25 +1,30 @@
 ﻿use clap::{Args, Subcommand};
 
+
 #[derive(Args, Debug, Clone)]
 #[clap(author, version, about=None , long_about=None)]
-#[clap(override_usage = "子命令  add|list|known|rm repo_name ")]
+#[clap(override_usage = "子命令  add|list|known|rm   ")]
 #[command(arg_required_else_help = true, subcommand_negates_reqs = true)]
-#[clap(about = "🔫          管理hyperscoop所有bucket")]
+#[clap(about = "🔫          管理hp的所有bucket")]
 pub struct BucketArgs {
     #[command(subcommand)]
-    pub(crate) command: Option<BucketSubcommands>,
+    pub(crate) command: Option<BucketSubcommands> ,
+
 }
+
+
 #[derive(Subcommand, Debug, Clone)]
 #[clap(author, version, about=None , long_about=None)]
 #[clap(override_usage = "子命令  add|list|known|rm repo_name ")]
 #[command(arg_required_else_help = true, subcommand_negates_reqs = true)]
-#[command(disable_help_subcommand = true, next_line_help = true)]
+#[command(disable_help_subcommand = true, next_line_help = false )]
+#[command(infer_subcommands = true, infer_long_args = true)]
 pub enum BucketSubcommands {
     Add(AddArgs),
     List(ListArgs),
     Known(KnownArgs),
-    #[clap(alias = "remove")]
     Rm(RmArgs),
+    Update(UpdateArgs),
 }
 
 #[derive(Args, Debug, Clone)]
@@ -27,12 +32,12 @@ pub enum BucketSubcommands {
 #[clap(
     author,
     version,
-    about = "\t列出所有已知bucket源  \t---hp bucket known"
+    about = "列出所有已知bucket源  "
 )]
 pub struct KnownArgs {}
 
 #[derive(Args, Debug, Clone)]
-#[command(about = "\t删除一个bucket  \t---hp bucket rm <name>")]
+#[command(about = "删除一个bucket   \n---hp bucket rm <repo_name>")]
 #[command(arg_required_else_help = true, subcommand_negates_reqs = true)]
 pub struct RmArgs {
     #[arg(required = true)]
@@ -40,15 +45,20 @@ pub struct RmArgs {
 }
 
 #[derive(Args, Debug, Clone)]
-#[command(about = "\t添加一个指定bucket  \t---hp bucket add <name> [<repo>]")]
+#[command(about = "添加一个指定bucket, 如何没有仓库名,使用URL最后一个层次名   \n---hp bucket add <name> [<repo>]")]
 #[command(arg_required_else_help = true, subcommand_negates_reqs = true)]
 pub struct AddArgs {
-    #[arg(required = false)]
+    #[arg(required = false ,help = "仓库名称")]
     pub(crate) name: Option<String>,
-    #[arg(required = false)]
+    #[arg(required = false ,help ="仓库源地址")]
     pub(crate) repo_url: Option<String>,
 }
 
 #[derive(Args, Debug, Clone)]
-#[command(about = "\t列出所有bucket  \t---hp bucket list ")]
+#[command(about = "列出所有bucket ")]
 pub struct ListArgs {}
+
+
+#[derive(Args, Debug, Clone)]
+#[command(about = "更新所有bucket ")]
+pub struct UpdateArgs  {}

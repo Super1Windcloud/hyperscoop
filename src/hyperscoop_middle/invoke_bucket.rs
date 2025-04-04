@@ -3,8 +3,6 @@ use anyhow::anyhow;
 use command_util_lib::buckets::Buckets;
 use crossterm::style::Stylize;
 
-//解析bucket 命令的参数，并执行相应的操作
-#[allow(unreachable_patterns)]
 pub async fn execute_bucket_command(args: &Option<BucketSubcommands>) -> Result<(), anyhow::Error> {
     let buckets = Buckets::new();
     let bucket_args = args.as_ref().expect("bucket_args cannot be none");
@@ -40,9 +38,10 @@ pub async fn execute_bucket_command(args: &Option<BucketSubcommands>) -> Result<
             );
             buckets.rm_buckets(&rm_args.name).await?;
         }
-        _ => {
-            return Err(anyhow!(" 未知的命令").context("没有该命令"));
-        }
+
+      BucketSubcommands::Update(_) => {
+        crate::hyperscoop_middle::invoke_update::update_buckets().await? ;
+      }
     }
     Ok(())
 }

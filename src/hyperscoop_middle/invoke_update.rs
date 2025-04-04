@@ -40,7 +40,7 @@ pub  async fn execute_update_command(update_args: UpdateArgs) -> Result<(), anyh
     Ok(())
 }
 
-async fn update_buckets() -> Result<(), anyhow::Error> {
+pub(crate) async fn update_buckets() -> Result<(), anyhow::Error> {
    update_scoop_bar().await ? ;
   update_all_buckets_bar( )?;
   update_scoop_config_last_update_time() ;
