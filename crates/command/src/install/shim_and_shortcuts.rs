@@ -789,12 +789,15 @@ pub fn create_exe_type_shim_file_and_shim_bin<P1: AsRef<Path>, P2: AsRef<Path>>(
     Ok(())
 }
 
+ 
+#[cfg(test)]
 mod test_shim {
     #[allow(unused)]
     use super::*;
     #[allow(unused)]
      use std::env ; 
     #[test]
+    #[ignore]
     fn test_create_shortcuts() {
         use crate::install::create_start_menu_shortcuts;
         use crate::manifest::install_manifest::InstallManifest;

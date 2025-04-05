@@ -7,26 +7,7 @@ use std::fs::DirEntry;
 use std::path::{Path, PathBuf}; // 并行处理
 pub fn fuzzy_search(query: String) {
     let query = query.trim().to_string().to_lowercase();
-
-    // 存储满足条件的应用名称
-    // 使用 ARC和 Mutex 实现多线程安全互斥锁会影响性能，所有这里放弃
-
-    // let mut result = Arc::new(Mutex::new(Vec::new()));
-    //
-    // buckets_path.par_iter().for_each(|entry| {
-    //   let path = Path::new(&entry);
-    //   if path.is_dir() {
-    //     let bucket_path = path.join("bucket");
-    //     if bucket_path.is_dir() {
-    //       let temp = get_apps_names(&bucket_path, &query).expect("Failed to get apps info");
-    //       if !temp.is_empty() {
-    //         let mut result = result.lock().unwrap();
-    //         result.extend(temp);
-    //       }
-    //     }
-    //   }
-    // });
-    // let result = Arc::try_unwrap(result).unwrap().into_inner().unwrap();
+   
     let buckets = Buckets::new();
     let buckets_path = buckets.buckets_path;
     if query.contains("/") {
@@ -330,17 +311,17 @@ fn get_exact_search_apps_names(
 
 fn display_result(result: &mut Vec<(String, String, String)>) {
     result.sort_by(|a, b| a.0.cmp(&b.0));
-    let name_width = result.iter().map(|(name, _, _)| name.len()).max().unwrap()+10 ;
+    let name_width = result.iter().map(|(name, _, _)| name.len()).max().unwrap_or(0)+10 ;
     let version_width = result
         .iter()
         .map(|(_, version, _)| version.len())
         .max()
-        .unwrap() +10 ;
+        .unwrap_or(0) +10 ;
     let bucket_width = result
         .iter()
         .map(|(_, _, bucket)| bucket.len())
         .max()
-        .unwrap()  ;
+        .unwrap_or(0 )  ;
     let total_width = name_width + version_width + bucket_width +2  ; // 一个空格是一个字符宽度
 
     for i in 0..result.len() {
@@ -391,5 +372,5 @@ fn is_installed(app_name: &str) -> bool {
             return true;
         }
     }
-    return false;
+    false
 }

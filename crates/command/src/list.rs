@@ -48,8 +48,7 @@ impl AppInfo {
 
 pub fn list_all_installed_apps_refactor() -> anyhow::Result<Vec<AppInfo>> {
     let apps_dir = get_apps_path();
-    let all_apps_path = read_dir(&apps_dir)
-        .unwrap()
+    let all_apps_path = read_dir(&apps_dir)?
         .par_bridge() // 将标准迭代器转换为并行迭代器
         .filter_map(|entry| {
             let entry = entry.ok()?;

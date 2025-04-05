@@ -33,7 +33,7 @@ pub const DEMO_JSON: &str = r#"
 #[allow(unused)]
 
 pub fn fix_dirty_json(dirty_json: &str) -> Result<String, anyhow::Error> {
-  let mut json_str = repairing_json(&dirty_json).unwrap();
+  let mut json_str = repairing_json(&dirty_json)?;
   println!("{}", json_str);
   // 删除控制字符
   let re = Regex::new(r"[\x00-\x1F\x7F]")?; // 匹配控制字符

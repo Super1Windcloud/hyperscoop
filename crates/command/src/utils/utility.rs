@@ -160,12 +160,15 @@ pub fn remove_bom_and_control_chars_from_utf8_file<P: AsRef<Path>>(
 }
 
 pub fn write_utf8_file(path: &String, content: &str) -> anyhow::Result<()> {
-    let mut file = File::create(path)?;
-    file.write_all(content.as_bytes())?;
+    let mut file = File::create(path)?; 
+    /**
+     File::create(path) 的默认行为
+    如果文件存在： 会 直接清空文件内容（相当于 truncate 模式），然后写入新数据。
+    不会报错，但原内容会丢失！
+    如果文件不存在： 创建新文件并写入内容。*/
+    file.write_all(content.as_bytes())?; // 一次性全部写入
     Ok(())
 }
-
-
 
 #[cfg(test)]
 mod tests {

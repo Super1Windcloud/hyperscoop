@@ -11,6 +11,7 @@ use indicatif::{MultiProgress, ProgressBar, ProgressFinish, ProgressStyle};
 use rand::{thread_rng, Rng};
 use rayon::prelude::*;
 use std::collections::{HashMap, HashSet};
+use std::fmt::Display;
 use std::fs::{read_to_string, remove_file};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
@@ -31,14 +32,15 @@ impl Merge {
         }
     }
 }
-impl ToString for Merge {
-    fn to_string(&self) -> String {
-        format!(
-            "{}   :  {}",
-            self.app_name.clone().dark_blue().bold(),
-            self.app_version.clone().dark_blue().bold()
-        )
-    }
+impl Display for Merge {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    let str = format!(
+      "{}   :  {}",
+      self.app_name.clone().dark_blue().bold(),
+      self.app_version.clone().dark_blue().bold()
+    );
+    write!(f, "{}", str)
+  }
 }
 
 // 合并所有冗余的manifest
@@ -114,19 +116,19 @@ fn load_bucket_info(
         .map(|entry| {
             let path = entry.path();
             let file_type = entry.file_type().ok()?;
-            if file_type.is_file() && path.extension().and_then(|ext| ext.to_str()) == Some("json")
-            {
-                // 对于 path使用ends_with 只能匹配路径的最后一个元素,不能匹配扩展名
-                let result = extract_info_from_manifest(&path);
-                if let Err(e) = result {
-                    eprintln!("{}", e.to_string().dark_blue().bold());
-                    return None;
-                }
-                let result = result.unwrap();
-                return Some(result);
-            } else {
-                return None;
+          return if file_type.is_file() && path.extension().and_then(|ext| ext.to_str()) == Some("json")
+          {
+            // 对于 path使用ends_with 只能匹配路径的最后一个元素,不能匹配扩展名
+            let result = extract_info_from_manifest(&path);
+            if let Err(e) = result {
+              eprintln!("{}", e.to_string().dark_blue().bold());
+              return None;
             }
+            let result = result.unwrap();
+            Some(result)
+          } else {
+            None
+          }
         })
         .collect::<Vec<_>>();
 
@@ -266,21 +268,21 @@ fn remove_old_manifest(
                         remove_file(&path).expect("删除文件失败");
                         return None;
                     }
-                    if app_version.to_string()
-                        < latest_buckets_map
-                            .lock()
-                            .unwrap()
-                            .get(app_name)
-                            .unwrap()
-                            .app_version
-                    {
-                        //  println!("删除的文件{} 版本{}", path.display(), app_version);
-                        remove_file(&path).expect("删除文件失败");
-                        return None;
-                    } else {
-                        //多个相等的manifest最高版本只保留一个
-                        return path.into();
-                    }
+                  return if app_version.to_string()
+                    < latest_buckets_map
+                    .lock()
+                    .unwrap()
+                    .get(app_name)
+                    .unwrap()
+                    .app_version
+                  {
+                    //  println!("删除的文件{} 版本{}", path.display(), app_version);
+                    remove_file(&path).expect("删除文件失败");
+                    None
+                  } else {
+                    //多个相等的manifest最高版本只保留一个
+                    path.into()
+                  }
                 } else {
                     None
                 }
@@ -303,7 +305,7 @@ fn merge_same_latest_version(
       let ( scoop_master  ,other ) :(Vec<_>,Vec<_>)  =same_latest_version_manifests.into_par_iter().partition(|manifest| {
         let  name =   manifest.to_str().unwrap() ;
         if  name.contains("ScoopMaster") {  true } else { false }
-      }) ; 
+      }) ;
   // ? cloned 获取引用指向的值,并将值复制到新的变量中 ,转换&  Vec<T> 到 Vec<T>
   same_latest_version_manifests =scoop_master.into_iter().chain(other.into_iter()).collect::<_>();
     same_latest_version_manifests
@@ -318,8 +320,7 @@ fn merge_same_latest_version(
             ProgressStyle::default_bar()
                 .template(
                     "{prefix}  {spinner:.green} [{wide_bar:.cyan/blue}] {pos}/{len} ({eta}) {msg}",
-                )
-                .unwrap()
+                )?
                 .progress_chars("#>-"),
         )
         .with_prefix(format!("🐎 {:<10}", "ProgressBar"))
@@ -340,7 +341,7 @@ fn merge_same_latest_version(
             if count > 1 && manifest.exists() {
                 // write_into_log_file(&manifest);
                 remove_file(&manifest).expect("删除文件失败");
-                group_manifests.insert(app_name.clone(), count - 1); 
+                group_manifests.insert(app_name.clone(), count - 1);
             }
             pb.inc(1);
         })
@@ -349,7 +350,7 @@ fn merge_same_latest_version(
 }
 
 fn extract_info_from_manifest(path: &PathBuf) -> Result<Merge, anyhow::Error> {
-    let content = std::fs::read_to_string(path).unwrap_or_default();
+    let content = read_to_string(path).unwrap_or_default();
     if content.is_empty() {
         return Err(anyhow!("文件为空"));
     }
@@ -397,7 +398,7 @@ pub fn rm_err_manifest() -> Result<(), anyhow::Error> {
     use crate::utils::progrees_bar::{
         indicatif::{MultiProgress, ProgressBar, ProgressFinish},
     };
-    const FINISH_MESSAGE: &'static str = "✅";
+    const FINISH_MESSAGE: &str = "✅";
     let bucket_paths = get_buckets_path()?;
     let buckets_name = get_buckets_name()?;
 
@@ -501,7 +502,7 @@ fn rm_err_manifest_unit(
         }
         let manifest_path = manifest_path.as_ref().unwrap().path();
         if manifest_path.is_file() && manifest_path.clone().to_str().unwrap().ends_with(".json") {
-            let content = std::fs::read_to_string(&manifest_path).unwrap_or_default();
+            let content = read_to_string(&manifest_path).unwrap_or_default();
             if content.is_empty() {
                 remove_file(&manifest_path).unwrap_or_else(|_| {
                     eprintln!(
@@ -595,8 +596,6 @@ fn rm_err_manifest_unit(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     #[test]
     fn test_transfrom_result() {
         let file = r"A:\Scoop\buckets\echo\bucket\hdtune.json";
@@ -621,7 +620,7 @@ fn finebars(file_finish_count: u64, total_file_count: u64) {
     let handles: Vec<_> = styles
         .iter()
         .map(|s| {
-            let pb = m.add(ProgressBar::new(total_file_count as u64));
+            let pb = m.add(ProgressBar::new(total_file_count));
             pb.set_style(
                 ProgressStyle::with_template(&format!("{{prefix:.bold}}▕{{bar:.{}}}▏{{msg}}", s.2))
                     .unwrap()
