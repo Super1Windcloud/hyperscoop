@@ -21,7 +21,7 @@ pub struct InstallArgs  {
 
   #[arg(short='k' , long, help = "跳过本地缓存，强制从远程源重新下载安装", required = false , action = ArgAction::SetTrue, help_heading = "Install Options" )]
    pub no_use_download_cache : bool,
-  #[arg(short='i' , long, help = "不自动下载manifest里的依赖", required = false , action = ArgAction::SetTrue,help_heading = "Install Options" )]
+  #[arg(short='i' , long, help = "不自动下载manifest里的依赖,很大概率导致软件异常", required = false , action = ArgAction::SetTrue,help_heading = "Install Options" )]
   pub  no_auto_download_dependencies : bool,
   #[arg(short, long, help = "跳过下载哈希校验", required = false, action = ArgAction::SetTrue,help_heading = "Install Options"  )]
   pub ship_hash_check : bool,

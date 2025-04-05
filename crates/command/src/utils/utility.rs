@@ -5,7 +5,8 @@ use std::cmp::Ordering;
 use std::fs;
 use std::fs::File;
 use std::io::Write;
-use std::path::{Path};
+use std::path::Path;
+use crossterm::style::Stylize;
 
 pub fn compare_versions(ver1: String, ver2: String) -> Ordering {
     // 分割版本号并转换为数字数组
@@ -68,12 +69,12 @@ pub fn get_official_bucket_path(bucket_name: String) -> String {
 }
 
 pub fn write_into_log_file_append_mode(path: &str, content: String) {
-      let  root = Path::new(r"A:\Rust_Project\hyperscoop\log" );
-     let  log_dir = root.join(path);
-   if !log_dir.exists() {
-     log::info!("{} not exist, create it ", log_dir.to_str().unwrap());
-      File::create(&log_dir).unwrap();
-   }
+    let root = Path::new(r"A:\Rust_Project\hyperscoop\log");
+    let log_dir = root.join(path);
+    if !log_dir.exists() {
+        log::info!("{} not exist, create it ", log_dir.to_str().unwrap());
+        File::create(&log_dir).unwrap();
+    }
     let file = fs::OpenOptions::new()
         .append(true)
         .create(true)
@@ -159,8 +160,36 @@ pub fn remove_bom_and_control_chars_from_utf8_file<P: AsRef<Path>>(
     Ok(content)
 }
 
+pub fn assume_yes_to_cover_shim(path: &String) -> anyhow::Result<bool> {
+    use dialoguer::Confirm;
+    let message = format!("文件{path}已存在,建议检查,是否进行覆盖?(y/n)").dark_red().bold().to_string();
+
+    match   Confirm::new()
+        .with_prompt(message).show_default(false)
+        .default(false)
+        .interact()  { 
+      Ok(yes) => {
+        if yes { 
+          Ok(true)
+        }else {
+          Ok(false)
+        }
+      }
+      Err(_) => return Ok(false),
+    }
+}
+
 pub fn write_utf8_file(path: &String, content: &str) -> anyhow::Result<()> {
-    let mut file = File::create(path)?; 
+    // 文件存在, 进行覆盖警告
+    if Path::new(&path).exists() {
+        let result  =assume_yes_to_cover_shim(path)?; 
+        if !result {
+            return Ok(());
+        }else {
+          println!("{}", "覆盖写入".dark_yellow().bold() );
+        }
+    } 
+    let mut file = File::create(path)?;
     /**
      File::create(path) 的默认行为
     如果文件存在： 会 直接清空文件内容（相当于 truncate 模式），然后写入新数据。
