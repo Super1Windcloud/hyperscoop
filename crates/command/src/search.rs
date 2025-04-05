@@ -4,10 +4,10 @@ use crate::utils::detect_encoding::transform_to_only_version_manifest;
 use crossterm::style::Stylize;
 use rayon::prelude::*;
 use std::fs::DirEntry;
-use std::path::{Path, PathBuf}; // 并行处理
+use std::path::{Path, PathBuf};  
 pub fn fuzzy_search(query: String) {
     let query = query.trim().to_string().to_lowercase();
-   
+
     let buckets = Buckets::new();
     let buckets_path = buckets.buckets_path;
     if query.contains("/") {
@@ -33,11 +33,19 @@ pub fn fuzzy_search(query: String) {
         let match_result = match_result.unwrap();
         let result_info = get_result_source_and_version(match_result).unwrap();
         let count = result_info.len();
+        if count == 0 {
+            println!(
+                "\t{}",
+                "No results found...\n".to_string().dark_green().bold()
+            );
+            return;
+        }
         println!(
-            "\t{} {}",
+            "\t\t{} {}",
             count.to_string().dark_green().bold(),
             "Results from local buckets...\n".dark_green().bold()
         );
+
         sort_result_by_bucket_name(result_info);
     }
 }
@@ -81,11 +89,19 @@ pub fn exact_search(query: String) {
     let result_info = get_result_source_and_version(result).unwrap();
 
     let count = result_info.len();
+    if count == 0 {
+        println!(
+            "\t{}",
+            "No results found...\n".to_string().dark_green().bold()
+        );
+        return;
+    }
     println!(
-        "{} {}",
+        "\t{} {}",
         count.to_string().dark_green().bold(),
         "Results from local buckets...\n".dark_green().bold()
     );
+
     sort_result_by_bucket_name(result_info);
 }
 
@@ -145,8 +161,16 @@ fn search_app_in_specific_bucket(buckets_path: Vec<String>, bucket: &String, app
         let result_name = get_apps_names(&path, app_name).unwrap();
         let result_info = get_result_source_and_version(result_name).unwrap();
         let count = result_info.len();
+        if count == 0 {
+            println!(
+                "\t{}",
+                "No results found...\n".to_string().dark_green().bold()
+            );
+            return;
+        }
+
         println!(
-            "{} {}",
+            "\t{} {}",
             count.to_string().dark_green().bold(),
             "Results from local buckets...\n".dark_green().bold()
         );
@@ -311,18 +335,27 @@ fn get_exact_search_apps_names(
 
 fn display_result(result: &mut Vec<(String, String, String)>) {
     result.sort_by(|a, b| a.0.cmp(&b.0));
-    let name_width = result.iter().map(|(name, _, _)| name.len()).max().unwrap_or(0)+10 ;
+    let name_width = result
+        .iter()
+        .map(|(name, _, _)| name.len())
+        .max()
+        .unwrap_or(0)
+        + 10;
+    let name_width = if name_width <= 4 { 4 } else { name_width };
     let version_width = result
         .iter()
         .map(|(_, version, _)| version.len())
         .max()
-        .unwrap_or(0) +10 ;
+        .unwrap_or(0)
+        + 10;
+    let version_width = if version_width <= 7 { 7 } else { version_width };
     let bucket_width = result
         .iter()
         .map(|(_, _, bucket)| bucket.len())
         .max()
-        .unwrap_or(0 )  ;
-    let total_width = name_width + version_width + bucket_width +2  ; // 一个空格是一个字符宽度
+        .unwrap_or(0);
+    let bucket_width = if bucket_width <= 6 { 6 } else { bucket_width };
+    let total_width = name_width + version_width + bucket_width + 2; // 一个空格是一个字符宽度
 
     for i in 0..result.len() {
         if i == 0 {
@@ -334,8 +367,8 @@ fn display_result(result: &mut Vec<(String, String, String)>) {
                 "Version",
                 "Source",
                 "|".dark_magenta().bold(),
-                name_width = name_width ,
-                version_width = version_width ,
+                name_width = name_width,
+                version_width = version_width,
                 bucket_width = bucket_width
             );
             println!(
@@ -345,8 +378,8 @@ fn display_result(result: &mut Vec<(String, String, String)>) {
                 "_______",
                 "______",
                 "|".dark_magenta().bold(),
-                name_width = name_width ,
-                version_width = version_width ,
+                name_width = name_width,
+                version_width = version_width,
                 bucket_width = bucket_width
             );
         }
@@ -357,8 +390,8 @@ fn display_result(result: &mut Vec<(String, String, String)>) {
             result[i].1,
             result[i].2,
             "|".dark_magenta().bold(),
-            name_width = name_width ,
-            version_width = version_width ,
+            name_width = name_width,
+            version_width = version_width,
             bucket_width = bucket_width
         );
     }
