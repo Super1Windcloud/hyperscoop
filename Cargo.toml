@@ -16,8 +16,6 @@ categories = { workspace = true }
 [features]
 default = []  # 默认所有feature禁用
 
-
-
 [dependencies]
 # 当依赖被标记为 "可选 optional" 时，意味着它默认不会被编译
 serde = { version = "1.0.213" }
@@ -34,6 +32,7 @@ regex = "1.11.1"
 rayon = "1.10.0"
 color-eyre = "0.6.3"
 reqwest = { workspace = true }
+flate2 = "1.1.1"
 
 
 [workspace.dependencies]
@@ -113,8 +112,9 @@ incremental = true
 codegen-units = 256
 debug-assertions = true
 rpath = false
-
+ 
 [build-dependencies]  # 这些依赖项仅在构建脚本（build.rs 文件）中使用
+flate2 = "1.1.1"
 xmake =  { version = "0.2.3" ,optional = true  }
 
 

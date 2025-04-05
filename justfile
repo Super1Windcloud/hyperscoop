@@ -9,7 +9,8 @@ release:
 publish:
     python  script/publish_release.py
 
-
+upload_hp:
+     python  script/publish_release.py   -u
 
 # 每条命令都是全新的 SHell 环境
 update_hash:

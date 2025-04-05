@@ -61,8 +61,8 @@ pub  async fn  execute_install_command(args: InstallArgs) -> Result< () , anyhow
   Ok(())
  }
 
-fn inject_user_options(install_args : &InstallArgs) ->  anyhow::Result<()> {
-  
+pub  fn inject_user_options(install_args : &InstallArgs) ->  anyhow::Result<()> {
+   
   
   Ok(())
 }
