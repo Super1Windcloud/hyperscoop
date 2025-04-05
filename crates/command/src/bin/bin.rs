@@ -24,7 +24,6 @@ fn main() {
 }
 fn find_manifest_same_version_count_more_than_one() {
   let path = r"C:\Users\superuse\super\version_log";
-  //  let path = r"C:\Users\superuse\super\log.json";
 
   let mut count = Vec::new();
   let contents = read_to_string(path).unwrap();

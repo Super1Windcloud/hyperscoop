@@ -12,6 +12,11 @@ publish:
 upload_hp:
      python  script/publish_release.py   -u
 
+
+hp  :
+    scoop uninstall hp && scoop install  -u -s -k  hp
+
+
 # 每条命令都是全新的 SHell 环境
 update_hash:
     just publish

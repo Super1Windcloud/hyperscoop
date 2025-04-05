@@ -54,6 +54,8 @@ syn = "2.0.91"
 color-eyre = "0.6.3"
 bat = { version = "0.25.0", features = ["regex-onig","regex-fancy"], default-features = false }
 git2 = "0.20.1"
+flate2 = "1.1.1"
+
 
 [[bin]]
 name = "hp"
@@ -77,7 +79,7 @@ categories = ["command-line-utilities", "development-tools", "command-line-inter
 keywords = ["scoop", "windows", "package-manager", "rust", "powerful-tool"]
 exclude = ["target", "hyperscoop_source_bucket", "script", "node_modules"]
 include = ["src/**/*", "Cargo.toml", "build.rs", "Cargo.lock"]
-version = "3.3.3"
+version = "3.3.4"
 [workspace.lints.rust]
 unsafe_code = "warn"
 unreachable_pub = "warn"
@@ -112,7 +114,7 @@ incremental = true
 codegen-units = 256
 debug-assertions = true
 rpath = false
- 
+
 [build-dependencies]  # 这些依赖项仅在构建脚本（build.rs 文件）中使用
 flate2 = "1.1.1"
 xmake =  { version = "0.2.3" ,optional = true  }

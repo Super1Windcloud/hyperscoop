@@ -11,7 +11,9 @@ pub mod shim_and_shortcuts;
 pub use check::*;
 pub use shim_and_shortcuts::*;
 pub mod   cli_options_store; 
-pub use cli_options_store::*; 
+pub use cli_options_store::*;
+pub mod aria2 ; 
+pub use aria2::*;
 pub struct ArchStruct {}
 pub async fn install_app_from_local_manifest_file(
   manifest_path: &String,

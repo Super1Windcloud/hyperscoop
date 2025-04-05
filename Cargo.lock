@@ -569,7 +569,7 @@ dependencies = [
 
 [[package]]
 name = "command_util_lib"
-version = "3.3.3"
+version = "3.3.4"
 dependencies = [
  "anyhow",
  "bat",
@@ -580,6 +580,7 @@ dependencies = [
  "dashmap",
  "dialoguer",
  "encoding",
+ "flate2",
  "git2",
  "gix",
  "gix-object",
@@ -2241,7 +2242,7 @@ dependencies = [
 
 [[package]]
 name = "hp"
-version = "3.3.3"
+version = "3.3.4"
 dependencies = [
  "anyhow",
  "clap",
@@ -2268,7 +2269,7 @@ dependencies = [
 
 [[package]]
 name = "hscoop_macro"
-version = "3.3.3"
+version = "3.3.4"
 dependencies = [
  "quote",
  "syn",
@@ -3722,7 +3723,7 @@ checksum = "24188a676b6ae68c3b2cb3a01be17fbf7240ce009799bb56d5b1409051e78fde"
 
 [[package]]
 name = "shim"
-version = "3.3.3"
+version = "3.3.4"
 dependencies = [
  "color-eyre",
  "windows 0.61.1",
