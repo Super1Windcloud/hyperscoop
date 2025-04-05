@@ -28,7 +28,7 @@ pub struct RmArgs {
 
 #[derive(Args, Debug)]
 #[command(arg_required_else_help = true, subcommand_negates_reqs = true)]
-#[command(about = "🎨          显示或清理下载缓存 ")]
+#[command(about = "🎨\t\t显示或清理下载缓存 ")]
 #[command(override_usage = " hp  cache show|rm [app(s)]")]
 pub struct CacheArgs {
     #[clap(subcommand)]

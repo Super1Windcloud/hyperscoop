@@ -18,7 +18,8 @@ use crate::command_args::uninstall::UninstallArgs;
 use crate::command_args::update::UpdateArgs;
 use crate::command_args::which::WhichArgs;
 pub(crate) use crate::command_args::{bucket_args::BucketArgs, cache::CacheArgs};
-use clap::Subcommand;
+use clap::{Args, Subcommand};
+use crossterm::style::Stylize;
 
 #[derive(Debug, Subcommand)]
 #[command(propagate_version = true)] // 自动传递版本信息
@@ -28,7 +29,7 @@ use clap::Subcommand;
     arg_required_else_help = true,
     next_line_help = false,
     disable_help_subcommand = true
-)]  
+)]
 pub(crate) enum Commands {
     Bucket(BucketArgs),
 
@@ -45,10 +46,8 @@ pub(crate) enum Commands {
     List(ListArgs),
     Prefix(PrefixArgs),
     Reset(ResetArgs),
-    // 添加别名
     #[clap(alias = "s")]
     Search(SearchArgs),
-
     Shim(ShimArgs),
     Status(StatusArgs),
     #[clap(alias = "un")]
@@ -56,4 +55,17 @@ pub(crate) enum Commands {
     Update(UpdateArgs),
     Which(WhichArgs),
     Merge(MergeArgs),
+    Credits(CreditsArgs),
+}
+
+#[derive(Args, Debug)]
+#[clap(author, version, about="💖\t\t显示Credit信息", long_about = None)]
+#[command(arg_required_else_help = false , subcommand_negates_reqs = true)]
+#[command(no_binary_name = true)]
+pub struct  CreditsArgs {}
+
+pub fn  execute_credits_command()  -> anyhow::Result<()> {
+  let str=  "hp  is created by superwindcloud(https://gitee.com/superwindcloud)".to_string().dark_blue().bold();
+  println!("💖 {str}");
+  Ok(())
 }

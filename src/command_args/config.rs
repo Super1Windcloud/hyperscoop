@@ -10,7 +10,7 @@ pub struct SetArgs {
 }
 
 #[derive(Args, Debug)]
-#[command( about  = "获取指定配置 , config get <name>")]
+#[command( about  = "获取指定配置, config get <name>")]
 pub struct GetArgs {
   pub name: String,
 }
@@ -33,7 +33,7 @@ pub(crate) enum ConfigSubcommand {
   Rm (RmArgs),
 }
 #[derive(Args, Debug)]
-#[clap(author, version, about="🐼          获取或设置配置文件", arg_required_else_help = true) ]
+#[clap(author, version, about="🐼\t\t获取或设置配置文件", arg_required_else_help = true) ]
 pub struct ConfigArgs  {
   #[clap(subcommand)]
   pub(crate) command: Option<ConfigSubcommand>,

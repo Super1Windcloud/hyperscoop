@@ -3,7 +3,7 @@ use clap::ArgAction;
 use  clap::Args;
 
 #[derive(Args, Debug)]
-#[command(name = "install", alias = "i",  about = "🐘          安装指定APP,别名i")]
+#[command(name = "install", alias = "i",  about = "🐘\t\t安装指定APP,别名i")]
 #[clap(author="superwindcloud", version , long_about = None)]
 #[command(arg_required_else_help = true)]
 #[command(after_help = r#"
@@ -28,7 +28,7 @@ pub struct InstallArgs  {
   #[arg(short='u' , long, help = "安装前更新hp和bucket,默认不更新", required = false , action = ArgAction::SetTrue,help_heading = "Install Options" )]
   pub update_hp_and_bucket : bool,
 
-  #[arg(short='a', long, help = "指定安装架构, 如果支持的话", help_heading = "Install Options", 
+  #[arg(short='a', long, help = "指定安装架构, 如果支持的话", help_heading = "Install Options",
     required = false ,default_value ="64bit" ,value_name="<32bit|64bit|arm64>")]
   pub arch : Option<String>,
 

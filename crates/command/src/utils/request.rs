@@ -1,6 +1,8 @@
-﻿use anyhow::bail;
+﻿use crate::config::get_config_value_no_print;
+use crate::utils::utility::write_into_log_file_append_mode;
+use anyhow::bail;
 use crossterm::style::Stylize;
-use git2::{FetchOptions, Progress, RemoteCallbacks, Repository};
+use git2::{FetchOptions, Progress, ProxyOptions, RemoteCallbacks, Repository};
 use indicatif::{ProgressBar, ProgressStyle};
 use regex::Regex;
 use reqwest::get;
@@ -11,7 +13,6 @@ use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
 use tokio::time;
 use zip::ZipArchive;
-use crate::utils::utility::{ write_into_log_file_append_mode};
 
 pub async fn request_download_git_repo(
     url: &str,
@@ -240,7 +241,6 @@ pub async fn request_git_clone_by_git2(
     if !Path::new(&destination).exists() {
         create_dir_all(&destination).expect("Failed to create directory for bucket ");
     }
-
     match Repository::clone(repo_url, &destination) {
         // {:?} 会调用 Display的trait 实现
         Ok(_) => println!("✅ 仓库已克隆到 {}", destination.dark_green().bold()),
@@ -261,7 +261,7 @@ pub async fn request_git_clone_by_git2_with_progress(
     }
     let pb = ProgressBar::new(100);
     pb.set_style(
-      ProgressStyle::with_template("[{elapsed_precise}] [{bar:40.cyan/blue}] {pos}%  {msg}")?
+        ProgressStyle::with_template("[{elapsed_precise}] [{bar:40.cyan/blue}] {pos}%  {msg}")?
             .progress_chars("#>-"),
     );
     let start_time = Instant::now();
@@ -291,8 +291,7 @@ pub async fn request_git_clone_by_git2_with_progress(
                 0.0
             };
             write_into_log_file_append_mode("git2_clone.txt" ,
-format!("speed {speed:.2}, total_objects {total_objects}, received_objects {received_objects},percent {percent:.2}
-                                                      "));
+   format!("speed {speed:.2}, total_objects {total_objects}, received_objects {received_objects},percent {percent:.2}"));
             pb.set_position(percent as u64);
             pb.set_message(format!(
                 "{} / {} objects, {:.2} objs/s",
@@ -304,8 +303,20 @@ format!("speed {speed:.2}, total_objects {total_objects}, received_objects {rece
         }
         true // 继续下载
     });
+    let mut proxy_option = ProxyOptions::new();
+    let config_proxy = get_config_value_no_print("proxy");
+    if !config_proxy.is_empty() {
+        let proxy_url = if config_proxy.contains("http://") || config_proxy.contains("https://") {
+            config_proxy.clone()
+        } else {
+            "http://".to_string() + &config_proxy
+        };
+        proxy_option.url(proxy_url.as_str());
+       log::info!("proxy_option {:?}", proxy_url);
+    }
     let mut fo = FetchOptions::new();
     fo.remote_callbacks(callbacks);
+    fo.proxy_options(proxy_option);
 
     let mut builder = git2::build::RepoBuilder::new();
     builder.fetch_options(fo);
@@ -313,14 +324,17 @@ format!("speed {speed:.2}, total_objects {total_objects}, received_objects {rece
     match builder.clone(repo_url, Path::new(destination)) {
         Ok(_) => {
             pb.finish_with_message("✅ 成功".to_string());
-             println!("✅ 仓库已克隆到 {}", destination.to_string(). dark_green().bold());
-             pb.finish_and_clear(); 
+            println!(
+                "✅ 仓库已克隆到 {}",
+                destination.to_string().dark_green().bold()
+            );
+            pb.finish_and_clear();
             Ok("下载成功!!! ".dark_green().bold().to_string())
         }
         Err(e) => {
             pb.finish_with_message("❌ 克隆失败！");
-           pb.finish_and_clear();
-          bail!("❌ 失败: {}", e);
+            pb.finish_and_clear();
+            bail!("❌ 失败: {}", e);
         }
     }
 }

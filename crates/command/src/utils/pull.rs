@@ -1,9 +1,10 @@
 
 use clap::Parser;
-use git2::{  Repository};
+use git2::{ProxyOptions, Repository};
 use std::io::{self, Write};
 use std::str;
 use anyhow::bail;
+use crate::config::get_config_value_no_print;
 
 #[derive(Parser)]
 pub struct RepoArgs {
@@ -80,9 +81,20 @@ fn do_fetch<'a >(
   let mut cb = git2::RemoteCallbacks::new();
   cb.transfer_progress(  |stats|   callback(stats, false  )) ;
 
+
+  let mut proxy_option = ProxyOptions::new();
+  let config_proxy = get_config_value_no_print("proxy");
+  if !config_proxy.is_empty() {
+    let proxy_url = if config_proxy.contains("http://") || config_proxy.contains("https://") {
+      config_proxy.clone()
+    } else {
+      "http://".to_string() + &config_proxy
+    };
+    proxy_option.url(proxy_url.as_str());
+  }
   let mut fo = git2::FetchOptions::new();
   fo.remote_callbacks(cb);
-
+  fo.proxy_options(proxy_option); 
   fo.download_tags(git2::AutotagOption::All);
   remote.fetch(refs, Some(&mut fo), None)?;
 

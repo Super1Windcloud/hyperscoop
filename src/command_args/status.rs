@@ -1,8 +1,7 @@
-
-use  clap::Args;
-
+use clap::Args;
 
 #[derive(Args, Debug)]
-///🍊          检查已安装APP是否是最新版本
-pub struct  StatusArgs          {
-}
+#[clap(author, version, about="🍅\t\t检查已安装APP是否是最新版本", long_about = None)]
+#[command(arg_required_else_help = false, subcommand_negates_reqs = true)]
+#[command(no_binary_name = true)]
+pub struct StatusArgs {}

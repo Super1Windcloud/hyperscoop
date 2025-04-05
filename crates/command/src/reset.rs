@@ -5,10 +5,10 @@ use std::cmp::Ordering;
 use std::os::windows::fs::symlink_dir;
 
 pub fn reset_latest_version(name: String) -> Result<(), anyhow::Error> {
-    let hyperscoop = init_hyperscoop().unwrap();
+    let hyperscoop = init_hyperscoop()?;
     let app_name = hyperscoop.get_apps_path();
-    for entry in std::fs::read_dir(app_name).unwrap() {
-        let entry = entry.unwrap();
+    for entry in std::fs::read_dir(app_name)? {
+        let entry = entry?;
         let path = entry.path();
         if path.is_dir() {
             let dir_name = path.file_name().unwrap().to_str().unwrap();
@@ -17,7 +17,7 @@ pub fn reset_latest_version(name: String) -> Result<(), anyhow::Error> {
             }
             log::info!("Resetting app: {}", dir_name);
             let mut count = 0;
-            for _ in std::fs::read_dir(&path).unwrap() {
+            for _ in std::fs::read_dir(&path)? {
                 count += 1;
             }
             if count <= 1 {
@@ -66,15 +66,15 @@ pub fn reset_latest_version(name: String) -> Result<(), anyhow::Error> {
             }
         }
     }
-    bail!("App not found: {}", name) // 等效于  return Err(anyhow::anyhow!("App not found: {}", name))
+    bail!("App not found: {}", name)  
 }
 
 pub fn reset_specific_version(name: String, version: String) -> Result<(), anyhow::Error> {
     log::info!("Resetting app: {}@{}", name, version);
-    let hyperscoop = init_hyperscoop().unwrap();
+    let hyperscoop = init_hyperscoop()?;
     let app_name = hyperscoop.get_apps_path();
-    for entry in std::fs::read_dir(app_name).unwrap() {
-        let entry = entry.unwrap();
+    for entry in std::fs::read_dir(app_name)? {
+        let entry = entry?;
         let path = entry.path();
         if path.is_dir() {
             let dir_name = path.file_name().unwrap().to_str().unwrap();
@@ -83,7 +83,7 @@ pub fn reset_specific_version(name: String, version: String) -> Result<(), anyho
             }
             log::info!("Resetting app: {}", dir_name);
             let mut count = 0;
-            for _ in std::fs::read_dir(&path).unwrap() {
+            for _ in std::fs::read_dir(&path)? {
                 count += 1;
             }
             if count <= 1 {
@@ -104,5 +104,5 @@ pub fn reset_specific_version(name: String, version: String) -> Result<(), anyho
             }
         }
     }
-    bail!("App not found: {}", name); // 等效于  return Err(anyhow::anyhow!("App not found: {}", n
+    bail!("App not found: {}", name);  
 }

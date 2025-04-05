@@ -19,7 +19,6 @@ pub  async fn  execute_install_command(args: InstallArgs) -> Result< () , anyhow
     }
     return Ok(());
   }
-  
   if  contains_special_char(app_name.as_str()) {
     bail!("指定的APP格式错误 error char")
   }

@@ -5,7 +5,7 @@
 #[clap(author, version, about=None , long_about=None)]
 #[clap(override_usage = "子命令  add|list|known|rm   ")]
 #[command(arg_required_else_help = true, subcommand_negates_reqs = true)]
-#[clap(about = "🔫          管理hp的所有bucket")]
+#[clap(about = "🔫\t\t管理hp的所有bucket")]
 pub struct BucketArgs {
     #[command(subcommand)]
     pub(crate) command: Option<BucketSubcommands> ,

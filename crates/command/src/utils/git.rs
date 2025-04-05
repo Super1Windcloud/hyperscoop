@@ -1,4 +1,4 @@
-use git2::BranchType;
+use git2::{BranchType, ProxyOptions};
 use std::path::Path;
 use anyhow::bail;
 use git2::{FetchOptions, Progress, Remote, RemoteCallbacks, Repository};
@@ -7,6 +7,7 @@ use gix::{
   ObjectId
 };
 use serde::Deserialize;
+use crate::config::get_config_value_no_print;
 use crate::utils::pull::run_pull;
 
 mod errors {
@@ -105,6 +106,16 @@ pub async  fn remote_latest_scoop_commit( ) -> anyhow::Result<ObjectId> {
   let remote = repo.find_remote("origin").ok()
     .ok_or(Error::MissingRemote("origin".to_string()))?;
 
+  
+  // let config_proxy = get_config_value_no_print("proxy");
+  // if !config_proxy.is_empty() {
+  //   let proxy_url = if config_proxy.contains("http://") || config_proxy.contains("https://") {
+  //     config_proxy.clone()
+  //   } else {
+  //     "http://".to_string() + &config_proxy
+  //   };
+  //   log::info!("proxy_option {:?}", proxy_url);
+  // }
 
   let connection = remote.connect(gix::remote::Direction::Fetch)?;
   let (refs, _) = connection.ref_map(gix::progress::Discard, ref_map::Options::default())?;

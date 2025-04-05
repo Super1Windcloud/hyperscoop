@@ -2,7 +2,7 @@ use clap::Args;
 
 
 #[derive(Args, Debug)]
-#[command(name = "bucket", alias = "u", about = "🍹          更新指定APP或者hp与buckets,别名u")]
+#[command(name = "bucket", alias = "u", about = "🍹\t\t更新指定APP或者hp与buckets,别名u")]
 #[command(arg_required_else_help = true, after_help = "只对官方维护的bucket进行更新, hp bucket known ")]
 pub struct UpdateArgs {
   #[arg(required = false)]
@@ -17,12 +17,12 @@ pub struct UpdateArgs {
   pub(crate) skip_hash_check: bool,
 
   #[arg(short , long, help = "更新所有APP")]
-  pub  all : bool, 
-  
+  pub  all : bool,
+
   #[arg (short, long, help = "不保留旧的App可执行程序")]
   pub   no_retain_out_app : bool,
 
   #[arg(from_global)]
   pub  global :bool
-  
+
 }

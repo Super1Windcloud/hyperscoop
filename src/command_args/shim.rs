@@ -2,7 +2,7 @@
 use clap::{Args, Subcommand};
 
 #[derive(Args, Debug)]
-#[clap(author, version, about="🐼          管理所有的shim快捷方式", long_about = None)]
+#[clap(author, version, about="🐼\t\t管理所有的shim快捷方式", long_about = None)]
 #[command(arg_required_else_help = true)]
 pub struct ShimArgs         {
    #[clap(subcommand)]
@@ -47,7 +47,7 @@ pub struct AlterArgs {
 
 #[derive(Args, Debug)]
 #[clap(author, version, about="列出所有的shim快捷方式", long_about = None)]
-pub struct ListArgs { 
+pub struct ListArgs {
     #[arg(short , long , help="正则匹配shim名称")]
       pub regex : Option<String> ,
 }

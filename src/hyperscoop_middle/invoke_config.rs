@@ -11,7 +11,7 @@ pub fn  execute_config_command (args: ConfigArgs) -> Result<(), anyhow::Error> {
         set_config_value(&args.name, &args.value) ;
       }
       ConfigSubcommand::Get(arg ) => { 
-        display_config_value(&arg.name) ;
+        get_config_value(&arg.name) ;
       }
       ConfigSubcommand::Rm( args ) => { 
         remove_config_value(&args.name) ;
