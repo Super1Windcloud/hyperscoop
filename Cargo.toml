@@ -25,14 +25,14 @@ crossterm = { workspace = true }
 clap-verbosity-flag = { workspace = true }
 anyhow = { workspace = true }
 env_logger = "0.11.5"
-tokio = { version = "1.0.0", features = ["rt", "rt-multi-thread", "macros"] }
 serde_json = { workspace = true }
 command_util_lib = { path = "crates/command" }
 regex = "1.11.1"
 rayon = "1.10.0"
 color-eyre = "0.6.3"
 reqwest = { workspace = true }
-flate2 = "1.1.1"
+tokio ={workspace = true }
+
 
 
 [workspace.dependencies]
@@ -47,7 +47,7 @@ trybuild = "1.0.101"
 clap-verbosity-flag = "2.2.2"
 anyhow = "1.0.91"
 serde_json = "1.0.132"
-tokio = { version = "1.0.0", features = ["rt", "rt-multi-thread", "macros"] }
+tokio = { version = "1.44.2", features = ["full", "macros"] }
 dashmap = "6.1.0"
 quote = "1.0.37"
 syn = "2.0.91"

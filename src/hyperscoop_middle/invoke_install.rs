@@ -31,7 +31,7 @@ pub async fn execute_install_command(args: InstallArgs) -> Result<(), anyhow::Er
             if bucket.is_empty() || app_name.is_empty() {
                 bail!("指定的App格式不正确")
             }
-            install_from_specific_bucket(bucket, app_name).await?;
+            install_from_specific_bucket(bucket, app_name, &options ).await?;
             return Ok(());
         } else if split_arg.iter().count() > 2 || split_arg.len() == 1 {
             bail!("指定的APP格式错误")
@@ -45,7 +45,7 @@ pub async fn execute_install_command(args: InstallArgs) -> Result<(), anyhow::Er
             if app_name.is_empty() || app_version.is_empty() {
                 bail!("指定的APP格式错误")
             }
-            install_app_specific_version(app_name, app_version).await?;
+            install_app_specific_version(app_name, app_version, &options ).await?;
             return Ok(());
         } else if split_version.len() == 1 || split_version.len() > 2 {
             bail!("指定的APP格式错误")
@@ -54,14 +54,15 @@ pub async fn execute_install_command(args: InstallArgs) -> Result<(), anyhow::Er
     if contains_special_char(app_name.as_str()) {
         bail!("指定的APP格式错误")
     }
-    install_app(app_name.as_str()).await?;
+    install_app(app_name.as_str() , &options ).await?;
     Ok(())
 }
 
 pub fn inject_user_options(install_args: &InstallArgs) -> anyhow::Result<Vec<InstallOptions>> {
     let mut install_options = vec![];
-    if install_args.arch.is_some() {
-        install_options.push(InstallOptions::ArchOptions)
+    if install_args.arch.is_some() { 
+       let arch = install_args.arch.clone().unwrap();
+        install_options.push(InstallOptions::ArchOptions(arch ));
     }
     if install_args.skip_download_hash_check {
         install_options.push(InstallOptions::SkipDownloadHashCheck)

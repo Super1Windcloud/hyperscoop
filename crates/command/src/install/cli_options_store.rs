@@ -1,12 +1,14 @@
 
 
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[non_exhaustive]
 pub enum InstallOptions {
     NoUseDownloadCache,
     NoAutoDownloadDepends,
     SkipDownloadHashCheck,
-    ArchOptions,
+    ArchOptions(String),
     UpdateHpAndBuckets,
 }
+
+

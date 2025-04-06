@@ -4,3 +4,8 @@ ARIA2_DATA_PATH : A:\Rust_Project\hyperscoop\target\debug\build\hp-a2b89f5e6507a
 
 
 
+ARIA2_DATA_PATH : target\_aria2\aria2_data.rs
+  ENV :target\_aria2\aria2_data.rs
+ARIA2_DATA_PATH : A:\user_tempfile\aria2c_data.rs
+  ENV :A:\user_tempfile\aria2c_data.rs
+A:\user_tempfile\aria2c.exe

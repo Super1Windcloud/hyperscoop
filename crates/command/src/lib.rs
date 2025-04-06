@@ -1,3 +1,4 @@
+#![feature(str_as_str)]
 #![deny(clippy::shadow)]
 pub mod buckets;
 pub mod cat;

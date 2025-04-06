@@ -199,6 +199,12 @@ pub fn write_utf8_file(path: &String, content: &str) -> anyhow::Result<()> {
     Ok(())
 }
 
+pub fn is_valid_url(url_str: &str) -> bool {
+  use url::Url;
+  Url::parse(url_str).is_ok()
+}
+
+
 #[cfg(test)]
 mod tests {
     #[allow(unused_imports)]

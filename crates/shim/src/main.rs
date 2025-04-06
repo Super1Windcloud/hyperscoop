@@ -105,7 +105,6 @@ fn make_process(info: &ShimInfo) -> Option<std::process::Child> {
    let  args = remove_extra_quotes(&args); 
     let  args_split = args.split_whitespace().collect::<Vec<_>>().join(" ");
     let process = Command::new(&path).args(args.split_whitespace()).spawn();
-
     match process {
         Ok(child) => Some(child),
         Err(e) => {

@@ -1,103 +1,147 @@
-use flate2::read::GzDecoder;
-use flate2::write::GzEncoder;
-use flate2::Compression;
-use std::env;
+use crate::config::get_config_value;
+use anyhow::bail;
 use std::fs::File;
 use std::io::{Read, Write};
-use std::path::{Path, PathBuf};
+use std::path::Path;
+use std::process::Command;
+use std::{env, fs};
+use crate::init_env::get_cache_dir_path;
+use crate::utils::utility::is_valid_url;
 
-pub fn  get_aria2_log_path   () ->  PathBuf  {
-    let cwd = env::current_dir().unwrap();
-     let  log  = cwd.parent().unwrap().parent().unwrap() .join("log");
-    let log_path = Path::new(&log).join("aria2.log");
-    if log_path.exists() {
-        log_path
-    } else {
-        let _ = std::fs::create_dir_all(&log_path); // 创建父目录
-        File::create(&log_path).unwrap();
-        log_path
+pub struct Aria2C {
+    aria2c_path: String,
+}
+
+impl Aria2C {
+    pub fn new() -> Self {
+        let mut aria = Self {
+            aria2c_path: "".to_string(),
+        };
+        aria.init().unwrap();
+        aria
+    }
+    pub fn set_aria2c_path(&mut self, path: &str) {
+        self.aria2c_path = path.to_string();
+    }
+    pub fn get_aria2c_path(&self) -> &str {
+        &self.aria2c_path
+    }
+    fn init(&mut self) -> anyhow::Result<String> {
+        let aria2_exe = self.extract_aria2()?;
+        self.set_aria2c_path(&aria2_exe);
+        Ok(aria2_exe)
+    }
+    /// 命令行字符串, 或字符串数组, 传递多个参数时, 请使用字符串数组
+    pub fn execute_aria2_download_command<'cmd>(
+        &self,
+        command_str: impl Into<Option<&'cmd str>>,
+        command_arr: impl Into<Option<&'cmd [&'cmd str]>>,
+    ) -> anyhow::Result<String> {
+        let aria2_exe = self.get_aria2c_path();
+        let (command_str, command_arr) = (command_str.into(), command_arr.into());
+        if command_str.is_none() && command_arr.is_none() {
+            bail!("No command str  or command arr provided");
+        };
+        let (command_str, command_arr) = (
+            command_str.unwrap_or_default(),
+            command_arr.unwrap_or_default(),
+        );
+        let command_arr = command_arr
+            .iter()
+            .map(|item| item.trim())
+            .collect::<Vec<&str>>();
+        let proxy = get_config_value("proxy");
+        let proxy = if !proxy.contains("http://") &&  ! proxy.contains("https://") {
+            "http://".to_string() + &proxy
+        } else {
+            proxy
+        };
+       if  !is_valid_url(&proxy) {  bail!("Proxy is not valid, url format error"); }; 
+       let  download_cache_dir =  get_cache_dir_path(); 
+      
+      let output = Command::new(&aria2_exe).arg(format!("--all-proxy={proxy}"))
+            .args(command_arr)
+            .arg(command_str.trim())
+            .output()?;
+        let error_str = String::from_utf8_lossy(&output.stderr).to_string();
+        let output_str = String::from_utf8_lossy(&output.stdout).to_string();
+        if !error_str.is_empty() {
+            bail!(error_str);
+        }
+        if output_str.is_empty() {
+            bail!("aria2c 命令执行失败,返回结果为空");
+        }
+        Ok(output_str)
+    }
+
+    fn write_aria2_to_temp(&self, aria2_exe: &str) -> anyhow::Result<()> {
+        const COMPRESSED_ARIA2: &[u8] = include_bytes!("../../../../resources/aria2c_data.gz");
+        let mut decoder = flate2::read::GzDecoder::new(COMPRESSED_ARIA2);
+        let mut decompressed_data = Vec::new();
+        decoder.read_to_end(&mut decompressed_data)?;
+
+        let mut file = File::create(aria2_exe)?;
+        file.write_all(&decompressed_data)?;
+        file.flush()?;
+        file.sync_all()?;
+        drop(file); // 需关闭句柄才能调用
+        log::warn!("写入成功 , aria2c_path  = {}", aria2_exe);
+        Ok(())
+    }
+
+    fn extract_aria2(&self) -> anyhow::Result<String> {
+        let aria2_exe = self.get_temp_aria2_path();
+        if !Path::new(&aria2_exe).exists() {
+            self.write_aria2_to_temp(&aria2_exe)?;
+        }
+
+        Ok(aria2_exe)
+    }
+
+    fn get_temp_aria2_path(&self) -> String {
+        let temp_dir = env::temp_dir();
+        let exe_path = temp_dir.join("aria2c.exe");
+        exe_path.to_str().unwrap().to_string()
     }
 }
-pub fn include_aria2() {
-    let exe_data = include_bytes!("../../../../resources/aria2c.exe");
-    let mut encoder = GzEncoder::new(Vec::new(), Compression::best());
-    encoder.write_all(exe_data).unwrap();
-    let compressed = encoder.finish().unwrap();
 
-    let out_dir = env::var("OUT_DIR").unwrap_or_else(|_| {
-        let fallback = Path::new("target").join("_aria2");
-        std::fs::create_dir_all(&fallback).unwrap();
-        fallback.to_str().unwrap().to_string()
-    });
-    let data_path = Path::new(&out_dir).join("aria2_data.rs");
-    let mut file = File::create(&data_path).unwrap();
-    writeln!(file, "const ARIA2_DATA: &[u8] = &{:?};", compressed).unwrap();
-
-    let log_path = get_aria2_log_path();
-    let mut log = File::create(&log_path).unwrap();
-    env::set_var("ARIA2_DATA_PATH", data_path.to_str().unwrap());
-    let env =  env::var("ARIA2_DATA_PATH")
-        .unwrap_or("No ARIA2_DATA_PATH env variable set.".to_string());
-    writeln!(
-        log,
-        "ARIA2_DATA_PATH : {}\n log_path :{}\n  ENV :{env}",
-        data_path.display(),
-        log_path.display()
-    )
-    .unwrap();
-}
-
-pub fn get_temp_aria2_path() -> String {
-    let temp_dir = std::env::temp_dir();
-    let exe_path = temp_dir.join("aria2c.exe");
-    exe_path.to_str().unwrap().to_string()
-}
-
-
-pub fn extract_aria2() -> anyhow::Result<()> {
-    let embeded_path = std::env::var("ARIA2_DATA_PATH")?;
-    let embeded_path = Path::new(&embeded_path);
-    let embeded_file = File::open(embeded_path)?;
-    let mut decoder = GzDecoder::new(embeded_file);
-    let mut decompressed_data = Vec::new();
-    decoder.read_to_end(&mut decompressed_data)?;
-
-    let temp_dir = std::env::temp_dir();
-    let exe_path = temp_dir.join("aria2c.exe");
-
-    let mut file = File::create(&exe_path)?;
-    file.write_all(&decompressed_data)?;
-
-    Ok(())
+pub fn write_message_to_aria2_log(message: &str) {
+    let cwd = env::current_dir().unwrap();
+    let log = cwd
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .join("log")
+        .join("aria2.log");
+    let log_path = log.as_path();
+    if !log_path.exists() {
+        File::create(log_path).unwrap();
+    }
+    let file = fs::OpenOptions::new()
+        .append(true)
+        .create(true)
+        .open(log_path)
+        .unwrap();
+    let mut writer = std::io::BufWriter::new(file);
+    writer
+        .write_all((message.to_string() + "\n").as_bytes())
+        .unwrap();
 }
 
 #[cfg(test)]
 mod tests {
     #[allow(unused_imports)]
     use super::*;
-    use std::env;
 
-    #[test]
-    fn aria2_log() {
-        let _log_path = get_aria2_log_path();
-    }
     #[test]
     fn test_aria2() {
-        let out_dir = env::var("OUT_DIR").unwrap_or_else(|_| {
-            let _cwd = env::current_dir().unwrap();
-            let fallback = Path::new("target").join("_aria2");
-            std::fs::create_dir_all(&fallback).unwrap();
-            fallback.to_str().unwrap().to_string()
-        });
-
-        let data_path = Path::new(&out_dir).join("aria2_data.rs");
-        println!("data path: {}", &data_path.display());
-        // extract_aria2().unwrap();
-        let _dara_path = data_path.to_str().unwrap();
-        std::env::set_var("ARIA2_DATA_PATH", data_path);
-        let exe_path = get_temp_aria2_path();
-        if Path::new(&exe_path).exists() {
-            println!("aria2c.exe 解压成功");
+        let a = Aria2C::new();
+        let o = a.execute_aria2_download_command("-v ", None);
+        if let Ok(o) = o {
+            println!("{}", o);
+        } else {
+            println!("{}", o.unwrap_err());
         }
     }
 }

@@ -64,7 +64,7 @@ struct Cli {
     #[command(flatten)]
     verbose: clap_verbosity_flag::Verbosity,
 }
-#[tokio::main]
+#[tokio::main(flavor = "multi_thread")]
 async fn main() -> anyhow::Result<()> {
     println!(
         "{ } \n ",

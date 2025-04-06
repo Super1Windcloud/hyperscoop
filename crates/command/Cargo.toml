@@ -55,6 +55,7 @@ mslnk = "0.1.8"
 textwrap = { version = "0.16.2" }
 bat = { workspace = true }
 flate2 =  {workspace = true  }
+url = "2.5.4"
 
 
 
