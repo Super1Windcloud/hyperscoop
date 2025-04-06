@@ -12,14 +12,17 @@ publish:
 upload_hp:
      python  script/publish_release.py   -u
 
-
 hp  :
     scoop uninstall hp && scoop install  -u -s -k  hp
+
+cross:
+   cargo build --target x86_64-pc-windows-msvc --release
+   cargo build --target i686-pc-windows-msvc --release
+   cargo build --target aarch64-pc-windows-msvc --release
 
 
 # 每条命令都是全新的 SHell 环境
 update_hash:
-    just publish
     python  script/hash.py
     cd  hyperscoop_source_bucket  &&  just  update
     git add -A  && git commit -m ":panda_face:     update hash " && git push repo   master
