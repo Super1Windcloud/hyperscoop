@@ -46,5 +46,6 @@ progress_bar:
    cargo run  --example    pg_bar
 
 
-
+count :
+    pwsh script/file_count.ps1
 

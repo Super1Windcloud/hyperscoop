@@ -102,7 +102,7 @@ mod test {
     #[test]
     fn test_rm_env() {
         let mut manifest = UninstallManifest::new(r"A:\Scoop\buckets\DoveBoyApps\bucket\nvm.json");
-         &manifest.set_name(&"nvm".to_string()) ;
+         manifest  = manifest.set_name(&"nvm".to_string()).to_owned();
         env_var_rm(&manifest).unwrap();
     }
 }

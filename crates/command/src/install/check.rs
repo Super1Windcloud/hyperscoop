@@ -4,7 +4,7 @@ use crossterm::style::Stylize;
 use std::os::windows::fs::symlink_dir;
 use std::path::Path;
 
-pub fn check_before_install(name: &String, version: &String) -> anyhow::Result<u8> {
+pub fn check_before_install(name: &str , version: &String) -> anyhow::Result<u8> {
     let app_dir = get_app_dir(name);
     let app_dir_path = Path::new(&app_dir);
     if !app_dir_path.exists() {

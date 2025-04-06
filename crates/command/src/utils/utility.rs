@@ -190,7 +190,7 @@ pub fn write_utf8_file(path: &String, content: &str) -> anyhow::Result<()> {
         }
     } 
     let mut file = File::create(path)?;
-    /**
+     /*
      File::create(path) 的默认行为
     如果文件存在： 会 直接清空文件内容（相当于 truncate 模式），然后写入新数据。
     不会报错，但原内容会丢失！
@@ -217,7 +217,7 @@ mod tests {
     fn test_rm_bom() {
         let path = r"A:\Scoop\buckets\echo\bucket\hdtune.json";
         let content = remove_bom_and_control_chars_from_utf8_file(path).unwrap();
-        let content = serde_json::from_str::<serde_json::Value>(&content).unwrap();
+        let _  = serde_json::from_str::<serde_json::Value>(&content).unwrap();
     }
 
     #[test]

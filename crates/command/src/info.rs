@@ -290,7 +290,6 @@ mod test_align {
 
   #[test ]
   fn test_align_terminal_cutoff(){
-    use textwrap::WordSplitter;
     let text = "textwrap: a small library for wrapping text.";  
     let text = textwrap::wrap(text, 18) ; 
      println!( "{:?}"  ,text ) ;

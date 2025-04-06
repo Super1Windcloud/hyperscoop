@@ -229,7 +229,6 @@ pub fn export_config_to_current_dir_with_config(file_name: String) {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::env::current_dir;
     #[test]
     fn test_transform_file_to_utf8() {

@@ -1,5 +1,19 @@
 ﻿use crate::manifest::manifest_deserialize::*;
 use serde::{Deserialize, Serialize};
+
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(untagged)]
+#[derive(Default)]
+pub enum SuggestObjValue  {
+  #[default]
+  Null,
+  String(String),
+  StringArray(Vec<String>),
+}
+
+pub  type  SuggestObj = std::collections::HashMap<String, SuggestObjValue> ;
+
 #[must_use]
 #[allow(clippy::unsafe_derive_deserialize)]
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
@@ -32,7 +46,7 @@ pub struct InstallManifest {
      启动参数[可选]
      图标文件的路径[可选]
     */
-    pub shortcuts: Option<ArrayOrDoubleDimensionArray>, 
+    pub shortcuts: Option<ArrayOrDoubleDimensionArray>,
 
     /**
     如果应用程序不是 32 位，则可以使用架构来包装差异（示例）。
@@ -62,7 +76,7 @@ pub struct InstallManifest {
     ///定义如何自动更新清单。
 
     ///将自动安装的应用程序的运行时依赖项。另请参阅suggest （如下）
-    pub depends: Option<ManifestObj>,
+    pub depends: Option<String >,
 
     /**
     显示一条消息，建议提供补充功能的可选应用程序。请参阅ant的示例。
@@ -70,7 +84,8 @@ pub struct InstallManifest {
       例如 "JDK": [ "extras/oraclejdk", "openjdk" ]
       如果已经安装了针对该功能建议的任何应用程序，则该功能将被视为“已完成”，并且用户将不会看到任何建议。
     */
-    pub suggest: Option<ManifestObj>, // !complete
+
+    pub suggest: Option<SuggestObj >, // !complete
     /**
     在用户路径上可用的程序（可执行文件或脚本）的字符串或字符串数组。
      您还可以创建一个别名填充程序，它使用与实际可执行文件不同的名称，
@@ -103,7 +118,7 @@ pub struct InstallManifest {
     pub extract_to: Option<StringArrayOrString>,
     ///将此目录添加到用户路径（如果使用--global则添加到系统路径）。
     /// 该目录是相对于安装目录的，并且必须位于安装目录内。
-    pub env_add_path: Option<StringArrayOrString>,  // !complete
+    pub env_add_path: Option<StringArrayOrString>, // !complete
     ///如果安装程序基于 InnoSetup，则设置为布尔值true
     pub innosetup: Option<bool>,
 
@@ -200,7 +215,7 @@ pub struct InstallManifest {
 }
 
 impl InstallManifest {
-    pub fn set_name(&mut self, path: &String) -> &mut Self {
+    pub fn set_name(& mut self, path: &str ) -> &mut Self {
         let arr = path.split('/').collect::<Vec<&str>>();
         let name = arr.last().unwrap();
         let name = name.split('.').collect::<Vec<&str>>();
@@ -213,31 +228,32 @@ impl InstallManifest {
     }
 }
 
+#[cfg(test)]
 mod test {
-  use std::path::PathBuf;
-  #[allow(unused_imports)]
+    #[allow(unused_imports)]
     use super::*;
     #[allow(unused_imports)]
     use rayon::prelude::*;
+    use std::path::PathBuf;
+  use crate::install::show_suggest;
 
-    #[test]
+  #[test]
     fn test_install_manifest() {
         use crate::buckets::get_buckets_path;
         use std::path::Path;
-
+        use  std::sync::{Arc ,Mutex } ;
         let bucket = get_buckets_path().unwrap();
         let buckets = bucket
             .iter()
             .par_bridge()
             .map(|path| Path::new(path).join("bucket"))
             .collect::<Vec<_>>();
-
         let files = buckets
             .iter()
             .flat_map(|path| path.read_dir().unwrap().map(|res| res.unwrap().path()))
             .collect::<Vec<_>>();
-        let mut  i=0 ;
-        for path in files {
+         let     _count = Arc::new(Mutex::new(0));
+           for path in files {
             let content = std::fs::read_to_string(&path);
             if content.is_err() {
                 println!("decode   error {:?}", path.display());
@@ -249,95 +265,113 @@ mod test {
                 continue;
             }
 
-            let manifest: InstallManifest = manifest.unwrap();
-           // find_architecture_test(&manifest, &path );
+            let  manifest: InstallManifest = manifest.unwrap();
+            if  find_suggest_and_depends(manifest, path , &_count ) { return; };
+           //  find_architecture_test(manifest, path);
+        }
 
+        fn find_suggest_and_depends(manifest: InstallManifest, path: PathBuf, _count: &Arc<Mutex<i32>>) -> bool {
+            let suggestion = manifest.suggest;
+            if suggestion.is_some() {
+                let suggestion = suggestion.unwrap();
+                show_suggest(&suggestion).unwrap() ;
+                println!(" path {}", path.display());
+              *_count.lock().unwrap() +=1 ;
+              if *_count.lock().unwrap() >=10  { return true; }
+            }
+            let depends = manifest.depends;
+            if depends.is_some() {
+                // let depends = depends.unwrap();
+                // println!("depends {:?}", depends);
+                // println!(" path {}", path.display());
+
+            }
+            false
         }
     }
-  #[allow(unused)]
-  fn find_architecture_test(manifest : &InstallManifest,   path : &PathBuf) {
-    let architecture = manifest.clone() . architecture;
-    if architecture.is_some() {
-      let architecture = architecture.unwrap();
-      let x64 = architecture.x64bit;
-      if x64.is_some() {
-        let x64 = x64.unwrap();
-        let installer = x64.installer;
-        if installer.is_some() {
-          // dorado :   another-redis-desktop-manager
-          println!("installer {:?}", installer.unwrap());
-          println!(" path {}" , path.display());
-          return ;
-        }
-        let bin = x64.bin;
-        if bin.is_some() {
-           // dorado : fasttracker2-clone.json
-          println!("bin {:?}", bin.unwrap());
-          println!(" path {}" , path.display());
-          return ;
-        }
-        let extract_dir = x64.extract_dir;
-        if  extract_dir.is_some() {
-           //  lemon : abstreet.json
-          println!("extract_dir {:?}", extract_dir.unwrap());
-          println!(" path {}" , path.display());
-          return ;
-        }
-        let  uninstaller= x64.uninstaller;
-        if uninstaller.is_some() {
-          //  DEV-tools  :lagarith-lossless-video-codec.json
-          println!("uninstaller {:?}", uninstaller.unwrap());
-          println!(" path {}" , path.display());
-          return ;
 
+    #[allow(unused)]
+    #[ignore]
+    fn find_architecture_test(manifest: InstallManifest, path: PathBuf) -> bool {
+        let architecture = manifest.clone().architecture;
+        if architecture.is_some() {
+            let architecture = architecture.unwrap();
+            let x64 = architecture.x64bit;
+            if x64.is_some() {
+                let x64 = x64.unwrap();
+                let installer = x64.installer;
+                if installer.is_some() {
+                    // dorado :   another-redis-desktop-manager
+                    println!("installer {:?}", installer.unwrap());
+                    println!(" path {}", path.display());
+                    return true;
+                }
+                let bin = x64.bin;
+                if bin.is_some() {
+                    // dorado : fasttracker2-clone.json
+                    println!("bin {:?}", bin.unwrap());
+                    println!(" path {}", path.display());
+                    return true;
+                }
+                let extract_dir = x64.extract_dir;
+                if extract_dir.is_some() {
+                    //  lemon : abstreet.json
+                    println!("extract_dir {:?}", extract_dir.unwrap());
+                    println!(" path {}", path.display());
+                    return true;
+                }
+                let uninstaller = x64.uninstaller;
+                if uninstaller.is_some() {
+                    //  DEV-tools  :lagarith-lossless-video-codec.json
+                    println!("uninstaller {:?}", uninstaller.unwrap());
+                    println!(" path {}", path.display());
+                    return true;
+                }
+                let shortcuts = x64.shortcuts;
+                if shortcuts.is_some() {
+                    // dorado  :  crystaldiskinfo-aoi-edition.json
+                    println!("shortcuts {:?}", shortcuts.unwrap());
+                    println!(" path {}", path.display());
+                    return true;
+                }
+                let checkver = x64.checkver;
+                if checkver.is_some() {
+                    let checkver = checkver.unwrap();
+                    println!("checkver {:?}", checkver);
+                    println!(" path {}", path.display());
+                    return true;
+                }
+                let pre_install = x64.pre_install;
+                if pre_install.is_some() {
+                    // cmontage : abricotine.json
+                    println!("pre_install {:?}", pre_install.unwrap());
+                    println!(" path {}", path.display());
+                    return true;
+                }
+                let post_install = x64.post_install;
+                if post_install.is_some() {
+                    // extras  :  rstudio.json
+                    println!("post_install {:?}", post_install.unwrap());
+                    println!(" path {}", path.display());
+                    return true;
+                }
+            }
         }
-        let shortcuts = x64.shortcuts;
-        if shortcuts.is_some() {
-          // dorado  :  crystaldiskinfo-aoi-edition.json
-          println!("shortcuts {:?}", shortcuts.unwrap());
-          println!(" path {}", path.display());
-          return ;
-
-        }
-        let checkver = x64.checkver;
-        if checkver.is_some() {
-          let checkver = checkver.unwrap();
-          println!("checkver {:?}", checkver);
-          println!(" path {}", path.display());
-          return ;
-        }
-        let pre_install = x64.pre_install;
-        if pre_install.is_some() {
-           // cmontage : abricotine.json
-          println!("pre_install {:?}", pre_install.unwrap());
-          println!(" path {}", path.display());
-          return ;
-
-        }
-        let post_install = x64.post_install;
-        if   post_install .is_some() {
-          // extras  :  rstudio.json
-          println!("post_install {:?}", post_install.unwrap());
-          println!(" path {}", path.display());
-          return ;
-
-        }
-      }
+        false
     }
-  }
-  #[allow(unused)]
-  fn find_env_add_oath(manifest : &InstallManifest, path : &PathBuf) -> u8  {
-     let  env_add_path = &manifest.env_add_path;
-     if env_add_path.is_some() {
-       let env_add_path = env_add_path.clone();
-        if  env_add_path.is_some() {
-          let env_add_path = env_add_path.unwrap();
-          println!("env_add_path {:?}", env_add_path);
-          println!(" path {}", path.display());
-          return 1 ;
+   #[allow(unused)]
+    #[ignore]
+    fn find_env_add_oath(manifest: InstallManifest, path: PathBuf) -> u8 {
+        let env_add_path = &manifest.env_add_path;
+        if env_add_path.is_some() {
+            let env_add_path = env_add_path.clone();
+            if env_add_path.is_some() {
+                let env_add_path = env_add_path.unwrap();
+                println!("env_add_path {:?}", env_add_path);
+                println!(" path {}", path.display());
+                return 1;
+            }
         }
-     }
-      0
-  }
-
+        0
+    }
 }

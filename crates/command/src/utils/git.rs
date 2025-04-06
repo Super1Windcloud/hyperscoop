@@ -1,4 +1,4 @@
-use git2::{BranchType, ProxyOptions};
+use git2::{BranchType };
 use std::path::Path;
 use anyhow::bail;
 use git2::{FetchOptions, Progress, Remote, RemoteCallbacks, Repository};
@@ -7,7 +7,6 @@ use gix::{
   ObjectId
 };
 use serde::Deserialize;
-use crate::config::get_config_value_no_print;
 use crate::utils::pull::run_pull;
 
 mod errors {
@@ -292,7 +291,7 @@ mod  tests {
     use   crate::utils::pull::RepoArgs;
     let remote_name  = "origin" ;
     let remote_branch = "master" ;
-    let args = RepoArgs {
+    let _  = RepoArgs {
       arg_remote: Some(remote_name.into()),
       arg_branch: Some(remote_branch.into()),
     } ;

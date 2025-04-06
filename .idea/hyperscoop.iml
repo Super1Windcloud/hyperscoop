@@ -7,6 +7,7 @@
       <sourceFolder url="file://$MODULE_DIR$/crates/hscoop_macro/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/examples" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/crates/shim/src" isTestSource="false" />
+      <excludeFolder url="file://$MODULE_DIR$/crates/command/target" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>
     <orderEntry type="inheritedJdk" />

@@ -1,16 +1,30 @@
 use anyhow::bail;
 use crossterm::style::Stylize;
+use gix::odb::pack::Find;
 use windows_sys::Win32::System::Registry::HKEY_CURRENT_USER;
 use winreg::RegKey;
 use crate::init_env::{get_old_scoop_dir, get_scoop_cfg_path, init_env_path, init_scoop_global_path};
-use crate::manifest::install_manifest::InstallManifest;
+use crate::install::{install_app, install_from_specific_bucket, InstallOptions};
+use crate::manifest::install_manifest::{InstallManifest, SuggestObj, SuggestObjValue};
 use crate::manifest::manifest_deserialize::{StringArrayOrString, ManifestObj};
+use crate::utils::system::get_system_default_arch;
 
-pub fn   show_suggest (suggest : &ManifestObj)  -> anyhow::Result<()> {
-  let pretty_json = serde_json::to_string_pretty(suggest)?;
-  println!("建议安装以下依赖包 : {} \n", pretty_json.dark_yellow().bold()   );
+pub fn   show_suggest (suggest : &SuggestObj) -> anyhow::Result<()> {
+  println!("{}", "建议安装以下依赖包 :".to_string().dark_yellow().bold()    );
 
-
+  for item in suggest {
+     let  name = item.0;
+     let value = item.1;
+     match value {
+       SuggestObjValue::Null => {}
+       SuggestObjValue::String(value ) => {
+         println!("{}", format!("{} : {}", name, value).to_string().dark_grey().bold() );
+       }
+       SuggestObjValue::StringArray(arr ) => {
+         println!("{}", format!("{} : {:?}", name,arr ).to_string().dark_grey().bold() );
+       }
+     }
+  }
   Ok(() )
 }
 
@@ -31,9 +45,34 @@ pub fn show_notes (  notes : &StringArrayOrString)  -> anyhow::Result<()> {
   Ok(() )
 }
 
-pub fn handle_arch (arch : ManifestObj) {
-  let pretty_json = serde_json::to_string_pretty(&arch ).unwrap();
-  // println!("建议安装以下依赖包 : {}", pretty_json);
+
+pub async fn handle_depends (depends : &str ) -> anyhow::Result<()> {
+  if   depends.contains('/')  {
+      let arr = depends.split('/').collect::<Vec<&str>>();
+      if  arr.len() !=2 {
+        bail!("manifest depends format error")
+      }
+      let  bucket = arr[0].to_string();
+      let  app_name = arr[1].to_string();
+       install_from_specific_bucket(&bucket, &app_name).await?;
+  } else  {
+    install_app(&depends).await?;
+  }
+  Ok(())
+}
+pub fn handle_arch (arch : &[InstallOptions] ) -> anyhow::Result<()> {
+  if arch.is_some() { 
+      
+    let arch = arch.unwrap();
+    if arch != "64bit" && arch != "32bit" && arch != "arm64" {
+      bail!("选择安装的架构错误 ,(64bit,32bit,arm64)")
+    };
+    install_arch = arch
+  } else if arch.is_none() {
+    install_arch = get_system_default_arch()?;
+  }
+  
+  Ok(())
 }
 
 pub fn handle_env_set (env_set : &ManifestObj, manifest : &InstallManifest) ->   anyhow::Result<()> {
@@ -82,7 +121,6 @@ pub fn handle_env_set (env_set : &ManifestObj, manifest : &InstallManifest) ->  
       }
       let cmd = format!(r#"Set-ItemProperty -Path "HKCU:\Environment" -Name "{key}" -Value {env_value}"#);
 
-
      println!("cmd: {}", cmd);
       let output = std::process::Command::new("powershell")
         .arg("-Command" )
@@ -103,7 +141,7 @@ pub fn handle_env_set (env_set : &ManifestObj, manifest : &InstallManifest) ->  
 }
 
 
-pub  fn handle_env_add_path (env_add_path: StringArrayOrString, app_current_dir: String) ->  anyhow::Result<()> {
+pub  fn handle_env_add_path (env_add_path:&StringArrayOrString, app_current_dir: String) ->  anyhow::Result<()> {
   let  app_current_dir = app_current_dir.replace('/', r"\");
   if  let StringArrayOrString::StringArray(paths) = env_add_path {
      for  path  in  paths {
@@ -115,7 +153,7 @@ pub  fn handle_env_add_path (env_add_path: StringArrayOrString, app_current_dir:
 
   Ok(())
 }
-pub  fn  add_bin_to_path ( path : String , app_current_dir :&String ) -> anyhow::Result<()> {
+pub  fn  add_bin_to_path ( path : &str  , app_current_dir :&String ) -> anyhow::Result<()> {
   let  path = path.replace('/', r"\");
   let  path = path.replace('\\', r"\");
   let path =  format!(r"{app_current_dir}\{path}");

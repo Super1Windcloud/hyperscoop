@@ -14,7 +14,7 @@ use std::{  fs};
 
 const DRIVER_SHIM_BYTES: &[u8] = include_bytes!("..\\bin\\shim.exe");
 
-pub fn create_shim_or_shortcuts(manifest_json: String, app_name: &String) -> anyhow::Result<()> {
+pub fn create_shim_or_shortcuts(manifest_json: String, app_name: &str ) -> anyhow::Result<()> {
     let content = fs::read_to_string(manifest_json)?;
     let serde_obj: InstallManifest = serde_json::from_str(&content)?;
     let bin = serde_obj.bin;
@@ -90,7 +90,7 @@ pub fn create_shim_or_shortcuts(manifest_json: String, app_name: &String) -> any
 
 pub fn create_shims_file(
     bin: StringOrArrayOrDoubleDimensionArray,
-    app_name: &String,
+    app_name: &str ,
 ) -> anyhow::Result<()> {
     let shim_path = get_shims_path();
     match bin {
@@ -281,8 +281,8 @@ pub fn start_create_shortcut<P: AsRef<Path>>(
 pub fn create_alias_shim_name_file(
     exe_name: String,
     alias_name: String,
-    shim_dir: &String,
-    app_name: &String,
+    shim_dir: &str ,
+    app_name: &str ,
     program_args: Option<String>,
 ) -> anyhow::Result<()> {
     let out_dir = PathBuf::from(shim_dir);
@@ -326,8 +326,8 @@ pub fn create_alias_shim_name_file(
 ///   *-------------------------------------------*
 pub fn create_default_shim_name_file(
     exe_name: String,
-    shim_dir: &String,
-    app_name: &String,
+    shim_dir: &str ,
+    app_name: &str ,
 ) -> anyhow::Result<()> {
     let out_dir = PathBuf::from(shim_dir);
     let temp = exe_name.clone();
@@ -895,7 +895,7 @@ mod test_shim {
                             if arr.len() == 2 {
                                 let exe_name = arr[0].clone();
                                 let suffix = exe_name.split('.').last().unwrap();
-                                let alias_name = arr[1].clone();
+                                let  _alias_name = arr[1].clone();
                                 if suffix == "cmd" || suffix == "bat" {
                                     println!("{:?}", arr);
                                     println!("script path {:?}", path.display());
@@ -904,7 +904,7 @@ mod test_shim {
                             if arr.len() == 3 {
                                 let exe_name = arr[0].clone();
                                 let suffix = exe_name.split('.').last().unwrap();
-                                let alias_name = arr[1].clone();
+                                let _alias_name = arr[1].clone();
                                 if suffix == "cmd" || suffix == "bat" {
                                     println!("{:?}", arr);
                                     println!("script path has  args {:?}", path.display());
@@ -921,7 +921,7 @@ mod test_shim {
                                         if arr.len() == 2 {
                                             let exe_name = arr[0].clone();
                                             let suffix = exe_name.split('.').last().unwrap();
-                                            let alias_name = arr[1].clone();
+                                            let _alias_name = arr[1].clone();
                                             if suffix == "cmd" || suffix == "bat" {
                                                 println!("{:?}", arr);
                                                 println!("script path {:?}", path.display());
@@ -930,7 +930,7 @@ mod test_shim {
                                         if arr.len() == 3 {
                                             let exe_name = arr[0].clone();
                                             let suffix = exe_name.split('.').last().unwrap();
-                                            let alias_name = arr[1].clone();
+                                            let _alias_name = arr[1].clone();
                                             if suffix == "cmd" || suffix == "bat" {
                                                 println!("{:?}", arr);
                                                 println!(

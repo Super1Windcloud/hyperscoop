@@ -24,13 +24,13 @@ pub struct InstallArgs  {
   #[arg(short='i' , long, help = "不自动下载manifest里的依赖,很大概率导致软件异常", required = false , action = ArgAction::SetTrue,help_heading = "Install Options" )]
   pub  no_auto_download_dependencies : bool,
   #[arg(short, long, help = "跳过下载哈希校验", required = false, action = ArgAction::SetTrue,help_heading = "Install Options"  )]
-  pub ship_hash_check : bool,
+  pub skip_download_hash_check  : bool,
   #[arg(short='u' , long, help = "安装前更新hp和bucket,默认不更新", required = false , action = ArgAction::SetTrue,help_heading = "Install Options" )]
-  pub update_hp_and_bucket : bool,
+  pub update_hp_and_buckets  : bool,
 
   #[arg(short='a', long, help = "指定安装架构, 如果支持的话", help_heading = "Install Options",
     required = false ,default_value ="64bit" ,value_name="<32bit|64bit|arm64>")]
-  pub arch : Option<String>,
+   pub arch : Option<String>,
 
   #[arg(from_global)]
   pub  global :bool

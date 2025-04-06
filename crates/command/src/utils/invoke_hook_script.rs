@@ -180,7 +180,6 @@ pub fn invoke_hook_script(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::init_hyperscoop;
     use rayon::prelude::*;
     use std::fs;
