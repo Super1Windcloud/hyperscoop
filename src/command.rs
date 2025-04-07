@@ -1,4 +1,5 @@
-﻿use crate::command_args::cat::CatArgs;
+﻿use std::path::Path;
+use crate::command_args::cat::CatArgs;
 use crate::command_args::checkup::CheckupArgs;
 use crate::command_args::cleanup::CleanupArgs;
 use crate::command_args::config::ConfigArgs;
@@ -20,6 +21,7 @@ use crate::command_args::which::WhichArgs;
 pub(crate) use crate::command_args::{bucket_args::BucketArgs, cache::CacheArgs};
 use clap::{Args, Subcommand};
 use crossterm::style::Stylize;
+use command_util_lib::init_env::{get_app_dir_install_json};
 
 #[derive(Debug, Subcommand)]
 #[command(propagate_version = true)] // 自动传递版本信息
@@ -74,13 +76,27 @@ pub fn  execute_credits_command()  -> anyhow::Result<()> {
 
 
 #[derive(Args, Debug)]
-#[clap(author, version, about="💖\t\t锁定指定APP版本", long_about = None)]
-#[command(arg_required_else_help = false , subcommand_negates_reqs = true)]
+#[clap(author, version, about="💖\t\t锁定指定APP版本,锁定之后更新所有APP或者检测更新状态将自动跳过", long_about = None)]
+#[command(arg_required_else_help = true , subcommand_negates_reqs = true)]
 #[command(no_binary_name = true)]
-pub struct  HoldArgs {}
+pub struct  HoldArgs {
+   #[arg( required = false,  num_args =1.., help = "要锁定的APP名称,精准匹配,支持多参数")]
+   pub   app_names :Option<Vec<String  >>,
 
-pub fn  execute_hold_command()  -> anyhow::Result<()> {
-  let str=  "hp  is created by superwindcloud(https://gitee.com/superwindcloud)".to_string().dark_blue().bold();
-  println!("💖 {str}");
+}
+
+pub fn  execute_hold_command(hold_args: HoldArgs) -> anyhow::Result<()> {
+     if hold_args.app_names.is_none() { return Ok(()); }
+     let  app_names = hold_args.app_names .unwrap();
+      let  install_json_files = app_names.iter().filter_map(|name| { 
+        let  install_json = get_app_dir_install_json(name); 
+        if !Path::new(&install_json).exists() {
+             eprintln!("{install_json} 不存在");
+              None 
+        }else { 
+          Some(install_json)
+        }
+      }).collect::<Vec<_>>();
+     
   Ok(())
 }

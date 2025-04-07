@@ -110,7 +110,7 @@ async fn main() -> anyhow::Result<()> {
             Commands::Which(which) => execute_which_command(which),
             Commands::Merge(args) => execute_merge_command(args),
             Commands::Credits(_) => execute_credits_command(),
-            Commands::Hold(_) => execute_hold_command(),
+            Commands::Hold( hold_args ) => execute_hold_command( hold_args),
         },
     };
     if let Err(err) = result {

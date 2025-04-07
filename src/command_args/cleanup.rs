@@ -6,8 +6,8 @@
 #[clap(arg_required_else_help = true)]
 #[clap(alias = "clean")]
 pub struct CleanupArgs  {
-  #[arg(short='a', long, help = "清理所有版本的APP旧版本,别名*")]
-  #[clap(alias = "*")]
+  #[arg(short='a', long, help = "清理所有安装的APP旧版本")]
   pub(crate) all : bool,
-  pub(crate) name: Option<String>,
+   #[arg(required=false ,  num_args =1.., help = "清理app的名称,支持多参数")]
+  pub(crate) app_names : Option<Vec<String>>,
 }
