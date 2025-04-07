@@ -106,7 +106,7 @@ pub fn add_key_value_to_json(
         map.insert(new_key.to_string(), Value::Bool(new_value));
         println!(
             "{}",
-            (name.to_string() + " is is now held and can not be updated anymore.")
+            (name.to_string() + " is now held and can not be updated anymore.")
                 .dark_green()
                 .bold()
         );
