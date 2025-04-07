@@ -11,3 +11,5 @@ pub struct CleanupArgs  {
    #[arg(required=false ,  num_args =1.., help = "清理app的名称,支持多参数")]
   pub(crate) app_names : Option<Vec<String>>,
 }
+
+
