@@ -34,8 +34,8 @@
 - [x]  cleanup  
 - [x]  config 
 - [x]  export  
-- [x] home 
-- [x] import 
+- [x]  home 
+- [x]  import 
 - [x]  info 
 - [x]  hold 
 - [ ] install 
@@ -45,11 +45,11 @@
 - [x] search 
 - [x] shim
 - [x] status  
-- [x]  uninstall  
-- [x]  update  
-- [x]  which 
+- [x] uninstall  
+- [x] update  
+- [x] which 
 - [x] merge 
-- [x]  credits
+- [x] credits
 --- 
  ## Feature 
 - >   多进度条, 多线程  , 丰富色彩, 命令识别自动补全 ...... 
