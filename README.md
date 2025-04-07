@@ -24,7 +24,7 @@
 --- 
 
 [//]: # ( ![pinpix.png]&#40;https://imgfans.com/_oONbC&#41;)
-![cmd](./img/cmd.png) 
+![cmd.png](https://imgfans.com/_s0giY)
 --- 
 ## ☑️ TODO
 - [x] Bucket
