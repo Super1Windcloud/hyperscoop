@@ -106,7 +106,7 @@ pub fn add_key_value_to_json(
         map.insert(new_key.to_string(), Value::Bool(new_value));
         println!(
             "{}",
-            (name.to_string() + "is is now held and can not be updated anymore.")
+            (name.to_string() + " is is now held and can not be updated anymore.")
                 .dark_green()
                 .bold()
         );
@@ -132,7 +132,7 @@ pub fn execute_hold_command(hold_args: HoldArgs) -> anyhow::Result<()> {
                 None
             } else {
                 if hold_args.cancel_hold {
-                    let  result = unhold_locked_apps(&app_names);
+                    let  result = unhold_locked_apps(&name ,&install_json);
                    if result.is_err() {
                     Some(result)
                   } else {
@@ -162,6 +162,25 @@ pub fn execute_hold_command(hold_args: HoldArgs) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub fn unhold_locked_apps(app_names: &[String]) -> anyhow::Result<()> {
+pub fn unhold_locked_apps(app_name: &str , install_json_file : &str ) -> anyhow::Result<()> {
+  let data = std::fs::read_to_string(install_json_file)?;
+
+  let mut json_data: Value = serde_json::from_str(&data)?;
+
+  if let Value::Object(ref mut map) = json_data {
+    if map.get("hold").is_none()  {
+      bail!("'{app_name}' is not  held.");
+    }
+    map.remove("hold");
+    println!(
+      "{}",
+      (app_name.to_string() + " is no longer held and can be updated again.")
+        .dark_green()
+        .bold()
+    );
+  } else {
+    bail!("Invalid JSON: Expected an object");
+  }
+  std::fs::write(install_json_file , serde_json::to_string_pretty(&json_data)?)?;
     Ok(())
 }
