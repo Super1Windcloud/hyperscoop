@@ -37,6 +37,7 @@
 - [x] home 
 - [x] import 
 - [x]  info 
+- [x]  hold 
 - [ ] install 
 - [x] list 
 - [x] prefix 
@@ -48,6 +49,7 @@
 - [x]  update  
 - [x]  which 
 - [x] merge 
+- [x]  credits
 --- 
  ## Feature 
 - >   多进度条, 多线程  , 丰富色彩, 命令识别自动补全 ...... 
