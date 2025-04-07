@@ -1,16 +1,21 @@
-use std::cmp::Ordering;
 use crate::command_args::cleanup::CleanupArgs;
+use anyhow::bail;
+use command_util_lib::init_env::get_app_dir;
 use command_util_lib::init_hyperscoop;
-use crossterm::style::Stylize;
-use std::collections::HashMap;
 use command_util_lib::utils::utility::compare_versions;
+use crossterm::style::Stylize;
+use rayon::prelude::*;
+use std::cmp::Ordering;
+use std::collections::HashMap;
+use std::path::Path;
+use  anyhow::anyhow;
 
 pub fn execute_cleanup_command(args: CleanupArgs) -> Result<(), anyhow::Error> {
     if let Some(name) = args.app_names {
         if args.all {
             clean_all_old_versions()
         } else {
-            clean_specific_old_version(name)
+            clean_specific_old_version(name)?
         }
     }
     if args.all {
@@ -20,8 +25,48 @@ pub fn execute_cleanup_command(args: CleanupArgs) -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-fn clean_specific_old_version(app_name: Vec<String>) {
+fn clean_specific_old_version(app_name: Vec<String>) -> anyhow::Result<()> {
     log::info!("Run cleanup command '{:?}'", app_name);
+    let app_dirs = app_name
+        .iter()
+        .map(|name| get_app_dir(name))
+        .collect::<Vec<_>>();
+    let result = app_dirs.iter().try_for_each(|dir| {
+        let dir = Path::new(dir);
+        let child_dirs = dir
+            .read_dir()?
+            .filter_map(|dir| {
+                let dir = dir.unwrap();
+                let binding = dir.file_name();
+                let name = binding.to_str().unwrap();
+                if name == "current" {
+                    return None;
+                } else {
+                    Some(dir.path())
+                }
+            })
+            .collect::<Vec<_>>();
+        let highest_version_dir  = child_dirs.par_iter().max_by(|dir1, dir2| {
+            let file_name = dir1.file_name().unwrap().to_str().unwrap();
+            let file_name2 = dir2.file_name().unwrap().to_str().unwrap();
+            compare_versions(file_name.to_string(), file_name2.to_string())
+        }).ok_or(anyhow!("No version directory found"))?;
+      
+        let retain_dir =  highest_version_dir;
+        let result = child_dirs.par_iter().try_for_each(|dir| {
+            if dir !=  retain_dir {
+                log::info!("Removing old version: {}", dir.display());
+                std::fs::remove_dir_all(dir)?;
+            }
+            Ok(())
+        });
+        result
+    });
+    if result.is_err() {
+        let err: anyhow::Error = result.unwrap_err();
+        bail!("Run cleanup Err '{:?}'", err);
+    }
+    Ok(())
 }
 
 fn clean_all_old_versions() {
@@ -81,7 +126,7 @@ fn clean_all_old_versions() {
     log::info!("{:?}", versions_with_name);
     for (app_name, version) in versions_with_name {
         let exclude_path = format!("{}\\{}\\{}", apps_path.clone(), app_name, version);
-        let exclude_path = std::path::Path::new(&exclude_path);
+        let exclude_path = Path::new(&exclude_path);
         let dir = format!("{}\\{}", apps_path.clone(), app_name);
         log::info!("{:?}", dir);
         if exclude_path.exists() {
@@ -102,10 +147,9 @@ fn clean_all_old_versions() {
                         continue;
                     }
                     log::info!("Removing old version: {}", entry.path().display());
-                    // std::fs::remove_dir_all(entry.path()).expect("Failed to remove old version");
+                    std::fs::remove_dir_all(entry.path()).expect("Failed to remove old version");
                 }
             }
         }
     }
 }
-
