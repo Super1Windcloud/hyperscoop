@@ -1,12 +1,13 @@
 use crate::init_env::init_env_path;
 use crate::merge::Merge;
 use crate::utils::system::get_system_current_time;
+use crossterm::style::Stylize;
+use serde_json::Value;
 use std::cmp::Ordering;
 use std::fs;
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
-use crossterm::style::Stylize;
 
 pub fn compare_versions(ver1: String, ver2: String) -> Ordering {
     // 分割版本号并转换为数字数组
@@ -29,6 +30,24 @@ pub fn compare_versions(ver1: String, ver2: String) -> Ordering {
         .unwrap_or(Ordering::Equal)
 }
 
+pub fn add_key_value_to_json(
+    file_path: &str,
+    new_key: &str,
+    new_value: Value,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let data = fs::read_to_string(file_path)?;
+
+    let mut json_data: Value = serde_json::from_str(&data)?;
+
+    if let Value::Object(ref mut map) = json_data {
+        map.insert(new_key.to_string(), new_value);
+    } else {
+        return Err("Invalid JSON: Expected an object".into());
+    }
+    fs::write(file_path, serde_json::to_string_pretty(&json_data)?)?;
+    Ok(())
+}
+
 pub fn update_scoop_config_last_update_time() {
     let current = get_system_current_time().unwrap();
     let config_path = std::env::var("XDG_CONFIG_HOME").unwrap_or_else(|_| {
@@ -38,7 +57,7 @@ pub fn update_scoop_config_last_update_time() {
     let config_path = Path::new(&config_path);
     if config_path.exists() {
         let config_file = File::open(config_path).unwrap();
-        let mut config_json: serde_json::Value = serde_json::from_reader(config_file).unwrap();
+        let mut config_json: Value = serde_json::from_reader(config_file).unwrap();
         if let Some(obj) = config_json.as_object_mut() {
             obj.insert("last_update".into(), current.into());
         }
@@ -110,6 +129,7 @@ pub const LARGE_COMMUNITY_BUCKET: [&str; 8] = [
     "https://github.com/okibcn/ScoopMaster",
     "http://github.com/okibcn/ScoopMaster",
 ];
+
 pub fn remove_bom_and_control_chars_from_utf8_file<P: AsRef<Path>>(
     path: P,
 ) -> anyhow::Result<String> {
@@ -154,43 +174,48 @@ pub fn remove_bom_and_control_chars_from_utf8_file<P: AsRef<Path>>(
             }
         }
     }
-
-    fs::write(&path, filtered_data)?;
+    let content = serde_json::to_string_pretty(&filtered_data)?;
+    fs::write(&path, content)?;
     let content = fs::read_to_string(&path)?;
     Ok(content)
 }
 
 pub fn assume_yes_to_cover_shim(path: &String) -> anyhow::Result<bool> {
     use dialoguer::Confirm;
-    let message = format!("文件{path}已存在,建议检查,是否进行覆盖?(y/n)").dark_red().bold().to_string();
+    let message = format!("文件{path}已存在,建议检查,是否进行覆盖?(y/n)")
+        .dark_red()
+        .bold()
+        .to_string();
 
-    match   Confirm::new()
-        .with_prompt(message).show_default(false)
+    match Confirm::new()
+        .with_prompt(message)
+        .show_default(false)
         .default(false)
-        .interact()  { 
-      Ok(yes) => {
-        if yes { 
-          Ok(true)
-        }else {
-          Ok(false)
+        .interact()
+    {
+        Ok(yes) => {
+            if yes {
+                Ok(true)
+            } else {
+                Ok(false)
+            }
         }
-      }
-      Err(_) => return Ok(false),
+        Err(_) => Ok(false),
     }
 }
 
 pub fn write_utf8_file(path: &String, content: &str) -> anyhow::Result<()> {
     // 文件存在, 进行覆盖警告
     if Path::new(&path).exists() {
-        let result  =assume_yes_to_cover_shim(path)?; 
+        let result = assume_yes_to_cover_shim(path)?;
         if !result {
             return Ok(());
-        }else {
-          println!("{}", "覆盖写入".dark_yellow().bold() );
+        } else {
+            println!("{}", "覆盖写入".dark_yellow().bold());
         }
-    } 
+    }
     let mut file = File::create(path)?;
-     /*
+    /*
      File::create(path) 的默认行为
     如果文件存在： 会 直接清空文件内容（相当于 truncate 模式），然后写入新数据。
     不会报错，但原内容会丢失！
@@ -200,10 +225,9 @@ pub fn write_utf8_file(path: &String, content: &str) -> anyhow::Result<()> {
 }
 
 pub fn is_valid_url(url_str: &str) -> bool {
-  use url::Url;
-  Url::parse(url_str).is_ok()
+    use url::Url;
+    Url::parse(url_str).is_ok()
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -223,7 +247,7 @@ mod tests {
     fn test_rm_bom() {
         let path = r"A:\Scoop\buckets\echo\bucket\hdtune.json";
         let content = remove_bom_and_control_chars_from_utf8_file(path).unwrap();
-        let _  = serde_json::from_str::<serde_json::Value>(&content).unwrap();
+        let _ = serde_json::from_str::<Value>(&content).unwrap();
     }
 
     #[test]

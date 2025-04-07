@@ -1,10 +1,7 @@
 ﻿use crate::buckets::{get_buckets_name, get_buckets_path};
 use crate::manifest::search_manifest::SearchManifest;
 use crate::utils::request::get_git_repo_remote_url;
-use crate::utils::utility::{
-    remove_bom_and_control_chars_from_utf8_file,
-    LARGE_COMMUNITY_BUCKET,
-};
+use crate::utils::utility::{remove_bom_and_control_chars_from_utf8_file, LARGE_COMMUNITY_BUCKET};
 use anyhow::{anyhow, bail};
 use crossterm::style::Stylize;
 use indicatif::{MultiProgress, ProgressBar, ProgressFinish, ProgressStyle};
@@ -33,14 +30,14 @@ impl Merge {
     }
 }
 impl Display for Merge {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    let str = format!(
-      "{}   :  {}",
-      self.app_name.clone().dark_blue().bold(),
-      self.app_version.clone().dark_blue().bold()
-    );
-    write!(f, "{}", str)
-  }
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let str = format!(
+            "{}   :  {}",
+            self.app_name.clone().dark_blue().bold(),
+            self.app_version.clone().dark_blue().bold()
+        );
+        write!(f, "{}", str)
+    }
 }
 
 // 合并所有冗余的manifest
@@ -116,19 +113,20 @@ fn load_bucket_info(
         .map(|entry| {
             let path = entry.path();
             let file_type = entry.file_type().ok()?;
-          return if file_type.is_file() && path.extension().and_then(|ext| ext.to_str()) == Some("json")
-          {
-            // 对于 path使用ends_with 只能匹配路径的最后一个元素,不能匹配扩展名
-            let result = extract_info_from_manifest(&path);
-            if let Err(e) = result {
-              eprintln!("{}", e.to_string().dark_blue().bold());
-              return None;
-            }
-            let result = result.unwrap();
-            Some(result)
-          } else {
-            None
-          }
+            return if file_type.is_file()
+                && path.extension().and_then(|ext| ext.to_str()) == Some("json")
+            {
+                // 对于 path使用ends_with 只能匹配路径的最后一个元素,不能匹配扩展名
+                let result = extract_info_from_manifest(&path);
+                if let Err(e) = result {
+                    eprintln!("{}", e.to_string().dark_blue().bold());
+                    return None;
+                }
+                let result = result.unwrap();
+                Some(result)
+            } else {
+                None
+            };
         })
         .collect::<Vec<_>>();
 
@@ -155,24 +153,6 @@ fn include_special_dir(path_dir: &Path) -> Result<PathBuf, anyhow::Error> {
     if !LARGE_COMMUNITY_BUCKET.contains(&remote_url.as_str()) {
         return Err(anyhow!("排除目录"));
     }
-    // let exclude_dirs = [
-    //     "main",
-    //     "extras",
-    //     "versions",
-    //     "nirsoft",
-    //     "sysinternals",
-    //     "php",
-    //     "nerd-fonts",
-    //     "nonportable",
-    //     "java",
-    //     "games",
-    //     "dorado",
-    //     "DoveBoyApps",
-    //     "echo",
-    //     "lemon",
-    //     "Python",
-    //     "samiya",
-    // ];
     Ok(path_dir.to_path_buf())
 }
 fn find_latest_version(
@@ -268,21 +248,21 @@ fn remove_old_manifest(
                         remove_file(&path).expect("删除文件失败");
                         return None;
                     }
-                  return if app_version.to_string()
-                    < latest_buckets_map
-                    .lock()
-                    .unwrap()
-                    .get(app_name)
-                    .unwrap()
-                    .app_version
-                  {
-                    //  println!("删除的文件{} 版本{}", path.display(), app_version);
-                    remove_file(&path).expect("删除文件失败");
-                    None
-                  } else {
-                    //多个相等的manifest最高版本只保留一个
-                    path.into()
-                  }
+                    return if app_version.to_string()
+                        < latest_buckets_map
+                            .lock()
+                            .unwrap()
+                            .get(app_name)
+                            .unwrap()
+                            .app_version
+                    {
+                        //  println!("删除的文件{} 版本{}", path.display(), app_version);
+                        remove_file(&path).expect("删除文件失败");
+                        None
+                    } else {
+                        //多个相等的manifest最高版本只保留一个
+                        path.into()
+                    };
                 } else {
                     None
                 }
@@ -302,12 +282,21 @@ fn merge_same_latest_version(
     let group_manifests = DashMap::new();
     let total_manifest_count = same_latest_version_manifests.len();
 
-      let ( scoop_master  ,other ) :(Vec<_>,Vec<_>)  =same_latest_version_manifests.into_par_iter().partition(|manifest| {
-        let  name =   manifest.to_str().unwrap() ;
-        if  name.contains("ScoopMaster") {  true } else { false }
-      }) ;
-  // ? cloned 获取引用指向的值,并将值复制到新的变量中 ,转换&  Vec<T> 到 Vec<T>
-  same_latest_version_manifests =scoop_master.into_iter().chain(other.into_iter()).collect::<_>();
+    let (scoop_master, other): (Vec<_>, Vec<_>) = same_latest_version_manifests
+        .into_par_iter()
+        .partition(|manifest| {
+            let name = manifest.to_str().unwrap();
+            if name.contains("ScoopMaster") {
+                true
+            } else {
+                false
+            }
+        });
+    // ? cloned 获取引用指向的值,并将值复制到新的变量中 ,转换&  Vec<T> 到 Vec<T>
+    same_latest_version_manifests = scoop_master
+        .into_iter()
+        .chain(other.into_iter())
+        .collect::<_>();
     same_latest_version_manifests
         .par_iter()
         .for_each(|manifest| {
@@ -395,9 +384,7 @@ fn exclude_not_json_file(file_name: String) -> bool {
 }
 
 pub fn rm_err_manifest() -> Result<(), anyhow::Error> {
-    use crate::utils::progrees_bar::{
-        indicatif::{MultiProgress, ProgressBar, ProgressFinish},
-    };
+    use crate::utils::progrees_bar::indicatif::{MultiProgress, ProgressBar, ProgressFinish};
     const FINISH_MESSAGE: &str = "✅";
     let bucket_paths = get_buckets_path()?;
     let buckets_name = get_buckets_name()?;
@@ -453,8 +440,7 @@ pub fn rm_err_manifest() -> Result<(), anyhow::Error> {
                 .iter()
                 .find(|item| item.ends_with(&(bucket.clone() + "\\bucket")))
                 .unwrap_or(bucket);
-            let result =
-                rm_err_manifest_unit(bucket_path, pb, FINISH_MESSAGE.parse().unwrap());
+            let result = rm_err_manifest_unit(bucket_path, pb, FINISH_MESSAGE.parse().unwrap());
             if let Err(e) = result {
                 pb.finish_with_message(format!("❌ {}", e.to_string()));
             }

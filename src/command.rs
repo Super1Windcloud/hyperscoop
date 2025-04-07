@@ -1,5 +1,4 @@
-﻿use std::path::Path;
-use crate::command_args::cat::CatArgs;
+﻿use crate::command_args::cat::CatArgs;
 use crate::command_args::checkup::CheckupArgs;
 use crate::command_args::cleanup::CleanupArgs;
 use crate::command_args::config::ConfigArgs;
@@ -19,9 +18,12 @@ use crate::command_args::uninstall::UninstallArgs;
 use crate::command_args::update::UpdateArgs;
 use crate::command_args::which::WhichArgs;
 pub(crate) use crate::command_args::{bucket_args::BucketArgs, cache::CacheArgs};
+use anyhow::bail;
 use clap::{Args, Subcommand};
+use command_util_lib::init_env::get_app_dir_install_json;
 use crossterm::style::Stylize;
-use command_util_lib::init_env::{get_app_dir_install_json};
+use serde_json::Value;
+use std::path::Path;
 
 #[derive(Debug, Subcommand)]
 #[command(propagate_version = true)] // 自动传递版本信息
@@ -63,40 +65,103 @@ pub(crate) enum Commands {
 
 #[derive(Args, Debug)]
 #[clap(author, version, about="💖\t\t显示Credit信息", long_about = None)]
-#[command(arg_required_else_help = false , subcommand_negates_reqs = true)]
+#[command(arg_required_else_help = false, subcommand_negates_reqs = true)]
 #[command(no_binary_name = true)]
-pub struct  CreditsArgs {}
+pub struct CreditsArgs {}
 
-pub fn  execute_credits_command()  -> anyhow::Result<()> {
-  let str=  "hp  is created by superwindcloud(https://gitee.com/superwindcloud)".to_string().dark_blue().bold();
-  println!("💖 {str}");
-  Ok(())
+pub fn execute_credits_command() -> anyhow::Result<()> {
+    let str = "hp  is created by superwindcloud(https://gitee.com/superwindcloud)"
+        .to_string()
+        .dark_blue()
+        .bold();
+    println!("💖 {str}");
+    Ok(())
 }
-
-
 
 #[derive(Args, Debug)]
 #[clap(author, version, about="💖\t\t锁定指定APP版本,锁定之后更新所有APP或者检测更新状态将自动跳过", long_about = None)]
-#[command(arg_required_else_help = true , subcommand_negates_reqs = true)]
+#[command(arg_required_else_help = true, subcommand_negates_reqs = true)]
 #[command(no_binary_name = true)]
-pub struct  HoldArgs {
-   #[arg( required = false,  num_args =1.., help = "要锁定的APP名称,精准匹配,支持多参数")]
-   pub   app_names :Option<Vec<String  >>,
-
+pub struct HoldArgs {
+    #[arg( required = false,  num_args =1.., help = "要锁定的APP名称,精准匹配,支持多参数")]
+    pub app_names: Option<Vec<String>>,
+    #[arg(short = 'u', long, required = false, help = "取消锁定, 支持多参数")]
+    pub cancel_hold: bool,
 }
 
-pub fn  execute_hold_command(hold_args: HoldArgs) -> anyhow::Result<()> {
-     if hold_args.app_names.is_none() { return Ok(()); }
-     let  app_names = hold_args.app_names .unwrap();
-      let  install_json_files = app_names.iter().filter_map(|name| { 
-        let  install_json = get_app_dir_install_json(name); 
-        if !Path::new(&install_json).exists() {
-             eprintln!("{install_json} 不存在");
-              None 
-        }else { 
-          Some(install_json)
+pub fn add_key_value_to_json(
+    file_path: &str,
+    new_key: &str,
+    new_value: bool,
+    name: &str,
+) -> anyhow::Result<()> {
+    let data = std::fs::read_to_string(file_path)?;
+
+    let mut json_data: Value = serde_json::from_str(&data)?;
+
+    if let Value::Object(ref mut map) = json_data {
+        if map.get(new_key).is_some() {
+            bail!("{name} is already held.");
         }
-      }).collect::<Vec<_>>();
-     
-  Ok(())
+        map.insert(new_key.to_string(), Value::Bool(new_value));
+        println!(
+            "{}",
+            (name.to_string() + "is is now held and can not be updated anymore.")
+                .dark_green()
+                .bold()
+        );
+    } else {
+        bail!("Invalid JSON: Expected an object");
+    }
+    std::fs::write(file_path, serde_json::to_string_pretty(&json_data)?)?;
+    Ok(())
+}
+
+pub fn execute_hold_command(hold_args: HoldArgs) -> anyhow::Result<()> {
+    if hold_args.app_names.is_none() {
+        return Ok(());
+    }
+    let app_names = hold_args.app_names.unwrap();
+
+    let result = app_names
+        .iter()
+        .filter_map(|name| {
+            let install_json = get_app_dir_install_json(name);
+            if !Path::new(&install_json).exists() {
+                eprintln!("{install_json} 不存在");
+                None
+            } else {
+                if hold_args.cancel_hold {
+                    let  result = unhold_locked_apps(&app_names);
+                   if result.is_err() {
+                    Some(result)
+                  } else {
+                    None
+                  }
+                }else {
+                  let result = add_key_value_to_json(&install_json, "hold".as_ref(), true, name);
+                  if result.is_err() {
+                    Some(result)
+                  } else {
+                    None
+                  }
+                }
+            }
+        })
+        .collect::<Vec<_>>();
+    if result.is_empty() {
+        return Ok(());
+    }
+    result.iter().for_each(|result| match result {
+        Ok(_) => {}
+        Err(e) => {
+            let e = e.to_string();
+            eprintln!("{}", e.dark_grey().bold());
+        }
+    });
+    Ok(())
+}
+
+pub fn unhold_locked_apps(app_names: &[String]) -> anyhow::Result<()> {
+    Ok(())
 }
