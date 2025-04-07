@@ -40,6 +40,7 @@ pub(crate) enum Commands {
     Config(ConfigArgs),
     Export(ExportArgs),
     Home(HomeArgs),
+    Hold(HoldArgs),
     Import(ImportArgs),
     Info(InfoArgs),
     Install(InstallArgs),
@@ -65,6 +66,20 @@ pub(crate) enum Commands {
 pub struct  CreditsArgs {}
 
 pub fn  execute_credits_command()  -> anyhow::Result<()> {
+  let str=  "hp  is created by superwindcloud(https://gitee.com/superwindcloud)".to_string().dark_blue().bold();
+  println!("💖 {str}");
+  Ok(())
+}
+
+
+
+#[derive(Args, Debug)]
+#[clap(author, version, about="💖\t\t锁定指定APP版本", long_about = None)]
+#[command(arg_required_else_help = false , subcommand_negates_reqs = true)]
+#[command(no_binary_name = true)]
+pub struct  HoldArgs {}
+
+pub fn  execute_hold_command()  -> anyhow::Result<()> {
   let str=  "hp  is created by superwindcloud(https://gitee.com/superwindcloud)".to_string().dark_blue().bold();
   println!("💖 {str}");
   Ok(())

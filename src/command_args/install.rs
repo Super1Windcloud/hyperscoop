@@ -18,14 +18,20 @@ pub struct InstallArgs {
     #[arg(help = "安装APP的名称,精准匹配,仅单个安装", required = false)]
     pub app_name: Option<String>,
 
+    #[arg(short, long, help = "跳过下载文件的哈希校验", required = false, action = ArgAction::SetTrue,help_heading = "Install Options"  )]
+     pub skip_download_hash_check: bool,
+
     #[arg(short='k' , long, help = "跳过本地缓存，强制从远程源重新下载安装", required = false , action = ArgAction::SetTrue, help_heading = "Install Options" )]
     pub no_use_download_cache: bool,
     #[arg(short='i' , long, help = "不自动下载manifest里的依赖,很大概率导致软件异常", required = false , action = ArgAction::SetTrue,help_heading = "Install Options" )]
     pub no_auto_download_dependencies: bool,
-    #[arg(short, long, help = "跳过下载哈希校验", required = false, action = ArgAction::SetTrue,help_heading = "Install Options"  )]
-    pub skip_download_hash_check: bool,
+
+
+    #[arg(short='o' , long, help = "下载文件到缓存并且校验哈希,不执行安装", required = false, action = ArgAction::SetTrue,help_heading = "Install Options"  )]
+    pub   only_download_no_install : bool,
     #[arg(short='u' , long, help = "安装前更新hp和bucket,默认不更新", required = false , action = ArgAction::SetTrue,help_heading = "Install Options" )]
     pub update_hp_and_buckets: bool,
+
 
     #[arg(
         short = 'a',

@@ -20,11 +20,11 @@ pub  async fn execute_update_command(update_args: UpdateArgs) -> Result<(), anyh
     if update_args.app_name.is_some() {
         let app_name = update_args.app_name.unwrap();
         log::trace!("update app: {}", app_name);
-      if update_args.no_cache && update_args.skip_hash_check {
+      if update_args.no_use_download_cache && update_args.skip_hash_check {
            update_specific_app_without_cache_and_hash_check(app_name.clone())?;
          return Ok(());
       }
-      if  update_args.no_cache {
+      if  update_args.no_use_download_cache  {
          update_specific_app_without_cache(app_name.clone())?;
         return Ok(());
       }

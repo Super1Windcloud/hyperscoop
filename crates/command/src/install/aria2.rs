@@ -8,15 +8,21 @@ use std::{env, fs};
 use crate::init_env::get_cache_dir_path;
 use crate::utils::utility::is_valid_url;
 
-pub struct Aria2C {
-    aria2c_path: String,
+pub struct Aria2C <'a>  {
+     aria2c_path: String,
+     download_cache_dir: String,
+     download_urls  :  &'a  [ &'a str ]
 }
 
-impl Aria2C {
+impl <'a> Aria2C<'a > {
     pub fn new() -> Self {
-        let mut aria = Self {
+      let  download_cache_dir =  get_cache_dir_path();
+
+      let mut aria = Self {
             aria2c_path: "".to_string(),
-        };
+            download_cache_dir,
+            download_urls: &[],
+      };
         aria.init().unwrap();
         aria
     }
@@ -33,7 +39,7 @@ impl Aria2C {
     }
     /// 命令行字符串, 或字符串数组, 传递多个参数时, 请使用字符串数组
     pub fn execute_aria2_download_command<'cmd>(
-        &self,
+        &self,app_name  :&str,  app_version :&str, url :&str,
         command_str: impl Into<Option<&'cmd str>>,
         command_arr: impl Into<Option<&'cmd [&'cmd str]>>,
     ) -> anyhow::Result<String> {
@@ -56,8 +62,8 @@ impl Aria2C {
         } else {
             proxy
         };
-       if  !is_valid_url(&proxy) {  bail!("Proxy is not valid, url format error"); }; 
-       let  download_cache_dir =  get_cache_dir_path(); 
+       if  !is_valid_url(&proxy) {  bail!("Proxy is not valid, url format error"); };
+       // let  saved_file_name  = generate_file_name() ;
       
       let output = Command::new(&aria2_exe).arg(format!("--all-proxy={proxy}"))
             .args(command_arr)
@@ -103,6 +109,10 @@ impl Aria2C {
         let exe_path = temp_dir.join("aria2c.exe");
         exe_path.to_str().unwrap().to_string()
     }
+
+    fn  set_download_urls(&mut self, urls: &'a [&str]) {
+        self.download_urls = urls;
+    }
 }
 
 pub fn write_message_to_aria2_log(message: &str) {
@@ -137,11 +147,6 @@ mod tests {
     #[test]
     fn test_aria2() {
         let a = Aria2C::new();
-        let o = a.execute_aria2_download_command("-v ", None);
-        if let Ok(o) = o {
-            println!("{}", o);
-        } else {
-            println!("{}", o.unwrap_err());
-        }
+         
     }
 }
