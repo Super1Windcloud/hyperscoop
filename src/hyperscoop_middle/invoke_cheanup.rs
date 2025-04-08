@@ -1,8 +1,7 @@
 use crate::command_args::cleanup::CleanupArgs;
 use anyhow::anyhow;
 use anyhow::bail;
-use command_util_lib::init_env::{get_all_global_buckets_dir_path, get_app_dir, get_app_dir_global, get_app_version_dir, get_app_version_dir_global, get_apps_path, get_apps_path_global};
-use command_util_lib::init_hyperscoop;
+use command_util_lib::init_env::{ get_app_dir, get_app_dir_global, get_app_version_dir, get_app_version_dir_global, get_apps_path, get_apps_path_global};
 use command_util_lib::utils::utility::compare_versions;
 use crossterm::style::Stylize;
 use rayon::prelude::*;

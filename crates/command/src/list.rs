@@ -1,5 +1,8 @@
-﻿use crate::init_env::{get_app_dir_install_json, get_app_dir_manifest_json, get_apps_path};
+﻿use crate::init_env::{
+    get_app_dir_install_json, get_app_dir_manifest_json, get_apps_path, get_apps_path_global,
+};
 use crate::init_hyperscoop;
+use crate::manifest::manifest_deserialize::ArchitectureObject;
 use crate::utils::get_file_or_dir_metadata::get_dir_updated_time;
 use crate::utils::safe_check::is_directory_empty;
 use crossterm::style::Stylize;
@@ -9,13 +12,11 @@ use serde::{Deserialize, Serialize};
 use std::fs::{read_dir, remove_dir_all};
 use std::io::read_to_string;
 use std::path::Path;
-use crate::manifest::manifest_deserialize::ArchitectureObject;
-
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct VersionJSON {
     pub bucket: Option<String>,
-    pub version: Option<String>, 
+    pub version: Option<String>,
     #[serde(skip)]
     pub architecture: Option<ArchitectureObject>,
 }
@@ -35,19 +36,22 @@ impl AppInfo {
             update_date,
         }
     }
-  pub fn get_field_widths(&self) -> (usize, usize, usize, usize) {
-    (
-      self.name.len(),
-      self.version.len(),
-      self.bucket.len(),
-      self.update_date.len(),
-    )
-  } 
- 
+    pub fn get_field_widths(&self) -> (usize, usize, usize, usize) {
+        (
+            self.name.len(),
+            self.version.len(),
+            self.bucket.len(),
+            self.update_date.len(),
+        )
+    }
 }
 
-pub fn list_all_installed_apps_refactor() -> anyhow::Result<Vec<AppInfo>> {
-    let apps_dir = get_apps_path();
+pub fn list_all_installed_apps_refactor(is_global: bool) -> anyhow::Result<Vec<AppInfo>> {
+    let apps_dir = if is_global {
+        get_apps_path_global()
+    } else {
+        get_apps_path()
+    };
     let all_apps_path = read_dir(&apps_dir)?
         .par_bridge() // 将标准迭代器转换为并行迭代器
         .filter_map(|entry| {
@@ -80,11 +84,11 @@ pub fn list_all_installed_apps_refactor() -> anyhow::Result<Vec<AppInfo>> {
             let manifest_json = get_app_dir_manifest_json(&name);
             let bucket = get_install_json_bucket(&install_json).unwrap();
             let update_data = get_dir_updated_time(&path);
-            let version = get_install_json_version(&manifest_json).unwrap_or_else( |e | { 
-              log::warn!("Failed to get install json version: {}", e);
-              #[cfg(debug_assertions)]  // 编译器排除 
-              println!("path is {}", manifest_json);
-              return  "unknown".to_string();
+            let version = get_install_json_version(&manifest_json).unwrap_or_else(|e| {
+                log::warn!("Failed to get install json version: {}", e);
+                #[cfg(debug_assertions)] // 编译器排除
+                println!("path is {}", manifest_json);
+                return "unknown".to_string();
             });
             Some(AppInfo::new(name, version, bucket, update_data))
         })
@@ -119,8 +123,8 @@ pub fn get_install_json_bucket(install_json: &String) -> anyhow::Result<String> 
     }
     Ok(bucket.unwrap())
 }
-pub fn list_specific_installed_apps(query: Vec<String>) -> anyhow::Result<()> {
-    let  mut package = list_all_installed_apps_refactor()?;
+pub fn list_specific_installed_apps(query: Vec<String>, is_global: bool) -> anyhow::Result<()> {
+    let mut package = list_all_installed_apps_refactor(is_global)?;
     let apps_name_list = package
         .iter()
         .map(|app| app.name.clone())
@@ -147,7 +151,7 @@ pub fn list_specific_installed_apps(query: Vec<String>) -> anyhow::Result<()> {
         "______".dark_green().bold(),
         "______".dark_green().bold()
     );
-   package.sort_by(|a, b| a.name.cmp(&b.name));
+    package.sort_by(|a, b| a.name.cmp(&b.name));
     for item in package.iter() {
         for query in query.iter() {
             if item.name.to_lowercase() == query.clone().to_lowercase() || item.name.contains(query)
@@ -180,7 +184,7 @@ pub fn get_all_installed_apps_name() -> Vec<String> {
             None
         })
         .collect();
-    return app_name_list;
+    app_name_list
 }
 pub fn list_all_installed_apps() -> (Vec<String>, Vec<String>, Vec<String>, Vec<String>) {
     let apps_path = init_hyperscoop().unwrap().apps_path;
@@ -203,7 +207,7 @@ pub fn list_all_installed_apps() -> (Vec<String>, Vec<String>, Vec<String>, Vec<
     let app_version = get_apps_version(&apps_path);
     let app_source_bucket = get_apps_source_bucket(&apps_path);
     let app_update_date = get_apps_update_date(&apps_path);
-  
+
     let package = (
         app_name_list,
         app_version,
@@ -214,38 +218,43 @@ pub fn list_all_installed_apps() -> (Vec<String>, Vec<String>, Vec<String>, Vec<
     package
 }
 pub fn get_max_field_widths(apps: &[AppInfo]) -> (usize, usize, usize, usize) {
-  apps.iter().fold(
-    (0, 0, 0, 0),
-    |(max_name, max_ver, max_bucket, max_date), app| {
-      let (name, ver, bucket, date) = app.get_field_widths();
-      (
-        max_name.max(name),
-        max_ver.max(ver),
-        max_bucket.max(bucket),
-        max_date.max(date),
-      )
-    },
-  )
+    apps.iter().fold(
+        (0, 0, 0, 0),
+        |(max_name, max_ver, max_bucket, max_date), app| {
+            let (name, ver, bucket, date) = app.get_field_widths();
+            (
+                max_name.max(name),
+                max_ver.max(ver),
+                max_bucket.max(bucket),
+                max_date.max(date),
+            )
+        },
+    )
 }
 
-pub fn display_app_info() {
-    let mut  package = list_all_installed_apps_refactor().unwrap();
+pub fn display_app_info( is_global : bool) -> anyhow::Result<()> {
+    let mut package = list_all_installed_apps_refactor(is_global)? ; 
     package.sort_by(|a, b| a.name.cmp(&b.name));
-   
-    let  counts = package.len();
-    let col_widths =  get_max_field_widths(&package); 
-    let app_name_list = col_widths.0+3;
-    let app_version = col_widths.1+3;
-    let app_source_bucket = col_widths.2+3;
-    let app_update_date = col_widths.3+3 ;
-    let  col_widths  =[  app_name_list, app_version , app_source_bucket, app_update_date ];
+
+    let counts = package.len();
+    let col_widths = get_max_field_widths(&package);
+    let app_name_list = col_widths.0 + 3;
+    let app_version = col_widths.1 + 3;
+    let app_source_bucket = col_widths.2 + 3;
+    let app_update_date = col_widths.3 + 3;
+    let col_widths = [
+        app_name_list,
+        app_version,
+        app_source_bucket,
+        app_update_date,
+    ];
     println!(
         "{} :{} \n",
         "Installed Apps Count".dark_cyan().bold(),
-         counts.to_string().dark_cyan().bold()
+        counts.to_string().dark_cyan().bold()
     );
- 
-    let all_widths =  app_name_list + app_version + app_source_bucket + app_update_date-6 ;
+
+    let all_widths = app_name_list + app_version + app_source_bucket + app_update_date - 6;
     println!(
         "{}",
         "-".to_string().repeat(all_widths + 8).dark_green().bold()
@@ -272,13 +281,13 @@ pub fn display_app_info() {
         width3 = col_widths[2],
         width4 = col_widths[3]
     );
-    for  item in package.iter()  {
+    for item in package.iter() {
         println!(
             "{:<width1$} {:<width2$} {:<width3$} {:<width4$}",
             "| ".to_string() + &item.name,
-            "| ".to_string() + & item.version,
-            "| ".to_string() +  &item.bucket,
-            "| ".to_string() + &item.update_date ,
+            "| ".to_string() + &item.version,
+            "| ".to_string() + &item.bucket,
+            "| ".to_string() + &item.update_date,
             width1 = col_widths[0],
             width2 = col_widths[1],
             width3 = col_widths[2],
@@ -289,6 +298,7 @@ pub fn display_app_info() {
         "{}",
         "-".to_string().repeat(all_widths + 8).dark_green().bold()
     );
+   Ok(())
 }
 fn get_apps_update_date(apps_path: &String) -> Vec<String> {
     let mut app_update_date = vec![];
@@ -305,7 +315,7 @@ fn get_apps_update_date(apps_path: &String) -> Vec<String> {
             app_update_date.push(time);
         }
     }
-    return app_update_date;
+    app_update_date
 }
 
 fn get_apps_source_bucket(apps_path: &String) -> Vec<String> {
@@ -336,7 +346,7 @@ fn get_apps_source_bucket(apps_path: &String) -> Vec<String> {
                     .get("bucket")
                     .expect("获取 Source Bucket 失败 ")
                     .to_string();
-                let re = Regex::new(r#"^\"|\"$"#).unwrap(); // 匹配字符串开头和结尾的双引号
+                let re = Regex::new(r#"^"|"$"#).unwrap(); // 匹配字符串开头和结尾的双引号
                 let mut unquoted_str = re.replace_all(&version, "").to_string();
                 if unquoted_str.is_empty() {
                     unquoted_str = "unknown".to_string();
@@ -348,7 +358,7 @@ fn get_apps_source_bucket(apps_path: &String) -> Vec<String> {
         }
     }
 
-    return app_source_bucket;
+    app_source_bucket
 }
 
 fn get_apps_version(apps_path: &String) -> Vec<String> {
@@ -394,7 +404,7 @@ fn get_apps_version(apps_path: &String) -> Vec<String> {
             app_version.push(String::from(max_version));
         }
     }
-    return app_version;
+    app_version
 }
 
 mod test_list {
@@ -403,6 +413,6 @@ mod test_list {
     use super::*;
     #[test]
     fn test_filter_apps_path() {
-        list_all_installed_apps_refactor().unwrap();
+        list_all_installed_apps_refactor(false ).unwrap();
     }
 }

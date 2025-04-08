@@ -7,6 +7,7 @@ pub enum InstallOptions {
     ArchOptions(String),
     UpdateHpAndBuckets,
     OnlyDownloadNoInstall,
+    Global,
 }
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]

@@ -5,6 +5,7 @@ use command_util_lib::uninstall::*;
 use crossterm::style::Stylize;
 use std::path::Path;
 pub fn execute_uninstall_command(args: UninstallArgs) -> Result<(), anyhow::Error> {
+     
     if let Some(app_name) = args.app_name {
         if args.purge {
             log::info!("purging app {}", &app_name);

@@ -8,4 +8,7 @@
 pub struct ListArgs {
   #[clap(required = false,  num_args =1.., help = "列出指定app,使用模糊匹配")]
   pub(crate) name: Option<Vec<String>>,
+  
+   #[arg(from_global)]
+  pub  global: bool,
 }

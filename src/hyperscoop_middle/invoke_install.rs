@@ -13,7 +13,7 @@ pub async fn execute_install_command(args: InstallArgs) -> Result<(), anyhow::Er
     if Path::new(&app_name).exists() {
         log::trace!("manifest file {}", app_name);
         let manifest_path = app_name;
-        install_app_from_local_manifest_file(manifest_path, options).await?;
+        install_app_from_local_manifest_file(manifest_path, options ).await?;
         return Ok(());
     }
     if contains_special_char(app_name.as_str()) {
@@ -60,7 +60,7 @@ pub async fn execute_install_command(args: InstallArgs) -> Result<(), anyhow::Er
 
 pub fn inject_user_options(install_args: &InstallArgs) -> anyhow::Result<Vec<InstallOptions>> {
     let mut install_options = vec![];
-    if install_args.arch.is_some() { 
+    if install_args.arch.is_some() {
        let arch = install_args.arch.clone().unwrap();
         install_options.push(InstallOptions::ArchOptions(arch ));
     }
@@ -76,7 +76,9 @@ pub fn inject_user_options(install_args: &InstallArgs) -> anyhow::Result<Vec<Ins
     if install_args.no_auto_download_dependencies {
         install_options.push(InstallOptions::NoAutoDownloadDepends)
     }
-
+   if  install_args.global {
+        install_options.push(InstallOptions::Global)
+   }
     Ok(install_options)
 }
 

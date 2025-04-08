@@ -96,7 +96,7 @@ async fn main() -> anyhow::Result<()> {
                 auto_check_hp_update().await?;
                 execute_install_command(args).await
             }
-            Commands::List(query_app) => execute_list_installed_apps(query_app.name),
+            Commands::List(query_app) => execute_list_installed_apps(query_app ),
             Commands::Prefix(prefix) => execute_prefix_command(prefix),
             Commands::Reset(args) => execute_reset_command(args),
             Commands::Search(search_app) => execute_search_command(search_app),
