@@ -94,7 +94,8 @@ pub fn display_specified_cache_info(app_name: String, is_global: bool) -> anyhow
     }
     log::info!("display_specified_cache_info : {}", app_name);
     let cache_files = std::fs::read_dir(cache_dir)?;
-    let mut size = 0f64;
+    let mut size = 0f64; 
+   let mut  flag = false; 
     for file in cache_files {
         let path = file?;
         let t = path.path().clone().to_string_lossy().to_string();
@@ -110,9 +111,13 @@ pub fn display_specified_cache_info(app_name: String, is_global: bool) -> anyhow
             size =
                 size + (std::fs::metadata(path.path().clone())?.len() as f64) / 1024f64 / 1024f64;
             println!("Removing cache file : {}", path_name.green().bold());
-            std::fs::remove_file(t)?;
+            std::fs::remove_file(t)?; 
+             flag = true; 
         }
     }
+  if  !flag {
+        bail!("{} cache is not exist ", &app_name);
+  }
     let size = format!("{:.2}", size);
     println!(
         "{} {} {}",
