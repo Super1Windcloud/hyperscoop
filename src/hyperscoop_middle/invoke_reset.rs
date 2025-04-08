@@ -8,7 +8,7 @@ pub fn  execute_reset_command (args: ResetArgs) -> Result< (),  anyhow::Error > 
       if count != 1 {    
         return Err(anyhow::anyhow!("Invalid app name: {}", name));
       }
-      let pattern = Regex::new(r"^([a-zA-Z]+)@([a-zA-Z0-9_.-]+)$").unwrap();
+      let pattern = Regex::new(r"^([a-zA-Z]+)@([a-zA-Z0-9_.-]+)$")?;
       if !pattern.is_match(&name) {
         return Err(anyhow::anyhow!("Invalid app name: {}", name)); 
       }
@@ -17,10 +17,10 @@ pub fn  execute_reset_command (args: ResetArgs) -> Result< (),  anyhow::Error > 
       if app_name.is_empty() || app_version.is_empty() {
         return Err(anyhow::anyhow!("Invalid app name: {}", name));
       }
-      reset_specific_version(app_name.into(), app_version.into())?  
+      reset_specific_version(app_name, app_version ,args.global)?  
     }  
     else {
-      reset_latest_version(name)?
+      reset_latest_version(name ,args.global)?
     }
   }
   

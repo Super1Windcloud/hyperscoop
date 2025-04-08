@@ -8,4 +8,7 @@ use  clap::Args;
 #[clap(arg_required_else_help = true)]
 pub struct PrefixArgs      {
   pub(crate) name: Option<String>,
+  
+  #[arg(from_global)]
+  pub (crate) global: bool,
 }

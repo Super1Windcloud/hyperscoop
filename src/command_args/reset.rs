@@ -8,4 +8,6 @@ use  clap::Args;
 pub struct ResetArgs       { 
   #[arg(help = " APP名称, 示例: reset  python@3.9 or reset  python")]
   pub(crate) name: Option<String>,
+  #[arg(from_global)]
+  pub global: bool,
 }
