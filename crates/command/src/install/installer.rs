@@ -1,5 +1,5 @@
 use crate::init_env::{
-    get_old_scoop_dir, get_scoop_cfg_path, init_env_path, init_scoop_global,
+    get_old_scoop_dir, get_scoop_cfg_path, init_user_scoop, init_scoop_global,
 };
 use crate::install::{install_app, install_from_specific_bucket, InstallOptions};
 use crate::manifest::install_manifest::{InstallManifest, SuggestObj, SuggestObjValue};
@@ -95,7 +95,7 @@ pub fn handle_arch(arch: &[InstallOptions]) -> anyhow::Result<String> {
     } else {
         let system_arch = get_system_default_arch()?;
          println!("{} {system_arch}", "架构选项错误,将使用系统默认架构: ".dark_yellow());
-      
+
         if system_arch.is_empty() {
             bail!("获取系统默认架构失败")
         }
@@ -106,7 +106,7 @@ pub fn handle_arch(arch: &[InstallOptions]) -> anyhow::Result<String> {
 pub fn handle_env_set(env_set: ManifestObj, manifest: InstallManifest) -> anyhow::Result<()> {
     let app_name = manifest.name.unwrap_or(String::new());
     let app_version = manifest.version.unwrap_or(String::new());
-    let scoop_home = init_env_path();
+    let scoop_home = init_user_scoop();
     let global_scoop_home = init_scoop_global();
 
     let app_dir = format!(

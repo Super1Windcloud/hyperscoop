@@ -1,6 +1,6 @@
 use crate::config::get_all_config;
 use crate::init_env::{
-    get_old_scoop_dir, get_scoop_cfg_path, init_env_path, init_scoop_global,
+    get_old_scoop_dir, get_scoop_cfg_path, init_user_scoop, init_scoop_global,
 };
 use crate::manifest::manifest_deserialize::StringArrayOrString;
 use crate::manifest::uninstall_manifest::UninstallManifest;
@@ -114,7 +114,7 @@ pub fn invoke_hook_script(
     let app_name = manifest.name.clone().unwrap_or(String::new());
     let app_version = manifest.version.clone().unwrap_or(String::new());
     let cfg = get_all_config();
-    let scoop_home = init_env_path();
+    let scoop_home = init_user_scoop();
     let global_scoop_home =  init_scoop_global() ;
     let cfg = serde_json::to_string(&cfg).unwrap_or(String::new());
     let cfg_obj = format!(

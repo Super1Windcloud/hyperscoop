@@ -1,4 +1,4 @@
-use crate::init_env::init_env_path;
+use crate::init_env::init_user_scoop;
 use crate::merge::Merge;
 use crate::utils::system::get_system_current_time;
 use crossterm::style::Stylize;
@@ -83,7 +83,7 @@ pub fn get_official_buckets_name() -> Vec<String> {
 }
 
 pub fn get_official_bucket_path(bucket_name: String) -> String {
-    let scoop_home = init_env_path();
+    let scoop_home = init_user_scoop();
     format!("{}\\buckets\\{}", scoop_home, bucket_name)
 }
 

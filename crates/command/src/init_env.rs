@@ -1,6 +1,7 @@
 ﻿use std::env;
+use std::fs::read_dir;
 
-pub fn init_env_path() -> String {
+pub fn init_user_scoop() -> String {
     let mut path = env::var("SCOOP").unwrap_or(String::new());
     if path.is_empty() {
         path = env::var("USERPROFILE").unwrap() + "\\scoop"; // 可以使用or_else 替代
@@ -17,30 +18,30 @@ pub fn init_scoop_global() -> String {
 }
 
 pub fn get_app_current_dir(app_name: &str) -> String {
-    let scoop_home = init_env_path();
+    let scoop_home = init_user_scoop();
     format!("{}\\apps\\{}\\current", scoop_home, app_name)
 }
 
 pub fn get_app_dir(app_name: &str) -> String {
-    let scoop_home = init_env_path();
+    let scoop_home = init_user_scoop();
     format!("{}\\apps\\{}", scoop_home, app_name)
 }
 pub fn get_app_version_dir(app_name: &str, version: &String) -> String {
-    let scoop_home = init_env_path();
+    let scoop_home = init_user_scoop();
     format!("{}\\apps\\{}\\{}", scoop_home, app_name, version)
 }
 pub fn get_app_dir_install_json(app_name: &str) -> String {
-    let scoop_home = init_env_path();
+    let scoop_home = init_user_scoop();
 
     format!("{}\\apps\\{}\\current\\install.json", scoop_home, app_name)
 }
 pub fn get_app_dir_manifest_json(app_name: &str) -> String {
-    let scoop_home = init_env_path();
+    let scoop_home = init_user_scoop();
     format!("{}\\apps\\{}\\current\\manifest.json", scoop_home, app_name)
 }
 
 pub fn get_app_current_bin_path(app_name: String, bin_name: &String) -> String {
-    let scoop_home = init_env_path();
+    let scoop_home = init_user_scoop();
     format!("{}\\apps\\{}\\current\\{}", scoop_home, app_name, bin_name)
 }
 
@@ -76,12 +77,12 @@ pub struct HyperScoopGlobal {
 impl HyperScoop {
     pub fn new() -> Self {
         Self {
-            scoop_path: init_env_path(),
-            bucket_path: format!("{}\\buckets", init_env_path()),
-            cache_path: format!("{}\\cache", init_env_path()),
-            shims_path: format!("{}\\shims", init_env_path()),
-            persist_path: format!("{}\\persist", init_env_path()),
-            apps_path: format!("{}\\apps", init_env_path()),
+            scoop_path: init_user_scoop(),
+            bucket_path: format!("{}\\buckets", init_user_scoop()),
+            cache_path: format!("{}\\cache", init_user_scoop()),
+            shims_path: format!("{}\\shims", init_user_scoop()),
+            persist_path: format!("{}\\persist", init_user_scoop()),
+            apps_path: format!("{}\\apps", init_user_scoop()),
         }
     }
     pub fn get_apps_path(&self) -> String {
@@ -120,11 +121,11 @@ impl HyperScoopGlobal {
     pub fn new() -> Self {
         Self {
             scoop_path: init_scoop_global(),
-            bucket_path: format!("{}\\buckets", init_env_path()),
-            cache_path: format!("{}\\cache", init_env_path()),
-            shims_path: format!("{}\\shims", init_env_path()),
-            persist_path: format!("{}\\persist", init_env_path()),
-            apps_path: format!("{}\\apps", init_env_path()),
+            bucket_path: format!("{}\\buckets", init_scoop_global()),
+            cache_path: format!("{}\\cache", init_scoop_global()),
+            shims_path: format!("{}\\shims", init_scoop_global()),
+            persist_path: format!("{}\\persist", init_scoop_global()),
+            apps_path: format!("{}\\apps", init_scoop_global()),
         }
     }
     pub fn get_apps_path(&self) -> String {
@@ -159,6 +160,10 @@ impl HyperScoopGlobal {
     }
 }
 
+pub fn get_bucket_dir_path() -> String {
+    let hyper_scoop = HyperScoop::new();
+    hyper_scoop.get_bucket_path()
+}
 pub fn get_persist_dir_path() -> String {
     let hyper_scoop = HyperScoop::new();
     hyper_scoop.get_persist_path()
@@ -260,6 +265,27 @@ pub fn get_apps_path_global() -> String {
     hyper_scoop.get_apps_path()
 }
 
+pub fn get_all_buckets_dir_path() -> anyhow::Result<Vec<String>> {
+    let bucket_path = get_bucket_dir_path();
+    // 遍历 bucket_path 下的所有文件夹，并将文件夹名加入 buckets_path
+    let buckets_path: Vec<String> = read_dir(&bucket_path)? 
+        .filter_map(|e| e.ok())
+        .filter(|e| e.path().is_dir())
+        .map(|e| e.path().to_str().unwrap().to_string())
+        .collect();
+
+    Ok(buckets_path)
+}
+
+pub fn get_all_global_buckets_dir_path() -> anyhow::Result<Vec<String>> {
+    let bucket_path = get_buckets_root_dir_path_global();
+    let buckets_path: Vec<String> = read_dir(&bucket_path)?
+        .filter_map(|e| e.ok())
+        .filter(|e| e.path().is_dir())
+        .map(|e| e.path().to_str().unwrap().to_string())
+        .collect();
+    Ok(buckets_path)
+}
 mod test_path {
     #[allow(unused)]
     use super::*;
