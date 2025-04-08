@@ -362,7 +362,7 @@ pub fn rm_start_menu_shortcut(manifest: &UninstallManifest) -> Result<(), anyhow
 }
 
 pub fn rm_shim_file(
-    shim_path: String,
+    shim_path: &str ,
     manifests: &UninstallManifest,
     app_name: &str,
 ) -> Result<(), anyhow::Error> {

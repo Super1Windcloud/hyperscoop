@@ -9,7 +9,7 @@ pub fn execute_uninstall_command(args: UninstallArgs) -> Result<(), anyhow::Erro
     if let Some(app_name) = args.app_name {
         if args.purge {
             log::info!("purging app {}", &app_name);
-            let result = uninstall_app_with_purge(&app_name);
+            let result = uninstall_app_with_purge(&app_name , args.global);
             match result {
                 Ok(_) => {
                     println!(
@@ -26,7 +26,7 @@ pub fn execute_uninstall_command(args: UninstallArgs) -> Result<(), anyhow::Erro
             }
         } else {
             log::info!("Uninstalling app {}", &app_name);
-            let result = uninstall_app(&app_name);
+            let result = uninstall_app(&app_name , args.global );
             match result {
                 Ok(_) => {
                     println!(

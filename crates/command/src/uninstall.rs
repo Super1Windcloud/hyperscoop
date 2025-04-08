@@ -9,14 +9,17 @@ mod env_set;
 use env_set::*;
 pub(crate) mod shim_and_shortcuts;
 use shim_and_shortcuts::*;
-pub fn uninstall_app_with_purge(app_name: &str) -> Result<(), anyhow::Error> {
-    uninstall_app(app_name)?;
+use crate::init_env::{get_apps_path, get_apps_path_global, get_persist_dir_path, get_persist_dir_path_global, get_shims_path, get_shims_path_global};
+
+pub fn uninstall_app_with_purge(app_name: &str, global : bool) -> Result<(), anyhow::Error> {
+    uninstall_app(app_name,  global )?;
     println!(
         "{} '{}'", "Removing Persisted data for".to_string().dark_blue().bold(), 
         app_name.dark_cyan().bold()
     );
-    let hyperscoop = init_hyperscoop()?;
-    let persist_path = hyperscoop.get_persist_path();
+    let persist_path = if  global {
+        get_persist_dir_path_global()
+    }else { get_persist_dir_path() } ; 
     let app_persist_path = Path::new(&persist_path).join(app_name);
     log::info!("Removing {}", app_persist_path.display());
     if !app_persist_path.exists() {
@@ -31,12 +34,11 @@ pub fn uninstall_app_with_purge(app_name: &str) -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-pub fn uninstall_app(app_name: &str) -> Result<(), anyhow::Error> {
-    let hyperscoop = init_hyperscoop()?;
-    let app_path = hyperscoop.get_apps_path();
-    let shim_path = hyperscoop.get_shims_path();
+pub fn uninstall_app(app_name: &str, is_global : bool) -> Result<(), anyhow::Error> {
+    let app_path = if  is_global  { get_apps_path_global() } else { get_apps_path() };
+    let shim_path =  if  is_global  { get_shims_path_global() } else { get_shims_path() };
     let lower = app_name.to_lowercase();
-    let app_name = lower.as_str();
+    let app_name = lower.as_str(); 
     if app_name == "scoop" {
         let mut uninstall_script = Path::new(&app_path)
             .join("scoop")
@@ -74,7 +76,7 @@ pub fn uninstall_app(app_name: &str) -> Result<(), anyhow::Error> {
         eprintln!("{}", e);
         bail!("checked installed status, {e}");
     }
-    let result = uninstall_matched_app(app_path.clone(), app_name, shim_path.clone());
+    let result = uninstall_matched_app(&app_path, app_name, &shim_path);
     if let Err(e) = result {
         eprintln!("{}", e);
         let app_path = Path::new(&app_path).join(app_name); 
@@ -96,9 +98,9 @@ pub fn uninstall_app(app_name: &str) -> Result<(), anyhow::Error> {
 }  
 
 fn uninstall_matched_app(
-  app_path: String,
+  app_path: &str ,
   app_name: &str,
-  shim_path: String,
+  shim_path: &str ,
 ) -> Result<(), anyhow::Error> {
   for entry in std::fs::read_dir(app_path)? {
     let entry = entry?;
@@ -140,7 +142,7 @@ fn uninstall_matched_app(
         env_path_var_rm(&current_path, &manifest)?;
 
         env_var_rm(&manifest)?;
-        rm_shim_file(shim_path.clone(), &manifest, app_name)?;
+        rm_shim_file(shim_path , &manifest, app_name)?;
         rm_start_menu_shortcut(&manifest)?;
         println!("{} {}","Unlinking".dark_blue().bold(), &current_path.display().to_string().dark_green().bold());
         rm_all_dir(path.clone())?;
@@ -261,7 +263,7 @@ fn rm_all_dir<P: AsRef<Path> >(path: P ) -> Result<(), anyhow::Error> {
 
 fn check_installed_status(app_name: &str) -> Result<bool, anyhow::Error> {
     use regex::Regex;
-    let pattern = r"[\[\]\(\)\*\+\?\{\}\|\^\$\#]";
+    let pattern = r"[\[\]()*+?{}|^$#]";
     let re = Regex::new(pattern)?;
     if re.is_match(app_name) {
         bail!(
