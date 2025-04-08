@@ -1,13 +1,21 @@
-use command_util_lib::init_hyperscoop;
+use crate::command_args::status::StatusArgs;
+use command_util_lib::init_env::{ get_apps_path, get_apps_path_global, get_buckets_root_dir_path, get_buckets_root_dir_path_global};
 use command_util_lib::list::VersionJSON;
 use crossterm::style::Stylize;
 use rayon::prelude::*;
 use std::collections::HashMap;
 
-pub fn execute_status_command() -> Result<(), anyhow::Error> {
-    let hyperscoop = init_hyperscoop()?;
-    let apps_path = hyperscoop.apps_path;
-    let bucket_path = hyperscoop.bucket_path;
+pub fn execute_status_command(status_args: StatusArgs) -> Result<(), anyhow::Error> {
+    let apps_path = if status_args.global {
+        get_apps_path_global()
+    } else {
+        get_apps_path()
+    };
+    let bucket_path = if status_args.global {
+        get_buckets_root_dir_path_global()
+    } else {
+        get_buckets_root_dir_path()
+    };
 
     let mut current_versions = Vec::new();
     let mut installed_apps = Vec::new();
@@ -44,13 +52,13 @@ pub fn execute_status_command() -> Result<(), anyhow::Error> {
                 .unwrap_or_else(|| "Not Found".to_string())
         })
         .collect();
-    let max_version_len = latest_versions.iter().map(|s| s.len()).max().unwrap_or(0)+4  ;
-    let max_name_len = install_apps.iter().map(|s| s.len()).max().unwrap_or(0)+4 ;
+    let max_version_len = latest_versions.iter().map(|s| s.len()).max().unwrap_or(0) + 4;
+    let max_name_len = install_apps.iter().map(|s| s.len()).max().unwrap_or(0) + 4;
 
     let mut executed = false;
-  for (app_name, (current_version, latest_version)) in install_apps
-    .iter()
-    .zip(current_versions.iter().zip(latest_versions.iter()))
+    for (app_name, (current_version, latest_version)) in install_apps
+        .iter()
+        .zip(current_versions.iter().zip(latest_versions.iter()))
     {
         if executed == false {
             println!(
@@ -59,7 +67,8 @@ pub fn execute_status_command() -> Result<(), anyhow::Error> {
                 "Installed Version\t\t".green().bold(),
                 "Latest Version\t\t".green().bold(),
                 "Need Update\t\t\t".green().bold(),
-                width = max_name_len ,width1 = max_version_len 
+                width = max_name_len,
+                width1 = max_version_len
             );
 
             println!(
@@ -68,7 +77,8 @@ pub fn execute_status_command() -> Result<(), anyhow::Error> {
                 "_________________\t\t".green().bold(),
                 "_______________\t\t".green().bold(),
                 "_____________\t\t".green().bold(),
-                width = max_name_len, width1 = max_version_len 
+                width = max_name_len,
+                width1 = max_version_len
             );
         }
         executed = true;
@@ -115,11 +125,11 @@ fn build_version_map(
             if path.extension().unwrap_or_default() != "json" {
                 return None;
             }
-            let file_name = path.file_stem()?.to_str()?.to_lowercase(); 
-            if  ! installed_app_name.contains(&file_name) {
+            let file_name = path.file_stem()?.to_str()?.to_lowercase();
+            if !installed_app_name.contains(&file_name) {
                 return None;
             }
-            let manifest = std::fs::read_to_string(&path).ok()? ;
+            let manifest = std::fs::read_to_string(&path).ok()?;
             let manifest: VersionJSON = serde_json::from_str(&manifest).ok()?;
             let version = manifest.version.unwrap_or("Not Found".to_string());
             Some((file_name, version))

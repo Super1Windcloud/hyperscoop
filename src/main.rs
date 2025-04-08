@@ -101,7 +101,7 @@ async fn main() -> anyhow::Result<()> {
             Commands::Reset(args) => execute_reset_command(args),
             Commands::Search(search_app) => execute_search_command(search_app),
             Commands::Shim(args) => execute_shim_command(args),
-            Commands::Status(_) => execute_status_command(),
+            Commands::Status(args ) => execute_status_command(args ),
             Commands::Uninstall(args) => execute_uninstall_command(args),
             Commands::Update(update_args) => {
                 auto_check_hp_update().await?;
