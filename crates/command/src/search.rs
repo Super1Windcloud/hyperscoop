@@ -4,11 +4,13 @@ use crate::utils::detect_encoding::transform_to_only_version_manifest;
 use crossterm::style::Stylize;
 use rayon::prelude::*;
 use std::fs::DirEntry;
-use std::path::{Path, PathBuf};  
-pub fn fuzzy_search(query: String) {
+use std::path::{Path, PathBuf};
+use anyhow::bail;
+
+pub fn fuzzy_search(query: String)  ->anyhow::Result<()> {
     let query = query.trim().to_string().to_lowercase();
 
-    let buckets = Buckets::new();
+    let buckets = Buckets::new()?;
     let buckets_path = buckets.buckets_path;
     if query.contains("/") {
         let query_args = query
@@ -23,12 +25,12 @@ pub fn fuzzy_search(query: String) {
         let all_manifests_path = get_all_manifest_package_name(buckets_path);
         if all_manifests_path.is_err() {
             eprintln!("Error: All manifests path is invalid");
-            return;
+            bail!(all_manifests_path.unwrap_err())
         }
         let match_result = get_match_name_path(&all_manifests_path.unwrap(), query);
         if match_result.is_err() {
             eprintln!("Error: Failed to get match result");
-            return;
+            bail!(match_result.unwrap_err())
         }
         let match_result = match_result.unwrap();
         let result_info = get_result_source_and_version(match_result).unwrap();
@@ -38,7 +40,7 @@ pub fn fuzzy_search(query: String) {
                 "\t{}",
                 "No results found...\n".to_string().dark_green().bold()
             );
-            return;
+            return Ok(());
         }
         println!(
             "\t\t{} {}",
@@ -48,6 +50,8 @@ pub fn fuzzy_search(query: String) {
 
         sort_result_by_bucket_name(result_info);
     }
+  
+  Ok(())
 }
 
 fn get_match_name_path(
@@ -68,9 +72,9 @@ fn get_match_name_path(
     Ok(result)
 }
 
-pub fn exact_search(query: String) {
+pub fn exact_search(query: String) -> anyhow::Result<()>{
     let query = query.trim().to_string().to_lowercase();
-    let bucket = Buckets::new();
+    let bucket = Buckets::new()? ;
     let buckets_path = bucket.buckets_path;
     let all_result: Vec<Vec<(String, PathBuf)>> = buckets_path
         .par_iter()
@@ -94,7 +98,7 @@ pub fn exact_search(query: String) {
             "\t{}",
             "No results found...\n".to_string().dark_green().bold()
         );
-        return;
+        return Ok(());
     }
     println!(
         "\t{} {}",
@@ -103,6 +107,7 @@ pub fn exact_search(query: String) {
     );
 
     sort_result_by_bucket_name(result_info);
+  Ok(())
 }
 
 fn get_result_source_and_version(

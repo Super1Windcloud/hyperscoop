@@ -8,8 +8,10 @@
 #[clap(about = "🔫\t\t管理hp的所有bucket")]
 pub struct BucketArgs {
     #[command(subcommand)]
-    pub(crate) command: Option<BucketSubcommands> ,
-
+    pub(crate) command: Option<BucketSubcommands> , 
+     
+   #[arg(from_global)]
+   pub  global : bool,
 }
 
 
@@ -34,7 +36,12 @@ pub enum BucketSubcommands {
     version,
     about = "列出所有已知bucket源  "
 )]
-pub struct KnownArgs {}
+pub struct KnownArgs {
+
+  #[arg(from_global)]
+  pub  global : bool, 
+  
+}
 
 #[derive(Args, Debug, Clone)]
 #[command(about = "删除一个bucket   \n---hp bucket rm <repo_name>")]
@@ -42,6 +49,9 @@ pub struct KnownArgs {}
 pub struct RmArgs {
     #[arg(required = true , help="删除的仓库名称")]
     pub(crate) name: String,
+
+  #[arg(from_global)]
+  pub  global : bool, 
 }
 
 #[derive(Args, Debug, Clone)]
@@ -52,13 +62,24 @@ pub struct AddArgs {
     pub(crate) name: Option<String>,
     #[arg(required = false ,help ="仓库源地址")]
     pub(crate) repo_url: Option<String>,
+
+  #[arg(from_global)]
+  pub  global : bool, 
 }
 
 #[derive(Args, Debug, Clone)]
 #[command(about = "列出所有bucket ")]
-pub struct ListArgs {}
+pub struct ListArgs {
+  #[arg(from_global)]
+  pub  global : bool,
+   
+}
 
 
 #[derive(Args, Debug, Clone)]
 #[command(about = "更新所有bucket ")]
-pub struct UpdateArgs  {}
+pub struct UpdateArgs  {
+
+  #[arg(from_global)]
+  pub  global : bool,
+}
