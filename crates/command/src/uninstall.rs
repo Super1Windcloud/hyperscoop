@@ -8,18 +8,24 @@ use std::path::{Path, PathBuf};
 mod env_set;
 use env_set::*;
 pub(crate) mod shim_and_shortcuts;
+use crate::init_env::{
+    get_apps_path, get_apps_path_global, get_persist_dir_path, get_persist_dir_path_global,
+    get_shims_path, get_shims_path_global,
+};
 use shim_and_shortcuts::*;
-use crate::init_env::{get_apps_path, get_apps_path_global, get_persist_dir_path, get_persist_dir_path_global, get_shims_path, get_shims_path_global};
 
-pub fn uninstall_app_with_purge(app_name: &str, global : bool) -> Result<(), anyhow::Error> {
-    uninstall_app(app_name,  global )?;
+pub fn uninstall_app_with_purge(app_name: &str, global: bool) -> Result<(), anyhow::Error> {
+    uninstall_app(app_name, global)?;
     println!(
-        "{} '{}'", "Removing Persisted data for".to_string().dark_blue().bold(), 
+        "{} '{}'",
+        "Removing Persisted data for".to_string().dark_blue().bold(),
         app_name.dark_cyan().bold()
     );
-    let persist_path = if  global {
+    let persist_path = if global {
         get_persist_dir_path_global()
-    }else { get_persist_dir_path() } ; 
+    } else {
+        get_persist_dir_path()
+    };
     let app_persist_path = Path::new(&persist_path).join(app_name);
     log::info!("Removing {}", app_persist_path.display());
     if !app_persist_path.exists() {
@@ -34,11 +40,25 @@ pub fn uninstall_app_with_purge(app_name: &str, global : bool) -> Result<(), any
     Ok(())
 }
 
-pub fn uninstall_app(app_name: &str, is_global : bool) -> Result<(), anyhow::Error> {
-    let app_path = if  is_global  { get_apps_path_global() } else { get_apps_path() };
-    let shim_path =  if  is_global  { get_shims_path_global() } else { get_shims_path() };
+pub fn uninstall_app(app_name: &str, is_global: bool) -> Result<(), anyhow::Error> {
+    let app_path = if is_global {
+        get_apps_path_global()
+    } else {
+        get_apps_path()
+    };
+    let shim_path = if is_global {
+        get_shims_path_global()
+    } else {
+        get_shims_path()
+    };  
+    if  !Path::new(&app_path).exists() { 
+        bail!("{} is not existing", app_path);
+    }
+    if !Path::new(&shim_path).exists() {
+        bail!("{} is not existing", shim_path);
+    }
     let lower = app_name.to_lowercase();
-    let app_name = lower.as_str(); 
+    let app_name = lower.as_str();
     if app_name == "scoop" {
         let mut uninstall_script = Path::new(&app_path)
             .join("scoop")
@@ -79,78 +99,86 @@ pub fn uninstall_app(app_name: &str, is_global : bool) -> Result<(), anyhow::Err
     let result = uninstall_matched_app(&app_path, app_name, &shim_path);
     if let Err(e) = result {
         eprintln!("{}", e);
-        let app_path = Path::new(&app_path).join(app_name); 
-        if!app_path.exists() {
-             eprintln!("{} is not exists", app_path.display());
-             return Ok(()); 
+        let app_path = Path::new(&app_path).join(app_name);
+        if !app_path.exists() {
+            eprintln!("{} is not exists", app_path.display());
+            return Ok(());
         }
-        let app_path =app_path.to_str().unwrap();
-        println!("{}", format!("Removing Error  Installation of '{app_name}' => {app_path}")) ; 
+        let app_path = app_path.to_str().unwrap();
+        println!(
+            "{}",
+            format!("Removing Error  Installation of '{app_name}' => {app_path}")
+        );
         rm_all_dir(app_path)?;
-       bail!(
-        "'{}' {}",
-        app_name.to_string().dark_cyan().bold(),
-        "was not uninstalled as expect".dark_green().bold()
-      );
+        bail!(
+            "'{}' {}",
+            app_name.to_string().dark_cyan().bold(),
+            "was not uninstalled as expect".dark_green().bold()
+        );
     }
-  
-     Ok(())
-}  
+
+    Ok(())
+}
 
 fn uninstall_matched_app(
-  app_path: &str ,
-  app_name: &str,
-  shim_path: &str ,
+    app_path: &str,
+    app_name: &str,
+    shim_path: &str,
 ) -> Result<(), anyhow::Error> {
-  for entry in std::fs::read_dir(app_path)? {
-    let entry = entry?;
-    let path = entry.path();
-    if let Some(file_name) = path.file_name() {
-      if file_name.to_str().unwrap().to_lowercase() == app_name {
-        let current_path = path.join("current");
-        let manifest_path = current_path.join("manifest.json");
-        let install_path = current_path.join("install.json");
+    for entry in std::fs::read_dir(app_path)? {
+        let entry = entry?;
+        let path = entry.path();
+        if let Some(file_name) = path.file_name() {
+            if file_name.to_str().unwrap().to_lowercase() == app_name {
+                let current_path = path.join("current");
+                let manifest_path = current_path.join("manifest.json");
+                let install_path = current_path.join("install.json");
 
-        if !install_path.exists() {
-          log::error!("{} is not existing ", install_path.display());
+                if !install_path.exists() {
+                    log::error!("{} is not existing ", install_path.display());
+                }
+                if !manifest_path.exists() {
+                    bail!("{} is not  existing ", manifest_path.display());
+                }
+                let contents = std::fs::read_to_string(manifest_path)?;
+                let mut manifest: UninstallManifest = serde_json::from_str(&contents)?;
+                manifest.set_name(&app_name.to_string()); // 先进行可变借用
+
+                let version = &manifest.version;
+                if version.is_none() {
+                    bail!("version is not existing")
+                };
+                let version = version.clone().unwrap();
+                let install_info = std::fs::read_to_string(install_path)?;
+                let install_info: serde_json::Value = serde_json::from_str(&install_info)?;
+                let arch = install_info["architecture"].as_str().unwrap_or("Unknown");
+                invoke_hook_script(HookType::PreUninstall, &manifest, arch)?;
+                println!(
+                    "{} '{}'  ({})",
+                    "Uninstalling".to_string().dark_blue().bold(),
+                    app_name.dark_red().bold(),
+                    version.dark_red().bold()
+                );
+                invoke_hook_script(HookType::Uninstaller, &manifest, arch)?;
+                invoke_hook_script(HookType::PostUninstall, &manifest, arch)?;
+                uninstall_psmodule(&manifest)?;
+
+                env_path_var_rm(&current_path, &manifest)?;
+
+                env_var_rm(&manifest)?;
+                rm_shim_file(shim_path, &manifest, app_name)?;
+                rm_start_menu_shortcut(&manifest)?;
+                println!(
+                    "{} {}",
+                    "Unlinking".dark_blue().bold(),
+                    &current_path.display().to_string().dark_green().bold()
+                );
+                rm_all_dir(path.clone())?;
+                return Ok(());
+            }
         }
-        if !manifest_path.exists() {
-          bail!("{} is not  existing ", manifest_path.display());
-        }
-        let contents = std::fs::read_to_string(manifest_path)?;
-        let mut manifest: UninstallManifest = serde_json::from_str(&contents)?;
-        manifest.set_name(&app_name.to_string()); // 先进行可变借用
-
-        let version = &manifest.version;
-        if version.is_none() {
-          bail!("version is not existing")
-        };
-        let version = version.clone().unwrap();
-        let install_info = std::fs::read_to_string(install_path)?;
-        let install_info: serde_json::Value = serde_json::from_str(&install_info)?;
-        let arch = install_info["architecture"].as_str().unwrap_or("Unknown");
-        invoke_hook_script(HookType::PreUninstall, &manifest, arch)?;
-        println!(
-          "{} '{}'  ({})", "Uninstalling".to_string().dark_blue().bold(),
-          app_name.dark_red().bold(),
-          version.dark_red().bold()
-        );
-        invoke_hook_script(HookType::Uninstaller, &manifest, arch)?;
-        invoke_hook_script(HookType::PostUninstall, &manifest, arch)?;
-        uninstall_psmodule(&manifest)?;
-
-        env_path_var_rm(&current_path, &manifest)?;
-
-        env_var_rm(&manifest)?;
-        rm_shim_file(shim_path , &manifest, app_name)?;
-        rm_start_menu_shortcut(&manifest)?;
-        println!("{} {}","Unlinking".dark_blue().bold(), &current_path.display().to_string().dark_green().bold());
-        rm_all_dir(path.clone())?;
-        return Ok(());
-      }
     }
-  }
-  Ok(())
+    Ok(())
 }
 fn env_path_var_rm(current: &PathBuf, manifest: &UninstallManifest) -> Result<(), anyhow::Error> {
     use winreg::enums::*;
@@ -252,7 +280,7 @@ fn uninstall_psmodule(manifest: &UninstallManifest) -> Result<(), anyhow::Error>
     Ok(())
 }
 
-fn rm_all_dir<P: AsRef<Path> >(path: P ) -> Result<(), anyhow::Error> {
+fn rm_all_dir<P: AsRef<Path>>(path: P) -> Result<(), anyhow::Error> {
     match std::fs::remove_dir_all(path) {
         Ok(_) => Ok(()),
         Err(err) => {
@@ -274,7 +302,7 @@ fn check_installed_status(app_name: &str) -> Result<bool, anyhow::Error> {
     }
     let app_path = init_hyperscoop()?.get_apps_path();
     let app_path = Path::new(&app_path).join(app_name);
-   if  !app_path.exists() {
+    if !app_path.exists() {
         bail!(
             "'{}' {}",
             app_name.red().bold(),
@@ -286,25 +314,31 @@ fn check_installed_status(app_name: &str) -> Result<bool, anyhow::Error> {
         bail!(
             "'{}' {}",
             app_name.red().bold(),
-            "don't have current dir,is not installed correctly".red().bold()
+            "don't have current dir,is not installed correctly"
+                .red()
+                .bold()
         );
     }
-    let manifest = app_path.join("current").join("manifest.json"); 
-    let  install_json = app_path.join("current").join("install.json"); 
-     if  !install_json.exists() {
-       bail!(
+    let manifest = app_path.join("current").join("manifest.json");
+    let install_json = app_path.join("current").join("install.json");
+    if !install_json.exists() {
+        bail!(
             "'{}' {}",
             app_name.red().bold(),
-            "don't have install.json, is not installed correctly".red().bold()
+            "don't have install.json, is not installed correctly"
+                .red()
+                .bold()
         );
-     }
+    }
     if !manifest.exists() {
         bail!(
             "'{}' {}",
             app_name.red().bold(),
-            "don't have manifest.json, is not installed correctly".red().bold()
+            "don't have manifest.json, is not installed correctly"
+                .red()
+                .bold()
         );
     }
-    
+
     Ok(true)
 }

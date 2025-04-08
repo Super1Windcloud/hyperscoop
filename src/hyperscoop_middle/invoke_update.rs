@@ -2,7 +2,8 @@
 use crate::command_args::update::UpdateArgs;
 use command_util_lib::update::*;
 use command_util_lib::utils::utility::{ update_scoop_config_last_update_time};
-#[allow(unused)]
+
+
 pub  async fn execute_update_command(update_args: UpdateArgs) -> Result<(), anyhow::Error> {
     if update_args.update_self {
 
