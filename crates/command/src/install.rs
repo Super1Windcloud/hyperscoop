@@ -13,6 +13,8 @@ pub mod cli_options_store;
 pub use cli_options_store::*;
 pub mod aria2;
 pub use aria2::*;
+pub  mod  sevenzip; 
+pub use sevenzip::*;
 pub struct ArchStruct {}
 
 

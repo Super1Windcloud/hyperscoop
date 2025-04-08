@@ -1,5 +1,5 @@
 use crate::init_env::{
-    get_old_scoop_dir, get_scoop_cfg_path, init_env_path, init_scoop_global_path,
+    get_old_scoop_dir, get_scoop_cfg_path, init_env_path, init_scoop_global,
 };
 use crate::install::{install_app, install_from_specific_bucket, InstallOptions};
 use crate::manifest::install_manifest::{InstallManifest, SuggestObj, SuggestObjValue};
@@ -107,7 +107,7 @@ pub fn handle_env_set(env_set: ManifestObj, manifest: InstallManifest) -> anyhow
     let app_name = manifest.name.unwrap_or(String::new());
     let app_version = manifest.version.unwrap_or(String::new());
     let scoop_home = init_env_path();
-    let global_scoop_home = init_scoop_global_path();
+    let global_scoop_home = init_scoop_global();
 
     let app_dir = format!(
         r#"function app_dir($other_app) {{

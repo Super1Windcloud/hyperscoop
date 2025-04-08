@@ -1,6 +1,3 @@
-
-
-
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[non_exhaustive]
 pub enum InstallOptions {
@@ -9,24 +6,29 @@ pub enum InstallOptions {
     SkipDownloadHashCheck,
     ArchOptions(String),
     UpdateHpAndBuckets,
-  OnlyDownloadNoInstall 
+    OnlyDownloadNoInstall,
 }
-
-
-
-
-
-
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[non_exhaustive]
-pub enum ArchiveFormat  {
-     SevenZip, 
-     ZIP, 
-     RAR , 
-
+pub enum ArchiveFormat {
+    SevenZip,
+    ZIP,
+    GZIP,
+    XZIP,
+    BZIP2,
+    ZSTD,
+    RAR,
+    EXE,
+    MSI,
+    TAR,
 }
 
-
-
-
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[non_exhaustive]
+pub enum HashFormat {
+    MD5,
+    SHA1,  
+    SHA256,
+    SHA512,
+}

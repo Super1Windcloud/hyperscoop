@@ -139,6 +139,8 @@ pub fn write_message_to_aria2_log(message: &str) {
         .unwrap();
 }
 
+
+
 #[cfg(test)]
 mod tests {
     #[allow(unused_imports)]
