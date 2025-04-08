@@ -9,5 +9,8 @@ pub struct SearchArgs {
     pub(crate) name: String,
     #[clap(required = false)]
     #[clap(short, long, help = "默认模糊匹配 ,开启选项则精确匹配")]
-    pub(crate) exact_match_option: bool,
+    pub(crate) exact_match_option: bool, 
+  
+   #[arg(from_global)]
+   pub  global: bool,
 }

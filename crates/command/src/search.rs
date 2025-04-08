@@ -1,17 +1,20 @@
-﻿use crate::buckets::Buckets;
+﻿use crate::buckets::{get_buckets_path, get_global_all_buckets_dir};
 use crate::list::get_all_installed_apps_name;
 use crate::utils::detect_encoding::transform_to_only_version_manifest;
+use anyhow::bail;
 use crossterm::style::Stylize;
 use rayon::prelude::*;
 use std::fs::DirEntry;
 use std::path::{Path, PathBuf};
-use anyhow::bail;
 
-pub fn fuzzy_search(query: String)  ->anyhow::Result<()> {
+pub fn fuzzy_search(query: String, global: bool) -> anyhow::Result<()> {
     let query = query.trim().to_string().to_lowercase();
 
-    let buckets = Buckets::new()?;
-    let buckets_path = buckets.buckets_path;
+    let buckets_path = if global {
+        get_global_all_buckets_dir()?
+    } else {
+        get_buckets_path()?
+    };
     if query.contains("/") {
         let query_args = query
             .clone()
@@ -27,13 +30,13 @@ pub fn fuzzy_search(query: String)  ->anyhow::Result<()> {
             eprintln!("Error: All manifests path is invalid");
             bail!(all_manifests_path.unwrap_err())
         }
-        let match_result = get_match_name_path(&all_manifests_path.unwrap(), query);
+        let match_result = get_match_name_path(&all_manifests_path?, query);
         if match_result.is_err() {
             eprintln!("Error: Failed to get match result");
             bail!(match_result.unwrap_err())
         }
-        let match_result = match_result.unwrap();
-        let result_info = get_result_source_and_version(match_result).unwrap();
+        let match_result = match_result?;
+        let result_info = get_result_source_and_version(match_result)?;
         let count = result_info.len();
         if count == 0 {
             println!(
@@ -50,8 +53,8 @@ pub fn fuzzy_search(query: String)  ->anyhow::Result<()> {
 
         sort_result_by_bucket_name(result_info);
     }
-  
-  Ok(())
+
+    Ok(())
 }
 
 fn get_match_name_path(
@@ -72,10 +75,13 @@ fn get_match_name_path(
     Ok(result)
 }
 
-pub fn exact_search(query: String) -> anyhow::Result<()>{
+pub fn exact_search(query: String  , global : bool) -> anyhow::Result<()> {
     let query = query.trim().to_string().to_lowercase();
-    let bucket = Buckets::new()? ;
-    let buckets_path = bucket.buckets_path;
+  let buckets_path = if global {
+    get_global_all_buckets_dir()?
+  } else {
+    get_buckets_path()?
+  };
     let all_result: Vec<Vec<(String, PathBuf)>> = buckets_path
         .par_iter()
         .filter_map(|entry| {
@@ -90,7 +96,7 @@ pub fn exact_search(query: String) -> anyhow::Result<()>{
         .collect(); // 并行处理
     let result = all_result.into_par_iter().flatten().collect();
 
-    let result_info = get_result_source_and_version(result).unwrap();
+    let result_info = get_result_source_and_version(result)?;
 
     let count = result_info.len();
     if count == 0 {
@@ -107,7 +113,7 @@ pub fn exact_search(query: String) -> anyhow::Result<()>{
     );
 
     sort_result_by_bucket_name(result_info);
-  Ok(())
+    Ok(())
 }
 
 fn get_result_source_and_version(

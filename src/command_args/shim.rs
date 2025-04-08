@@ -18,12 +18,16 @@ pub struct AddArgs {
    pub(crate) name: String,
    #[arg(help="shim的路径")]
    pub(crate) path: String,
+   #[arg(from_global)]
+   pub global: bool,
 }
 #[derive(Debug , Args)]
 #[clap(author, version, about="删除一个shim快捷方式", long_about = None)]
 pub struct RmArgs {
    #[clap(help="shim的名称")]
    name: String,
+  #[arg(from_global)]
+  pub global: bool,
 }
 #[derive( Debug , Subcommand)]
 pub enum ShimSubCommand {
@@ -43,6 +47,8 @@ pub struct AlterArgs {
    name: String,
    #[arg(help="shim的路径")]
    path: String,
+  #[arg(from_global)]
+  pub global: bool,
 }
 
 #[derive(Args, Debug)]
@@ -50,10 +56,14 @@ pub struct AlterArgs {
 pub struct ListArgs {
     #[arg(short , long , help="正则匹配shim名称")]
       pub regex : Option<String> ,
+  #[arg(from_global)]
+  pub global: bool,
 }
 #[derive(Args, Debug)]
 #[clap(author, version,  about="显示指定Shim 的的信息", long_about = None)]
 pub struct InfoArgs {
    #[clap(help="APP的名称")]
    pub(crate) name: String,
+  #[arg(from_global)]
+  pub global: bool,
 }

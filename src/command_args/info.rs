@@ -6,5 +6,7 @@
 #[command(override_usage = "hp  info  [app_name]")]
 pub struct InfoArgs {
   #[clap(help ="精准匹配, 可以指定bucket, 例如 main/zig")]
-    pub name: Option<String>,
+    pub name: Option<String>, 
+   #[arg(from_global)]
+   pub global: bool,
 }

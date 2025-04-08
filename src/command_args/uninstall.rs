@@ -12,5 +12,6 @@ pub struct  UninstallArgs           {
   #[arg(from_global)]
   pub  global :bool ,
   #[arg(short ,long , help = "强制删除,尽管没有正确安装" )]
-  pub force : bool,
+  pub force : bool, 
+  
 }

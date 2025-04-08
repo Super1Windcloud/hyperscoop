@@ -13,7 +13,7 @@ pub async fn execute_install_command(args: InstallArgs) -> Result<(), anyhow::Er
     if Path::new(&app_name).exists() {
         log::trace!("manifest file {}", app_name);
         let manifest_path = app_name;
-        install_app_from_local_manifest_file(manifest_path, options ).await?;
+        install_app_from_local_manifest_file(manifest_path, options).await?;
         return Ok(());
     }
     if contains_special_char(app_name.as_str()) {
@@ -31,7 +31,7 @@ pub async fn execute_install_command(args: InstallArgs) -> Result<(), anyhow::Er
             if bucket.is_empty() || app_name.is_empty() {
                 bail!("指定的App格式不正确")
             }
-            install_from_specific_bucket(bucket, app_name, &options ).await?;
+            install_from_specific_bucket(bucket, app_name, &options).await?;
             return Ok(());
         } else if split_arg.iter().count() > 2 || split_arg.len() == 1 {
             bail!("指定的APP格式错误")
@@ -45,7 +45,7 @@ pub async fn execute_install_command(args: InstallArgs) -> Result<(), anyhow::Er
             if app_name.is_empty() || app_version.is_empty() {
                 bail!("指定的APP格式错误")
             }
-            install_app_specific_version(app_name, app_version, &options ).await?;
+            install_app_specific_version(app_name, app_version, &options).await?;
             return Ok(());
         } else if split_version.len() == 1 || split_version.len() > 2 {
             bail!("指定的APP格式错误")
@@ -54,15 +54,15 @@ pub async fn execute_install_command(args: InstallArgs) -> Result<(), anyhow::Er
     if contains_special_char(app_name.as_str()) {
         bail!("指定的APP格式错误")
     }
-    install_app(app_name.as_str() , &options ).await?;
+    install_app(app_name.as_str(), &options).await?;
     Ok(())
 }
 
 pub fn inject_user_options(install_args: &InstallArgs) -> anyhow::Result<Vec<InstallOptions>> {
     let mut install_options = vec![];
     if install_args.arch.is_some() {
-       let arch = install_args.arch.clone().unwrap();
-        install_options.push(InstallOptions::ArchOptions(arch ));
+        let arch = install_args.arch.clone().unwrap();
+        install_options.push(InstallOptions::ArchOptions(arch));
     }
     if install_args.skip_download_hash_check {
         install_options.push(InstallOptions::SkipDownloadHashCheck)
@@ -76,9 +76,12 @@ pub fn inject_user_options(install_args: &InstallArgs) -> anyhow::Result<Vec<Ins
     if install_args.no_auto_download_dependencies {
         install_options.push(InstallOptions::NoAutoDownloadDepends)
     }
-   if  install_args.global {
+    if install_args.global {
         install_options.push(InstallOptions::Global)
-   }
+    }
+    if install_args.only_download_no_install {
+        install_options.push(InstallOptions::OnlyDownloadNoInstall)
+    }
     Ok(install_options)
 }
 
