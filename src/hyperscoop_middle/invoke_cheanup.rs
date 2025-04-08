@@ -1,7 +1,7 @@
 use crate::command_args::cleanup::CleanupArgs;
 use anyhow::anyhow;
 use anyhow::bail;
-use command_util_lib::init_env::{get_app_dir, get_app_dir_global};
+use command_util_lib::init_env::{get_all_global_buckets_dir_path, get_app_dir, get_app_dir_global, get_app_version_dir, get_app_version_dir_global, get_apps_path, get_apps_path_global};
 use command_util_lib::init_hyperscoop;
 use command_util_lib::utils::utility::compare_versions;
 use crossterm::style::Stylize;
@@ -84,9 +84,14 @@ fn clean_specific_old_version(app_name: Vec<String>, is_global: bool) -> anyhow:
 }
 
 fn clean_all_old_versions(is_global: bool) -> anyhow::Result<()> {
-    let hyperscoop = init_hyperscoop().expect("Failed to initialize hyperscoop");
-    let apps_path = hyperscoop.apps_path;
-    let apps_dir = std::fs::read_dir(&apps_path).expect("Failed to read apps directory");
+  
+   let apps_dir =  if  is_global {
+       get_apps_path_global()
+    } else {
+        get_apps_path()
+    }; 
+   
+    let apps_dir = std::fs::read_dir(apps_dir)? ; 
     let mut versions_with_name = HashMap::new();
 
     for app_dir in apps_dir {
@@ -139,9 +144,9 @@ fn clean_all_old_versions(is_global: bool) -> anyhow::Result<()> {
     }
     log::info!("{:?}", versions_with_name);
     for (app_name, version) in versions_with_name {
-        let exclude_path = format!("{}\\{}\\{}", apps_path.clone(), app_name, version);
+        let exclude_path =  if  is_global { get_app_version_dir_global(&app_name, &version )} else  {get_app_version_dir(&app_name, &version) }; 
         let exclude_path = Path::new(&exclude_path);
-        let dir = format!("{}\\{}", apps_path.clone(), app_name);
+        let dir =  if  is_global { get_app_dir_global(&app_name)} else  {get_app_dir(&app_name)}; 
         log::info!("{:?}", dir);
         if exclude_path.exists() {
             for entry in std::fs::read_dir(dir).expect("Failed to read app directory") {
