@@ -1,6 +1,7 @@
 use crate::command_args::cleanup::CleanupArgs;
+use anyhow::anyhow;
 use anyhow::bail;
-use command_util_lib::init_env::get_app_dir;
+use command_util_lib::init_env::{get_app_dir, get_app_dir_global};
 use command_util_lib::init_hyperscoop;
 use command_util_lib::utils::utility::compare_versions;
 use crossterm::style::Stylize;
@@ -8,28 +9,33 @@ use rayon::prelude::*;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::path::Path;
-use  anyhow::anyhow;
+use std::sync::{Arc, Mutex};
 
 pub fn execute_cleanup_command(args: CleanupArgs) -> Result<(), anyhow::Error> {
     if let Some(name) = args.app_names {
         if args.all {
-            clean_all_old_versions()
+            clean_all_old_versions(args.global)?
         } else {
-            clean_specific_old_version(name)?
+            clean_specific_old_version(name, args.global)?
         }
     }
     if args.all {
-        log::info!("Run cleanup all command");
-        clean_all_old_versions()
+        clean_all_old_versions(args.global)?
     }
     Ok(())
 }
 
-fn clean_specific_old_version(app_name: Vec<String>) -> anyhow::Result<()> {
+fn clean_specific_old_version(app_name: Vec<String>, is_global: bool) -> anyhow::Result<()> {
     log::info!("Run cleanup command '{:?}'", app_name);
     let app_dirs = app_name
         .iter()
-        .map(|name| get_app_dir(name))
+        .map(|name| {
+            if is_global {
+                get_app_dir_global(name)
+            } else {
+                get_app_dir(name)
+            }
+        })
         .collect::<Vec<_>>();
     let result = app_dirs.iter().try_for_each(|dir| {
         let dir = Path::new(dir);
@@ -46,20 +52,28 @@ fn clean_specific_old_version(app_name: Vec<String>) -> anyhow::Result<()> {
                 }
             })
             .collect::<Vec<_>>();
-        let highest_version_dir  = child_dirs.par_iter().max_by(|dir1, dir2| {
-            let file_name = dir1.file_name().unwrap().to_str().unwrap();
-            let file_name2 = dir2.file_name().unwrap().to_str().unwrap();
-            compare_versions(file_name.to_string(), file_name2.to_string())
-        }).ok_or(anyhow!("No version directory found"))?;
-      
-        let retain_dir =  highest_version_dir;
+        let highest_version_dir = child_dirs
+            .par_iter()
+            .max_by(|dir1, dir2| {
+                let file_name = dir1.file_name().unwrap().to_str().unwrap();
+                let file_name2 = dir2.file_name().unwrap().to_str().unwrap();
+                compare_versions(file_name.to_string(), file_name2.to_string())
+            })
+            .ok_or(anyhow!("No version directory found"))?;
+
+        let retain_dir = highest_version_dir; 
+        let      flag = Arc::new(Mutex::new(false )) ; 
         let result = child_dirs.par_iter().try_for_each(|dir| {
-            if dir !=  retain_dir {
+            if dir != retain_dir {
                 log::info!("Removing old version: {}", dir.display());
                 std::fs::remove_dir_all(dir)?;
+                *flag.lock().unwrap() = true; 
             }
             Ok(())
         });
+       if  !* flag.lock().unwrap()  { 
+          println!("No old version for '{}'", dir.display());
+       }
         result
     });
     if result.is_err() {
@@ -69,7 +83,7 @@ fn clean_specific_old_version(app_name: Vec<String>) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn clean_all_old_versions() {
+fn clean_all_old_versions(is_global: bool) -> anyhow::Result<()> {
     let hyperscoop = init_hyperscoop().expect("Failed to initialize hyperscoop");
     let apps_path = hyperscoop.apps_path;
     let apps_dir = std::fs::read_dir(&apps_path).expect("Failed to read apps directory");
@@ -152,4 +166,6 @@ fn clean_all_old_versions() {
             }
         }
     }
+
+    Ok(())
 }

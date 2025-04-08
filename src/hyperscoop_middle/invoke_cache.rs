@@ -1,3 +1,4 @@
+use anyhow::bail;
 use command_util_lib::cache::*;
 use crate::command::CacheArgs;
 use crate::command_args::cache::CacheSubcommand::{Rm, Show};
@@ -25,8 +26,7 @@ pub  fn execute_cache_command(cache_args: CacheArgs) -> Result<(), anyhow::Error
             Ok(())
           }
           else {  
-            log::warn!("the following required arguments were not provided: <app>") ;  
-            Ok(())
+             bail!("the following required arguments were not provided: <app>") ;  
           }
         }
       }

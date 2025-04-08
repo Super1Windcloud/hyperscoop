@@ -1,7 +1,7 @@
 
 
-pub fn execute_checkup_command()  -> Result<(), anyhow::Error>{
-  let results = run_checkup(); 
+pub fn execute_checkup_command(is_global : bool) -> Result<(), anyhow::Error>{
+  let results = run_checkup(is_global); 
   log::info!("Checkup results: {:#?}", results);
   print_results(&results); 
   Ok(()) 
@@ -41,7 +41,7 @@ impl CheckResult {
 }
 
 // 主检查函数
-fn run_checkup() -> Vec<CheckResult> {
+fn run_checkup(_is_global: bool) -> Vec<CheckResult> {
   let mut results = Vec::new();
 
   // 检查环境变量
@@ -56,8 +56,6 @@ fn run_checkup() -> Vec<CheckResult> {
 
   // 网络检查
   results.push(check_network());
-
-  // 其他检查可以继续添加...
 
   results
 }

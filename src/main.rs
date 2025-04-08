@@ -85,7 +85,7 @@ async fn main() -> anyhow::Result<()> {
             Commands::Bucket(bucket) => execute_bucket_command(&bucket.command).await,
             Commands::Cat(cat) => execute_cat_command(cat),
             Commands::Cache(cache_args) => execute_cache_command(cache_args),
-            Commands::Checkup(_) => execute_checkup_command(),
+            Commands::Checkup( args ) => execute_checkup_command(args.global),
             Commands::Cleanup(args) => execute_cleanup_command(args),
             Commands::Config(args) => execute_config_command(args),
             Commands::Export(file) => execute_export_command(file),

@@ -9,7 +9,10 @@ pub struct CleanupArgs  {
   #[arg(short='a', long, help = "清理所有安装的APP旧版本")]
   pub(crate) all : bool,
    #[arg(required=false ,  num_args =1.., help = "清理app的名称,支持多参数")]
-  pub(crate) app_names : Option<Vec<String>>,
+  pub(crate) app_names : Option<Vec<String>>, 
+  
+   #[arg(from_global)]
+  pub  global : bool,
 }
 
 
