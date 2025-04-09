@@ -230,7 +230,7 @@ impl Buckets {
             }
         }
         remove_dir(current_dir)?;
-        Ok("下载成功!!! ".dark_green().bold().to_string())
+        Ok("下载成功!!!".dark_green().bold().to_string())
     }
 }
 

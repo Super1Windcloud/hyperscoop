@@ -220,7 +220,7 @@ pub async fn request_download_git_clone(
     pb.finish_with_message("downloaded");
 
     if status.success() {
-        Ok("下载成功!!! ".dark_green().bold().to_string())
+        Ok("下载成功!!!".dark_green().bold().to_string())
     } else {
         let mut stderr_bytes = Vec::new();
         stderr
@@ -248,7 +248,7 @@ pub async fn request_git_clone_by_git2(
         Ok(_) => println!("✅ 仓库已克隆到 {}", destination.dark_green().bold()),
         Err(e) => eprintln!("❌ 克隆失败: {}", e),
     }
-    Ok("下载成功!!! ".dark_green().bold().to_string())
+    Ok("下载成功!!!".dark_green().bold().to_string())
 }
 
 pub async fn request_git_clone_by_git2_with_progress(
@@ -339,7 +339,7 @@ pub async fn request_git_clone_by_git2_with_progress(
                 destination.to_string().dark_green().bold()
             );
             pb.finish_and_clear();
-            Ok("下载成功!!! ".dark_green().bold().to_string())
+            Ok("下载成功!!!".dark_green().bold().to_string())
         }
         Err(e) => {
             pb.finish_with_message("❌ 克隆失败！");
@@ -392,7 +392,7 @@ pub async fn download_third_party_buckets() -> Result<String, anyhow::Error> {
         request_download_git_clone(url, &download_path).await?;
     }
 
-    Ok("下载成功!!! ".dark_green().bold().to_string())
+    Ok("下载成功!!!".dark_green().bold().to_string())
 }
 
 pub fn get_git_repo_remote_url<P: AsRef<Path>>(repo_path: P) -> Result<String, anyhow::Error> {
