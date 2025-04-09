@@ -131,15 +131,14 @@ impl Buckets {
         bucket_path: &str,
     ) -> Result<String, anyhow::Error> {
         let bucket_path = bucket_path.to_string() + "\\" + bucket_name;
-
         println!("{} ", "开始下载...... ".dark_green().bold());
 
         let result = request_git_clone_by_git2_with_progress(url, &bucket_path).await?;
         println!("{} ", result);
-       if &result=="下载成功!!!" {
+       if  result=="下载成功!!!" {
          Ok("bucket添加成功......".to_string().dark_cyan().bold().to_string())
        }
-       else {
+       else { 
           Ok("bucket添加失败......".to_string().dark_red().bold().to_string())
        }
     }
