@@ -38,7 +38,7 @@ pub async fn install_app_from_local_manifest_file(
   if version.is_empty() {
     bail!("manifest file version is empty")
   }
-  let result = check_before_install(&name, &version)?;
+  let result = check_before_install(&name, &version, &options )?;
   if result != 0 {
     return Ok(());
   };

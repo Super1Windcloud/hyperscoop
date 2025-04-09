@@ -1,4 +1,5 @@
-use crate::init_env::{get_app_current_bin_path, get_shims_path};
+use crate::init_env::{get_app_current_bin_path, get_shims_path, get_shims_path_global};
+use crate::install::InstallOptions;
 use crate::manifest::install_manifest::InstallManifest;
 use crate::manifest::manifest_deserialize::{
     ArrayOrDoubleDimensionArray, StringOrArrayOrDoubleDimensionArray,
@@ -7,21 +8,25 @@ use crate::utils::system::get_system_default_arch;
 use crate::utils::utility::write_utf8_file;
 use anyhow::bail;
 use crossterm::style::Stylize;
+use std::fs;
 use std::fs::File;
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::{  fs};
 
 const DRIVER_SHIM_BYTES: &[u8] = include_bytes!("..\\bin\\shim.exe");
 
-pub fn create_shim_or_shortcuts(manifest_json: String, app_name: &str ) -> anyhow::Result<()> {
+pub fn create_shim_or_shortcuts(
+    manifest_json: String,
+    app_name: &str,
+    options: &Box<[InstallOptions]>,
+) -> anyhow::Result<()> {
     let content = fs::read_to_string(manifest_json)?;
     let serde_obj: InstallManifest = serde_json::from_str(&content)?;
     let bin = serde_obj.bin;
     let architecture = serde_obj.architecture;
     let shortcuts = serde_obj.shortcuts;
     if bin.is_some() {
-        create_shims_file(bin.unwrap(), app_name)?;
+        create_shims_file(bin.unwrap(), app_name, options)?;
     }
     if shortcuts.is_some() {
         create_start_menu_shortcuts(shortcuts.unwrap(), app_name.into())?;
@@ -40,7 +45,7 @@ pub fn create_shim_or_shortcuts(manifest_json: String, app_name: &str ) -> anyho
                 return Ok(());
             }
             let bin = bin.unwrap();
-            create_shims_file(bin, app_name)?;
+            create_shims_file(bin, app_name, options)?;
             let shortcuts = x64.shortcuts;
             if shortcuts.is_none() {
                 return Ok(());
@@ -58,7 +63,7 @@ pub fn create_shim_or_shortcuts(manifest_json: String, app_name: &str ) -> anyho
                 return Ok(());
             }
             let bin = bin.unwrap();
-            create_shims_file(bin, app_name)?;
+            create_shims_file(bin, app_name, options)?;
             let shortcuts = x86.shortcuts;
             if shortcuts.is_none() {
                 return Ok(());
@@ -76,7 +81,7 @@ pub fn create_shim_or_shortcuts(manifest_json: String, app_name: &str ) -> anyho
                 return Ok(());
             }
             let bin = bin.unwrap();
-            create_shims_file(bin, app_name)?;
+            create_shims_file(bin, app_name, options)?;
             let shortcuts = arm64.shortcuts;
             if shortcuts.is_none() {
                 return Ok(());
@@ -90,9 +95,17 @@ pub fn create_shim_or_shortcuts(manifest_json: String, app_name: &str ) -> anyho
 
 pub fn create_shims_file(
     bin: StringOrArrayOrDoubleDimensionArray,
-    app_name: &str ,
+    app_name: &str,
+    options: &Box<[InstallOptions]>,
 ) -> anyhow::Result<()> {
-    let shim_path = get_shims_path();
+    let shim_path = if options.contains(&InstallOptions::Global) {
+        get_shims_path_global()
+    } else {
+        get_shims_path()
+    };
+   if  !Path::new(&shim_path).exists() { 
+       fs::create_dir_all(&shim_path)?;
+   }
     match bin {
         StringOrArrayOrDoubleDimensionArray::String(s) => {
             create_default_shim_name_file(s, &shim_path, app_name)?;
@@ -281,8 +294,8 @@ pub fn start_create_shortcut<P: AsRef<Path>>(
 pub fn create_alias_shim_name_file(
     exe_name: String,
     alias_name: String,
-    shim_dir: &str ,
-    app_name: &str ,
+    shim_dir: &str,
+    app_name: &str,
     program_args: Option<String>,
 ) -> anyhow::Result<()> {
     let out_dir = PathBuf::from(shim_dir);
@@ -298,24 +311,28 @@ pub fn create_alias_shim_name_file(
         bail!(format!("链接目标文件 {target_path} 不存在"))
     };
     if suffix == "exe" || suffix == "com" {
-            create_exe_type_shim_file_and_shim_bin(target_path, out_dir, Some(alias_name),  program_args)?;
+        create_exe_type_shim_file_and_shim_bin(
+            target_path,
+            out_dir,
+            Some(alias_name),
+            program_args,
+        )?;
     } else if suffix == "cmd" || "bat" == suffix {
-      let result = exclude_scoop_self_scripts(&exe_name, None)?;
-      if result != 0 {
-        bail!("Origin 二进制名或者该二进制别名 '{exe_name}' 与scoop 内置脚本的shim 冲突, 禁止覆盖")
-      }
-      create_cmd_or_bat_shim_scripts(target_path, out_dir, Some(alias_name),   program_args )?;
+        let result = exclude_scoop_self_scripts(&exe_name, None)?;
+        if result != 0 {
+            bail!("Origin 二进制名或者该二进制别名 '{exe_name}' 与scoop 内置脚本的shim 冲突, 禁止覆盖")
+        }
+        create_cmd_or_bat_shim_scripts(target_path, out_dir, Some(alias_name), program_args)?;
     } else if suffix == "ps1" {
-      let result = exclude_scoop_self_scripts(&exe_name, None)?;
-      if result != 0 {
-        bail!("Origin 二进制名或者该二进制别名 '{exe_name}' 与scoop 内置脚本的shim 冲突, 禁止覆盖")
-      }
-      create_ps1_shim_scripts(target_path, out_dir, Some(alias_name), program_args )?;
+        let result = exclude_scoop_self_scripts(&exe_name, None)?;
+        if result != 0 {
+            bail!("Origin 二进制名或者该二进制别名 '{exe_name}' 与scoop 内置脚本的shim 冲突, 禁止覆盖")
+        }
+        create_ps1_shim_scripts(target_path, out_dir, Some(alias_name), program_args)?;
     } else if suffix == "jar" {
-      create_jar_shim_scripts(target_path, out_dir, Some(alias_name), program_args )?;
-
+        create_jar_shim_scripts(target_path, out_dir, Some(alias_name), program_args)?;
     } else if suffix == "py" {
-       create_py_shim_scripts(target_path, out_dir, Some(alias_name), program_args )?;
+        create_py_shim_scripts(target_path, out_dir, Some(alias_name), program_args)?;
     } else {
         bail!(format!(" 后缀{suffix}类型文件不支持, WTF?"))
     }
@@ -326,8 +343,8 @@ pub fn create_alias_shim_name_file(
 ///   *-------------------------------------------*
 pub fn create_default_shim_name_file(
     exe_name: String,
-    shim_dir: &str ,
-    app_name: &str ,
+    shim_dir: &str,
+    app_name: &str,
 ) -> anyhow::Result<()> {
     let out_dir = PathBuf::from(shim_dir);
     let temp = exe_name.clone();
@@ -635,7 +652,7 @@ fi
 pub fn exclude_scoop_self_scripts(
     script_name: &String,
     alias_name: Option<String>,
-) -> anyhow::Result< u8> {
+) -> anyhow::Result<u8> {
     let split = script_name.split(".").collect::<Vec<&str>>();
     if split.len() != 2 {
         bail!("shim target {script_name} 文件名格式错误, WTF?")
@@ -789,13 +806,12 @@ pub fn create_exe_type_shim_file_and_shim_bin<P1: AsRef<Path>, P2: AsRef<Path>>(
     Ok(())
 }
 
-
 #[cfg(test)]
 mod test_shim {
     #[allow(unused)]
     use super::*;
     #[allow(unused)]
-     use std::env ;
+    use std::env;
     #[test]
     #[ignore]
     fn test_create_shortcuts() {
@@ -895,7 +911,7 @@ mod test_shim {
                             if arr.len() == 2 {
                                 let exe_name = arr[0].clone();
                                 let suffix = exe_name.split('.').last().unwrap();
-                                let  _alias_name = arr[1].clone();
+                                let _alias_name = arr[1].clone();
                                 if suffix == "cmd" || suffix == "bat" {
                                     println!("{:?}", arr);
                                     println!("script path {:?}", path.display());

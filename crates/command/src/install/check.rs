@@ -1,21 +1,41 @@
 use crate::init_env::*;
-use crate::install::create_shim_or_shortcuts;
+use crate::install::{create_shim_or_shortcuts, InstallOptions};
 use crossterm::style::Stylize;
 use std::os::windows::fs::symlink_dir;
 use std::path::Path;
 
-pub fn check_before_install(name: &str , version: &String) -> anyhow::Result<u8> {
-    let app_dir = get_app_dir(name);
+pub fn check_before_install(
+    name: &str,
+    version: &String,
+    options: &Box<[InstallOptions]>,
+) -> anyhow::Result<u8> {
+    let app_dir = if options.contains(&InstallOptions::Global) {
+        get_app_dir_global(name)
+    } else {
+        get_app_dir(name)
+    };
     let app_dir_path = Path::new(&app_dir);
     if !app_dir_path.exists() {
-        return Ok(0);
+        std::fs::create_dir_all(app_dir_path)?;
     }
-    let app_version_dir = get_app_version_dir(name, &version);
-    let app_current_dir = get_app_current_dir(name.into());
+    let app_version_dir = if options.contains(&InstallOptions::Global) {
+        get_app_version_dir_global(name, &version)
+    } else {
+        get_app_version_dir(name, &version)
+    };
+    let app_current_dir = if options.contains(&InstallOptions::Global) {
+        get_app_current_dir_global(name)
+    } else {
+        get_app_current_dir(name)
+    };
     let app_version_path = Path::new(&app_version_dir);
     let app_current_path = Path::new(&app_current_dir);
     if app_current_path.exists() {
-        let install_json = get_app_dir_install_json(name);
+        let install_json = if options.contains(&InstallOptions::Global) {
+            get_app_dir_install_json_global(name)
+        } else {
+            get_app_dir_install_json(name)
+        };
         if Path::new(&install_json).exists() {
             println!(
                 "{}",
@@ -47,8 +67,12 @@ pub fn check_before_install(name: &str , version: &String) -> anyhow::Result<u8>
             format!("Resetting '{name}' ({version})").dark_cyan().bold()
         );
         create_dir_symbolic_link(&app_version_dir, &app_current_dir)?;
-        let manifest_json = get_app_dir_manifest_json(name);
-        create_shim_or_shortcuts(manifest_json, name)?;
+        let manifest_json = if options.contains(&InstallOptions::Global) {
+            get_app_dir_manifest_json_global(name)
+        } else {
+            get_app_dir_manifest_json(name)
+        };
+        create_shim_or_shortcuts(manifest_json, name, options)?;
         let install_json = app_current_dir.clone() + "\\install.json";
         if Path::new(&install_json).exists() {
             println!(
