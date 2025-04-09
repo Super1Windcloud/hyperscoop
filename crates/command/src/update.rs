@@ -4,7 +4,7 @@ use crate::utils::git::{
     remote_latest_scoop_commit,
 };
 pub(crate) mod update;
-pub use update::*; 
+pub use update::*;
 use crate::install::UpdateOptions;
 use crate::utils::progrees_bar::{gen_stats_callback, ProgressOptions};
 use crate::utils::progrees_bar::{
@@ -20,27 +20,27 @@ use crate::init_env::{get_apps_path, get_apps_path_global};
 
 const FINISH_MESSAGE: &str = "✅";
 
-pub fn update_all_apps(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
+pub  async fn update_all_apps(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-pub fn update_specific_app(app_name: &str, options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
-    log::trace!("update_specific_app {}", &app_name);
+pub  async fn update_specific_app(app_name: &str, options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
+    log::debug!("update_specific_app {}", &app_name);
     let  apps_dir =  if options.contains(&UpdateOptions::Global) {
         get_apps_path_global()
-    }else { get_apps_path() };  
-   
+    }else { get_apps_path() };
+
     Ok(())
 }
 
 async fn check_scoop_update() -> anyhow::Result<bool> {
-    let remote_head = remote_latest_scoop_commit().await?;
+    let remote_head = remote_latest_scoop_commit()?;
     let local_head = local_scoop_latest_commit().expect("failed to get local_scoop_latest_commit");
     if remote_head == local_head {
-        log::trace!("Scoop is up to date");
+        log::debug!("Scoop is up to date");
         return Ok(false);
     }
-    log::trace!("Scoop is not up to date");
+    log::debug!("Scoop is not up to date");
     Ok(true)
 }
 
@@ -64,7 +64,7 @@ pub async fn update_scoop_bar() -> anyhow::Result<()> {
     if !scoop_status {
         pb.finish_with_message("✅ No updates available");
         return Ok(());
-    }  
+    }
     let callback = gen_stats_callback(&pb);
     git_pull_update_repo_with_scoop(callback)?;
     pb.finish_with_message(FINISH_MESSAGE);

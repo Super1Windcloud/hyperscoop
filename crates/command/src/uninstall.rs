@@ -189,7 +189,7 @@ fn env_path_var_rm(current: &PathBuf, manifest: &UninstallManifest) -> Result<()
             let hkcu = RegKey::predef(HKEY_CURRENT_USER);
             let environment_key = hkcu.open_subkey("Environment")?;
             let user_path: String = environment_key.get_value("PATH")?;
-            log::trace!("\n 当前用户的 PATH: {}", user_path);
+            log::debug!("\n 当前用户的 PATH: {}", user_path);
             let mut paths: Vec<PathBuf> = std::env::split_paths(&user_path).collect();
             paths.retain(|p| p != &path_var);
             let user_path = paths
@@ -197,7 +197,7 @@ fn env_path_var_rm(current: &PathBuf, manifest: &UninstallManifest) -> Result<()
                 .map(|p| p.to_string_lossy().into_owned())
                 .collect::<Vec<String>>()
                 .join(";");
-            log::trace!("\n 更新后的用户的 PATH: {}", user_path);
+            log::debug!("\n 更新后的用户的 PATH: {}", user_path);
 
             // environment_key.set_value("PATH", &user_path)?;
             let script = format!(
@@ -226,7 +226,7 @@ fn env_path_var_rm(current: &PathBuf, manifest: &UninstallManifest) -> Result<()
 
         let user_path: String = environment_key.get_value("PATH")?;
         let origin = user_path.clone();
-        log::trace!("\n 当前用户的 PATH: {}", user_path);
+        log::debug!("\n 当前用户的 PATH: {}", user_path);
         let mut paths: Vec<PathBuf> = std::env::split_paths(&user_path).collect();
 
         for path_var in env_add_path_arr {
@@ -238,9 +238,9 @@ fn env_path_var_rm(current: &PathBuf, manifest: &UninstallManifest) -> Result<()
             .map(|p| p.to_string_lossy().into_owned())
             .collect::<Vec<String>>()
             .join(";");
-        log::trace!("\n 更新后的用户的 PATH: {}", user_path);
+        log::debug!("\n 更新后的用户的 PATH: {}", user_path);
         if user_path == origin {
-            log::trace!("\n 没有需要移除的路径变量");
+            log::debug!("\n 没有需要移除的路径变量");
             return Ok(());
         }
         let script = format!(

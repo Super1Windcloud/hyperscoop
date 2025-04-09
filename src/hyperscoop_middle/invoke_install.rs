@@ -11,7 +11,7 @@ pub async fn execute_install_command(args: InstallArgs) -> Result<(), anyhow::Er
     let app_name = args.app_name.unwrap();
     let app_name = convert_path(app_name.trim());
     if Path::new(&app_name).exists() {
-        log::trace!("manifest file {}", app_name);
+        log::debug!("manifest file {}", app_name);
         let manifest_path = app_name;
         install_app_from_local_manifest_file(manifest_path, options).await?;
         return Ok(());

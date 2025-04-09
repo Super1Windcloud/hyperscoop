@@ -1,12 +1,13 @@
-use git2::{BranchType };
+use git2::{BranchType, Cred, ProxyOptions};
 use std::path::Path;
-use anyhow::bail;
+use anyhow::{bail, Context};
 use git2::{FetchOptions, Progress, Remote, RemoteCallbacks, Repository};
 use gix::{
    remote::ref_map,
   ObjectId
 };
 use serde::Deserialize;
+use crate::config::get_config_value_no_print;
 use crate::utils::pull::run_pull;
 
 mod errors {
@@ -98,13 +99,59 @@ pub fn current_branch(repo : gix::Repository) -> anyhow::Result<String> {
   Ok(branch_name)
 }
 
+pub fn remote_latest_scoop_commit() -> anyhow::Result<git2::Oid> {
+  let scoop_path = get_local_scoop_git()?; // 你自己的路径获取函数
+  let repo = Repository::open(&scoop_path)
+    .with_context(|| format!("Failed to open git repo at {:?}", scoop_path))?;
 
-pub async  fn remote_latest_scoop_commit( ) -> anyhow::Result<ObjectId> {
+  let mut remote = repo.find_remote("origin")
+    .with_context(|| "Missing remote 'origin'")?;
+
+  // 设置 fetch 配置（可选代理、认证等）
+  let mut callbacks = RemoteCallbacks::new();
+  callbacks.credentials(|_url, _username_from_url, _allowed_types| {
+     
+    Cred::default()
+  });
+
+  let mut proxy_option = ProxyOptions::new();
+  let config_proxy = get_config_value_no_print("proxy");
+  if !config_proxy.is_empty() {
+    let proxy_url = if config_proxy.contains("http://") || config_proxy.contains("https://") {
+      config_proxy.clone()
+    } else {
+      "http://".to_string() + &config_proxy
+    };
+    proxy_option.url(proxy_url.as_str());
+  }
+  let mut fetch_options = FetchOptions::new();
+   fetch_options.proxy_options(proxy_option); 
+  fetch_options.remote_callbacks(callbacks);
+  fetch_options.download_tags(git2::AutotagOption::All);
+  fetch_options.update_fetchhead(true);
+  
+   
+  remote.fetch(&[] as &[&str], Some(&mut fetch_options), None)
+    .with_context(|| "Failed to fetch from remote")?;
+
+   
+  let head = repo.head()?.shorthand()
+    .ok_or_else(|| anyhow::anyhow!("Invalid HEAD"))?
+    .to_string();
+
+  let remote_ref = format!("refs/remotes/origin/{}", head);
+
+  let oid = repo.refname_to_id(&remote_ref)
+    .with_context(|| format!("Cannot resolve remote ref '{}'", remote_ref))?;
+  Ok(oid)
+}
+
+
+pub    fn remote_latest_scoop_commit__( ) -> anyhow::Result<ObjectId> {
   let  scoop_path = get_local_scoop_git()?;
   let repo = gix::open(scoop_path)?;
   let remote = repo.find_remote("origin").ok()
     .ok_or(Error::MissingRemote("origin".to_string()))?;
-
 
   let connection = remote.connect(gix::remote::Direction::Fetch)?;
   let (refs, _) = connection.ref_map(gix::progress::Discard, ref_map::Options::default())?;
@@ -151,13 +198,28 @@ pub async fn get_latest_release_version() -> anyhow::Result<String> {
   Ok(release.tag_name)
 }
 
-pub fn  local_scoop_latest_commit( ) -> anyhow::Result<ObjectId> {
+pub fn  local_scoop_latest_commit__( ) -> anyhow::Result<ObjectId> {
   let  scoop_path = get_local_scoop_git()?;
   let repo = gix::open(scoop_path)?;
   let  local_latest_commit = repo.head_commit()?.id();
   Ok(ObjectId::from(local_latest_commit))
 }
 
+pub fn local_scoop_latest_commit() -> anyhow::Result<git2::Oid> {
+  let scoop_path = get_local_scoop_git()?;  
+
+  let repo = Repository::open(&scoop_path)
+    .with_context(|| format!("Failed to open git repo at {:?}", scoop_path))?;
+
+  let head = repo.head()
+    .with_context(|| "Failed to get HEAD")?;
+
+  let commit = head
+    .peel_to_commit()
+    .with_context(|| "Failed to peel HEAD to commit")?;
+
+  Ok(commit.id())
+}
 
 pub fn get_local_scoop_git() -> anyhow::Result<String > {
   let scoop_path = std::env::var("SCOOP").unwrap_or_else(|_| -> String {

@@ -1,6 +1,5 @@
 ﻿use env_logger;
 use env_logger::init;
-use log::{debug, error, info, trace};
 use crate::Cli;
 
 pub fn init_logger(x: &Cli) {

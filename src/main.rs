@@ -104,7 +104,6 @@ async fn main() -> anyhow::Result<()> {
             Commands::Status(args ) => execute_status_command(args ),
             Commands::Uninstall(args) => execute_uninstall_command(args),
             Commands::Update(update_args) => {
-                auto_check_hp_update().await?;
                 execute_update_command(update_args).await
             }
             Commands::Which(which) => execute_which_command(which),

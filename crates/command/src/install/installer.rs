@@ -201,7 +201,7 @@ pub fn add_bin_to_path(path: &str, app_current_dir: &String) -> anyhow::Result<(
     let user_path: String = environment_key.get_value("PATH")?;
 
     let user_path = format!("{user_path};{path}");
-    log::trace!("\n 更新后的用户的 PATH: {}", user_path);
+    log::debug!("\n 更新后的用户的 PATH: {}", user_path);
 
     let script =
         format!(r#"[System.Environment]::SetEnvironmentVariable("PATH","{user_path}", "User")"#);

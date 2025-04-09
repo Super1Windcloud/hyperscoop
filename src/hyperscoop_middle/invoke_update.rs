@@ -1,4 +1,8 @@
-﻿use crate::command_args::update::UpdateArgs;
+﻿use crate::check_self_update::auto_check_hp_update;
+use crate::command_args::update::UpdateArgs;
+use crate::Cli;
+use anyhow::anyhow;
+use clap::CommandFactory;
 use command_util_lib::install::UpdateOptions;
 use command_util_lib::update::*;
 use command_util_lib::utils::utility::update_scoop_config_last_update_time;
@@ -8,27 +12,28 @@ pub async fn execute_update_command(update_args: UpdateArgs) -> Result<(), anyho
     let options = inject_update_user_options(&update_args)?;
     if update_args.update_self_and_buckets {
         println!("{}", "开始更新hp和buckets".dark_cyan().bold());
-        update_hp(&options)?;
+        update_hp(&options).await?;
         update_buckets().await?;
         return Ok(());
     }
     if update_args.all {
-        log::trace!("update all app ");
-        update_all_apps(&options)?;
+        log::debug!("update all app ");
+        update_all_apps(&options).await?;
         return Ok(());
     }
     if update_args.app_name.is_none() {
         return Ok(());
     }
     let app_name = update_args.app_name.unwrap();
-    log::trace!("update app: {}", app_name);
+    log::debug!("update app: {}", app_name);
 
-    update_specific_app(& app_name ,&options )?;
+    update_specific_app(&app_name, &options).await?;
     Ok(())
 }
 
 fn inject_update_user_options(args: &UpdateArgs) -> anyhow::Result<Vec<UpdateOptions>> {
     let mut options = vec![];
+
     if args.global {
         options.push(UpdateOptions::Global);
     }
@@ -55,15 +60,30 @@ fn inject_update_user_options(args: &UpdateArgs) -> anyhow::Result<Vec<UpdateOpt
 }
 
 pub(crate) async fn update_buckets() -> Result<(), anyhow::Error> {
-    update_scoop_bar().await?; 
-    let status = check_bucket_update_status()?; 
-     if !status   { return Ok(()); } 
+    update_scoop_bar().await?;
+    let status = check_bucket_update_status()?;
+    if !status {
+        return Ok(());
+    }
     update_all_buckets_bar()?;
     update_scoop_config_last_update_time();
     Ok(())
 }
 
-pub fn update_hp(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
-    update_specific_app("hp"  , options  )?;
+pub async fn update_hp(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
+    let cmd = Cli::command();
+    let version = cmd.get_version().ok_or(anyhow!("hp version is empty"))?;
+    let result = auto_check_hp_update().await?;
+    if !result {
+        println!(
+            "{}",
+            format!("hp '{version}' are up to date")
+                .to_string()
+                .dark_green()
+                .bold()
+        );
+        return Ok(());
+    }
+    update_specific_app("hp", options).await?;
     Ok(())
 }

@@ -1,19 +1,18 @@
 use crate::utils::utility::{get_official_bucket_path, get_official_buckets_name};
-use anyhow::Context;
+use anyhow::{bail, Context};
 use crossterm::style::Stylize;
 use git2::{FetchOptions, Repository};
+use rayon::prelude::*;
+use std::sync::{Arc, Mutex};
 
-
-
-
-pub fn check_bucket_update_status() -> anyhow::Result<bool> {
+pub fn check_bucket_update_status<'a>() -> anyhow::Result<bool> {
     let official_buckets = get_official_buckets_name();
     let official_buckets_path = official_buckets
         .iter()
         .map(|b| get_official_bucket_path(b.clone()))
         .collect::<Vec<_>>();
-    let mut status_flag = false;
-    for path in official_buckets_path {
+    let status_flag = Arc::new(Mutex::new(false));
+    let result: anyhow::Result<()> = official_buckets_path.par_iter().try_for_each(|path| {
         let repo = Repository::open(&path)
             .with_context(|| format!("Failed to open repository at {}", path))?;
 
@@ -38,27 +37,29 @@ pub fn check_bucket_update_status() -> anyhow::Result<bool> {
             .with_context(|| format!("Failed to get remote HEAD for {}", path))?;
 
         if local_head != remote_head {
-            status_flag = true;
+            *status_flag.lock().unwrap() = true;
         }
+        Ok(())
+    });
+    if result.is_err() {
+        bail!(result.unwrap_err())
     }
-    if !status_flag {
+    let flag = *status_flag.lock().unwrap();
+    if !flag {
         println!(
             "{}",
-            "Main Buckets is up to date"
-                .to_string()
-                .dark_yellow()
-                .bold()
+            "All Buckets are up to date".to_string().dark_green().bold()
         );
     } else {
         println!(
             "{}",
-            "Buckets is outData and has updates available"
+            "Some Buckets are outData and has updates available"
                 .to_string()
-                .dark_yellow()
+                .dark_green()
                 .bold()
         );
     }
-    Ok(status_flag)
+    Ok(flag)
 }
 
 mod test {

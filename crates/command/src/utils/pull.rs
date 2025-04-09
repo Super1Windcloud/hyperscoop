@@ -94,7 +94,7 @@ fn do_fetch<'a >(
   }
   let mut fo = git2::FetchOptions::new();
   fo.remote_callbacks(cb);
-  fo.proxy_options(proxy_option); 
+  fo.proxy_options(proxy_option);
   fo.download_tags(git2::AutotagOption::All);
   remote.fetch(refs, Some(&mut fo), None)?;
 
@@ -219,7 +219,7 @@ pub fn run(args: RepoArgs ,  repo_path: String ) -> Result<(), anyhow::Error> {
   let fetch_commit = do_fetch_default_cli(&repo, &[remote_branch], &mut remote  )?;
   do_merge(&repo, &remote_branch, fetch_commit)
 }
-///   当使用indicatif 进度条时 , 如果控制台缓存区输出字符串会导致进度条重新渲染, log::trace,info,warn, println! 等
+///   当使用indicatif 进度条时 , 如果控制台缓存区输出字符串会导致进度条重新渲染, log::debug,info,warn, println! 等
  pub fn  run_pull <'a> (args: RepoArgs, repo_path: String,
                   callback: ProgressCallback<'_> )
    -> anyhow::Result<()> {

@@ -88,7 +88,7 @@ pub fn env_var_rm(manifest: &UninstallManifest) -> Result<(), anyhow::Error> {
                 bail!("powershell failed to set environment variable");
             }
 
-            log::trace!("env set  : key {}  ,value {}", key, env_value);
+            log::debug!("env set  : key {}  ,value {}", key, env_value);
         }
     }
     Ok(())

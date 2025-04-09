@@ -288,7 +288,7 @@ pub fn create_alias_shim_name_file(
     let out_dir = PathBuf::from(shim_dir);
     let temp = exe_name.clone();
     let suffix = temp.split('.').last().unwrap();
-    log::trace!("Origin file type {}", suffix);
+    log::debug!("Origin file type {}", suffix);
 
     let target_path = get_app_current_bin_path(app_name.into(), &exe_name);
     if !out_dir.exists() {
@@ -313,9 +313,9 @@ pub fn create_alias_shim_name_file(
       create_ps1_shim_scripts(target_path, out_dir, Some(alias_name), program_args )?;
     } else if suffix == "jar" {
       create_jar_shim_scripts(target_path, out_dir, Some(alias_name), program_args )?;
-      
+
     } else if suffix == "py" {
-       create_py_shim_scripts(target_path, out_dir, Some(alias_name), program_args )?; 
+       create_py_shim_scripts(target_path, out_dir, Some(alias_name), program_args )?;
     } else {
         bail!(format!(" 后缀{suffix}类型文件不支持, WTF?"))
     }
@@ -332,7 +332,7 @@ pub fn create_default_shim_name_file(
     let out_dir = PathBuf::from(shim_dir);
     let temp = exe_name.clone();
     let suffix = temp.split('.').last().unwrap();
-    log::trace!("Origin file type {}", suffix);
+    log::debug!("Origin file type {}", suffix);
     if suffix.is_empty() {
         bail!(format!("shim 文件名 {exe_name} 后缀为空 WTF?"))
     }
@@ -789,13 +789,13 @@ pub fn create_exe_type_shim_file_and_shim_bin<P1: AsRef<Path>, P2: AsRef<Path>>(
     Ok(())
 }
 
- 
+
 #[cfg(test)]
 mod test_shim {
     #[allow(unused)]
     use super::*;
     #[allow(unused)]
-     use std::env ; 
+     use std::env ;
     #[test]
     #[ignore]
     fn test_create_shortcuts() {

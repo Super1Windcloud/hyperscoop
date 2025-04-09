@@ -68,7 +68,7 @@ fn invoke_hp_install(app_name: &str, bucket: &str ) -> Result<(), anyhow::Error>
         if bucket_name != bucket {
             continue;
         }
-        log::trace!("{:?}", &path); 
+        log::debug!("{:?}", &path);
         let  path = path.join("bucket");
         for entry in std::fs::read_dir(&path)? {
             let entry = entry?;
@@ -79,11 +79,11 @@ fn invoke_hp_install(app_name: &str, bucket: &str ) -> Result<(), anyhow::Error>
            let file_name = path.file_name().unwrap().to_str().unwrap().replace(".json", "");
            if file_name != app_name {
                continue;
-           } 
-           log::trace!("app manifest {:?}", path.display()); 
+           }
+           log::debug!("app manifest {:?}", path.display());
           parser_app_manifest(path.clone())?;
           return Ok(());
-        } 
+        }
       bail!("Config_File Error: app not exist on {}", path.clone().to_str().unwrap().red().bold())
     }
     eprintln!("Error: bucket {} not found", bucket.red().bold());
@@ -91,7 +91,7 @@ fn invoke_hp_install(app_name: &str, bucket: &str ) -> Result<(), anyhow::Error>
 }
 
 fn parser_app_manifest(path : PathBuf) -> Result<() , anyhow::Error> {
-   log::info!("开始安装app") ; 
+   log::info!("开始安装app") ;
    let manifest = std::fs::read_to_string(&path)?;
     log::info!("{:?}", &manifest);
    Ok(())
