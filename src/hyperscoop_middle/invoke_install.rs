@@ -58,6 +58,7 @@ pub async fn execute_install_command(args: InstallArgs) -> Result<(), anyhow::Er
     Ok(())
 }
 
+
 pub fn inject_user_options(install_args: &InstallArgs) -> anyhow::Result<Vec<InstallOptions>> {
     let mut install_options = vec![];
     if install_args.arch.is_some() {

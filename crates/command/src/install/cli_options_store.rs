@@ -8,6 +8,20 @@ pub enum InstallOptions {
     UpdateHpAndBuckets,
     OnlyDownloadNoInstall,
     Global,
+} 
+
+
+
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[non_exhaustive]
+pub enum  UpdateOptions {
+    NoUseDownloadCache,
+    NoAutoDownloadDepends,
+    SkipDownloadHashCheck,
+    UpdateHpAndBuckets,
+    Global,
+    UpdateAllAPP, 
+    RemoveOldVersionApp 
 }
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -29,7 +43,7 @@ pub enum ArchiveFormat {
 #[non_exhaustive]
 pub enum HashFormat {
     MD5,
-    SHA1,  
+    SHA1,
     SHA256,
     SHA512,
 }

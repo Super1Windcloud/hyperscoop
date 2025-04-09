@@ -105,16 +105,6 @@ pub async  fn remote_latest_scoop_commit( ) -> anyhow::Result<ObjectId> {
   let remote = repo.find_remote("origin").ok()
     .ok_or(Error::MissingRemote("origin".to_string()))?;
 
-  
-  // let config_proxy = get_config_value_no_print("proxy");
-  // if !config_proxy.is_empty() {
-  //   let proxy_url = if config_proxy.contains("http://") || config_proxy.contains("https://") {
-  //     config_proxy.clone()
-  //   } else {
-  //     "http://".to_string() + &config_proxy
-  //   };
-  //   log::info!("proxy_option {:?}", proxy_url);
-  // }
 
   let connection = remote.connect(gix::remote::Direction::Fetch)?;
   let (refs, _) = connection.ref_map(gix::progress::Discard, ref_map::Options::default())?;
@@ -194,7 +184,7 @@ pub fn get_local_scoop_git() -> anyhow::Result<String > {
 
 pub   fn git_pull_update_repo_with_scoop(callback: impl Fn(Progress, bool) -> bool + Sized) -> anyhow::Result<()> {
   let scoop_path = get_local_scoop_git()?;
-  let repo = git2::Repository::open(&scoop_path)?;
+  let repo = Repository::open(&scoop_path)?;
   let    remote = repo.find_remote("origin")?  ;
   let mut fetch_options = FetchOptions::new();
   let mut callbacks = RemoteCallbacks::new();
@@ -210,7 +200,7 @@ pub   fn git_pull_update_repo_with_scoop(callback: impl Fn(Progress, bool) -> bo
 pub fn git_pull_update_repo<'a> (repo_path: &str,
       callback: crate::utils::pull::ProgressCallback<'_>)
   -> anyhow::Result<()> {
-  let repo = git2::Repository::open(repo_path)?;
+  let repo = Repository::open(repo_path)?;
   use   crate::utils::pull::RepoArgs;
   let remote_name =  repo.remotes()?.iter().next().unwrap_or("origin".into()).unwrap().to_string();
   // println!("remote_name:{}",remote_name);
@@ -319,7 +309,7 @@ mod  tests {
 
   fn test_default_branch() -> anyhow::Result<()> {
 
-    let  repo  :String = "A:\\scoop\\buckets\\cmontage".into(); 
+    let  repo  :String = "A:\\scoop\\buckets\\cmontage".into();
     let  repo = git2::Repository::open(&repo)?;
     let  default_branch = repo.head()?.shorthand().unwrap_or("").to_string();
     assert_eq!(default_branch,"main");

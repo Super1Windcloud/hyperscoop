@@ -3,36 +3,33 @@ use crate::utils::git::{
     git_pull_update_repo, git_pull_update_repo_with_scoop, local_scoop_latest_commit,
     remote_latest_scoop_commit,
 };
-pub(crate) mod update ;  
-
+pub(crate) mod update;
+pub use update::*; 
+use crate::install::UpdateOptions;
+use crate::utils::progrees_bar::{gen_stats_callback, ProgressOptions};
+use crate::utils::progrees_bar::{
+    indicatif::{MultiProgress, ProgressBar, ProgressFinish},
+    style, Message,
+};
+use crate::utils::request::get_git_repo_remote_url;
+use crate::utils::utility::get_official_bucket_path;
 #[allow(unused_imports)]
 use anyhow::bail;
 use rayon::prelude::*;
+use crate::init_env::{get_apps_path, get_apps_path_global};
 
+const FINISH_MESSAGE: &str = "✅";
 
-pub fn update_all_apps() -> Result<(), anyhow::Error> {
+pub fn update_all_apps(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-pub fn update_specific_app_without_cache(app_name: String) -> Result<(), anyhow::Error> {
-    log::trace!("update_specific_app_without_cache {}", &app_name);
-    Ok(())
-}
-
-pub fn update_specific_app_without_hash_check(app_name: String) -> Result<(), anyhow::Error> {
-    log::trace!("update_specific_app_without_hash_check {}", &app_name);
-    Ok(())
-}
-
-pub fn update_specific_app_without_cache_and_hash_check(
-    app_name: String,
-) -> Result<(), anyhow::Error> {
-    log::trace!("update_specific_app_without_cache_and_hash_check {}", &app_name);
-    Ok(())
-}
-
-pub fn update_specific_app(app_name: String) -> Result<(), anyhow::Error> {
+pub fn update_specific_app(app_name: &str, options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
     log::trace!("update_specific_app {}", &app_name);
+    let  apps_dir =  if options.contains(&UpdateOptions::Global) {
+        get_apps_path_global()
+    }else { get_apps_path() };  
+   
     Ok(())
 }
 
@@ -46,16 +43,6 @@ async fn check_scoop_update() -> anyhow::Result<bool> {
     log::trace!("Scoop is not up to date");
     Ok(true)
 }
-
-use crate::utils::progrees_bar::{
-    gen_stats_callback,
-    indicatif::{MultiProgress, ProgressBar, ProgressFinish},
-    style, Message, ProgressOptions,
-};
-use crate::utils::request::get_git_repo_remote_url;
-use crate::utils::utility::get_official_bucket_path;
-
-const FINISH_MESSAGE: &'static str = "✅";
 
 pub async fn update_scoop_bar() -> anyhow::Result<()> {
     let progress_style = style(Some(ProgressOptions::PosLen), Some(Message::suffix()));
@@ -77,7 +64,7 @@ pub async fn update_scoop_bar() -> anyhow::Result<()> {
     if !scoop_status {
         pb.finish_with_message("✅ No updates available");
         return Ok(());
-    }
+    }  
     let callback = gen_stats_callback(&pb);
     git_pull_update_repo_with_scoop(callback)?;
     pb.finish_with_message(FINISH_MESSAGE);
@@ -176,7 +163,7 @@ pub fn get_include_buckets_path() -> anyhow::Result<Vec<String>> {
         "https://github.com/okibcn/ScoopMaster",
         "http://github.com/okibcn/ScoopMaster",
     ];
-    let  final_bucket_path = bucket_path
+    let final_bucket_path = bucket_path
         .iter()
         .filter(|path| {
             let url = get_git_repo_remote_url(path).unwrap_or_default();
@@ -207,7 +194,7 @@ mod tests {
         );
     }
     #[test]
-    fn test_finail_bucket_path() {
+    fn test_final_bucket_path() {
         let official_buckets = get_include_buckets_path().unwrap();
         println!(
             "Official buckets: {:? } {:?}",

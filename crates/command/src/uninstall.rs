@@ -50,8 +50,8 @@ pub fn uninstall_app(app_name: &str, is_global: bool) -> Result<(), anyhow::Erro
         get_shims_path_global()
     } else {
         get_shims_path()
-    };  
-    if  !Path::new(&app_path).exists() { 
+    };
+    if !Path::new(&app_path).exists() {
         bail!("{} is not existing", app_path);
     }
     if !Path::new(&shim_path).exists() {
