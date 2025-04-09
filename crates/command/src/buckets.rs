@@ -144,7 +144,7 @@ impl Buckets {
        }
     }
     pub fn check_file_ishave_content(&self, bucket_path: &str) -> Result<(), anyhow::Error> {
-        //检查目录是否包含文件
+        // 检查目录是否包含文件
         if !Path::new(bucket_path).read_dir()?.next().is_none() {
             return Err(anyhow!(
                 "当前目录已经存在文件，请先清空目录或创建新目录: {}",
