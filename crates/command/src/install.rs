@@ -47,7 +47,8 @@ pub async fn install_app_from_local_manifest_file(
   let notes = serde_obj.notes;
   let env_set = serde_obj.env_set ; 
   let env_add_path =serde_obj.env_add_path ; 
-  
+  let  url = serde_obj.url;
+  let hash = serde_obj.hash; 
   if !depends.is_none()  {
     handle_depends(depends.unwrap().as_str() , &options ).await?;
   }

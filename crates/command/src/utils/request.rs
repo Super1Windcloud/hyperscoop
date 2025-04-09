@@ -11,6 +11,8 @@ use std::io::{copy, Read, Write};
 use std::path::Path;
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
+use dialoguer::Confirm;
+use dialoguer::theme::ColorfulTheme;
 use tokio::time;
 use zip::ZipArchive;
 
@@ -96,7 +98,7 @@ pub async fn request_download_git_repo(
         }
     }
     remove_dir(current_dir)?;
-    Ok("下载成功!!! ".dark_green().bold().to_string())
+    Ok("下载成功!!!".dark_green().bold().to_string())
 }
 
 pub async fn request_download_git_clone(
@@ -254,10 +256,18 @@ pub async fn request_git_clone_by_git2_with_progress(
     destination: &String,
 ) -> Result<String, anyhow::Error> {
     if Path::new(destination).exists() {
-        remove_dir_all(destination).expect("Failed to delete directory for bucket ");
+      let proceed = Confirm::with_theme(&ColorfulTheme::default())
+        .with_prompt(format!("目录 {} 已存在，是否删除?", destination))
+        .interact()?;
+      if proceed {
+        remove_dir_all(destination)?;
+        println!("已删除目录 {}", destination);
+      } else {
+        return Ok("保留原目录，操作取消".to_string().dark_green().bold().to_string() );
+      }
     }
     if !Path::new(destination).exists() {
-        create_dir_all(destination).expect("Failed to create directory for bucket ");
+        create_dir_all(destination)? 
     }
     let pb = ProgressBar::new(100);
     pb.set_style(
@@ -270,39 +280,39 @@ pub async fn request_git_clone_by_git2_with_progress(
 
     let mut callbacks = RemoteCallbacks::new();
     callbacks.transfer_progress(|stats: Progress| {
+    let received_objects = stats.received_objects();
+    let total_objects = if stats.total_objects() > 0 {
+      stats.total_objects()
+    } else {
+      stats.indexed_objects()
+    };
+    if total_objects > 0 {
+      let percent = (received_objects as f64 / total_objects as f64) * 100.0;
 
-        let received_objects = stats.received_objects();
-        let total_objects = if stats.total_objects() > 0 {
-            stats.total_objects()
-        } else {
-            stats.indexed_objects()
-        };
-        if total_objects > 0 {
-            let percent = (received_objects as f64 / total_objects as f64) * 100.0;
+      // 计算下载速率（单位：对象数/s）
+      let now = Instant::now();
+      let elapsed = now.duration_since(last_time);
+      let delta_objects = received_objects - last_received;
 
-            // 计算下载速率（单位：对象数/s）
-            let now = Instant::now();
-            let elapsed = now.duration_since(last_time);
-            let delta_objects = received_objects - last_received;
+      let speed = if elapsed.as_secs_f64() > 0.0 {
+        delta_objects as f64 / elapsed.as_secs_f64()
+      } else {
+        0.0
+      };
+      #[cfg(debug_assertions)]
+      write_into_log_file_append_mode("git2_clone.txt",
+                                      format!("speed {speed:.2}, total_objects {total_objects}, received_objects {received_objects},percent {percent:.2}"));
+      pb.set_position(percent as u64);
+      pb.set_message(format!(
+        "{} / {} objects, {:.2} objs/s",
+        received_objects, total_objects, speed
+      ));
 
-            let speed = if elapsed.as_secs_f64() > 0.0 {
-                delta_objects as f64 / elapsed.as_secs_f64()
-            } else {
-                0.0
-            };
-            write_into_log_file_append_mode("git2_clone.txt" ,
-   format!("speed {speed:.2}, total_objects {total_objects}, received_objects {received_objects},percent {percent:.2}"));
-            pb.set_position(percent as u64);
-            pb.set_message(format!(
-                "{} / {} objects, {:.2} objs/s",
-                received_objects, total_objects, speed
-            ));
-
-            last_received = received_objects;
-            last_time = now;
-        }
-        true // 继续下载
-    });
+      last_received = received_objects;
+      last_time = now;
+    }
+    true // 继续下载
+  });
     let mut proxy_option = ProxyOptions::new();
     let config_proxy = get_config_value_no_print("proxy");
     if !config_proxy.is_empty() {
@@ -312,7 +322,7 @@ pub async fn request_git_clone_by_git2_with_progress(
             "http://".to_string() + &config_proxy
         };
         proxy_option.url(proxy_url.as_str());
-       log::info!("proxy_option {:?}", proxy_url);
+        log::info!("proxy_option {:?}", proxy_url);
     }
     let mut fo = FetchOptions::new();
     fo.remote_callbacks(callbacks);

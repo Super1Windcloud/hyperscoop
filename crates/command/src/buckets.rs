@@ -2,7 +2,6 @@
     get_apps_path, get_apps_path_global, get_buckets_root_dir_path,
     get_buckets_root_dir_path_global,
 };
-use crate::init_hyperscoop;
 use crate::utils::request::{get_git_repo_remote_url, request_git_clone_by_git2_with_progress};
 use anyhow::{anyhow, bail};
 use chrono::{DateTime, Utc};
@@ -96,7 +95,6 @@ impl Buckets {
         url: &Option<String>,
         is_global: bool,
     ) -> Result<(), anyhow::Error> {
-        //下载 url 到 bucket_path 下的
         let bucket_name = name
             .clone()
             .unwrap_or_else(|| url.clone().unwrap().split("/").last().unwrap().to_string());
@@ -134,13 +132,17 @@ impl Buckets {
     ) -> Result<String, anyhow::Error> {
         let bucket_path = bucket_path.to_string() + "\\" + bucket_name;
 
-        println!("{} ", "正在下载...... ".dark_green().bold());
+        println!("{} ", "开始下载...... ".dark_green().bold());
 
         let result = request_git_clone_by_git2_with_progress(url, &bucket_path).await?;
         println!("{} ", result);
-        Ok("bucket添加成功".to_string().dark_cyan().bold().to_string())
+       if &result=="下载成功!!!" {
+         Ok("bucket添加成功......".to_string().dark_cyan().bold().to_string())
+       }
+       else {
+          Ok("bucket添加失败......".to_string().dark_red().bold().to_string())
+       }
     }
-
     pub fn check_file_ishave_content(&self, bucket_path: &str) -> Result<(), anyhow::Error> {
         //检查目录是否包含文件
         if !Path::new(bucket_path).read_dir()?.next().is_none() {
@@ -339,9 +341,8 @@ impl Buckets {
             get_buckets_path()?
         };
 
-        let bucket_updated = Self::get_updated_time(&bucket_source);
-        let bucket_manifest = Self::get_manifest_version(&bucket_source);
-
+        let bucket_updated = Self::get_updated_time(&bucket_source)?;
+        let bucket_manifest = Self::get_manifest_version(&bucket_source)? ;
         Ok((
             bucket_name,
             bucket_source_url,
@@ -350,11 +351,13 @@ impl Buckets {
         ))
     }
 
-    fn get_updated_time(bucket_source: &Vec<String>) -> Vec<String> {
+    fn get_updated_time(bucket_source: &Vec<String>) -> anyhow::Result<Vec<String>>  {
         let mut bucket_updated: Vec<String> = Vec::new();
-
         for source in bucket_source {
             let path = source.to_string() + "\\bucket";
+             if !Path::new(&path).exists() {
+                bail!("bucket path {} does not exist", path);
+             }
             let metadata = metadata(&path).expect("Failed to get metadata");
             let modified_time = metadata.modified().expect("Failed to get modified time");
             // 将修改时间转换为自 UNIX_EPOCH 以来的时间戳
@@ -366,20 +369,22 @@ impl Buckets {
             let updated_time_formatted = updated_time_utc.format("%Y-%m-%d %H:%M:%S").to_string();
             bucket_updated.push(updated_time_formatted.trim_matches('"').into());
         }
-        bucket_updated
+      Ok(bucket_updated)
     }
 
-    fn get_manifest_version(path: &Vec<String>) -> Vec<String> {
+    fn get_manifest_version(path: &Vec<String>) -> anyhow::Result<Vec<String> > {
         let mut bucket_manifest: Vec<String> = Vec::new();
         // 获取目录的子文件个数
         for source in path {
             let source = source.to_string() + "\\bucket";
-
-            let count = read_dir(source).expect("Failed to read directory").count(); // 这里得到的是一个`u64`
+             if !Path::new(&source).exists() {
+               bail!("bucket dir {} does not exist", source);
+             }
+            let count = read_dir(source)?.count(); // 这里得到的是一个`u64`
             bucket_manifest.push(count.to_string());
         }
 
-        bucket_manifest
+      Ok(bucket_manifest)
     }
 
     fn get_bucket_source_url(is_global: bool) ->  anyhow::Result<Vec<String>> {
@@ -419,8 +424,7 @@ impl Buckets {
         Ok((bucket.global_buckets_paths, bucket.global_buckets_names ))
     }
     pub fn new() -> anyhow::Result<Buckets> {
-        let hyperscoop = init_hyperscoop().expect("Failed to initialize hyperscoop");
-        let bucket_path = hyperscoop.bucket_path.clone();
+        let bucket_path = get_buckets_root_dir_path();
         // 遍历 bucket_path 下的所有文件夹，并将文件夹名加入 buckets_path
         let buckets_path: Vec<String> = read_dir(&bucket_path)?
             .filter_map(|e| e.ok())

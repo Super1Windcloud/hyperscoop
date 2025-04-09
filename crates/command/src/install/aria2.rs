@@ -1,30 +1,62 @@
 use crate::config::get_config_value;
+use crate::init_env::{get_cache_dir_path, get_cache_dir_path_global};
+use crate::install::InstallOptions;
+use crate::install::InstallOptions::Global;
+use crate::utils::utility::is_valid_url;
 use anyhow::bail;
 use std::fs::File;
 use std::io::{Read, Write};
 use std::path::Path;
 use std::process::Command;
 use std::{env, fs};
-use crate::init_env::get_cache_dir_path;
-use crate::utils::utility::is_valid_url;
 
-pub struct Aria2C <'a>  {
-     aria2c_path: String,
-     download_cache_dir: String,
-     download_urls  :  &'a  [ &'a str ]
+pub struct Aria2C<'a> {
+    aria2c_path: String,
+    download_cache_dir: String,
+    aria2c_download_config: Vec<String>,
+    download_urls: &'a [&'a str],
+    install_options: &'a [InstallOptions],
+    app_name: &'a str,
+    app_version: &'a str,
 }
 
-impl <'a> Aria2C<'a > {
-    pub fn new() -> Self {
-      let  download_cache_dir =  get_cache_dir_path();
+impl<'a> Aria2C<'a> {
+    pub fn new(options: &'a [InstallOptions]) -> Self {
+        let download_cache_dir = if options.contains(&Global) {
+            get_cache_dir_path_global()
+        } else {
+            get_cache_dir_path()
+        };
 
-      let mut aria = Self {
+        let mut aria = Self {
             aria2c_path: "".to_string(),
             download_cache_dir,
+            aria2c_download_config: vec![],
             download_urls: &[],
-      };
+            install_options: options,
+            app_name: "",
+            app_version: "",
+        };
         aria.init().unwrap();
         aria
+    }
+   pub fn  get_aria2c_download_config(&self) -> &[String] { 
+     self.aria2c_download_config.as_slice()
+   }
+  pub fn  add_aria2c_download_config(&mut self, config: String) { 
+      self.aria2c_download_config.push(config);
+  }
+    pub fn set_download_app_name(&mut self, app_name: &'a str) {
+        self.app_name = app_name;
+    }
+    pub fn get_download_app_name(&self) -> &'a str {
+        self.app_name
+    }
+    pub fn get_app_version(&self) -> &'a str {
+        self.app_version
+    }
+    pub fn set_app_version(&mut self, app_version: &'a str) {
+        self.app_version = app_version;
     }
     pub fn set_aria2c_path(&mut self, path: &str) {
         self.aria2c_path = path.to_string();
@@ -39,7 +71,10 @@ impl <'a> Aria2C<'a > {
     }
     /// 命令行字符串, 或字符串数组, 传递多个参数时, 请使用字符串数组
     pub fn execute_aria2_download_command<'cmd>(
-        &self,app_name  :&str,  app_version :&str, url :&str,
+        &self,
+        app_name: &str,
+        app_version: &str,
+        url: &str,
         command_str: impl Into<Option<&'cmd str>>,
         command_arr: impl Into<Option<&'cmd [&'cmd str]>>,
     ) -> anyhow::Result<String> {
@@ -57,15 +92,18 @@ impl <'a> Aria2C<'a > {
             .map(|item| item.trim())
             .collect::<Vec<&str>>();
         let proxy = get_config_value("proxy");
-        let proxy = if !proxy.contains("http://") &&  ! proxy.contains("https://") {
+        let proxy = if !proxy.contains("http://") && !proxy.contains("https://") {
             "http://".to_string() + &proxy
         } else {
             proxy
         };
-       if  !is_valid_url(&proxy) {  bail!("Proxy is not valid, url format error"); };
-       // let  saved_file_name  = generate_file_name() ;
-      
-      let output = Command::new(&aria2_exe).arg(format!("--all-proxy={proxy}"))
+        if !is_valid_url(&proxy) {
+            bail!("Proxy is not valid, url format error");
+        };
+        // let  saved_file_name  = generate_file_name() ;
+
+        let output = Command::new(&aria2_exe)
+            .arg(format!("--all-proxy={proxy}"))
             .args(command_arr)
             .arg(command_str.trim())
             .output()?;
@@ -110,7 +148,7 @@ impl <'a> Aria2C<'a > {
         exe_path.to_str().unwrap().to_string()
     }
 
-    fn  set_download_urls(&mut self, urls: &'a [&str]) {
+    fn set_download_urls(&mut self, urls: &'a [&str]) {
         self.download_urls = urls;
     }
 }
@@ -139,8 +177,6 @@ pub fn write_message_to_aria2_log(message: &str) {
         .unwrap();
 }
 
-
-
 #[cfg(test)]
 mod tests {
     #[allow(unused_imports)]
@@ -148,7 +184,6 @@ mod tests {
 
     #[test]
     fn test_aria2() {
-        let a = Aria2C::new();
-         
+        // let a = Aria2C::new();
     }
 }

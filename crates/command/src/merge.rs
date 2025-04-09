@@ -15,7 +15,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
-#[derive(Debug, Eq, PartialEq, Hash, Clone)] // 从引用clone出新的完整对象而不是引用
+#[derive(Debug, Eq, PartialEq, Hash, Clone)]  
 pub struct Merge {
     pub app_name: String,
     pub app_version: String,
