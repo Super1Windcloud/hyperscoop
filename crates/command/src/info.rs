@@ -107,47 +107,45 @@ fn display_specific_app_info(app_name: &str, bucket_name: &str, bucket_paths: Ve
     print_pretty_info(info_set);
 }
 
-trait  DisplayInfo {
-    fn display_info(&self)->Vec<String>;
+trait DisplayInfo {
+    fn display_info(&self) -> Vec<String>;
 }
-impl DisplayInfo for  &str {
-  fn display_info(&self) ->Vec<String> {
-       vec![self.to_string()]
-  }
-}
-impl DisplayInfo for &Vec<Value > {
-  fn display_info(&self) -> Vec<String >{
-    let mut result = Vec::new();
-    for (_, value) in self.iter().enumerate() {
-      let value = value.to_string();
-    result.push(value);
+impl DisplayInfo for &str {
+    fn display_info(&self) -> Vec<String> {
+        vec![self.to_string()]
     }
-    result
-  }
+}
+impl DisplayInfo for &Vec<Value> {
+    fn display_info(&self) -> Vec<String> {
+        let mut result = Vec::new();
+        for (_, value) in self.iter().enumerate() {
+            let value = value.to_string();
+            result.push(value);
+        }
+        result
+    }
 }
 
-impl DisplayInfo for Vec<Value > {
-  fn display_info(&self) -> Vec<String >{
-    let mut result = Vec::new();
-    for (_, value) in self.iter().enumerate() {
-      let value = value.to_string();
-    result.push(value);
+impl DisplayInfo for Vec<Value> {
+    fn display_info(&self) -> Vec<String> {
+        let mut result = Vec::new();
+        for (_, value) in self.iter().enumerate() {
+            let value = value.to_string();
+            result.push(value);
+        }
+        result
     }
-    result
-  }
 }
 impl DisplayInfo for &[Value] {
-  fn display_info(&self) ->Vec<String >{
-    let mut result = Vec::new();
-    for value in *self {
-  let value = value.to_string();
-      result.push(value);
+    fn display_info(&self) -> Vec<String> {
+        let mut result = Vec::new();
+        for value in *self {
+            let value = value.to_string();
+            result.push(value);
+        }
+        result
     }
-    result
-  }
 }
- 
- 
 
 fn process_manifest_file(
     file_path: &std::path::Path,
@@ -169,14 +167,15 @@ fn process_manifest_file(
     let website = serde_obj["homepage"].as_str().unwrap_or_default();
     let license = serde_obj["license"].as_str().unwrap_or_default();
     let update_at = get_file_modified_time(file_path.to_str().unwrap_or(""))?;
-    let     binary = serde_obj["bin"].as_str().unwrap_or_default();
-    let     binary :Box<dyn DisplayInfo>  =if  binary.is_empty() {
-      match serde_obj["bin"] {
-        Value::Array(ref arr) => Box::new(arr.as_slice()) as Box<dyn DisplayInfo>,
-        _ => {  Box::new(vec![Value::Null]) as Box<dyn DisplayInfo> },
-      }
+    let binary = serde_obj["bin"].as_str().unwrap_or_default();
+    let binary: Box<dyn DisplayInfo> = if binary.is_empty() {
+        match serde_obj["bin"] {
+            Value::Array(ref arr) => Box::new(arr.as_slice()) as Box<dyn DisplayInfo>,
+            _ => Box::new(vec![Value::Null]) as Box<dyn DisplayInfo>,
+        }
     } else {
-      Box::new(binary) as Box<dyn DisplayInfo>}; 
+        Box::new(binary) as Box<dyn DisplayInfo>
+    };
     let short_str = serde_obj["shortcuts"]
         .as_array()
         .map(|arr| {
