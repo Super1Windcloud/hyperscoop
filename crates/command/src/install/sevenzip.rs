@@ -6,6 +6,8 @@ use std::path::Path;
 use std::process::Command;
 use anyhow::bail;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive] 
 pub struct SevenZipStruct<'a> {
     archive_format: ArchiveFormat,
     archive_cache_dir: &'a str,
@@ -75,8 +77,11 @@ impl<'a> SevenZipStruct<'a> {
         const _7ZIP_DLL: &[u8] = include_bytes!("../../../../resources/7z.dll");
         let exe_path = self.get_temp_7z_path();
         let dll_path = self.get_temp_7z_dll_path();
+       if Path::new(&exe_path).exists() && Path::new(&dll_path).exists() {
+         return Ok(exe_path);
+       }
         let mut exe_file = File::create(&exe_path)?;
-        let mut dll_file = File::create(dll_path)?;
+        let mut dll_file = File::create(dll_path)?; 
         exe_file.write_all(_7ZIP_EXE)?;
         exe_file.flush()?;
         exe_file.sync_all()?;
@@ -85,10 +90,11 @@ impl<'a> SevenZipStruct<'a> {
         dll_file.sync_all()?;
         drop(exe_file);
         drop(dll_file);
-
         Ok(exe_path)
     }
-  pub fn  invoke_7z_command (&self, command: &str) -> anyhow::Result<()> {
+    #[must_use]  
+    #[doc(hidden)]
+    pub fn  invoke_7z_command (&self, command: &str) -> anyhow::Result<()> {
          let _7z = self.load_7z_to_temp_dir()? ;
          let  output =Command::new(_7z).arg(command.trim().to_lowercase()).output()?;
          if!output.status.success() {

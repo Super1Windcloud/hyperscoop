@@ -75,9 +75,10 @@ async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
     init_logger(&cli);
     color_eyre::install().unwrap();
-
+     
     let result = match cli.command {
-        None => {
+        None => { 
+            auto_check_hp_update().await?;
             eprintln!("No command provided. Run `hp  --help` to see available commands!");
             Ok(())
         }

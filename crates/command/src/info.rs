@@ -107,6 +107,48 @@ fn display_specific_app_info(app_name: &str, bucket_name: &str, bucket_paths: Ve
     print_pretty_info(info_set);
 }
 
+trait  DisplayInfo {
+    fn display_info(&self)->Vec<String>;
+}
+impl DisplayInfo for  &str {
+  fn display_info(&self) ->Vec<String> {
+       vec![self.to_string()]
+  }
+}
+impl DisplayInfo for &Vec<Value > {
+  fn display_info(&self) -> Vec<String >{
+    let mut result = Vec::new();
+    for (_, value) in self.iter().enumerate() {
+      let value = value.to_string();
+    result.push(value);
+    }
+    result
+  }
+}
+
+impl DisplayInfo for Vec<Value > {
+  fn display_info(&self) -> Vec<String >{
+    let mut result = Vec::new();
+    for (_, value) in self.iter().enumerate() {
+      let value = value.to_string();
+    result.push(value);
+    }
+    result
+  }
+}
+impl DisplayInfo for &[Value] {
+  fn display_info(&self) ->Vec<String >{
+    let mut result = Vec::new();
+    for value in *self {
+  let value = value.to_string();
+      result.push(value);
+    }
+    result
+  }
+}
+ 
+ 
+
 fn process_manifest_file(
     file_path: &std::path::Path,
     manifest_path: &str,
@@ -117,12 +159,24 @@ fn process_manifest_file(
 
     let description = serde_obj["description"].as_str().unwrap_or_default();
     let version = serde_obj["version"].as_str().unwrap_or_default();
-    let bucket_name = manifest_path.split('\\').nth(3).unwrap_or("");
+    let bucket_name = manifest_path
+        .split('\\')
+        .collect::<Vec<_>>()
+        .into_iter()
+        .rev()
+        .nth(2)
+        .unwrap_or("");
     let website = serde_obj["homepage"].as_str().unwrap_or_default();
     let license = serde_obj["license"].as_str().unwrap_or_default();
     let update_at = get_file_modified_time(file_path.to_str().unwrap_or(""))?;
-    let binary = serde_obj["bin"].as_str().unwrap_or_default();
-
+    let     binary = serde_obj["bin"].as_str().unwrap_or_default();
+    let     binary :Box<dyn DisplayInfo>  =if  binary.is_empty() {
+      match serde_obj["bin"] {
+        Value::Array(ref arr) => Box::new(arr.as_slice()) as Box<dyn DisplayInfo>,
+        _ => {  Box::new(vec![Value::Null]) as Box<dyn DisplayInfo> },
+      }
+    } else {
+      Box::new(binary) as Box<dyn DisplayInfo>}; 
     let short_str = serde_obj["shortcuts"]
         .as_array()
         .map(|arr| {
@@ -158,7 +212,7 @@ fn process_manifest_file(
         ("Website\t".to_string(), website.to_string()),
         ("License\t".to_string(), license.to_string()),
         ("UpdateAt".to_string(), update_at.to_string()),
-        ("Binary\t".to_string(), binary.to_string()),
+        ("Binary\t".to_string(), binary.display_info().join(", ")),
         ("Shortcuts".to_string(), short_str.to_string()),
         ("Notes\t".to_string(), notes.to_string()),
     ];
@@ -176,7 +230,7 @@ fn print_pretty_info(info: DashSet<Vec<(String, String)>>) {
         .flat_map(|vec| {
             vec.iter()
                 .filter(|(key, _)| key.trim() != "Notes")
-                .map(|(_ , value)| value.len())
+                .map(|(_, value)| value.len())
                 .collect::<Vec<_>>()
         })
         .collect::<Vec<usize>>();
@@ -196,12 +250,12 @@ fn print_pretty_info(info: DashSet<Vec<(String, String)>>) {
         .max()
         .unwrap_or(0);
     let mut i = 0;
-  let terminal_max_width = terminal::size()
-    .map(|(width, _)| width as usize)
-    .unwrap_or(80);
-  let all_width = max_value_length + max_key_length + 6;
+    let terminal_max_width = terminal::size()
+        .map(|(width, _)| width as usize)
+        .unwrap_or(80);
+    let all_width = max_value_length + max_key_length + 6;
     for vec in info {
-        for (key, value) in vec { 
+        for (key, value) in vec {
             if !value.is_empty() {
                 if key.trim() == "Notes" {
                     let lines: Vec<&str> = value.split('\n').collect(); /* 包含的\n 会产生空字符串 */
@@ -209,37 +263,47 @@ fn print_pretty_info(info: DashSet<Vec<(String, String)>>) {
                     let lines_width = lines.iter().map(|line| line.len()).collect::<Vec<usize>>();
 
                     let len = lines.len();
-                   if all_width  >terminal_max_width {  
-                      let  lines = lines.iter().filter( |line|  
-                          !line.is_empty() ).collect::<Vec<_>>() ;  // true的保留 
-                      let   merge_notes= lines.iter().map( |line| line.to_string()).collect::<Vec<String>>().join(" ");
-                      let   align_width =   terminal_max_width -max_key_length -6 ; 
-                      // println!(
-                      //  "{}",
-                      //  "-".repeat(align_width).dark_magenta().bold(),
-                      // );  
-                     
-                      let align_text = textwrap::wrap(&merge_notes , align_width).iter().
-                        map(|item| item.to_string()).collect::<Vec<String>>(); 
-                      let len = align_text.len(); 
-                     let  lines_width = align_text.iter().map(|line| line.len()).collect::<Vec<usize>>();
-                     println!(
-                       "{:<width$}\t{:<width$}",
-                       key.dark_green().bold(),
-                       ": ".to_string() + &align_text[0],
-                       width = lines_width[0] + 1
-                     ); 
-                     for i in 1..len {
-                       println!(
-                         "{}   {:<width$}",
-                         " ".repeat(max_key_length + 4),
-                         align_text[i],
-                         width = lines_width[i] + 1
-                       );
-                     }
-                      continue; 
-    
-                   }
+                    if all_width > terminal_max_width {
+                        let lines = lines
+                            .iter()
+                            .filter(|line| !line.is_empty())
+                            .collect::<Vec<_>>(); // true的保留
+                        let merge_notes = lines
+                            .iter()
+                            .map(|line| line.to_string())
+                            .collect::<Vec<String>>()
+                            .join(" ");
+                        let align_width = terminal_max_width - max_key_length - 6;
+                        // println!(
+                        //  "{}",
+                        //  "-".repeat(align_width).dark_magenta().bold(),
+                        // );
+
+                        let align_text = textwrap::wrap(&merge_notes, align_width)
+                            .iter()
+                            .map(|item| item.to_string())
+                            .collect::<Vec<String>>();
+                        let len = align_text.len();
+                        let lines_width = align_text
+                            .iter()
+                            .map(|line| line.len())
+                            .collect::<Vec<usize>>();
+                        println!(
+                            "{:<width$}\t{:<width$}",
+                            key.dark_green().bold(),
+                            ": ".to_string() + &align_text[0],
+                            width = lines_width[0] + 1
+                        );
+                        for i in 1..len {
+                            println!(
+                                "{}   {:<width$}",
+                                " ".repeat(max_key_length + 4),
+                                align_text[i],
+                                width = lines_width[i] + 1
+                            );
+                        }
+                        continue;
+                    }
                     println!(
                         "{:<width$}\t{:<width$}",
                         key.dark_green().bold(),
@@ -266,17 +330,13 @@ fn print_pretty_info(info: DashSet<Vec<(String, String)>>) {
             }
         }
         if all_width < terminal_max_width {
-            println!(
-                "{}",
-                "-".repeat(all_width).dark_magenta().bold(),
-            );
+            println!("{}", "-".repeat(all_width).dark_magenta().bold(),);
         } else {
             println!("{}", "-".repeat(terminal_max_width).dark_magenta().bold());
         }
     }
 }
 
- 
 fn get_file_modified_time(file_path: &str) -> io::Result<String> {
     let metadata = fs::metadata(file_path)?;
     let time = metadata.modified()?;
@@ -284,16 +344,12 @@ fn get_file_modified_time(file_path: &str) -> io::Result<String> {
     Ok(datetime.format("%Y-%m-%d %H:%M:%S").to_string())
 }
 
-
-
 mod test_align {
 
-  #[test ]
-  fn test_align_terminal_cutoff(){
-    let text = "textwrap: a small library for wrapping text.";  
-    let text = textwrap::wrap(text, 18) ; 
-     println!( "{:?}"  ,text ) ;
-     
-
-  }
+    #[test]
+    fn test_align_terminal_cutoff() {
+        let text = "textwrap: a small library for wrapping text.";
+        let text = textwrap::wrap(text, 18);
+        println!("{:?}", text);
+    }
 }

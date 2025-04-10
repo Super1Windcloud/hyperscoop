@@ -8,7 +8,7 @@ pub enum InstallOptions {
     UpdateHpAndBuckets,
     OnlyDownloadNoInstall,
     Global,
-} 
+}
 
 
 
@@ -20,8 +20,8 @@ pub enum  UpdateOptions {
     SkipDownloadHashCheck,
     UpdateHpAndBuckets,
     Global,
-    UpdateAllAPP, 
-    RemoveOldVersionApp 
+    UpdateAllAPP,
+    RemoveOldVersionApp
 }
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]

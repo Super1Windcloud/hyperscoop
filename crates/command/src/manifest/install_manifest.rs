@@ -113,7 +113,7 @@ pub struct InstallManifest {
     /// 哈希值是 SHA256，但您可以通过在哈希字符串前添加“sha512:”、“sha1:”或“md5:”前缀来使用 SHA512、SHA1 或 MD5
     pub hash: Option<ObjectArrayOrStringOrObject>,
     ///   如果url指向压缩文件（支持 .zip、.7z、.tar、.gz、.lzma 和 .lzh），Scoop 将仅提取其中指定的目录
-    pub extract_dir: Option<String>,
+      pub extract_dir: Option<String>,
     /// 如果url指向压缩文件（支持 .zip、.7z、.tar、.gz、.lzma 和 .lzh），Scoop 会将所有内容提取到指定目录
     pub extract_to: Option<StringArrayOrString>,
     ///将此目录添加到用户路径（如果使用--global则添加到系统路径）。

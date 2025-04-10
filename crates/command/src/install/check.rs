@@ -3,12 +3,22 @@ use crate::install::{create_shim_or_shortcuts, InstallOptions};
 use crossterm::style::Stylize;
 use std::os::windows::fs::symlink_dir;
 use std::path::Path;
+use crate::update::{check_bucket_update_status, update_all_buckets_bar, update_scoop_bar};
+use crate::utils::utility::update_scoop_config_last_update_time;
 
-pub fn check_before_install(
+pub async  fn check_before_install(
     name: &str,
     version: &String,
     options: &Box<[InstallOptions]>,
-) -> anyhow::Result<u8> {
+) -> anyhow::Result<u8> { 
+    if  options.contains(&InstallOptions::UpdateHpAndBuckets) {
+      update_scoop_bar().await?;
+      let status = check_bucket_update_status()?;
+      if status {
+        update_all_buckets_bar()?;
+        update_scoop_config_last_update_time();
+      }
+    }
     let app_dir = if options.contains(&InstallOptions::Global) {
         get_app_dir_global(name)
     } else {

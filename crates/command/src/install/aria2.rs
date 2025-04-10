@@ -1,7 +1,7 @@
 use crate::config::get_config_value;
 use crate::init_env::{get_cache_dir_path, get_cache_dir_path_global};
-use crate::install::{HashFormat, InstallOptions};
 use crate::install::InstallOptions::Global;
+use crate::install::{HashFormat, InstallOptions};
 use crate::utils::utility::is_valid_url;
 use anyhow::bail;
 use std::fs::File;
@@ -10,58 +10,59 @@ use std::path::Path;
 use std::process::Command;
 use std::{env, fs};
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct Aria2C<'a> {
     aria2c_path: String,
-     scoop_cache_dir: String,
-    aria2c_download_config: Vec<&'a str >,
+    scoop_cache_dir: String,
+    aria2c_download_config: Vec<&'a str>,
     download_urls: &'a [&'a str],
     install_options: &'a [InstallOptions],
     app_name: &'a str,
-    app_version: &'a str, 
+    app_version: &'a str,
     hash: HashFormat,
 }
 
 impl<'a> Aria2C<'a> {
     pub fn new(options: &'a [InstallOptions]) -> Self {
-    
         let mut aria = Self {
             aria2c_path: "".to_string(),
-            scoop_cache_dir :"".into(),
+            scoop_cache_dir: "".into(),
             aria2c_download_config: vec![],
             download_urls: &[],
             install_options: options,
             app_name: "",
             app_version: "",
-            hash: HashFormat::SHA256 ,
+            hash: HashFormat::SHA256,
         };
         aria.init(options).unwrap();
         aria
     }
-   pub fn  get_aria2c_download_config(&self) -> Vec<&'a str> { 
-      self.aria2c_download_config.clone()  
-   }
-   pub fn  add_aria2c_download_config(&mut self, config: &'a str ) { 
-      self.aria2c_download_config.push(config);
+    pub fn get_aria2c_download_config(&self) -> Vec<&'a str> {
+        self.aria2c_download_config.clone()
     }
-    pub fn  init_aria2c_config(&mut self ) {
-      let   args = vec![
-        "-x16",                  // 最大连接数
-        "-s16",                  // 分片数量
-        "-k1M",                  // 每块大小
-        "--file-allocation=falloc".into(),
-        "--enable-http-keep-alive=true".into(),
-        "--enable-http-pipelining=true".into(),
-        "--max-connection-per-server=16".into(),
-        "--min-split-size=1M".into(),
-        "--summary-interval=0".into(),
-        "--continue=true".into(),
-        "--timeout=10".into(),
-        "--retry-wait=3".into(),
-        "--allow-overwrite=true".into(),
-        "--auto-file-renaming=false".into(),
-      ];   
-     self.aria2c_download_config = args;
-  }
+    pub fn add_aria2c_download_config(&mut self, config: &'a str) {
+        self.aria2c_download_config.push(config);
+    }
+    pub fn init_aria2c_config(&mut self) {
+        let args = vec![
+            "-x16", // 最大连接数
+            "-s16", // 分片数量
+            "-k1M", // 每块大小
+            "--file-allocation=falloc".into(),
+            "--enable-http-keep-alive=true".into(),
+            "--enable-http-pipelining=true".into(),
+            "--max-connection-per-server=16".into(),
+            "--min-split-size=1M".into(),
+            "--summary-interval=0".into(),
+            "--continue=true".into(),
+            "--timeout=10".into(),
+            "--retry-wait=3".into(),
+            "--allow-overwrite=true".into(),
+            "--auto-file-renaming=false".into(),
+        ];
+        self.aria2c_download_config = args;
+    }
     pub fn set_download_app_name(&mut self, app_name: &'a str) {
         self.app_name = app_name;
     }
@@ -80,22 +81,26 @@ impl<'a> Aria2C<'a> {
     pub fn get_aria2c_path(&self) -> &str {
         &self.aria2c_path
     }
+    pub fn get_scoop_cache_dir(&self) -> &str {
+        &self.scoop_cache_dir
+    }
+    pub fn set_scoop_cache_dir(&mut self, path: &str) {
+        self.scoop_cache_dir = path.to_string();
+    }
     fn init(&mut self, options: &[InstallOptions]) -> anyhow::Result<String> {
-
-      let download_cache_dir = if options.contains(&Global) {
-        get_cache_dir_path_global()
-      } else {
-        get_cache_dir_path()
-      };
- 
-      let aria2_exe = self.extract_aria2()?;
+        let download_cache_dir = if options.contains(&Global) {
+            get_cache_dir_path_global()
+        } else {
+            get_cache_dir_path()
+        };
+        self.set_scoop_cache_dir(&download_cache_dir);
+        let aria2_exe = self.extract_aria2()?;
         self.set_aria2c_path(&aria2_exe);
         Ok(aria2_exe)
     }
+    #[must_use]
     pub fn execute_aria2_download_command<'cmd>(
         &self,
-        app_name: &str,
-        app_version: &str,
         url: &str,
         command_str: impl Into<Option<&'cmd str>>,
         command_arr: impl Into<Option<&'cmd [&'cmd str]>>,
@@ -160,7 +165,6 @@ impl<'a> Aria2C<'a> {
         if !Path::new(&aria2_exe).exists() {
             self.write_aria2_to_temp(&aria2_exe)?;
         }
-
         Ok(aria2_exe)
     }
 
