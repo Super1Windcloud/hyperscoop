@@ -20,8 +20,8 @@ pub fn execute_which_command(command: WhichArgs) -> Result<(), anyhow::Error> {
             let entry = entry?;
             let path = entry.path();
             if let Some(file_name) = path.file_name() {
-                let file_name = file_name.to_string_lossy();
-                if file_name.as_str() != app_name {
+                let file_name = file_name.to_str().unwrap();
+                if file_name != app_name {
                     continue;
                 }
                 let path = app_path + "\\" + &app_name + "\\current\\" + &app_name + ".exe";

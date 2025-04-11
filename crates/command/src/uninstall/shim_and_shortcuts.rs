@@ -367,7 +367,7 @@ pub fn rm_shim_file(
     app_name: &str,
 ) -> Result<(), anyhow::Error> {
     let app_name = app_name.to_lowercase() + ".json";
-    let shim_path = Path::new(shim_path.as_str());
+    let shim_path = Path::new(shim_path);
     let manifest_bin = manifests.clone().bin;
     let architecture = manifests.clone().architecture;
     if manifest_bin.is_none() && architecture.is_none() {
