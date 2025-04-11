@@ -43,10 +43,6 @@ offline = false               # do not access the network
 browser = "chromium"
 
 
-[http]
-debug = false               # HTTP debugging
-proxy = "http://127.0.0.1:7890"         # HTTP proxy in libcurl format
-
 timeout = 10
 [term]
 quiet = false          # whether cargo output is quiet
