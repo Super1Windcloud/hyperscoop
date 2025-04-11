@@ -36,7 +36,7 @@ def get_version_from_cargo():
                     break
       return version
 def  update_version_and_url() :
-      version= get_gitee_latest_version();
+      version=  '3.3.5';
       manifest_path1 = os.path.join(os.path.dirname(os.path.dirname(__file__)),  r"hyperscoop_source_bucket/bucket/hp.json")
       manifest_path2 = r'A:\Scoop\buckets\hp\bucket\hp.json'
       with open(manifest_path1, "r" ,encoding="utf-8") as f:
@@ -114,9 +114,9 @@ def main():
       result1 =calculate_hash(release_x64)
       result2 =calculate_hash(release_arm64)
       result3 =calculate_hash(release_x86)
+      update_version_and_url()  # 更新版本号和下载URL
       write_to_manifest(result1, result2 ,result3)  # 将哈希值写入 manifest 文件
       write_scoop_bucket ( result1,result2 , result3 )  # 将哈希值写入 scoop bucket
-      update_version_and_url()  # 更新版本号和下载URL
 
 
 def test():
