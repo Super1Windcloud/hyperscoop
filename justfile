@@ -18,10 +18,9 @@ hp  :
 cross:
    cargo build --target x86_64-pc-windows-msvc --release
    cargo build --target i686-pc-windows-msvc --release
-   cargo build  -q --color auto  --target aarch64-pc-windows-msvc --release
-
+   just  arm64
 arm64 :
-   cargo build  -q --color auto  --target aarch64-pc-windows-msvc --release
+   cargo build  -q --color auto  --target aarch64-pc-windows-msvc
 
 # 每条命令都是全新的 SHell 环境
 update_hash:

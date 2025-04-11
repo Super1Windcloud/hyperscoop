@@ -2,11 +2,17 @@
 #rustflags = ["-A", "unused_imports", "-A", "unused_variables"]
 #
 [target.x86_64-pc-windows-msvc]
-rustflags = ["-C", "target-feature=+crt-static"]
+rustflags = ["-C", "target-feature=+crt-static",
+  "-C", "link-args=/NODEFAULTLIB:LIBCMT.LIB"  # 避免库冲突
+]
 [target.i686-pc-windows-msvc]
-rustflags = ["-C", "target-feature=+crt-static"]
+rustflags = ["-C", "target-feature=+crt-static"
+, "-C", "link-args=/NODEFAULTLIB:LIBCMT.LIB"  # 避免库冲突
+]
 [target.aarch64-pc-windows-msvc]
-rustflags = ["-C", "target-feature=+crt-static"]
+rustflags = ["-C", "target-feature=+crt-static",
+  "-C", "link-args=/NODEFAULTLIB:LIBCMT.LIB"  # 避免库冲突
+]
 
 
 [alias]

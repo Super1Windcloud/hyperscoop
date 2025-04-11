@@ -162,5 +162,4 @@ default-target = "x86_64-pc-windows-msvc"
 name = "pg_bar"
 path = "examples/indicatif_demo.rs"
 
-[target.'cfg(target_env = "msvc")']
-rustflags = ["-C", "link-args=/NODEFAULTLIB:LIBCMT.LIB"]
+
