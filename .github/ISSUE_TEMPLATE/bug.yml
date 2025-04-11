@@ -18,18 +18,35 @@ body:
       description: 详细清晰地描述你遇到的问题，并配合截图 / Describe the problem you encountered in detail and clearly, and provide screenshots
     validations:
       required: true
-  - type: textarea
-    attributes:
-      label: 软件版本 / Verge Version
-      description: 请提供Verge的具体版本，如果是alpha版本，请注明下载时间(精确到小时分钟) / Please provide the specific version of Verge. If it is an alpha version, please indicate the download time (accurate to hours and minutes)
-    validations:
-      required: true
+
   - type: textarea
     attributes:
       label: 复现步骤 / To Reproduce
       description: 请提供复现问题的步骤 / Steps to reproduce the behavior
+      placeholder: |
+        1. Go to '...'
+        2. Click on '....'
+        3. Scroll down to '....'
+        4. See error
     validations:
       required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened?
+    validations:
+      required: true
+
   - type: dropdown
     attributes:
       label: 操作系统 / OS
@@ -39,15 +56,5 @@ body:
         - MacOS
     validations:
       required: true
-  - type: input
-    attributes:
-      label: 操作系统版本 / OS Version
-      description: 请提供你的操作系统版本，Linux请额外提供桌面环境及窗口系统 / Please provide your OS version, for Linux, please also provide the desktop environment and window system
-    validations:
-      required: true
-  - type: textarea
-    attributes:
-      label: 日志(勿上传日志文件，请粘贴日志内容) / Log (Do not upload the log file, paste the log content directly)
-      description: 请提供完整或相关部分的Debug日志
-    validations:
-      required: true
+
+
