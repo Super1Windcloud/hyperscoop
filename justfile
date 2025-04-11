@@ -32,7 +32,7 @@ push:
     git add -A  && git commit -m ":panda_face:     update hash " && git push repo   master
 
 
-pull   :
+pull  :
     git pull repo master
 
 musicbox :
