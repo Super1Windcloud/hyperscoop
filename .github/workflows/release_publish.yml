@@ -6,7 +6,7 @@ permissions:
   contents: write
 env:
   CARGO_TERM_COLOR: always
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  GITHUB_TOKEN: ${{ secrets.MY_ACCESS_TOKEN }}
 
 jobs:
   build:

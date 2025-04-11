@@ -42,7 +42,6 @@ offline = false               # do not access the network
 [doc]
 browser = "chromium"
 
-
 timeout = 10
 [term]
 quiet = false          # whether cargo output is quiet

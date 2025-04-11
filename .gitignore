@@ -19,6 +19,8 @@ submodule
 shim_proxy
 
 .env
+.github_token
+
 
 
 

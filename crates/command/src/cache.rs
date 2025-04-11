@@ -31,6 +31,7 @@ pub fn display_all_cache_info(is_global: bool) -> anyhow::Result<()> {
         log::info!("cache file : {}", &app_name);
         log::info!("cache file : {}", &path2);
         log::info!("cache size : {} MB", &zip_size);
+        if ! path1.contains("#") {  continue } 
         let version = path1.split("#").collect::<Vec<&str>>()[1].to_string();
         log::info!("cache version : {}", &version);
         infos.push((app_name, version, zip_size));
