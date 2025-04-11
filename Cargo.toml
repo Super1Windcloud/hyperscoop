@@ -33,7 +33,6 @@ color-eyre = "0.6.3"
 reqwest = { workspace = true }
 tokio ={workspace = true }
 url={workspace = true }
-sha2 =  {workspace = true }
 
 
 [workspace.dependencies]
@@ -95,7 +94,6 @@ unreachable_pub = "warn"
 [dev-dependencies] # 依赖项仅在开发和测试过程中使用，
 # 例如 `cargo test` 或 `cargo bench` , 'cargo build --tests` ,`cargo build --examples` |
 criterion = { version = "0.5.1"   }
-trybuild = { version = "1.0.101" }
 
 [profile.release]
 debug = false
@@ -120,10 +118,6 @@ incremental = true
 codegen-units = 256
 debug-assertions = true
 rpath = false
-
-[build-dependencies]  # 这些依赖项仅在构建脚本（build.rs 文件）中使用
-flate2 = "1.1.1"
-xmake =  { version = "0.2.3" ,optional = true  }
 
 
 

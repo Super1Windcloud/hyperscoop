@@ -18,7 +18,7 @@ pub async fn auto_check_hp_update() -> anyhow::Result<bool> {
     let cmd = Cli::command();
     let version = cmd.get_version().ok_or(anyhow!("hp version is empty"))?;
 
-    let latest_version = get_latest_version_from_gitee().await?;
+    let latest_version = get_latest_version_from_gitee().await?; //? 
     let   latest_github_version = get_latest_version_from_github().await?;
      println!("Latest version: {}", latest_github_version);
     if version.to_string() < latest_version {
@@ -69,7 +69,6 @@ async fn get_latest_version_from_gitee() -> anyhow::Result<String> {
 }
 
 mod test_auto_update {
-  use crate::check_self_update::{ get_latest_version_from_github};
 
   #[tokio::test]
     async fn test_auto_check_hp_update() {
@@ -79,6 +78,7 @@ mod test_auto_update {
 
     #[tokio::test]
     async  fn  test_github_api (){
+      use crate::check_self_update::{ get_latest_version_from_github};
        println!("{}", get_latest_version_from_github().await.unwrap());
     }
 }
