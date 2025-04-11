@@ -2,7 +2,6 @@ name: Hp  Release Pipeline
 on:
   push:
     branches: ["main"]
-
 permissions:
   contents: write
 env:
@@ -19,17 +18,15 @@ jobs:
       - uses: actions/checkout@v4
       - uses: Swatinem/rust-cache@v2
       - uses: dtolnay/rust-toolchain@stable
-      - run: cargo build --all  --target ${{ matrix.arch }}-pc-windows-msvc
+      - run: rustup target add ${{ matrix.arch }}-pc-windows-msvc
+      - run: cargo build  --target ${{ matrix.arch }}-pc-windows-msvc --release
 
   publish:
-    needs: [build]
+    needs:   [build]
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-
-      - name: Build Artifacts
-        run:  just  cross
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
