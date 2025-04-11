@@ -1,6 +1,5 @@
 use crate::config::get_config_value;
 use crate::init_env::{get_cache_dir_path, get_cache_dir_path_global};
-use crate::install::InstallOptions::Global;
 use crate::install::{HashFormat, InstallOptions};
 use crate::utils::utility::is_valid_url;
 use anyhow::bail;

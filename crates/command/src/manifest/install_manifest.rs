@@ -105,11 +105,11 @@ pub struct InstallManifest {
     此技术通常在 Scoop 清单中使用，以绕过可执行安装程序，这些安装程序可能会产生不良副作用，
     例如注册表更改、放置在安装目录之外的文件或管理员提升提示。
     */
-    pub url: Option<ArrayOrStringOrObject>,
+    pub url: Option<StringArrayOrString>,
 
     ///字符串或字符串数组，其中包含url中每个 URL 的文件哈希值。默认情况下，
     /// 哈希值是 SHA256，但您可以通过在哈希字符串前添加“sha512:”、“sha1:”或“md5:”前缀来使用 SHA512、SHA1 或 MD5
-    pub hash: Option<ObjectArrayOrStringOrObject>,
+    pub hash: Option<StringArrayOrString>,
     ///   如果url指向压缩文件（支持 .zip、.7z、.tar、.gz、.lzma 和 .lzh），Scoop 将仅提取其中指定的目录
     pub extract_dir: Option<String>,
     /// 如果url指向压缩文件（支持 .zip、.7z、.tar、.gz、.lzma 和 .lzh），Scoop 会将所有内容提取到指定目录
@@ -275,11 +275,19 @@ mod test {
             path: &Path ,
             _count: &Arc<Mutex<i32>>,
         ) -> bool {
-           let url = &manifest.url;
+           let url = manifest.url;
            let hash = manifest.hash;
-           
-
-           false
+           if  url.is_some() && hash.is_some() {
+              println!("url {:?}", url.unwrap());
+              println!(" hash {:?}", hash.unwrap());
+              println!(" path {}", path.display());
+              *_count.lock().unwrap() += 1;
+              if *_count.lock().unwrap() >= 10 {
+               return true; }
+           }
+            let architecture = manifest.architecture;
+            if architecture.is_some() {}
+            false
         }
         fn find_suggest_and_depends(
             manifest: InstallManifest,
