@@ -7,7 +7,7 @@ import  base64
 import argparse
 import random
 import string
-tag_name = "3.3.4"
+tag_name = "3.3.5"
 release_title = "here we go"
 def join_paths(base_path, *paths):
 
@@ -170,7 +170,7 @@ def main() :
       upload_hp_to_release(access_token)
       return
   create_new_release(access_token)
-  upload_hp_to_release(access_token)
+#   upload_hp_to_release(access_token)
 
 
 
