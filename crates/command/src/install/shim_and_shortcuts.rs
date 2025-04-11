@@ -31,7 +31,7 @@ pub fn create_shim_or_shortcuts(
     if shortcuts.is_some() {
         create_start_menu_shortcuts(shortcuts.unwrap(), app_name.into())?;
     }
-    if architecture.is_some() {
+    if    architecture.is_some() {
         let architecture = architecture.unwrap();
         let system_arch = get_system_default_arch()?;
         if system_arch == "64bit" {
@@ -285,7 +285,7 @@ pub fn start_create_shortcut<P: AsRef<Path>>(
         app_name.to_string().dark_cyan().bold(),
         link.to_string().dark_green().bold()
     );
-    let shell_link = ShellLink::new(link_target_path)?;
+    let shell_link = ShellLink::new(link_target_path)?; 
     shell_link.create_lnk(start_menu_path)?;
     Ok(())
 }

@@ -47,3 +47,26 @@ pub enum HashFormat {
     SHA256,
     SHA512,
 }
+
+
+#[derive(Clone, Debug, PartialEq)]
+enum DownloadState {
+  Queued,                      
+  Downloading {
+    progress: f64,          
+    speed: f64,            
+  },
+  Paused,                    
+  Completed(String),           
+  Failed(String),           
+}
+
+
+
+
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[non_exhaustive]
+pub enum   ParserUrl {
+  ExternalUrl(String),
+  
+}

@@ -14,25 +14,26 @@ use std::{env, fs};
 #[non_exhaustive]
 pub struct Aria2C<'a> {
     aria2c_path: String,
-    scoop_cache_dir: String,
+    
     aria2c_download_config: Vec<&'a str>,
     download_urls: &'a [&'a str],
     install_options: &'a [InstallOptions],
-    app_name: &'a str,
-    app_version: &'a str,
     hash: HashFormat,
 }
 
 impl<'a> Aria2C<'a> {
+     fn  init (&mut self, options: &'a [InstallOptions]) -> anyhow::Result<()> {
+         self.init_aria2c_config(); 
+         self.extract_aria2()?;
+       Ok(())
+     }
     pub fn new(options: &'a [InstallOptions]) -> Self {
         let mut aria = Self {
             aria2c_path: "".to_string(),
-            scoop_cache_dir: "".into(),
             aria2c_download_config: vec![],
             download_urls: &[],
             install_options: options,
-            app_name: "",
-            app_version: "",
+        
             hash: HashFormat::SHA256,
         };
         aria.init(options).unwrap();
@@ -63,41 +64,14 @@ impl<'a> Aria2C<'a> {
         ];
         self.aria2c_download_config = args;
     }
-    pub fn set_download_app_name(&mut self, app_name: &'a str) {
-        self.app_name = app_name;
-    }
-    pub fn get_download_app_name(&self) -> &'a str {
-        self.app_name
-    }
-    pub fn get_app_version(&self) -> &'a str {
-        self.app_version
-    }
-    pub fn set_app_version(&mut self, app_version: &'a str) {
-        self.app_version = app_version;
-    }
+   
     pub fn set_aria2c_path(&mut self, path: &str) {
         self.aria2c_path = path.to_string();
     }
     pub fn get_aria2c_path(&self) -> &str {
         &self.aria2c_path
     }
-    pub fn get_scoop_cache_dir(&self) -> &str {
-        &self.scoop_cache_dir
-    }
-    pub fn set_scoop_cache_dir(&mut self, path: &str) {
-        self.scoop_cache_dir = path.to_string();
-    }
-    fn init(&mut self, options: &[InstallOptions]) -> anyhow::Result<String> {
-        let download_cache_dir = if options.contains(&Global) {
-            get_cache_dir_path_global()
-        } else {
-            get_cache_dir_path()
-        };
-        self.set_scoop_cache_dir(&download_cache_dir);
-        let aria2_exe = self.extract_aria2()?;
-        self.set_aria2c_path(&aria2_exe);
-        Ok(aria2_exe)
-    }
+ 
     #[must_use]
     pub fn execute_aria2_download_command<'cmd>(
         &self,

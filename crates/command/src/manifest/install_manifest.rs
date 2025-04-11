@@ -1,18 +1,17 @@
 ﻿use crate::manifest::manifest_deserialize::*;
 use serde::{Deserialize, Serialize};
 
-
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(untagged)]
 #[derive(Default)]
-pub enum SuggestObjValue  {
-  #[default]
-  Null,
-  String(String),
-  StringArray(Vec<String>),
+pub enum SuggestObjValue {
+    #[default]
+    Null,
+    String(String),
+    StringArray(Vec<String>),
 }
 
-pub  type  SuggestObj = std::collections::HashMap<String, SuggestObjValue> ;
+pub type SuggestObj = std::collections::HashMap<String, SuggestObjValue>;
 
 #[must_use]
 #[allow(clippy::unsafe_derive_deserialize)]
@@ -76,7 +75,7 @@ pub struct InstallManifest {
     ///定义如何自动更新清单。
 
     ///将自动安装的应用程序的运行时依赖项。另请参阅suggest （如下）
-    pub depends: Option<String >,
+    pub depends: Option<String>,
 
     /**
     显示一条消息，建议提供补充功能的可选应用程序。请参阅ant的示例。
@@ -84,8 +83,7 @@ pub struct InstallManifest {
       例如 "JDK": [ "extras/oraclejdk", "openjdk" ]
       如果已经安装了针对该功能建议的任何应用程序，则该功能将被视为“已完成”，并且用户将不会看到任何建议。
     */
-
-    pub suggest: Option<SuggestObj >, // !complete
+    pub suggest: Option<SuggestObj>, // !complete
     /**
     在用户路径上可用的程序（可执行文件或脚本）的字符串或字符串数组。
      您还可以创建一个别名填充程序，它使用与实际可执行文件不同的名称，
@@ -113,7 +111,7 @@ pub struct InstallManifest {
     /// 哈希值是 SHA256，但您可以通过在哈希字符串前添加“sha512:”、“sha1:”或“md5:”前缀来使用 SHA512、SHA1 或 MD5
     pub hash: Option<ObjectArrayOrStringOrObject>,
     ///   如果url指向压缩文件（支持 .zip、.7z、.tar、.gz、.lzma 和 .lzh），Scoop 将仅提取其中指定的目录
-      pub extract_dir: Option<String>,
+    pub extract_dir: Option<String>,
     /// 如果url指向压缩文件（支持 .zip、.7z、.tar、.gz、.lzma 和 .lzh），Scoop 会将所有内容提取到指定目录
     pub extract_to: Option<StringArrayOrString>,
     ///将此目录添加到用户路径（如果使用--global则添加到系统路径）。
@@ -215,7 +213,7 @@ pub struct InstallManifest {
 }
 
 impl InstallManifest {
-    pub fn set_name(& mut self, path: &str ) -> &mut Self {
+    pub fn set_name(&mut self, path: &str) -> &mut Self {
         let arr = path.split('/').collect::<Vec<&str>>();
         let name = arr.last().unwrap();
         let name = name.split('.').collect::<Vec<&str>>();
@@ -232,16 +230,16 @@ impl InstallManifest {
 mod test {
     #[allow(unused_imports)]
     use super::*;
+    use crate::install::show_suggest;
     #[allow(unused_imports)]
     use rayon::prelude::*;
     use std::path::PathBuf;
-  use crate::install::show_suggest;
 
-  #[test]
+    #[test]
     fn test_install_manifest() {
         use crate::buckets::get_buckets_path;
         use std::path::Path;
-        use  std::sync::{Arc ,Mutex } ;
+        use std::sync::{Arc, Mutex};
         let bucket = get_buckets_path().unwrap();
         let buckets = bucket
             .iter()
@@ -252,8 +250,8 @@ mod test {
             .iter()
             .flat_map(|path| path.read_dir().unwrap().map(|res| res.unwrap().path()))
             .collect::<Vec<_>>();
-         let     _count = Arc::new(Mutex::new(0));
-           for path in files {
+        let _count = Arc::new(Mutex::new(0));
+        for path in files {
             let content = std::fs::read_to_string(&path);
             if content.is_err() {
                 println!("decode   error {:?}", path.display());
@@ -265,26 +263,44 @@ mod test {
                 continue;
             }
 
-            let  manifest: InstallManifest = manifest.unwrap();
-            if  find_suggest_and_depends(manifest, path , &_count ) { return; };
-           //  find_architecture_test(manifest, path);
+            let _manifest: InstallManifest = manifest.unwrap();
+            if find_url_and_hash(_manifest, &path, &_count) {
+                return;
+            };
+            // if  find_suggest_and_depends(_manifest, path , &_count ) { return; };
+            //  find_architecture_test(_manifest, path);
         }
+        fn find_url_and_hash(
+            manifest: InstallManifest,
+            path: &Path ,
+            _count: &Arc<Mutex<i32>>,
+        ) -> bool {
+           let url = &manifest.url;
+           let hash = manifest.hash;
+           
 
-        fn find_suggest_and_depends(manifest: InstallManifest, path: PathBuf, _count: &Arc<Mutex<i32>>) -> bool {
+           false
+        }
+        fn find_suggest_and_depends(
+            manifest: InstallManifest,
+            path: PathBuf,
+            _count: &Arc<Mutex<i32>>,
+        ) -> bool {
             let suggestion = manifest.suggest;
             if suggestion.is_some() {
                 let suggestion = suggestion.unwrap();
-                show_suggest(&suggestion).unwrap() ;
+                show_suggest(&suggestion).unwrap();
                 println!(" path {}", path.display());
-              *_count.lock().unwrap() +=1 ;
-              if *_count.lock().unwrap() >=10  { return true; }
+                *_count.lock().unwrap() += 1;
+                if *_count.lock().unwrap() >= 10 {
+                    return true;
+                }
             }
             let depends = manifest.depends;
             if depends.is_some() {
                 // let depends = depends.unwrap();
                 // println!("depends {:?}", depends);
                 // println!(" path {}", path.display());
-
             }
             false
         }
@@ -359,7 +375,7 @@ mod test {
         }
         false
     }
-   #[allow(unused)]
+    #[allow(unused)]
     #[ignore]
     fn find_env_add_oath(manifest: InstallManifest, path: PathBuf) -> u8 {
         let env_add_path = &manifest.env_add_path;
