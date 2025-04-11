@@ -2264,6 +2264,7 @@ dependencies = [
  "serde_json",
  "tokio",
  "trybuild",
+ "url",
  "windows 0.60.0",
  "xmake",
 ]

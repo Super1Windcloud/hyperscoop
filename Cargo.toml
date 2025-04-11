@@ -32,7 +32,7 @@ rayon = "1.10.0"
 color-eyre = "0.6.3"
 reqwest = { workspace = true }
 tokio ={workspace = true }
-
+url={workspace = true }
 
 
 [workspace.dependencies]
@@ -55,6 +55,7 @@ color-eyre = "0.6.3"
 bat = { version = "0.25.0", features = ["regex-onig","regex-fancy"], default-features = false }
 git2 = "0.20.1"
 flate2 = "1.1.1"
+url = "2.5.4"
 
 
 [[bin]]
@@ -161,3 +162,5 @@ default-target = "x86_64-pc-windows-msvc"
 name = "pg_bar"
 path = "examples/indicatif_demo.rs"
 
+[target.'cfg(target_env = "msvc")']
+rustflags = ["-C", "link-args=/NODEFAULTLIB:LIBCMT.LIB"]
