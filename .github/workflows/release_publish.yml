@@ -1,15 +1,14 @@
-name: Release Pipeline
+name: Hp  Release Pipeline
 
 on:
-  release:
-    types: [published]
   push:
-    branches: ["master"]
+    branches: ["main"]
 
 permissions:
   contents: write
 
 env:
+  CARGO_TERM_COLOR: always
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
@@ -25,7 +24,6 @@ jobs:
       - run: cargo build --all  --target ${{ matrix.arch }}-pc-windows-msvc
 
   publish:
-    if: ${{ startsWith(github.ref, 'refs/tags/') }}
     needs: [build]
     runs-on: windows-latest
     steps:
@@ -34,7 +32,6 @@ jobs:
 
       - name: Build Artifacts
         run:  just  cross
-
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
