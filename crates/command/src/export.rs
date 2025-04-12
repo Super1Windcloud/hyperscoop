@@ -9,18 +9,18 @@ use std::io::Write;
 use std::path::Path;
 
 pub fn export_config_to_path(file_name: String) {
-    let path = std::path::Path::new(&file_name);
+    let path = Path::new(&file_name);
     let mut file = std::fs::File::create(path).expect("路径错误无法创建文件");
 
     log::info!("导出配置文件到 {}", file_name);
-  let bucket_config = get_all_buckets_info();
-  let apps = get_all_installed_apps();
-  let json_data = json!({
+    let bucket_config = get_all_buckets_info();
+    let apps = get_all_installed_apps();
+    let json_data = json!({
         "buckets": bucket_config  ,
          "apps"  : apps
     });
-  let pretty_json = serde_json::to_string_pretty(&json_data).unwrap();
-  file.write_all(pretty_json.as_bytes()).unwrap();
+    let pretty_json = serde_json::to_string_pretty(&json_data).unwrap();
+    file.write_all(pretty_json.as_bytes()).unwrap();
 }
 #[allow(non_snake_case)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -60,7 +60,7 @@ impl InstalledApp {
     }
 }
 pub fn export_config_to_current_dir(file_name: String) {
-    let path = std::path::Path::new(&file_name);
+    let path = Path::new(&file_name);
     let mut file = std::fs::File::create(path).expect("路径错误无法创建文件");
     let current_dir = std::env::current_dir().unwrap();
     let path = current_dir.join(path);
@@ -103,11 +103,10 @@ fn get_all_installed_apps() -> Vec<InstalledApp> {
         }
         let _ =
             rust_file_encode_mode_convert::translate_all_encoded_mode_file_to_utf8(&manifest_file);
-      let content = std::fs::read_to_string(&manifest_file).unwrap();
-       
-        let content =
-            serde_json::from_str::<serde_json::Value>(&content).unwrap_or_default();
-        let version = content["version"].as_str().unwrap_or("unknown"); 
+        let content = std::fs::read_to_string(&manifest_file).unwrap();
+
+        let content = serde_json::from_str::<serde_json::Value>(&content).unwrap_or_default();
+        let version = content["version"].as_str().unwrap_or("unknown");
         let updated = get_repo_updated(&path);
         installed_apps.push(InstalledApp::new(
             name.to_string(),
@@ -116,7 +115,7 @@ fn get_all_installed_apps() -> Vec<InstalledApp> {
             version.to_string(),
         ));
     }
-    return installed_apps;
+    installed_apps
 }
 
 fn get_all_buckets_info() -> Vec<BucketInfo> {
@@ -140,14 +139,14 @@ fn get_all_buckets_info() -> Vec<BucketInfo> {
         );
         bucket_info_list.push(bucket_info);
     }
-    return bucket_info_list;
+    bucket_info_list
 }
 
 fn get_manifests_count(path: &Path) -> u32 {
     let mut count = 0;
     let path = path.join("bucket");
     if path.is_dir() {
-        for entry in std::fs::read_dir(path).unwrap() {
+        for entry in read_dir(path).unwrap() {
             let entry = entry.unwrap();
             let path = entry.path();
             if path.is_dir() {
@@ -166,14 +165,14 @@ fn get_manifests_count(path: &Path) -> u32 {
             }
         }
     }
-    return count;
+    count
 }
 fn get_repo_updated(path: &Path) -> String {
     let metadatas = metadata(path).unwrap();
     let modified_time = metadatas.modified().unwrap();
     let datetime: DateTime<Utc> = DateTime::from(modified_time);
     let formatted_time = datetime.format("%Y-%m-%dT%H:%M:%S%z").to_string();
-    return formatted_time;
+    formatted_time
 }
 
 fn get_repo_url(path: &Path) -> String {
@@ -184,47 +183,47 @@ fn get_repo_url(path: &Path) -> String {
 }
 
 pub fn export_config_to_path_width_config(file_name: String) {
-  let path = std::path::Path::new(&file_name);
-  let mut file = std::fs::File::create(path).expect("路径错误无法创建文件");
-  log::info!("导出配置文件到 {}", path.display());
-  let bucket_config = get_all_buckets_info();
-  let apps = get_all_installed_apps();
-  let config = get_scoop_config_info();
-  let value = serde_json::from_str::<serde_json::Value>(&config).unwrap();
-  let json_data = json!({
+    let path = Path::new(&file_name);
+    let mut file = std::fs::File::create(path).expect("路径错误无法创建文件");
+    log::info!("导出配置文件到 {}", path.display());
+    let bucket_config = get_all_buckets_info();
+    let apps = get_all_installed_apps();
+    let config = get_scoop_config_info();
+    let value = serde_json::from_str::<serde_json::Value>(&config).unwrap();
+    let json_data = json!({
         "buckets": bucket_config  ,
-         "apps"  : apps 
+         "apps"  : apps
       , "config" : value
     });
-  let pretty_json = serde_json::to_string_pretty(&json_data).unwrap();
-  file.write_all(pretty_json.as_bytes()).unwrap();
+    let pretty_json = serde_json::to_string_pretty(&json_data).unwrap();
+    file.write_all(pretty_json.as_bytes()).unwrap();
 }
 
-fn get_scoop_config_info() -> String  {
-   let config_path = std::env::var("USERPROFILE").unwrap_or("".to_string());
-   let config_path = Path::new(&config_path).join(".config\\scoop\\config.json"); 
-  log::info!("config_path: {}", config_path.display()); 
-   let content = std::fs::read_to_string(config_path).unwrap();
-   return content;
+fn get_scoop_config_info() -> String {
+    let config_path = std::env::var("USERPROFILE").unwrap_or("".to_string());
+    let config_path = Path::new(&config_path).join(".config\\scoop\\config.json");
+    log::info!("config_path: {}", config_path.display());
+    let content = std::fs::read_to_string(config_path).unwrap();
+    content
 }
 
 pub fn export_config_to_current_dir_with_config(file_name: String) {
-  let path = std::path::Path::new(&file_name);
-  let mut file = std::fs::File::create(path).expect("路径错误无法创建文件");
-  let current_dir = std::env::current_dir().unwrap();
-  let path = current_dir.join(path);
-  log::info!("导出配置文件到 {}", path.display());
-  let bucket_config = get_all_buckets_info();
-  let apps = get_all_installed_apps();
-  let config = get_scoop_config_info(); 
-  let value = serde_json::from_str::<serde_json::Value>(&config).unwrap(); 
-  let json_data = json!({
+    let path = Path::new(&file_name);
+    let mut file = std::fs::File::create(path).expect("路径错误无法创建文件");
+    let current_dir = std::env::current_dir().unwrap();
+    let path = current_dir.join(path);
+    log::info!("导出配置文件到 {}", path.display());
+    let bucket_config = get_all_buckets_info();
+    let apps = get_all_installed_apps();
+    let config = get_scoop_config_info();
+    let value = serde_json::from_str::<serde_json::Value>(&config).unwrap();
+    let json_data = json!({
         "buckets": bucket_config  ,
-         "apps"  : apps 
+         "apps"  : apps
       , "config" : value
     });
-  let pretty_json = serde_json::to_string_pretty(&json_data).unwrap();
-  file.write_all(pretty_json.as_bytes()).unwrap();
+    let pretty_json = serde_json::to_string_pretty(&json_data).unwrap();
+    file.write_all(pretty_json.as_bytes()).unwrap();
 }
 
 #[cfg(test)]
