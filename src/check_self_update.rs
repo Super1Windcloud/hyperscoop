@@ -60,21 +60,24 @@ async fn get_latest_version_from_github() -> anyhow::Result<String> {
 
 #[cfg(not(token_local))]
 async fn get_latest_version_from_github() -> anyhow::Result<String> {
-    // 该token只具备读权限  
-    let token =  "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";
     let owner = "super1windcloud";
     let repo = "hp";
     let url = format!(
         "https://api.github.com/repos/{}/{}/releases/latest",
         owner, repo
     );
-   const USER_AGENT: &str = "super1windcloud";
-   let mut headers = header::HeaderMap::new();
-   headers.insert(header::USER_AGENT, USER_AGENT.parse()?);
-   headers.insert(header::AUTHORIZATION, format!("token {}", token).parse()?);
-   let client = Client::builder().default_headers(headers).build()?;
-    let response = client.get(&url).send().await?;
-    let tags: GithubRelease = response.json().await?;
+   let client = Client::new();
+   let response = client
+    .get(&url)
+    .header("User-Agent", "Rust-GitHub-API-Client")
+    .header("Accept", "application/vnd.github.v3+json")
+    .send()
+    .await.unwrap();
+
+  if!response.status().is_success() {
+    eprintln!("请求失败: {}", response.status());
+  }
+   let tags: GithubRelease = response.json().await.unwrap();
     Ok(tags.tag_name)
 }
 
@@ -124,17 +127,36 @@ async fn get_latest_version_from_gitee() -> anyhow::Result<String> {
 }
 
 mod test_auto_update {
+  #[allow(unused)]
+  use super::*;
 
     #[tokio::test]
     async fn test_auto_check_hp_update() {
         use super::auto_check_hp_update;
         auto_check_hp_update().await.unwrap();
     }
-  
+
     #[tokio::test]
     async fn test_github_api() {
-        use super::*;
-        let github_version = get_latest_version_from_github().await.unwrap();
-        println!("Latest  github version: {}", github_version);
+      let token = "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";
+      let owner = "super1windcloud";
+      let repo = "hp";
+      let url = format!(
+        "https://api.github.com/repos/{}/{}/releases/latest",
+        owner, repo
+      );
+      let client = Client::new();
+      let response = client
+        .get(&url)
+        .header("User-Agent", "Rust-GitHub-API-Client")
+        .header("Accept", "application/vnd.github.v3+json")
+        .send()
+        .await.unwrap();
+
+      if!response.status().is_success() {
+         eprintln!("请求失败: {}", response.status());
+      }
+      let tags: GithubRelease = response.json().await.unwrap();
+      println!("{}", tags.tag_name);
     }
 }
