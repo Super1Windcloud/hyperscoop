@@ -30,13 +30,18 @@ def get_version_from_cargo():
       version_toml= r'A:\Rust_Project\hyperscoop\Cargo.toml'
       with open(version_toml, "r" ,encoding="utf-8") as f:
             data =  f.readlines()
+            count  =0
             for line in data:
-                if  line.startswith("version") :
-                    version =  line.split("=")[1].strip()
-                    break
-      return version
+              line = line.strip()
+              if  line.startswith("version") :
+                     count +=1
+                     if  count <=1 :
+                            continue
+                     version = line.split("=", 1)[1].strip().strip('"\'')
+                     return version
+      return None
 def  update_version_and_url() :
-      version=  '3.3.5';
+      version=  get_version_from_cargo()
       manifest_path1 = os.path.join(os.path.dirname(os.path.dirname(__file__)),  r"hyperscoop_source_bucket/bucket/hp.json")
       manifest_path2 = r'A:\Scoop\buckets\hp\bucket\hp.json'
       with open(manifest_path1, "r" ,encoding="utf-8") as f:
@@ -122,8 +127,7 @@ def main():
 def test():
       version = get_version_from_cargo()
       print(version)
-      version = get_gitee_latest_version()
-      print(version)
+
 
 if __name__ == '__main__':
-    main()
+      main()

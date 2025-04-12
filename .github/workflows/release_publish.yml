@@ -22,18 +22,36 @@ jobs:
       - run: cargo build  --target ${{ matrix.arch }}-pc-windows-msvc --release
 
   publish:
+
     needs:   [build]
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+
+      - name: Get latest tag
+        id: get_tag
+        run: |
+            git fetch --tags
+            latest_tag=$(git tag --sort=-v:refname | head -n 1)
+            echo "Latest tag: $latest_tag"
+
+            # 解析 tag 版本号（假设是 v1.0.3 格式）
+            version="${latest_tag#v}"
+            major=$(echo $version | cut -d. -f1)
+            minor=$(echo $version | cut -d. -f2)
+            patch=$(echo $version | cut -d. -f3)
+            patch=$((patch + 1))
+
+            new_tag="v${major}.${minor}.${patch}"
+            echo "new_tag=$new_tag" >> $GITHUB_OUTPUT
       - name: Create Release And Upload Build Artifacts
         uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.MY_ACCESS_TOKEN }}
         with:
-          name:   "Hp '${{steps.build.outputs.appVersion}}' is published"
-          tag_name: ${{ steps.build.outputs.appVersion  }}
+          name: "Hp '${{ steps.get_tag.outputs.new_tag }}' is published"
+          tag_name: ${{ steps.get_tag.outputs.new_tag }}
           body:  "More new features are now supported."
           files: |
             target/x86_64-pc-windows-msvc/release/hp.exe > hp-x64-${{ steps.build.outputs.appVersion }}.exe
