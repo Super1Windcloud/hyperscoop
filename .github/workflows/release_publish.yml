@@ -74,6 +74,7 @@ jobs:
          Copy-Item "x64\hp.exe"     "hp-x64-$tag.exe"
          Copy-Item "x86\hp.exe"     "hp-x86-$tag.exe"
          Copy-Item "arm64\hp.exe"   "hp-arm64-$tag.exe"
+         ls   *.exe
 
       - name: Create Release And Upload Build Artifacts
         uses: softprops/action-gh-release@v2
@@ -86,3 +87,6 @@ jobs:
              hp-x64-${{ steps.version.outputs.new_tag }}.exe
              hp-x86-${{ steps.version.outputs.new_tag }}.exe
              hp-arm64-${{ steps.version.outputs.new_tag }}.exe
+             x64\hp.exe
+             x86\hp.exe
+             arm64\hp.exe
