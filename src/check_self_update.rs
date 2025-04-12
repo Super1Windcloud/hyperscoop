@@ -1,5 +1,4 @@
 use std::cmp::max;
-use std::env;
 use crate::Cli;
 use anyhow::{anyhow, bail};
 use clap::CommandFactory;
@@ -22,9 +21,9 @@ pub async fn auto_check_hp_update() -> anyhow::Result<bool> {
     let version = cmd.get_version().ok_or(anyhow!("hp version is empty"))?;
 
     let latest_version = get_latest_version_from_gitee().await?;
-    let latest_github_version = get_latest_version_from_github().await?; 
+    let latest_github_version = get_latest_version_from_github().await?;
     let  max_version  =  max(latest_version, latest_github_version);
-    
+
     if version.to_string() < max_version {
         println!("{}", format!("发现hp新版本 {max_version},请访问https://gitee.com/SuperWindcloud/hyperscoop/releases").yellow().bold());
         Ok(true)
@@ -38,8 +37,8 @@ struct GithubRelease {
     tag_name: String,
 }
 #[cfg(not(feature = "token_cloud"))]
-async fn get_latest_version_from_github() -> anyhow::Result<String> { 
-    let token =  include_str!("../.github_token").trim() ; 
+async fn get_latest_version_from_github() -> anyhow::Result<String> {
+    let token =  include_str!("../.github_token").trim() ;
     if token.is_empty()   {
         bail!("GITHUB_TOKEN environment variable is empty");
     }
@@ -128,7 +127,7 @@ mod test_auto_update {
     #[tokio::test]
     async  fn test_github_api() {
         use super::*;
-        let  result  = get_latest_version_from_gitee().await.unwrap();
+        let  _result  = get_latest_version_from_gitee().await.unwrap();
         let  github_version = get_latest_version_from_github().await.unwrap();
         println!("Latest  github version: {}", github_version);
     }
