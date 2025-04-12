@@ -28,30 +28,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
 
-      - name: Get latest tag
-        id: get_tag
+      - name: Install Git (for fetch tags)
+        run: git fetch --tags
+
+      - name: Get version tag from Python script
+        id: version
         run: |
-            git fetch --tags
-            latest_tag=$(git tag --sort=-v:refname | head -n 1)
-            echo "Latest tag: $latest_tag"
+          new_tag=$(python script/get_latest_version.py)
+          echo "version=$new_tag"
+          echo "new_tag=$new_tag" >> $GITHUB_OUTPUT
 
-            # 解析 tag 版本号（假设是 v1.0.3 格式）
-            version="${latest_tag#v}"
-            major=$(echo $version | cut -d. -f1)
-            minor=$(echo $version | cut -d. -f2)
-            patch=$(echo $version | cut -d. -f3)
-            patch=$((patch + 1))
-
-            new_tag="v${major}.${minor}.${patch}"
-            echo "new_tag=$new_tag" >> $GITHUB_OUTPUT
       - name: Create Release And Upload Build Artifacts
         uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.MY_ACCESS_TOKEN }}
         with:
-          name: "Hp '${{ steps.get_tag.outputs.new_tag }}' is published"
-          tag_name: ${{ steps.get_tag.outputs.new_tag }}
+          name: "Hp  '${{ steps.version.outputs.new_tag }}'  is published"
+          tag_name:   ${{ steps.version.outputs.new_tag }}
           body:  "More new features are now supported."
           files: |
             target/x86_64-pc-windows-msvc/release/hp.exe > hp-x64-${{ steps.build.outputs.appVersion }}.exe

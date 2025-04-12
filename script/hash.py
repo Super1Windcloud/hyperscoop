@@ -49,7 +49,7 @@ def  update_version_and_url() :
           old_version = data["version"]
           print(data["url"])
           data["version"] = version.replace('"', '')
-          data["url"]  ="https://gitee.com/SuperWindcloud/hyperscoop/releases/download/"+version.replace('"', '') +"/hp.exe"
+          data["url"]  = data["url"].replace(old_version,version.replace('"', ''))
           print(data["url"])
           with open(manifest_path2, "w", encoding="utf-8") as writer :
                  json.dump(data, writer , ensure_ascii=False , indent=4)  # 禁用 ASCII 编码以保留非 ASCII 字符（如中文） )
