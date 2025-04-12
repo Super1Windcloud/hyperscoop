@@ -44,15 +44,24 @@ jobs:
           $new_tag = $new_tag.Trim()  # 去掉换行和空格
           echo "new_tag=$new_tag" >> $env:GITHUB_OUTPUT
 
+      - name: Rename Artifacts
+        shell: pwsh
+        run: |
+         $tag = ${{ steps.version.outputs.new_tag }}
+         Copy-Item "target\x86_64-pc-windows-msvc\release\hp.exe" "hp-x64-$tag.exe"
+         Copy-Item "target\i686-pc-windows-msvc\release\hp.exe" "hp-x86-$tag.exe"
+         Copy-Item "target\aarch64-pc-windows-msvc\release\hp.exe" "hp-arm64-$tag.exe"
+
       - name: Create Release And Upload Build Artifacts
         uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.MY_ACCESS_TOKEN }}
+
         with:
           name: "Hp  '${{ steps.version.outputs.new_tag }}'  is published"
           tag_name:   ${{ steps.version.outputs.new_tag }}
           body:  "More new features are now supported."
           files: |
-            target/x86_64-pc-windows-msvc/release/hp.exe > hp-x64-${{ steps.version.outputs.new_tag }}.exe
-            target/i686-pc-windows-msvc/release/hp.exe > hp-x86-${{ steps.version.outputs.new_tag }}.exe
-            target/aarch64-pc-windows-msvc/release/hp.exe > hp-arm64-${{ steps.version.outputs.new_tag }}.exe
+             hp-x64-${{ steps.version.outputs.new_tag }}.exe
+             hp-x86-${{ steps.version.outputs.new_tag }}.exe
+             hp-arm64-${{ steps.version.outputs.new_tag }}.exe

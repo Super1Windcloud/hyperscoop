@@ -6,8 +6,8 @@ import base64
 import argparse
 import random
 import string
-
-tag_name = "3.3.5"
+from  .get_latest_version import get_version_from_cargo
+tag_name =  get_version_from_cargo()
 release_title = "here we go"
 github_owner = "Super1Windcloud"
 github_repo = "hp"
@@ -176,4 +176,4 @@ def main():
     upload_hp_to_release(access_token)
 
 if __name__ == '__main__':
-    main()
+     print(tag_name)
