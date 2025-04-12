@@ -1,6 +1,10 @@
-
+import os
 def get_version_from_cargo():
-      version_toml= r'A:\Rust_Project\hyperscoop\Cargo.toml'
+      cwd = os.getcwd()
+      version_toml=  cwd + r"/Cargo.toml"
+      if not os.path.isfile(version_toml):
+          print(version_toml)
+          return None
       with open(version_toml, "r" ,encoding="utf-8") as f:
             data =  f.readlines()
             count  =0
@@ -15,7 +19,8 @@ def get_version_from_cargo():
       return None
 
 
-get_version_from_cargo()
+result  = get_version_from_cargo().strip()
+print(result)
 
 
 

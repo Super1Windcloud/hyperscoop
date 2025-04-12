@@ -41,6 +41,7 @@ jobs:
         shell: pwsh
         run: |
           $new_tag = python script/get_latest_version.py
+          $new_tag = $new_tag.Trim()  # 去掉换行和空格
           echo "new_tag=$new_tag" >> $env:GITHUB_OUTPUT
 
       - name: Create Release And Upload Build Artifacts
