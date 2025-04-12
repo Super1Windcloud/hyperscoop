@@ -26,13 +26,14 @@ def read_file(file_path):
 def get_hp_bin_path():
     current_file_path = Path(__file__).absolute()
     root = current_file_path.parent.parent
-    hp_bin = join_paths(root, "target/release/hp.exe")
+    hp_bin = join_paths(root, "target/x86_64-pc-windows-msvc/release/hp.exe")
     return hp_bin
 
 
 
 
-def upload_hp_to_release(access_token):
+def upload_hp_to_release( ):
+    access_token = get_access_token()
     release_id = get_latest_release().get("id")
     if not release_id:
         print("无法获取 release_id，无法上传文件")
@@ -66,7 +67,8 @@ def upload_hp_to_release(access_token):
     print("Response:", response.read().decode())
     conn.close()
 
-def create_new_release(access_token):
+def create_new_release( ):
+    access_token = get_access_token()
     host = "api.github.com"
     url = f"/repos/{github_owner}/{github_repo}/releases"
     headers = {
@@ -85,8 +87,7 @@ def create_new_release(access_token):
         "target_commitish": "main"
     }
 
-    json_data = json.dumps(data).encoding('utf-8')
-
+    json_data = json.dumps(data)
     conn = http.client.HTTPSConnection(host)
     conn.request("POST", url, body=json_data, headers=headers)
 
@@ -152,25 +153,20 @@ def get_latest_release ():
 
 
 def main():
-    access_token = get_access_token()
     parser = init_parser()
     args = parser.parse_args()
-
-    # Update variables if provided via command line
     if args.tag_name:
         global tag_name
         tag_name = args.tag_name
     if args.name:
         global release_title
         release_title = args.name
-
     if args.only_upload_attach_files:
-        upload_hp_to_release(access_token)
+        upload_hp_to_release( )
         return
-
-    create_new_release(access_token)
-    upload_hp_to_release(access_token)
+    create_new_release( )
+    upload_hp_to_release( )
 
 if __name__ == '__main__':
-     release_id = get_latest_release().get("id")
-     print(release_id)
+     main()
+

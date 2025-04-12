@@ -6,7 +6,6 @@ permissions:
   contents: write
 env:
   CARGO_TERM_COLOR: always
-  GITHUB_TOKEN: ${{ secrets.MY_ACCESS_TOKEN }}
   GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
 jobs:
   build:
@@ -71,15 +70,14 @@ jobs:
         shell: pwsh
         run: |
          $tag = ${{ steps.version.outputs.new_tag }}
+         Get-ChildItem -Recurse
          Copy-Item "x64\hp.exe"     "$env:GITHUB_WORKSPACE\hp-x64-$tag.exe"
          Copy-Item "x86\hp.exe"     "$env:GITHUB_WORKSPACE\hp-x86-$tag.exe"
          Copy-Item "arm64\hp.exe"   "$env:GITHUB_WORKSPACE\hp-arm64-$tag.exe"
 
       - name: Create Release And Upload Build Artifacts
         uses: softprops/action-gh-release@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.MY_ACCESS_TOKEN }}
-
+        # 使用 Action自动注入的 github token
         with:
           name: "Hp  '${{ steps.version.outputs.new_tag }}'  is published"
           tag_name:   ${{ steps.version.outputs.new_tag }}
