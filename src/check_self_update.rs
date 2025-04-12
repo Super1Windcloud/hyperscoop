@@ -36,7 +36,7 @@ pub async fn auto_check_hp_update() -> anyhow::Result<bool> {
 struct GithubRelease {
     tag_name: String,
 }
-#[cfg(not(feature = "token_cloud"))]
+#[cfg(token_local)]
 async fn get_latest_version_from_github() -> anyhow::Result<String> {
     let token =  include_str!("../.github_token").trim() ;
     if token.is_empty()   {
@@ -54,9 +54,10 @@ async fn get_latest_version_from_github() -> anyhow::Result<String> {
     Ok(tags.tag_name)
 }
 
-#[cfg(feature = "token_cloud")]
+
+#[cfg(not(token_local))]
 async fn get_latest_version_from_github() -> anyhow::Result<String> {
-  let token = std::env::var("MY_ACCESS_TOKEN").unwrap_or_default().trim().to_string();
+  let token = std::env::var("GITHUB_TOKEN").unwrap_or_default().trim().to_string();
   if token.is_empty()   {
     bail!("GITHUB_TOKEN environment variable is empty");
   }
@@ -72,7 +73,7 @@ async fn get_latest_version_from_github() -> anyhow::Result<String> {
   Ok(tags.tag_name)
 }
 
-#[cfg(not(feature = "token_cloud"))]
+#[cfg(token_local)]
 async fn get_latest_version_from_gitee() -> anyhow::Result<String> {
   let access_token =  include_str!("../.env").trim() ;
     if access_token.is_empty() {
@@ -92,9 +93,9 @@ async fn get_latest_version_from_gitee() -> anyhow::Result<String> {
     let gitee_tag = release.tag_name;
 
     Ok(gitee_tag)
-}
+} 
 
-#[cfg(feature = "token_cloud")]
+#[cfg(not(token_local))]
 async fn get_latest_version_from_gitee() -> anyhow::Result<String> {
     let access_token = std::env::var("GITEE_TOKEN");
     if access_token.is_err() {

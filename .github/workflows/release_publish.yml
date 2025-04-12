@@ -7,7 +7,7 @@ permissions:
 env:
   CARGO_TERM_COLOR: always
   GITHUB_TOKEN: ${{ secrets.MY_ACCESS_TOKEN }}
-
+  GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
 jobs:
   build:
     strategy:
