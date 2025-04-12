@@ -20,7 +20,11 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - run: rustup target add ${{ matrix.arch }}-pc-windows-msvc
       - run: cargo build  --target ${{ matrix.arch }}-pc-windows-msvc --release
-
+      - name: Upload build artifact for ${{ matrix.arch }}  # 传递构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: hp-${{ matrix.arch }}
+          path: target/${{ matrix.arch }}-pc-windows-msvc/release/hp.exe
   publish:
 
     needs:   [build]
@@ -44,13 +48,31 @@ jobs:
           $new_tag = $new_tag.Trim()  # 去掉换行和空格
           echo "new_tag=$new_tag" >> $env:GITHUB_OUTPUT
 
+      - name: Download x64 artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: hp-x86_64
+          path: x64
+
+      - name: Download x86 artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: hp-i686
+          path: x86
+
+      - name: Download arm64 artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: hp-aarch64
+          path: arm64
+
       - name: Rename Artifacts
         shell: pwsh
         run: |
          $tag = ${{ steps.version.outputs.new_tag }}
-         Copy-Item "target\x86_64-pc-windows-msvc\release\hp.exe" "hp-x64-$tag.exe"
-         Copy-Item "target\i686-pc-windows-msvc\release\hp.exe" "hp-x86-$tag.exe"
-         Copy-Item "target\aarch64-pc-windows-msvc\release\hp.exe" "hp-arm64-$tag.exe"
+         Copy-Item "x64\hp.exe"     "hp-x64-$tag.exe"
+         Copy-Item "x86\hp.exe"     "hp-x86-$tag.exe"
+         Copy-Item "arm64\hp.exe"   "hp-arm64-$tag.exe"
 
       - name: Create Release And Upload Build Artifacts
         uses: softprops/action-gh-release@v2

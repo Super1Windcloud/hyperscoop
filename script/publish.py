@@ -6,7 +6,7 @@ import base64
 import argparse
 import random
 import string
-from  .get_latest_version import get_version_from_cargo
+from  get_latest_version import get_version_from_cargo
 tag_name =  get_version_from_cargo()
 release_title = "here we go"
 github_owner = "Super1Windcloud"
@@ -128,7 +128,7 @@ def create_new_release(access_token):
 def get_access_token():
     current_file_path = Path(__file__).absolute()
     root = current_file_path.parent.parent
-    env_file = join_paths(root, ".env")
+    env_file = join_paths(root, ".github_token")
     with open(env_file, "r", encoding="utf-8") as file:
         content = file.read()
     print(content)
@@ -155,6 +155,31 @@ def init_parser():
                        help='Only upload attach files for release')
     return parser
 
+
+def get_latest_release ():
+  access_token = get_access_token()
+  conn = http.client.HTTPSConnection("api.github.com")
+  headers = {
+    "Authorization": f"token {access_token}",
+    "User-Agent": "Python-Script",
+    "Accept": "application/vnd.github.v3+json",
+    "X-GitHub-Api-Version": "2022-11-28"
+  }
+  url =f"/repos/{github_owner}/{github_repo}/releases/latest"
+  conn.request("GET", url, headers=headers)
+  response = conn.getresponse()
+  data = response.read().decode()
+  conn.close()
+  try:
+     # 解析 JSON 数据
+     release_info = json.loads(data )
+     print(release_info)
+     return release_info
+  except json.JSONDecodeError:
+     print("解析 JSON 响应失败")
+     print("原始响应:", data)
+
+
 def main():
     access_token = get_access_token()
     parser = init_parser()
@@ -176,4 +201,4 @@ def main():
     upload_hp_to_release(access_token)
 
 if __name__ == '__main__':
-     print(tag_name)
+     get_latest_release()
