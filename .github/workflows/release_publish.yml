@@ -79,9 +79,9 @@ jobs:
         uses: softprops/action-gh-release@v2
         # 使用 Action自动注入的 github token
         with:
-          name: "Hp  '${{ steps.version.outputs.new_tag }}'  is published"
+          name:  "Here We Go!"
           tag_name:   ${{ steps.version.outputs.new_tag }}
-          body:  "More new features are now supported."
+          body:  "Hp  '${{ steps.version.outputs.new_tag }}'  is published, More new features are now supported."
           files: |
              hp-x64-${{ steps.version.outputs.new_tag }}.exe
              hp-x86-${{ steps.version.outputs.new_tag }}.exe

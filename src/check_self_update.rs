@@ -37,7 +37,8 @@ struct GithubRelease {
     tag_name: String,
 }
 #[cfg(token_local)]
-async fn get_latest_version_from_github() -> anyhow::Result<String> {
+async fn get_latest_version_from_github() -> anyhow::Result<String> { 
+     log::info!("Getting latest version from github"); 
     let token =  include_str!("../.github_token").trim() ;
     if token.is_empty()   {
         bail!("GITHUB_TOKEN environment variable is empty");
