@@ -20,13 +20,14 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - run: rustup target add ${{ matrix.arch }}-pc-windows-msvc
       - run: cargo build  --target ${{ matrix.arch }}-pc-windows-msvc --release
-      - name: Upload build artifact for ${{ matrix.arch }}  # 传递构建产物
+      - name: Upload build artifact for ${{ matrix.arch }}  # 传递构建产物给 publish job
         uses: actions/upload-artifact@v4
         with:
           name: hp-${{ matrix.arch }}
           path: target/${{ matrix.arch }}-pc-windows-msvc/release/hp.exe
-  publish:
 
+
+  publish:
     needs:   [build]
     runs-on: windows-latest
     steps:
@@ -70,9 +71,9 @@ jobs:
         shell: pwsh
         run: |
          $tag = ${{ steps.version.outputs.new_tag }}
-         Copy-Item "x64\hp.exe"     "hp-x64-$tag.exe"
-         Copy-Item "x86\hp.exe"     "hp-x86-$tag.exe"
-         Copy-Item "arm64\hp.exe"   "hp-arm64-$tag.exe"
+         Copy-Item "x64\hp.exe"     "$env:GITHUB_WORKSPACE\hp-x64-$tag.exe"
+         Copy-Item "x86\hp.exe"     "$env:GITHUB_WORKSPACE\hp-x86-$tag.exe"
+         Copy-Item "arm64\hp.exe"   "$env:GITHUB_WORKSPACE\hp-arm64-$tag.exe"
 
       - name: Create Release And Upload Build Artifacts
         uses: softprops/action-gh-release@v2
