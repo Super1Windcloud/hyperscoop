@@ -7,7 +7,8 @@ release:
     python  script/publish_release.py
 
 publish:
-    python  script/publish_release.py
+       git add -A  && git commit -m ":panda_face:    publish hp" && git push repo   master  && git push github  master:dev &&  git  push github master:main
+
 
 upload_hp:
      python  script/publish_release.py   -u
@@ -26,10 +27,10 @@ arm64 :
 update_hash:
     python  script/hash.py
     cd  hyperscoop_source_bucket  &&  just  update
-    git add -A  && git commit -m ":panda_face:     update hash " && git push repo   master
+    git add -A  && git commit -m ":panda_face:     update hash " && git push repo   master  && git push github  master:dev
 
 push:
-    git add -A  && git commit -m ":panda_face:     update hash " && git push repo   master
+    git add -A  && git commit -m ":panda_face:     update hash " && git push repo   master  && git push github  master:dev
 
 
 pull  :
