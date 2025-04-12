@@ -130,6 +130,7 @@ mod test_auto_update {
         use super::auto_check_hp_update;
         auto_check_hp_update().await.unwrap();
     }
+  
     #[tokio::test]
     async fn test_github_api() {
         use super::*;
