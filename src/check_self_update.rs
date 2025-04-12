@@ -18,7 +18,7 @@ pub async fn auto_check_hp_update() -> anyhow::Result<bool> {
     let cmd = Cli::command();
     let version = cmd.get_version().ok_or(anyhow!("hp version is empty"))?;
 
-    let latest_version = get_latest_version_from_gitee().await?; //? 
+    let latest_version = get_latest_version_from_gitee().await?;  
     let   latest_github_version = get_latest_version_from_github().await?;
      println!("Latest version: {}", latest_github_version);
     if version.to_string() < latest_version {

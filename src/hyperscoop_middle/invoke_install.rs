@@ -10,7 +10,6 @@ pub async fn execute_install_command(args: InstallArgs) -> Result<(), anyhow::Er
     let options = inject_user_options(&args)?;
     let app_name = args.app_name.unwrap();
     let app_name = convert_path(app_name.trim()); 
-    log::debug!("app_name {}", app_name);
     if Path::new(&app_name).exists() {
         log::debug!("manifest file {}", app_name);
         let manifest_path = app_name;
