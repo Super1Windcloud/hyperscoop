@@ -51,7 +51,7 @@ def  update_version_and_url() :
           data["version"] = version.replace('"', '')
           data["url"]  = data["url"].replace(old_version,version.replace('"', ''))
           print(data["url"])
-          with open(manifest_path2, "w", encoding="utf-8") as writer :
+          with open(manifest_path1, "w", encoding="utf-8") as writer :
                  json.dump(data, writer , ensure_ascii=False , indent=4)  # 禁用 ASCII 编码以保留非 ASCII 字符（如中文） )
 
 
@@ -59,11 +59,12 @@ def  update_version_and_url() :
       with open(manifest_path2, "r" ,encoding="utf-8") as f:
               data =  json.load(f)
               old_version = data["version"]
+              print(data["url"])
               data["version"] = version.replace('"', '')
-              data["url"]  = "https://gitee.com/SuperWindcloud/hyperscoop/releases/download/"+version.replace('"', '') +"/hp.exe"
-              with open(manifest_path1, "w", encoding="utf-8") as writer :
-                     json.dump(data, writer , ensure_ascii=False , indent=4)  # 禁用 ASCII 编码以保留非 ASCII 字符（如中文） )
-
+              data["url"]  = data["url"].replace(old_version,version.replace('"', ''))
+              print(data["url"])
+              with open(manifest_path2, "w", encoding="utf-8") as writer :
+                     json.dump(data, writer , ensure_ascii=False , indent=4)
 
 
 
@@ -82,14 +83,17 @@ def  write_to_manifest(x64 ,arm64,x86  ):
     if not os.path.isfile(manifest_path):
         return None
     with open(manifest_path, "r" ,encoding="utf-8") as f:
+        version=  get_version_from_cargo()
         data =  json.load(f)
+        old_version = data["version"]
+
         data["hash"] = x64
         data["architecture"]["64bit"]["hash"] = x64
         data["architecture"]["arm64"]["hash"] = arm64
         data["architecture"]["32bit"]["hash"] = x86
-        data["architecture"]["64bit"]["url"] = data["url"]
-        data["architecture"]["arm64"]["url"] = data["url"]
-        data["architecture"]["32bit"]["url"] = data["url"]
+        data["architecture"]["64bit"]["url"] =  data["architecture"]["64bit"]["url"]
+        data["architecture"]["arm64"]["url"] =  data["architecture"]["arm64"]["url"] .replace(old_version,version.replace('"', ''))
+        data["architecture"]["32bit"]["url"] =  data["architecture"]["32bit"]["url"] .replace(old_version,version.replace('"', ''))
         with open(manifest_path, "w", encoding="utf-8") as writer :
                  json.dump(data, writer,  ensure_ascii=False, indent=4)
 
@@ -100,14 +104,17 @@ def  write_scoop_bucket(   x64 ,arm64,x86    ) :
      if not os.path.isfile(hyperscoop_bucekt):
          return None
      with open(hyperscoop_bucekt, "r" ,encoding="utf-8") as f:
-         data =  json.load(f) ; print(data["hash"])
+         version=  get_version_from_cargo()
+         data =  json.load(f)
+         old_version = data["version"]
+
          data["hash"] = x64
          data["architecture"]["64bit"]["hash"] = x64
          data["architecture"]["arm64"]["hash"] = arm64
          data["architecture"]["32bit"]["hash"] = x86
-         data["architecture"]["64bit"]["url"] = data["url"]
-         data["architecture"]["arm64"]["url"] = data["url"]
-         data["architecture"]["32bit"]["url"] = data["url"]
+         data["architecture"]["64bit"]["url"] =  data["architecture"]["64bit"]["url"]
+         data["architecture"]["arm64"]["url"] =  data["architecture"]["arm64"]["url"] .replace(old_version,version.replace('"', ''))
+         data["architecture"]["32bit"]["url"] =  data["architecture"]["32bit"]["url"] .replace(old_version,version.replace('"', ''))
          with open(hyperscoop_bucekt, "w", encoding="utf-8") as writer :
                  json.dump(data, writer,  ensure_ascii=False, indent=4)
 

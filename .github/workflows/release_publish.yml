@@ -38,10 +38,10 @@ jobs:
 
       - name: Get version tag from Python script
         id: version
+        shell: pwsh
         run: |
-          new_tag=$(python script/get_latest_version.py)
-          echo "version=$new_tag"
-          echo "new_tag=$new_tag" >> $GITHUB_OUTPUT
+          $new_tag = python script/get_latest_version.py
+          echo "new_tag=$new_tag" >> $env:GITHUB_OUTPUT
 
       - name: Create Release And Upload Build Artifacts
         uses: softprops/action-gh-release@v2
@@ -52,6 +52,6 @@ jobs:
           tag_name:   ${{ steps.version.outputs.new_tag }}
           body:  "More new features are now supported."
           files: |
-            target/x86_64-pc-windows-msvc/release/hp.exe > hp-x64-${{ steps.build.outputs.appVersion }}.exe
-            target/i686-pc-windows-msvc/release/hp.exe > hp-x86-${{ steps.build.outputs.appVersion }}.exe
-            target/aarch64-pc-windows-msvc/release/hp.exe > hp-arm64-${{ steps.build.outputs.appVersion }}.exe
+            target/x86_64-pc-windows-msvc/release/hp.exe > hp-x64-${{ steps.version.outputs.new_tag }}.exe
+            target/i686-pc-windows-msvc/release/hp.exe > hp-x86-${{ steps.version.outputs.new_tag }}.exe
+            target/aarch64-pc-windows-msvc/release/hp.exe > hp-arm64-${{ steps.version.outputs.new_tag }}.exe
