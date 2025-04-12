@@ -119,7 +119,7 @@ def  write_scoop_bucket(   x64 ,x86 ,arm64     ) :
      with open(hyperscoop_bucekt, "r" ,encoding="utf-8") as f:
          version=  get_version_from_cargo()
          data =  json.load(f)
-         old_version = data["version"]
+         old_version = compute_old(data["version"])
 
          data["hash"] = x64
          data["architecture"]["64bit"]["hash"] = x64
