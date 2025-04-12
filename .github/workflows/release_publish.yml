@@ -27,12 +27,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - name: Create Release
+      - name: Create Release And Upload Build Artifacts
         uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.MY_ACCESS_TOKEN }}
         with:
-          name: ${{ github.event.release.name || github.ref_name }}
-          tag_name: ${{ github.ref_name }}
-          body: ${{ github.event.release.body || 'Automated release' }}
+          name:   "Hp '${{steps.build.outputs.appVersion}}' is published"
+          tag_name: ${{ steps.build.outputs.appVersion  }}
+          body:  "More new features are now supported."
           files: |
-            release/*.exe
-            release/*.exe.sha256
+            target/x86_64-pc-windows-msvc/release/hp.exe > hp-x64-${{ steps.build.outputs.appVersion }}.exe
+            target/i686-pc-windows-msvc/release/hp.exe > hp-x86-${{ steps.build.outputs.appVersion }}.exe
+            target/aarch64-pc-windows-msvc/release/hp.exe > hp-arm64-${{ steps.build.outputs.appVersion }}.exe
