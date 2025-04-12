@@ -68,8 +68,8 @@ jobs:
 
       - name: Rename Artifacts
         shell: pwsh
-        run: |
-         $tag = ${{ steps.version.outputs.new_tag }}
+        run: |  # Powershell $字符串插值必须得是双引号字符串
+         $tag = "${{ steps.version.outputs.new_tag }}"
          Get-ChildItem -Recurse
          Copy-Item "x64\hp.exe"     "hp-x64-$tag.exe"
          Copy-Item "x86\hp.exe"     "hp-x86-$tag.exe"
@@ -87,6 +87,4 @@ jobs:
              hp-x64-${{ steps.version.outputs.new_tag }}.exe
              hp-x86-${{ steps.version.outputs.new_tag }}.exe
              hp-arm64-${{ steps.version.outputs.new_tag }}.exe
-             x64\hp.exe
-             x86\hp.exe
-             arm64\hp.exe
+             .\x64\hp.exe
