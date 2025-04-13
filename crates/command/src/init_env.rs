@@ -26,7 +26,7 @@ pub fn get_app_dir(app_name: &str) -> String {
     let scoop_home = init_user_scoop();
     format!("{}\\apps\\{}", scoop_home, app_name)
 }
-pub fn get_app_version_dir(app_name: &str, version: &String) -> String {
+pub fn get_app_version_dir(app_name: &str, version: &str ) -> String {
     let scoop_home = init_user_scoop();
     format!("{}\\apps\\{}\\{}", scoop_home, app_name, version)
 }
@@ -200,7 +200,7 @@ pub fn get_app_dir_global(app_name: &str) -> String {
 }
 
 // 全局版本的 get_app_version_dir
-pub fn get_app_version_dir_global(app_name: &str, version: &String) -> String {
+pub fn get_app_version_dir_global(app_name: &str, version: &str ) -> String {
     let scoop_home = init_scoop_global();
     format!("{}\\apps\\{}\\{}", scoop_home, app_name, version)
 }

@@ -111,9 +111,9 @@ pub struct InstallManifest {
     /// 哈希值是 SHA256，但您可以通过在哈希字符串前添加“sha512:”、“sha1:”或“md5:”前缀来使用 SHA512、SHA1 或 MD5
     pub hash: Option<StringArrayOrString>,
     ///   如果url指向压缩文件（支持 .zip、.7z、.tar、.gz、.lzma 和 .lzh），Scoop 将仅提取其中指定的目录
-    pub extract_dir: Option<String>,
+    pub extract_dir: Option<StringArrayOrString>, // 数组中元素和URL数组一一对应
     /// 如果url指向压缩文件（支持 .zip、.7z、.tar、.gz、.lzma 和 .lzh），Scoop 会将所有内容提取到指定目录
-    pub extract_to: Option<StringArrayOrString>,
+    pub extract_to: Option<StringArrayOrString>, // 数组中元素和URL数组一一对应 
     ///将此目录添加到用户路径（如果使用--global则添加到系统路径）。
     /// 该目录是相对于安装目录的，并且必须位于安装目录内。
     pub env_add_path: Option<StringArrayOrString>, // !complete
@@ -179,7 +179,7 @@ pub struct InstallManifest {
 
     /// bucket维护人员用于自动更新当前 manifest的 Version和 URL和 Hash值
     #[serde(skip)]
-    pub autoupdate: Option<ManifestObj>,
+    pub autoupdate: Option<AutoUpdateStruct>,
     #[serde(skip)]
     pub homepage: Option<String>,
 
@@ -227,15 +227,15 @@ impl InstallManifest {
 }
 
 #[cfg(test)]
-mod test {
+mod test_manifest_deserialize {
     #[allow(unused_imports)]
     use super::*;
     use crate::install::show_suggest;
     #[allow(unused_imports)]
     use rayon::prelude::*;
     use std::path::PathBuf;
-
-    #[test]
+ 
+  #[test]
     fn test_install_manifest() {
         use crate::buckets::get_buckets_path;
         use std::path::Path;
@@ -264,12 +264,32 @@ mod test {
             }
 
             let _manifest: InstallManifest = manifest.unwrap();
-            if find_url_and_hash(_manifest, &path, &_count) {
+            if find_extract(_manifest, &path, &_count) {
                 return;
             };
             // if  find_suggest_and_depends(_manifest, path , &_count ) { return; };
             //  find_architecture_test(_manifest, path);
         }
+        fn  find_extract(_manifest: InstallManifest, path: &PathBuf, _count: &Arc<Mutex<i32>>)
+          -> bool { 
+            let extract_dir = _manifest.extract_dir;
+            let  _extract_to = _manifest.extract_to;
+             if extract_dir.is_some() {
+                   let  dir = extract_dir.unwrap();
+                   let  array = if let StringArrayOrString::StringArray(array)= dir {
+                     *_count.lock().unwrap() += 1;
+                     array
+                   }else { vec![]};
+                println!("{:?}", array);
+                println!(" path {}", path.display());
+               if _count.lock().unwrap().to_owned()>= 2  {
+                    return true;
+               }
+            }
+          
+          false 
+        }
+      
         fn find_url_and_hash(
             manifest: InstallManifest,
             path: &Path ,

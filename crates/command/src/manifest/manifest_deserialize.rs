@@ -27,15 +27,30 @@ pub struct BaseArchitecture {
     pub bin: Option<StringOrArrayOrDoubleDimensionArray>,
     pub checkver: Option<ObjectOrString>,
     pub extract_dir: Option<String>,
-    pub hash: Option<ObjectArrayOrStringOrObject>,
+    pub hash: Option<StringArrayOrString>,
     pub installer: Option<ManifestObj>,
     pub uninstaller: Option<ManifestObj>,
-    pub url: Option<ArrayOrStringOrObject>,
+    pub url: Option<StringArrayOrString>,
     pub shortcuts: Option<ArrayOrDoubleDimensionArray>,
     pub pre_install: Option<StringArrayOrString>,
     pub post_install: Option<StringArrayOrString>,
 }
+#[must_use]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub  struct  AutoUpdateStruct {
+  pub bin: Option<StringOrArrayOrDoubleDimensionArray>,
+  pub extract_dir: Option<String>,
+  pub extract_to: Option<StringArrayOrString>,
+  pub note: Option<StringArrayOrString>, //  !complete
 
+  pub hash: Option<ObjectArrayOrStringOrObjectOrStringArray>,
+  pub installer: Option<ManifestObj>,
+  pub uninstaller: Option<ManifestObj>,
+  pub url: Option<ObjectArrayOrStringOrObjectOrStringArray>,
+  pub shortcuts: Option<ArrayOrDoubleDimensionArray>,
+  pub pre_install: Option<StringArrayOrString>,
+  pub post_install: Option<StringArrayOrString>,
+}
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(untagged)]
 pub enum ObjectOrArray {
@@ -92,6 +107,19 @@ pub enum ObjectArrayOrStringOrObject {
     ObjectArray(Vec<ManifestObj>),
     ManifestObj(serde_json::Value),
 }
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(untagged)]
+pub enum ObjectArrayOrStringOrObjectOrStringArray {
+    #[default]
+    Null,
+    String(String), // 字符串类型
+    ObjectArray(Vec<ManifestObj>),
+    ManifestObj(serde_json::Value),
+    StringArray(Vec<String>),
+}
+
+
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(untagged)]
 pub enum StringOrArrayOrDotDimensionArrayOrObject {

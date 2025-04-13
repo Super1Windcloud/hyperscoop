@@ -19,6 +19,7 @@ pub mod download;
 pub use download::*;
 pub struct ArchStruct {}
 
+/// 下载, 解压, preinstall, create_shim_shortcut, postinstall 
 pub async fn install_app_from_local_manifest_file(
     manifest_path: String,
     options: Vec<InstallOptions>,

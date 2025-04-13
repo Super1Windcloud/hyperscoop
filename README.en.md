@@ -1,7 +1,6 @@
 # hyperscoop   唯美构图
 
-
-
+> [!IMPORTANT]
 
 ![img ](./img/sea.jpg)
 

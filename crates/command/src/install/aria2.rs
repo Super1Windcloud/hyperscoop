@@ -1,6 +1,4 @@
 use crate::config::get_config_value;
-use crate::init_env::{get_cache_dir_path, get_cache_dir_path_global};
-use crate::install::{HashFormat, InstallOptions};
 use crate::utils::utility::is_valid_url;
 use anyhow::bail;
 use std::fs::File;
@@ -13,29 +11,23 @@ use std::{env, fs};
 #[non_exhaustive]
 pub struct Aria2C<'a> {
     aria2c_path: String,
-    
     aria2c_download_config: Vec<&'a str>,
     download_urls: &'a [&'a str],
-    install_options: &'a [InstallOptions],
-    hash: HashFormat,
 }
 
 impl<'a> Aria2C<'a> {
-     fn  init (&mut self, options: &'a [InstallOptions]) -> anyhow::Result<()> {
+     fn  init (&mut self ) -> anyhow::Result<()> {
          self.init_aria2c_config(); 
          self.extract_aria2()?;
        Ok(())
      }
-    pub fn new(options: &'a [InstallOptions]) -> Self {
+    pub fn new () -> Self {
         let mut aria = Self {
             aria2c_path: "".to_string(),
             aria2c_download_config: vec![],
             download_urls: &[],
-            install_options: options,
-        
-            hash: HashFormat::SHA256,
         };
-        aria.init(options).unwrap();
+        aria.init().unwrap();
         aria
     }
     pub fn get_aria2c_download_config(&self) -> Vec<&'a str> {
@@ -71,7 +63,6 @@ impl<'a> Aria2C<'a> {
         &self.aria2c_path
     }
  
-    #[must_use]
     pub fn execute_aria2_download_command<'cmd>(
         &self,
         url: &str,
