@@ -9,7 +9,7 @@ use crate::utils::utility::update_scoop_config_last_update_time;
 pub async  fn check_before_install(
     name: &str,
     version: &String,
-    options: &Box<[InstallOptions]>,
+    options: &Box<[InstallOptions<'_>]>,
 ) -> anyhow::Result<u8> { 
     if  options.contains(&InstallOptions::UpdateHpAndBuckets) {
       update_scoop_bar().await?;

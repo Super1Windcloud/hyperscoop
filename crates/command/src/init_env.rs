@@ -187,6 +187,11 @@ pub fn get_apps_path() -> String {
     hyper_scoop.get_apps_path()
 }
 
+pub fn  get_persist_app_data_dir( app_name :&str )->String {
+  let scoop_user_home = init_user_scoop();
+  format!("{}\\persist\\{}", scoop_user_home, app_name)
+}
+
 // 全局版本的 get_app_current_dir
 pub fn get_app_current_dir_global(app_name: &str) -> String {
     let scoop_home = init_scoop_global();
@@ -240,7 +245,10 @@ pub fn get_persist_dir_path_global() -> String {
     let hyper_scoop = HyperScoopGlobal::new();
     hyper_scoop.get_persist_path()
 }
-
+pub fn  get_persist_app_data_dir_global( app_name :&str )->String {
+    let scoop_global_home = init_scoop_global();
+    format!("{}\\persist\\{}", scoop_global_home, app_name)
+}
 // 全局版本的 get_cache_dir_path
 pub fn get_cache_dir_path_global() -> String {
     let hyper_scoop = HyperScoopGlobal::new();

@@ -1,139 +1,9 @@
 use anyhow::bail;
-use std::error::Error;
 use std::path::Path;
-use widestring::WideCString;
-use windows_sys::Win32::Foundation::{GetLastError, HWND, LPARAM, WPARAM};
-use windows_sys::Win32::System::LibraryLoader::GetModuleHandleW;
-use windows_sys::Win32::UI::WindowsAndMessaging::{
-    CreateWindowExW, MessageBoxW, SendMessageTimeoutW, ShowWindow, MB_ICONINFORMATION, MB_OK,
-    SMTO_ABORTIFHUNG, WM_SETTINGCHANGE,
-};
-
-pub fn publish_env_var() -> Result<(), Box<dyn Error>> {
-    const HWND_BROADCAST: HWND = 0xFFFF as HWND;
-
-    // 准备lParam参数，转为宽字符串并确保以null结尾
-    let lparam_str = WideCString::from_str("Environment")?;
-    let lparam_ptr = lparam_str.as_ptr() as LPARAM;
-
-    // fuFlags设置为SMTO_ABORTIFHUNG (0x0002)
-    let fu_flags = SMTO_ABORTIFHUNG;
-    let u_timeout = 5000;
-
-    // 调用SendMessageTimeoutW
-    let result = unsafe {
-        SendMessageTimeoutW(
-            HWND_BROADCAST,
-            WM_SETTINGCHANGE,
-            0 as WPARAM,
-            lparam_ptr,
-            fu_flags,
-            u_timeout,
-            std::ptr::null_mut(),
-        )
-    };
-
-    if result == 0 {
-        let error_code = unsafe { GetLastError() };
-        Err(format!("SendMessageTimeoutW failed with error code: {}", error_code).into())
-    } else {
-        Ok(())
-    }
-}
-pub fn alert_dialog() -> Result<(), Box<dyn Error>> {
-    use widestring::WideCString;
-    use windows_sys::Win32::Foundation::{HWND, LPARAM, LRESULT, WPARAM};
-    use windows_sys::Win32::UI::WindowsAndMessaging::{
-        DefWindowProcW, DispatchMessageW, GetMessageW, PostQuitMessage, RegisterClassW,
-        TranslateMessage, MSG, WM_DESTROY, WM_SETTINGCHANGE, WNDCLASSW,
-    };
-
-    const CLASS_NAME: &str = "MyWindowClass";
-
-    unsafe extern "system" fn window_proc(
-        hwnd: HWND,
-        msg: u32,
-        wparam: WPARAM,
-        lparam: LPARAM,
-    ) -> LRESULT {
-        match msg {
-            WM_SETTINGCHANGE => {
-                // 弹出提示框
-                MessageBoxW(
-                    hwnd,
-                    "环境变量已更新"
-                        .encode_utf16()
-                        .chain(Some(0))
-                        .collect::<Vec<_>>()
-                        .as_ptr(),
-                    "提示"
-                        .encode_utf16()
-                        .chain(Some(0))
-                        .collect::<Vec<_>>()
-                        .as_ptr(),
-                    MB_OK | MB_ICONINFORMATION,
-                );
-                0
-            }
-            WM_DESTROY => {
-                PostQuitMessage(0);
-                0
-            }
-            _ => DefWindowProcW(hwnd, msg, wparam, lparam),
-        }
-    }
-    unsafe {
-        let hinstance = GetModuleHandleW(std::ptr::null());
-
-        let class_name = WideCString::from_str(CLASS_NAME)?;
-        let class_name_ptr = class_name.as_ptr();
-
-        let wc = WNDCLASSW {
-            style: 0,
-            lpfnWndProc: Some(window_proc),
-            cbClsExtra: 0,
-            cbWndExtra: 0,
-            hInstance: hinstance,
-            hIcon: std::ptr::null_mut(),
-            hCursor: std::ptr::null_mut(),
-            hbrBackground: std::ptr::null_mut(),
-            lpszMenuName: std::ptr::null(),
-            lpszClassName: class_name_ptr,
-        };
-
-        RegisterClassW(&wc);
-
-        let hwnd = CreateWindowExW(
-            0,
-            class_name_ptr,
-            "环境变量更新"
-                .encode_utf16()
-                .chain(Some(0))
-                .collect::<Vec<_>>()
-                .as_ptr(),
-            0,
-            0,
-            0,
-            0,
-            0,
-            std::ptr::null_mut(),
-            std::ptr::null_mut(),
-            hinstance,
-            std::ptr::null_mut(),
-        );
-
-        ShowWindow(hwnd, 1);
-        use std::mem;
-        let mut msg: MSG = mem::zeroed();
-        while GetMessageW(&mut msg, std::ptr::null_mut(), 0, 0) > 0 {
-            TranslateMessage(&msg);
-            DispatchMessageW(&msg);
-        }
-    }
-
-    Ok(())
-}
-
+use windows::core::PCWSTR;
+use windows::Win32::Foundation::HWND;
+use windows::Win32::UI::Shell::{IsUserAnAdmin, ShellExecuteW};
+ 
 pub fn delete_env_var(var_key: &str) -> Result<(), anyhow::Error> {
     use winreg::enums::*;
     use winreg::RegKey;
@@ -169,22 +39,45 @@ pub fn get_system_current_time() -> Result<String, anyhow::Error> {
     Ok(local_time.to_string())
 }
 
-
-pub  fn  get_system_default_arch() -> Result<String, anyhow::Error> {
-
-  if cfg!(target_arch = "x86_64") {
-    Ok("64bit".to_string())
-  } else if cfg!(target_arch = "x86") {
-    Ok("32bit".to_string())
-  } else if cfg!(target_arch = "arm") {
-    Ok("arm64".to_string())
-  } else if cfg!(target_arch = "aarch64") {
-    Ok("arm64".to_string())
-  } else {
-    Ok( String::new() )
-  }
+pub fn get_system_default_arch() -> Result<String, anyhow::Error> {
+    if cfg!(target_arch = "x86_64") {
+        Ok("64bit".to_string())
+    } else if cfg!(target_arch = "x86") {
+        Ok("32bit".to_string())
+    } else if cfg!(target_arch = "arm") {
+        Ok("arm64".to_string())
+    } else if cfg!(target_arch = "aarch64") {
+        Ok("arm64".to_string())
+    } else {
+        Ok(String::new())
+    }
 }
 
+#[cfg(windows)]
+pub fn request_admin() {
+    let exe_path = std::env::current_exe().expect("无法获取程序路径");
+    let exe_path_wide: Vec<u16> = exe_path
+        .to_string_lossy()
+        .encode_utf16()
+        .chain([0])
+        .collect();
+
+    unsafe {
+        ShellExecuteW(
+            Some(HWND(std::ptr::null_mut())),
+            PCWSTR("runas\0".encode_utf16().collect::<Vec<_>>().as_ptr()),
+            PCWSTR(exe_path_wide.as_ptr()),
+            PCWSTR(std::ptr::null()),
+            PCWSTR(std::ptr::null()),
+            windows::Win32::UI::WindowsAndMessaging::SHOW_WINDOW_CMD(1),
+        );
+    }
+}
+
+#[cfg(windows)]
+pub fn is_admin() -> anyhow::Result<bool> {
+    unsafe { Ok(IsUserAnAdmin().as_bool()) }
+}
 mod test {
     #[allow(unused_imports)]
     use super::*;

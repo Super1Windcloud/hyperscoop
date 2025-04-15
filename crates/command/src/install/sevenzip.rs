@@ -15,7 +15,7 @@ pub struct SevenZipStruct<'a> {
     app_name: &'a str,
     app_version: &'a str,
     target_dir: String,
-    install_options: &'a [InstallOptions],
+    install_options: &'a [InstallOptions<'a>],
 }
 
 impl<'a> SevenZipStruct<'a> {

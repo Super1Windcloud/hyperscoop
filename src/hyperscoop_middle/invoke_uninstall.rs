@@ -4,8 +4,14 @@ use command_util_lib::init_env::{get_app_dir, get_app_dir_global};
 use command_util_lib::uninstall::*;
 use crossterm::style::Stylize;
 use std::path::Path;
+use command_util_lib::utils::system::{is_admin, request_admin};
+
 pub fn execute_uninstall_command(args: UninstallArgs) -> Result<(), anyhow::Error> {
-     
+   if   args.global {
+       if  !is_admin()?{ 
+         request_admin() 
+       }
+   }
     if let Some(app_name) = args.app_name {
         if args.purge {
             log::info!("purging app {}", &app_name);
@@ -25,7 +31,8 @@ pub fn execute_uninstall_command(args: UninstallArgs) -> Result<(), anyhow::Erro
                 }
             }
         } else {
-            log::info!("Uninstalling app {}", &app_name);
+            log::info!("Uninstalling app {}", &app_name); 
+          
             let result = uninstall_app(&app_name , args.global );
             match result {
                 Ok(_) => {

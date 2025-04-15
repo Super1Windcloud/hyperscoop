@@ -1,6 +1,7 @@
 use crate::config::get_config_value;
 use crate::utils::utility::is_valid_url;
 use anyhow::bail;
+use crossterm::style::Stylize;
 use std::fs::File;
 use std::io::{Read, Write};
 use std::path::Path;
@@ -10,25 +11,62 @@ use std::{env, fs};
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct Aria2C<'a> {
-    aria2c_path: String,
+    aria2c_path: &'a str,
     aria2c_download_config: Vec<&'a str>,
-    download_urls: &'a [&'a str],
+    download_urls: Box<[String]>,
+    input_file: &'a str,
+    cache_file_name: Box<[String]>,
+    scoop_cache_dir: &'a str,
+    final_download_path: Box<[String]>,
 }
 
 impl<'a> Aria2C<'a> {
-     fn  init (&mut self ) -> anyhow::Result<()> {
-         self.init_aria2c_config(); 
-         self.extract_aria2()?;
-       Ok(())
-     }
-    pub fn new () -> Self {
+    pub fn get_final_download_path(&self) -> &Box<[String]> {
+        &self.final_download_path
+    }
+    pub fn set_final_download_path(&mut self) {}
+    pub fn get_scoop_cache_dir(&self) -> &'a str {
+        self.scoop_cache_dir
+    }
+    pub fn set_scoop_cache_dir(&mut self, scoop_cache_dir: &'a str) {
+        self.scoop_cache_dir = scoop_cache_dir;
+    }
+    fn init(&mut self) -> anyhow::Result<()> {
+        self.init_aria2c_config();
+        self.extract_aria2()?;
+        Ok(())
+    }
+    pub fn get_input_file(&self) -> String {
+        self.input_file.to_string()
+    }
+    pub fn set_input_file(&mut self, input_file: &'a str) {
+        self.input_file = input_file;
+    }
+    pub fn load_input_file(&self) -> anyhow::Result<()> {
+        let input_file = self.get_input_file();
+        if !Path::new(&input_file).exists() {
+            bail!("{} does not exist", input_file);
+        }
+        let content = fs::read_to_string(&input_file)?;
+        Ok(())
+    }
+    pub fn new() -> Self {
         let mut aria = Self {
-            aria2c_path: "".to_string(),
+            aria2c_path: "",
             aria2c_download_config: vec![],
-            download_urls: &[],
+            download_urls: Box::new([]),
+            input_file: "",
+            cache_file_name: Box::new([]),
+            scoop_cache_dir: "",
+            final_download_path: Box::new([]),
         };
-        aria.init().unwrap();
-        aria
+        match aria.init() {
+            Ok(_) => aria,
+            Err(e) => {
+                println!("Error: {}", e.to_string().dark_red().bold());
+                aria
+            }
+        }
     }
     pub fn get_aria2c_download_config(&self) -> Vec<&'a str> {
         self.aria2c_download_config.clone()
@@ -38,50 +76,72 @@ impl<'a> Aria2C<'a> {
     }
     pub fn init_aria2c_config(&mut self) {
         let args = vec![
-            "-x16", // 最大连接数
-            "-s16", // 分片数量
-            "-k1M", // 每块大小
-            "--file-allocation=falloc".into(),
-            "--enable-http-keep-alive=true".into(),
-            "--enable-http-pipelining=true".into(),
-            "--max-connection-per-server=16".into(),
-            "--min-split-size=1M".into(),
-            "--summary-interval=0".into(),
-            "--continue=true".into(),
-            "--timeout=10".into(),
-            "--retry-wait=3".into(),
-            "--allow-overwrite=true".into(),
-            "--auto-file-renaming=false".into(),
+            "--optimize-concurrent-downloads=true",
+            "--enable-http-pipelining=true",
+            "--enable-color=true",      //  启用颜色输出
+            "--no-config",              // 不使用配置文件
+            "retry-wait=3",             // 重试等待时间
+            "auto-file-renaming=false", // 不自动重命名文件
+            "--allow-overwrite=true",
+            "--metalink-preferred-protocol=https", // 优先使用 HTTPS 协议下载 Metalink 文件
+            "--min-tls-version=TLSv1.2",           // 最小 TLS 版本
+            "--check-certificate=false",           // 跳过证书验证
+            "--max-connection-per-server=16",      // 单服务器最大连接数
+            "--split=16",                          // 分片数
+            "--console-log-level=warn",            // 日志级别
+            "--follow-metalink=true",              // 支持 Metalink 下载
+            "--min-split-size=5M",                 // 最小分片大小
+            "--continue=true",                     // 断点续传
+            "--file-allocation=none",              // 不预分配磁盘空间（SSD推荐）
+            "--summary-interval=0",                // 不频繁输出日志减少IO
+            "--auto-save-interval=1",              //  自动保存间隔
         ];
         self.aria2c_download_config = args;
     }
-   
-    pub fn set_aria2c_path(&mut self, path: &str) {
-        self.aria2c_path = path.to_string();
+
+    pub fn set_aria2c_path(&mut self, path: &'a str) {
+        self.aria2c_path = path
     }
     pub fn get_aria2c_path(&self) -> &str {
         &self.aria2c_path
     }
- 
-    pub fn execute_aria2_download_command<'cmd>(
-        &self,
-        url: &str,
-        command_str: impl Into<Option<&'cmd str>>,
-        command_arr: impl Into<Option<&'cmd [&'cmd str]>>,
-    ) -> anyhow::Result<String> {
+    pub fn get_scoop_user_agent(&self) -> String {
+        let os_info = os_info::get();
+        let os_version = os_info.version().to_string();
+
+        // let os_version_str = format!("{}.{}", os_info., os_info.version().minor());
+
+        // 检测系统架构
+        let arch = env::consts::ARCH;
+        let mut arch_info = String::new();
+
+        // 检查是否是 ARM64
+        if cfg!(target_arch = "aarch64") {
+            arch_info.push_str("ARM64; ");
+        }
+        // 检查是否是 AMD64 (x86_64)
+        else if arch == "x86_64" {
+            arch_info.push_str("Win64; x64; ");
+        }
+
+        // 检查是否运行在 WOW64 模式下（32位程序在64位系统）
+        if let Ok(program_files_arm) = env::var("ProgramFiles(Arm)") {
+            if !program_files_arm.is_empty() {
+                arch_info.push_str("WOW64; ");
+            }
+        }
+
+        format!(
+            "Scoop/1.0 (+http://scoop.sh/) Rust/{} (Windows NT {}; {}){}",
+            env!("CARGO_PKG_VERSION"),
+            os_version,
+            arch_info,
+            if cfg!(windows) { "Windows" } else { "" }
+        )
+    }
+    pub fn invoke_aria2c_download<'cmd>(&self) -> anyhow::Result<String> {
         let aria2_exe = self.get_aria2c_path();
-        let (command_str, command_arr) = (command_str.into(), command_arr.into());
-        if command_str.is_none() && command_arr.is_none() {
-            bail!("No command str  or command arr provided");
-        };
-        let (command_str, command_arr) = (
-            command_str.unwrap_or_default(),
-            command_arr.unwrap_or_default(),
-        );
-        let command_arr = command_arr
-            .iter()
-            .map(|item| item.trim())
-            .collect::<Vec<&str>>();
+
         let proxy = get_config_value("proxy");
         let proxy = if !proxy.contains("http://") && !proxy.contains("https://") {
             "http://".to_string() + &proxy
@@ -91,12 +151,16 @@ impl<'a> Aria2C<'a> {
         if !is_valid_url(&proxy) {
             bail!("Proxy is not valid, url format error");
         };
-        // let  saved_file_name  = generate_file_name() ;
-
+        let input_file = self.get_input_file();
+        let user_agent = self.get_scoop_user_agent();
+        let cache_dir = self.get_scoop_cache_dir();
         let output = Command::new(&aria2_exe)
+            .arg(format!("--dir={}", &cache_dir))
+            .arg(format!("--user-agent={}", user_agent))
             .arg(format!("--all-proxy={proxy}"))
-            .args(command_arr)
-            .arg(command_str.trim())
+            .arg(format!("--input-file={input_file}"))
+            .args(self.get_aria2c_download_config())
+            // spawn 异步执行, 实时捕获输出
             .output()?;
         let error_str = String::from_utf8_lossy(&output.stderr).to_string();
         let output_str = String::from_utf8_lossy(&output.stdout).to_string();
@@ -138,7 +202,7 @@ impl<'a> Aria2C<'a> {
         exe_path.to_str().unwrap().to_string()
     }
 
-    fn set_download_urls(&mut self, urls: &'a [&str]) {
+    fn set_download_urls(&mut self, urls: Box<[String]>) {
         self.download_urls = urls;
     }
 }
@@ -174,6 +238,12 @@ mod tests {
 
     #[test]
     fn test_aria2() {
-        // let a = Aria2C::new();
+        let a = Aria2C::new();
+    }
+
+    #[test]
+    fn test_agent() {
+        let a = Aria2C::new();
+        println!("{}", a.get_scoop_user_agent())
     }
 }

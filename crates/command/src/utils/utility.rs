@@ -8,6 +8,10 @@ use std::fs;
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
+use anyhow::bail;
+use chrono::Local;
+use regex::Regex;
+use url::Url;
 
 pub fn compare_versions(ver1: String, ver2: String) -> Ordering {
     // 分割版本号并转换为数字数组
@@ -225,9 +229,30 @@ pub fn write_utf8_file(path: &String, content: &str) -> anyhow::Result<()> {
 }
 
 pub fn is_valid_url(url_str: &str) -> bool {
-    use url::Url;
     Url::parse(url_str).is_ok()
 }
+
+pub fn validate_version(version: &str) -> anyhow::Result<()> {
+  // 定义允许的字符：字母、数字、点(.)、横线(-)、加号(+)、下划线(_)
+  let re = Regex::new(r"[^\w.\-+]")?; // \w 包含下划线，所以不需要单独加 _
+
+  if let Some(captures) = re.captures(version) {
+    let invalid_char = captures.get(0).unwrap().as_str();
+     bail!(format!(
+      "Manifest version has unsupported character '{}'.",
+      invalid_char
+    ));
+  }
+
+  Ok( ())
+}
+
+pub fn nightly_version( ) ->  anyhow::Result<String> {
+  eprintln!("⚠️ This is a nightly version. Downloaded files won't be verified.");
+  let date = Local::now().format("%Y%m%d").to_string();
+  Ok(format!("nightly-{}", date))
+}
+
 
 #[cfg(test)]
 mod tests {

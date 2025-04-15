@@ -57,10 +57,12 @@ impl Buckets {
     //参数传递尽量以借用为主，避免拷贝大量数据
     pub async fn rm_buckets(&self, name: &String, is_global: bool) -> Result<(), anyhow::Error> {
         let (bucket_paths, buckets_names) = if is_global {
-             self.get_global_bucket_self()?
-        } else {self.get_bucket_self()?};
-        if  buckets_names.is_empty() || bucket_paths.is_empty() {
-           bail!("buckets dir not exist or not dir")
+            self.get_global_bucket_self()?
+        } else {
+            self.get_bucket_self()?
+        };
+        if buckets_names.is_empty() || bucket_paths.is_empty() {
+            bail!("buckets dir not exist or not dir")
         }
         for bucket_name in buckets_names {
             if &bucket_name == name {
@@ -113,8 +115,8 @@ impl Buckets {
         } else {
             get_buckets_root_dir_path()
         };
-        if  !Path::new(&bucket_root_dir).exists() ||!Path::new(&bucket_root_dir).is_dir() {
-           bail!("bucket root dir not exist or not dir")
+        if !Path::new(&bucket_root_dir).exists() || !Path::new(&bucket_root_dir).is_dir() {
+            bail!("bucket root dir not exist or not dir")
         }
         let result = self
             .download_bucket(&url, &bucket_name, &bucket_root_dir)
@@ -129,7 +131,7 @@ impl Buckets {
         url: &str,
         bucket_name: &str,
         bucket_path: &str,
-    ) -> Result<String , anyhow::Error> {
+    ) -> Result<String, anyhow::Error> {
         let bucket_path = bucket_path.to_string() + "\\" + bucket_name;
         println!("{} ", "开始下载...... ".dark_green().bold());
         let result = request_git_clone_by_git2_with_progress(url, &bucket_path).await?;
@@ -323,8 +325,8 @@ impl Buckets {
             get_buckets_name()?
         };
         let bucket_source_url = Self::get_bucket_source_url(is_global)?;
-        if  bucket_name.is_empty() || bucket_source_url.is_empty() {
-           bail!("buckets dir is not exist")
+        if bucket_name.is_empty() || bucket_source_url.is_empty() {
+            bail!("buckets dir is not exist")
         }
         let bucket_source = if is_global {
             get_global_all_buckets_dir()?
@@ -333,7 +335,7 @@ impl Buckets {
         };
 
         let bucket_updated = Self::get_updated_time(&bucket_source)?;
-        let bucket_manifest = Self::get_manifest_version(&bucket_source)? ;
+        let bucket_manifest = Self::get_manifest_version(&bucket_source)?;
         Ok((
             bucket_name,
             bucket_source_url,
@@ -342,13 +344,13 @@ impl Buckets {
         ))
     }
 
-    fn get_updated_time(bucket_source: &Vec<String>) -> anyhow::Result<Vec<String>>  {
+    fn get_updated_time(bucket_source: &Vec<String>) -> anyhow::Result<Vec<String>> {
         let mut bucket_updated: Vec<String> = Vec::new();
         for source in bucket_source {
             let path = source.to_string() + "\\bucket";
-             if !Path::new(&path).exists() {
+            if !Path::new(&path).exists() {
                 bail!("bucket path {} does not exist", path);
-             }
+            }
             let metadata = metadata(&path).expect("Failed to get metadata");
             let modified_time = metadata.modified().expect("Failed to get modified time");
             // 将修改时间转换为自 UNIX_EPOCH 以来的时间戳
@@ -360,59 +362,57 @@ impl Buckets {
             let updated_time_formatted = updated_time_utc.format("%Y-%m-%d %H:%M:%S").to_string();
             bucket_updated.push(updated_time_formatted.trim_matches('"').into());
         }
-      Ok(bucket_updated)
+        Ok(bucket_updated)
     }
 
-    fn get_manifest_version(path: &Vec<String>) -> anyhow::Result<Vec<String> > {
+    fn get_manifest_version(path: &Vec<String>) -> anyhow::Result<Vec<String>> {
         let mut bucket_manifest: Vec<String> = Vec::new();
         // 获取目录的子文件个数
         for source in path {
             let source = source.to_string() + "\\bucket";
-             if !Path::new(&source).exists() {
-               bail!("bucket dir {} does not exist", source);
-             }
+            if !Path::new(&source).exists() {
+                bail!("bucket dir {} does not exist", source);
+            }
             let count = read_dir(source)?.count(); // 这里得到的是一个`u64`
             bucket_manifest.push(count.to_string());
         }
 
-      Ok(bucket_manifest)
+        Ok(bucket_manifest)
     }
 
-    fn get_bucket_source_url(is_global: bool) ->  anyhow::Result<Vec<String>> {
+    fn get_bucket_source_url(is_global: bool) -> anyhow::Result<Vec<String>> {
         let bucket_path = if is_global {
             get_global_all_buckets_dir()?
         } else {
             get_buckets_path()?
         };
-      let  result =  bucket_path.iter(). try_for_each(|path|
-         if !Path::new(path).exists()  || !Path::new(path).is_dir() {
-            bail!("bucket dir not found")
-         } else {
-           Ok(())
-         }
-      );
+        let result = bucket_path.iter().try_for_each(|path| {
+            if !Path::new(path).exists() || !Path::new(path).is_dir() {
+                bail!("bucket dir not found")
+            } else {
+                Ok(())
+            }
+        });
         if result.is_err() {
             bail!(result.err().unwrap())
         }
         let buckets_path = bucket_path
             .iter()
-            .map(|path|
-                 get_git_repo_remote_url(path).unwrap())
-            .collect::<Vec<_>>() ;
+            .map(|path| get_git_repo_remote_url(path).unwrap())
+            .collect::<Vec<_>>();
 
-
-      Ok(buckets_path)
+        Ok(buckets_path)
     }
 }
 
 impl Buckets {
     pub fn get_bucket_self(&self) -> Result<(Vec<String>, Vec<String>), anyhow::Error> {
         let bucket = Buckets::new()?;
-        Ok((bucket.buckets_path, bucket.buckets_name ))
+        Ok((bucket.buckets_path, bucket.buckets_name))
     }
-   pub fn get_global_bucket_self(&self) -> Result<(Vec<String>, Vec<String>), anyhow::Error> {
+    pub fn get_global_bucket_self(&self) -> Result<(Vec<String>, Vec<String>), anyhow::Error> {
         let bucket = Buckets::new()?;
-        Ok((bucket.global_buckets_paths, bucket.global_buckets_names ))
+        Ok((bucket.global_buckets_paths, bucket.global_buckets_names))
     }
     pub fn new() -> anyhow::Result<Buckets> {
         let bucket_path = get_buckets_root_dir_path();
@@ -453,6 +453,34 @@ impl Buckets {
         }
     }
 
+    pub fn get_known_bucket_path(&self) -> String {
+        let home_dir = std::env::var("USERPROFILE").unwrap();
+        let config_dir = home_dir + "\\.config\\scoop"; 
+        if !Path::new(&config_dir).exists() {
+            create_dir_all(&config_dir).unwrap();
+        }
+        let known = format!("{}\\known_bucket.json", config_dir);  
+        let known_bucket = Path::new( &known);
+        if !known_bucket.exists() {
+            let mut file = File::create(&known_bucket).unwrap();  // 截断写入  
+           let  content = r#"{
+    "main": "https://github.com/ScoopInstaller/Main",
+    "extras": "https://github.com/ScoopInstaller/Extras",
+    "versions": "https://github.com/ScoopInstaller/Versions",
+    "nirsoft": "https://github.com/ScoopInstaller/Nirsoft",
+    "sysinternals": "https://github.com/niheaven/scoop-sysinternals",
+    "php": "https://github.com/ScoopInstaller/PHP",
+    "nerd-fonts": "https://github.com/matthewjberger/scoop-nerd-fonts",
+    "nonportable": "https://github.com/ScoopInstaller/Nonportable",
+    "java": "https://github.com/ScoopInstaller/Java",
+    "games": "https://github.com/Calinou/scoop-games"
+}
+            "#;  
+            file.write_all(content.as_bytes()).unwrap();
+            file.flush().unwrap();
+        }
+         known
+    }
     pub fn get_bucket_known(
         &self,
         is_global: bool,
@@ -466,7 +494,7 @@ impl Buckets {
         if !Path::new(&apps_dir).exists() {
             bail!("global {apps_dir} is not  exist");
         }
-        let known_bucket_path = apps_dir + "\\scoop\\current\\buckets.json";
+        let known_bucket_path = self.get_known_bucket_path(); 
         let file_buffer = File::open(&known_bucket_path).expect("Failed to open known_bucket_path");
         let reader_buffer = BufReader::new(file_buffer);
         let content: serde_json::Value = serde_json::from_reader(reader_buffer)?;

@@ -264,9 +264,10 @@ mod test_manifest_deserialize {
             }
 
             let _manifest: InstallManifest = manifest.unwrap();
-            if find_extract(_manifest, &path, &_count) {
-                return;
-            };
+            // if find_extract(_manifest, &path, &_count) {
+            //     return;
+            // }; 
+             if  find_url_and_hash(_manifest, &path, &_count ) { return; }; 
             // if  find_suggest_and_depends(_manifest, path , &_count ) { return; };
             //  find_architecture_test(_manifest, path);
         }
@@ -297,12 +298,25 @@ mod test_manifest_deserialize {
         ) -> bool {
            let url = manifest.url;
            let hash = manifest.hash;
-           if  url.is_some() && hash.is_some() {
-              println!("url {:?}", url.unwrap());
-              println!(" hash {:?}", hash.unwrap());
-              println!(" path {}", path.display());
-              *_count.lock().unwrap() += 1;
-              if *_count.lock().unwrap() >= 10 {
+           if  url.is_some() && hash.is_some()   {
+             let  hash=hash.unwrap(); 
+            let  hash_arr  =   match hash {
+                StringArrayOrString::StringArray(array) => {
+                  array 
+                }
+               StringArrayOrString::String(hash ) => {
+                     vec![hash ]
+               }
+               StringArrayOrString::Null => {vec![]}  
+             };  
+             let result = hash_arr.iter().filter(|hash| hash.contains("sha")).collect::<Vec<&String>>(); 
+             if  result.len() > 1 {  
+                println!("hash {:?}", result);
+                println!("url {:?}", url.unwrap());
+                println!(" path {}", path.display());
+               *_count.lock().unwrap() += 1;
+             }
+              if *_count.lock().unwrap() >= 2  {
                return true; }
            }
             let architecture = manifest.architecture;

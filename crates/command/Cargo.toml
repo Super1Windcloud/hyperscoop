@@ -23,7 +23,6 @@ regex = "1.11.1"
 crossterm = { workspace = true }
 chrono = "0.4.38"
 reqwest = { version = "0.12.9", features = ["json", "blocking"] }
-zip = "2.2.0"
 encoding = "0.2.33"
 rayon = "1.10.0"
 console = "0.15.8"
@@ -35,13 +34,7 @@ human-panic = { workspace = true }
 webbrowser = "1.0.3"
 git2 = { workspace = true }
 rust_file_encode_mode_convert = "11.45.14"
-winreg = "0.55.0"
-windows-sys = { version = "0.59.0", features = [
-  "Win32_UI_WindowsAndMessaging",
-  "Win32_Foundation", "Win32_Graphics_Gdi"
-
-] }
-widestring = "1.1.0"
+winreg = { version = "0.55.0" }
 dialoguer = "0.11.0"
 gix = { version = "0.70.0", features = [
   "blocking-http-transport-reqwest",
@@ -50,14 +43,18 @@ gix = { version = "0.70.0", features = [
 thiserror = "2.0.11"
 gix-object = "0.47.0"
 dashmap = "6.1.0"
-windows = "0.61.1"
+windows = { version = "0.61.1", features = [ "Win32_UI", "Win32_UI_Shell"
+,"Win32_UI_WindowsAndMessaging" , "Win32_System_Registry"] }
 mslnk = "0.1.8"
 textwrap = { version = "0.16.2" }
 bat = { workspace = true }
-flate2 =  {workspace = true  }
-url = { workspace = true}
+flate2 = { workspace = true }
+url = { workspace = true }
 sha2 = { workspace = true }
 hex = "0.4.3"
+os_info = "3.10.0"
+zip = "2.6.1"
+windows-sys = "0.59.0"
 
 
 

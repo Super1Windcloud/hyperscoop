@@ -61,7 +61,7 @@ pub fn show_notes(notes: StringArrayOrString) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub async fn handle_depends(depends: &str , options:  &[InstallOptions]) -> anyhow::Result<()> {
+pub async fn handle_depends(depends: &str , options:  &[InstallOptions<'_> ]) -> anyhow::Result<()> {
     if depends.contains('/') {
         let arr = depends.split('/').collect::<Vec<&str>>();
         if arr.len() != 2 {
@@ -76,9 +76,9 @@ pub async fn handle_depends(depends: &str , options:  &[InstallOptions]) -> anyh
     Ok(())
 }
 pub fn handle_arch(arch: &[InstallOptions]) -> anyhow::Result<String> {
-    if arch.contains(&InstallOptions::ArchOptions("64bit".to_string()))
-        || arch.contains(&InstallOptions::ArchOptions("32bit".to_string()))
-        || arch.contains(&InstallOptions::ArchOptions("arm64".to_string()))
+    if arch.contains(&InstallOptions::ArchOptions("64bit"))
+        || arch.contains(&InstallOptions::ArchOptions("32bit"))
+        || arch.contains(&InstallOptions::ArchOptions("arm64"))
     {
         let option_arch = arch
             .iter()
@@ -215,3 +215,4 @@ pub fn add_bin_to_path(path: &str, app_current_dir: &String) -> anyhow::Result<(
 
     Ok(())
 }
+

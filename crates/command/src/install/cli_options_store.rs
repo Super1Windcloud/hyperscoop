@@ -1,10 +1,10 @@
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[non_exhaustive]
-pub enum InstallOptions {
+pub enum InstallOptions<'a>  {
     NoUseDownloadCache,
     NoAutoDownloadDepends,
     SkipDownloadHashCheck,
-    ArchOptions(String),
+    ArchOptions(&'a str ),
     UpdateHpAndBuckets,
     OnlyDownloadNoInstall,
     Global,
@@ -68,5 +68,5 @@ enum DownloadState {
 #[non_exhaustive]
 pub enum   ParserUrl {
   ExternalUrl(String),
-  
+  InternalUrl(String), 
 }

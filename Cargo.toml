@@ -163,3 +163,6 @@ path = "examples/indicatif_demo.rs"
 
 [lints.rust]
 unexpected_cfgs = { level = "allow" }
+
+
+
