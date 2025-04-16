@@ -1,19 +1,19 @@
-use crate::config::get_config_value;
+use crate::config::get_config_value_no_print;
 use crate::utils::utility::is_valid_url;
-use anyhow::bail;
+use anyhow::{ bail};
 use crossterm::style::Stylize;
+use std::borrow::Cow;
 use std::fs::File;
-use std::io::{Read, Write};
+use std::io::{BufRead, BufReader, Read, Write};
 use std::path::Path;
-use std::process::Command;
+use std::process::{Command, Stdio};
 use std::{env, fs};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct Aria2C<'a> {
-    aria2c_path: &'a str,
+    aria2c_path: Cow<'a, str>,
     aria2c_download_config: Vec<&'a str>,
-    download_urls: Box<[String]>,
     input_file: &'a str,
     cache_file_name: Box<[String]>,
     scoop_cache_dir: &'a str,
@@ -24,7 +24,9 @@ impl<'a> Aria2C<'a> {
     pub fn get_final_download_path(&self) -> &Box<[String]> {
         &self.final_download_path
     }
-    pub fn set_final_download_path(&mut self) {}
+    pub fn set_final_download_path(&mut self) {
+
+    }
     pub fn get_scoop_cache_dir(&self) -> &'a str {
         self.scoop_cache_dir
     }
@@ -33,7 +35,8 @@ impl<'a> Aria2C<'a> {
     }
     fn init(&mut self) -> anyhow::Result<()> {
         self.init_aria2c_config();
-        self.extract_aria2()?;
+        let aria2_path = self.extract_aria2()?;
+        self.set_aria2c_path(Cow::Owned(aria2_path));
         Ok(())
     }
     pub fn get_input_file(&self) -> String {
@@ -47,14 +50,13 @@ impl<'a> Aria2C<'a> {
         if !Path::new(&input_file).exists() {
             bail!("{} does not exist", input_file);
         }
-        let content = fs::read_to_string(&input_file)?;
+        let _ = fs::read_to_string(&input_file)?;
         Ok(())
     }
     pub fn new() -> Self {
         let mut aria = Self {
-            aria2c_path: "",
+            aria2c_path: Cow::from(""),
             aria2c_download_config: vec![],
-            download_urls: Box::new([]),
             input_file: "",
             cache_file_name: Box::new([]),
             scoop_cache_dir: "",
@@ -79,7 +81,6 @@ impl<'a> Aria2C<'a> {
             "--optimize-concurrent-downloads=true",
             "--enable-http-pipelining=true",
             "--enable-color=true",      //  启用颜色输出
-            "--no-config",              // 不使用配置文件
             "retry-wait=3",             // 重试等待时间
             "auto-file-renaming=false", // 不自动重命名文件
             "--allow-overwrite=true",
@@ -99,7 +100,7 @@ impl<'a> Aria2C<'a> {
         self.aria2c_download_config = args;
     }
 
-    pub fn set_aria2c_path(&mut self, path: &'a str) {
+    pub fn set_aria2c_path(&mut self, path: Cow<'a, str>) {
         self.aria2c_path = path
     }
     pub fn get_aria2c_path(&self) -> &str {
@@ -108,9 +109,6 @@ impl<'a> Aria2C<'a> {
     pub fn get_scoop_user_agent(&self) -> String {
         let os_info = os_info::get();
         let os_version = os_info.version().to_string();
-
-        // let os_version_str = format!("{}.{}", os_info., os_info.version().minor());
-
         // 检测系统架构
         let arch = env::consts::ARCH;
         let mut arch_info = String::new();
@@ -141,8 +139,11 @@ impl<'a> Aria2C<'a> {
     }
     pub fn invoke_aria2c_download<'cmd>(&self) -> anyhow::Result<String> {
         let aria2_exe = self.get_aria2c_path();
-
-        let proxy = get_config_value("proxy");
+        println!(
+            "{}",
+            "Starting aria2 download file ......".dark_blue().bold()
+        );
+        let proxy = get_config_value_no_print("proxy");
         let proxy = if !proxy.contains("http://") && !proxy.contains("https://") {
             "http://".to_string() + &proxy
         } else {
@@ -154,25 +155,89 @@ impl<'a> Aria2C<'a> {
         let input_file = self.get_input_file();
         let user_agent = self.get_scoop_user_agent();
         let cache_dir = self.get_scoop_cache_dir();
-        let output = Command::new(&aria2_exe)
+        let child = Command::new(&aria2_exe)
             .arg(format!("--dir={}", &cache_dir))
             .arg(format!("--user-agent={}", user_agent))
             .arg(format!("--all-proxy={proxy}"))
             .arg(format!("--input-file={input_file}"))
             .args(self.get_aria2c_download_config())
-            // spawn 异步执行, 实时捕获输出
-            .output()?;
-        let error_str = String::from_utf8_lossy(&output.stderr).to_string();
-        let output_str = String::from_utf8_lossy(&output.stdout).to_string();
-        if !error_str.is_empty() {
-            bail!(error_str);
-        }
-        if output_str.is_empty() {
-            bail!("aria2c 命令执行失败,返回结果为空");
-        }
-        Ok(output_str)
-    }
+            .stdout(Stdio::inherit()) // 将标准输出重定向到父进程终端
+            .output()?; // 阻塞进程
 
+        let status = child.status;
+        let result = if status.success() {
+            Ok("Aria2c download completed successfully"
+                .dark_green()
+                .bold()
+                .to_string())
+        } else {
+            bail!(
+                "Aria2c download failed, exit code: {},\n Error :{}",
+                status.code().unwrap(),
+                String::from_utf8_lossy(&child.stderr).as_ref()
+            )
+        };
+        result
+    }
+    pub fn invoke_aria2c_download_async<'cmd>(&self) -> anyhow::Result<String> {
+        let aria2_exe = self.get_aria2c_path();
+        println!(
+            "{}",
+            "Starting aria2 download file ......".dark_blue().bold()
+        );
+        let proxy = get_config_value_no_print("proxy");
+        let proxy = if !proxy.contains("http://") && !proxy.contains("https://") {
+            "http://".to_string() + &proxy
+        } else {
+            proxy
+        };
+        if !is_valid_url(&proxy) {
+            bail!("Proxy is not valid, url format error");
+        };
+        let input_file = self.get_input_file();
+        let user_agent = self.get_scoop_user_agent();
+        let cache_dir = self.get_scoop_cache_dir();
+        let mut child = Command::new(&aria2_exe)
+            .arg(format!("--dir={}", &cache_dir))
+            .arg(format!("--user-agent={}", user_agent))
+            .arg(format!("--all-proxy={proxy}"))
+            .arg(format!("--input-file={input_file}"))
+            .args(self.get_aria2c_download_config())
+            .stdout(Stdio::piped()) // 将标准输出到管道
+            .stderr(Stdio::piped())
+            .spawn()?; // 阻塞进程
+
+      if let Some(mut stdout) = child.stdout.take() {
+        let mut buffer = [0u8; 1024];
+        loop {
+          let n = stdout.read(&mut buffer)?;
+          if n == 0 {
+            break;
+          }
+          let output = String::from_utf8_lossy(&buffer[..n]);
+          for line in output.lines() {
+            println!("Download: {}", line);
+          }
+        }
+      }
+        if let Some(stderr) = child.stderr.take() {
+            let reader = BufReader::new(stderr);
+            for line in reader.lines() {
+                let line = line?;
+                println!("Download Error: {}", line);
+            }
+        }
+        let status = child.wait()?; // 等待子进程结束
+        let result = if status.success() {
+            Ok("Aria2c download completed successfully"
+                .dark_green()
+                .bold()
+                .to_string())
+        } else {
+            bail!("Aria2c download failed, exit code: {}", status.code().unwrap()  )
+        };
+        result
+    }
     fn write_aria2_to_temp(&self, aria2_exe: &str) -> anyhow::Result<()> {
         const COMPRESSED_ARIA2: &[u8] = include_bytes!("../../../../resources/aria2c_data.gz");
         let mut decoder = flate2::read::GzDecoder::new(COMPRESSED_ARIA2);
@@ -200,10 +265,6 @@ impl<'a> Aria2C<'a> {
         let temp_dir = env::temp_dir();
         let exe_path = temp_dir.join("aria2c.exe");
         exe_path.to_str().unwrap().to_string()
-    }
-
-    fn set_download_urls(&mut self, urls: Box<[String]>) {
-        self.download_urls = urls;
     }
 }
 
@@ -238,7 +299,7 @@ mod tests {
 
     #[test]
     fn test_aria2() {
-        let a = Aria2C::new();
+        let _a = Aria2C::new();
     }
 
     #[test]

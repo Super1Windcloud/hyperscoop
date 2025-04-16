@@ -216,3 +216,4 @@ pub fn add_bin_to_path(path: &str, app_current_dir: &String) -> anyhow::Result<(
     Ok(())
 }
 
+

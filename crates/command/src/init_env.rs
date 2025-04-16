@@ -1,10 +1,14 @@
 ﻿use std::env;
 use std::fs::read_dir;
+use std::path::Path;
 
 pub fn init_user_scoop() -> String {
     let mut path = env::var("SCOOP").unwrap_or(String::new());
     if path.is_empty() {
         path = env::var("USERPROFILE").unwrap() + "\\scoop"; // 可以使用or_else 替代
+    }
+    if !Path::new(&path).exists() {
+        std::fs::create_dir_all(&path).unwrap();
     }
     path
 }
@@ -14,7 +18,12 @@ pub fn init_scoop_global() -> String {
     if path.is_err() {
         panic!("No SCOOP_GLOBAL environment variable provided.");
     }
-    path.unwrap() + "\\scoop"
+    let path = path.unwrap();
+    if !Path::new(&path).exists() {
+        std::fs::create_dir_all(&path).unwrap()
+    }
+
+    path + "\\scoop"
 }
 
 pub fn get_app_current_dir(app_name: &str) -> String {
@@ -26,7 +35,7 @@ pub fn get_app_dir(app_name: &str) -> String {
     let scoop_home = init_user_scoop();
     format!("{}\\apps\\{}", scoop_home, app_name)
 }
-pub fn get_app_version_dir(app_name: &str, version: &str ) -> String {
+pub fn get_app_version_dir(app_name: &str, version: &str) -> String {
     let scoop_home = init_user_scoop();
     format!("{}\\apps\\{}\\{}", scoop_home, app_name, version)
 }
@@ -86,23 +95,47 @@ impl HyperScoop {
         }
     }
     pub fn get_apps_path(&self) -> String {
-        self.apps_path.clone()
+        let apps_path = self.apps_path.clone();
+        if !Path::new(&apps_path).exists() {
+            std::fs::create_dir_all(&apps_path).unwrap();
+        }
+        apps_path
     }
     pub fn get_psmodule_path(&self) -> String {
-        format!("{}\\modules", self.scoop_path)
+        let psmodule = format!("{}\\modules", self.scoop_path);
+        if !Path::new(&psmodule).exists() {
+            std::fs::create_dir_all(&psmodule).unwrap();
+        }
+        psmodule
     }
     pub fn get_persist_path(&self) -> String {
-        self.persist_path.clone()
+        let persist = self.persist_path.clone();
+        if !Path::new(&persist).exists() {
+            std::fs::create_dir_all(&persist).unwrap();
+        }
+        persist
     }
 
     pub fn get_bucket_path(&self) -> String {
-        self.bucket_path.clone()
+        let bucket_path = &self.bucket_path;
+        if !Path::new(&bucket_path).exists() {
+            std::fs::create_dir_all(&bucket_path).unwrap();
+        }
+        bucket_path.into()
     }
     pub fn get_cache_path(&self) -> String {
-        self.cache_path.clone()
+        let cache_path = self.cache_path.clone();
+        if !Path::new(&cache_path).exists() {
+            std::fs::create_dir_all(&cache_path).unwrap();
+        }
+        cache_path
     }
     pub fn get_shims_path(&self) -> String {
-        self.shims_path.clone()
+        let shim_path = self.shims_path.clone();
+        if !Path::new(&shim_path).exists() {
+            std::fs::create_dir_all(&shim_path).unwrap();
+        }
+        shim_path
     }
     pub fn get_scoop_path(&self) -> String {
         self.scoop_path.clone()
@@ -129,23 +162,47 @@ impl HyperScoopGlobal {
         }
     }
     pub fn get_apps_path(&self) -> String {
-        self.apps_path.clone()
+        let apps_path = self.apps_path.clone();
+        if !Path::new(&apps_path).exists() {
+            std::fs::create_dir_all(&apps_path).unwrap();
+        }
+        apps_path
     }
     pub fn get_psmodule_path(&self) -> String {
-        format!("{}\\modules", self.scoop_path)
+        let psmodule = format!("{}\\modules", self.scoop_path);
+        if !Path::new(&psmodule).exists() {
+            std::fs::create_dir_all(&psmodule).unwrap();
+        }
+        psmodule
     }
     pub fn get_persist_path(&self) -> String {
-        self.persist_path.clone()
+        let persist = self.persist_path.clone();
+        if !Path::new(&persist).exists() {
+            std::fs::create_dir_all(&persist).unwrap();
+        }
+        persist
     }
 
     pub fn get_bucket_path(&self) -> String {
-        self.bucket_path.clone()
+        let bucket_path = self.bucket_path.clone();
+        if !Path::new(&bucket_path).exists() {
+            std::fs::create_dir_all(&bucket_path).unwrap();
+        }
+        bucket_path
     }
     pub fn get_cache_path(&self) -> String {
-        self.cache_path.clone()
+        let cache_path = self.cache_path.clone();
+        if !Path::new(&cache_path).exists() {
+            std::fs::create_dir_all(&cache_path).unwrap();
+        }
+        cache_path
     }
     pub fn get_shims_path(&self) -> String {
-        self.shims_path.clone()
+        let shim_path = self.shims_path.clone();
+        if !Path::new(&shim_path).exists() {
+            std::fs::create_dir_all(&shim_path).unwrap();
+        }
+        shim_path
     }
     pub fn get_scoop_path(&self) -> String {
         self.scoop_path.clone()
@@ -187,9 +244,9 @@ pub fn get_apps_path() -> String {
     hyper_scoop.get_apps_path()
 }
 
-pub fn  get_persist_app_data_dir( app_name :&str )->String {
-  let scoop_user_home = init_user_scoop();
-  format!("{}\\persist\\{}", scoop_user_home, app_name)
+pub fn get_persist_app_data_dir(app_name: &str) -> String {
+    let scoop_user_home = init_user_scoop();
+    format!("{}\\persist\\{}", scoop_user_home, app_name)
 }
 
 // 全局版本的 get_app_current_dir
@@ -205,7 +262,7 @@ pub fn get_app_dir_global(app_name: &str) -> String {
 }
 
 // 全局版本的 get_app_version_dir
-pub fn get_app_version_dir_global(app_name: &str, version: &str ) -> String {
+pub fn get_app_version_dir_global(app_name: &str, version: &str) -> String {
     let scoop_home = init_scoop_global();
     format!("{}\\apps\\{}\\{}", scoop_home, app_name, version)
 }
@@ -245,7 +302,7 @@ pub fn get_persist_dir_path_global() -> String {
     let hyper_scoop = HyperScoopGlobal::new();
     hyper_scoop.get_persist_path()
 }
-pub fn  get_persist_app_data_dir_global( app_name :&str )->String {
+pub fn get_persist_app_data_dir_global(app_name: &str) -> String {
     let scoop_global_home = init_scoop_global();
     format!("{}\\persist\\{}", scoop_global_home, app_name)
 }
@@ -276,7 +333,7 @@ pub fn get_apps_path_global() -> String {
 pub fn get_all_buckets_dir_path() -> anyhow::Result<Vec<String>> {
     let bucket_path = get_bucket_dir_path();
     // 遍历 bucket_path 下的所有文件夹，并将文件夹名加入 buckets_path
-    let buckets_path: Vec<String> = read_dir(&bucket_path)? 
+    let buckets_path: Vec<String> = read_dir(&bucket_path)?
         .filter_map(|e| e.ok())
         .filter(|e| e.path().is_dir())
         .map(|e| e.path().to_str().unwrap().to_string())
@@ -294,6 +351,28 @@ pub fn get_all_global_buckets_dir_path() -> anyhow::Result<Vec<String>> {
         .collect();
     Ok(buckets_path)
 }
+
+pub  fn get_scoop_config_path() -> anyhow::Result<String> {
+  let home_dir = env::var("USERPROFILE")?; 
+   let config_dir =  home_dir+"\\.config\\scoop"; 
+   if !Path::new(&config_dir).exists() { 
+       std::fs::create_dir_all(&config_dir)?;
+   }
+  let  config_file =  format!("{}\\config.json", config_dir); 
+  if !Path::new(&config_file).exists() {
+    std::fs::File::create(&config_file)?;
+  }
+  Ok(config_file)
+}
+
+pub fn  get_special_bucket_path(bucket_name :&str) -> String { 
+  let  bucket_root_dir = get_buckets_root_dir_path(); 
+   format!("{}\\{}", bucket_root_dir, bucket_name)
+}
+pub  fn  get_special_bucket_child_path(bucket_name:&str) -> String {
+   let  bucket_root_dir = get_buckets_root_dir_path();
+   format!("{}\\{}\\bucket", bucket_root_dir, bucket_name)
+}
 mod test_path {
     #[allow(unused)]
     use super::*;
@@ -302,7 +381,7 @@ mod test_path {
         let app_name = "zigmod";
         let exe_name = "zig/zig.exe";
         let path = get_app_current_bin_path(app_name.to_string(), &exe_name.to_string());
-        if std::path::Path::new(&path).exists() {
+        if Path::new(&path).exists() {
             println!("{}", path);
         }
     }
@@ -325,4 +404,10 @@ mod test_path {
         let path = env::var("ProgramData").unwrap() + "\\scoop";
         println!("{}", path);
     }
+   #[test]
+   fn  test_simple_output(){ 
+      println!("{}", get_scoop_config_path().unwrap());  
+       println!("{}",get_special_bucket_path("main"))
+   }
+  
 }

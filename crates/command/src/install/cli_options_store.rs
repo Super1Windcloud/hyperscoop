@@ -7,6 +7,7 @@ pub enum InstallOptions<'a>  {
     ArchOptions(&'a str ),
     UpdateHpAndBuckets,
     OnlyDownloadNoInstall,
+    ForceDownloadNoInstallOverrideCache,
     Global,
 }
 
@@ -50,7 +51,7 @@ pub enum HashFormat {
 
 
 #[derive(Clone, Debug, PartialEq)]
-enum DownloadState {
+pub  enum DownloadState {
   Queued,                      
   Downloading {
     progress: f64,          
@@ -60,7 +61,6 @@ enum DownloadState {
   Completed(String),           
   Failed(String),           
 }
-
 
 
 

@@ -3,7 +3,9 @@ use crate::init_env::{
     get_app_version_dir_global, get_cache_dir_path, get_cache_dir_path_global,
     get_persist_app_data_dir, get_persist_app_data_dir_global,
 };
-use crate::install::InstallOptions::{ArchOptions, Global};
+use crate::install::InstallOptions::{
+    ArchOptions, ForceDownloadNoInstallOverrideCache, Global, NoUseDownloadCache,
+};
 use crate::install::{Aria2C, HashFormat, InstallOptions};
 use crate::manifest::install_manifest::InstallManifest;
 use crate::manifest::manifest_deserialize::{ArchitectureObject, StringArrayOrString};
@@ -15,6 +17,8 @@ use sha2::{Digest, Sha256};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::vec;
+use windows_sys::Win32::System::Registry::{HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE};
+use winreg::RegKey;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
@@ -33,9 +37,31 @@ pub struct DownloadManager<'a> {
     download_urls: Box<[String]>,
     target_rename_alias: Box<[String]>,
     persist_data_dir: String,
+    final_cache_file_path: Box<[String]>,
 }
 
 impl<'a> DownloadManager<'a> {
+    pub fn get_final_cache_file_path(&self) -> &[String] {
+        &self.final_cache_file_path
+    }
+    pub fn set_final_cache_file_path(&mut self) -> anyhow::Result<()> {
+        let cache_file = self.get_cache_file_name();
+        let mut files = vec![];
+        let result = cache_file.iter().try_for_each(|name| {
+            let file = format!("{}\\{}", self.get_scoop_cache_dir(), name);
+            if !Path::new(file.as_str()).exists() {
+                bail!("下载缓存文件{}不存在, 是否下载失败?", &file)
+            } else {
+                files.push(file);
+                Ok(())
+            }
+        });
+        if result.is_err() {
+            bail!(result.unwrap_err())
+        }
+        self.final_cache_file_path = files.into_boxed_slice();
+        Ok(())
+    }
     pub fn get_persist_data_dir(&self) -> &str {
         &self.persist_data_dir
     }
@@ -206,13 +232,27 @@ impl<'a> DownloadManager<'a> {
     pub fn get_options(&self) -> &'a [InstallOptions] {
         self.options
     }
-  // ensure_install_dir_not_in_path   检查并清理系统或用户的 PATH 环境变量，确保某个目录（或其子目录）不会出现在 PATH 中，
-   pub fn ensure_install_dir_not_in_env_path(&self ) ->anyhow::Result<()> {
-    
-    Ok(() )
-  }
+    // ensure_install_dir_not_in_path   检查并清理系统或用户的 PATH 环境变量，确保某个目录（或其子目录）不会出现在 PATH 中，
+    pub fn ensure_install_dir_not_in_env_path(&self) -> anyhow::Result<()> {
+        let env_path: String = if self.options.contains(&Global) {
+            let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
+            let environment_key = r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment";
+            let env_key = hklm.open_subkey(environment_key)?;
+            env_key.get_value("PATH")?
+        } else {
+            let hklm = RegKey::predef(HKEY_CURRENT_USER);
+            let env = hklm.open_subkey("Environment")?;
+            let user_path = env.get_value("PATH")?;
+            user_path
+        };
+        let dir = self.app_current_dir.as_str();
+        if env_path.contains(dir) {
+            bail!("{} 已经存在于 PATH 环境变量中, 请检查", dir)
+        }
+        Ok(())
+    }
 
-  pub fn ensure_version_dir_exist(&self) -> anyhow::Result<PathBuf> {
+    pub fn ensure_version_dir_exist(&self) -> anyhow::Result<PathBuf> {
         let path = Path::new(self.app_version_dir.as_str());
 
         if !path.exists() {
@@ -313,7 +353,8 @@ impl<'a> DownloadManager<'a> {
             } else {
                 bail!("架构选项错误");
             }
-        }
+        } 
+        self.set_final_cache_file_path()?; 
         self.set_download_app_name(app_name);
         self.set_app_current_dir();
         self.set_app_version_dir();
@@ -337,7 +378,8 @@ impl<'a> DownloadManager<'a> {
             input_file: "".into(),
             download_urls: vec![].into_boxed_slice(),
             target_rename_alias: vec![].into_boxed_slice(),
-            persist_data_dir: "".to_string(),
+             persist_data_dir: "".to_string(),
+           final_cache_file_path: Box::new([]),
         };
         match download.init(manifest_path) {
             Ok(_) => download,
@@ -437,33 +479,78 @@ impl<'a> DownloadManager<'a> {
         Ok(())
     }
     pub fn start_download(&self) -> anyhow::Result<()> {
+        self.ensure_install_dir_not_in_env_path()?;
         let scoop_cache_dir = self.get_scoop_cache_dir();
         let input_file = self.get_input_file();
         let mut aria2c = self.create_aria2c_instance();
         aria2c.set_input_file(input_file);
-        aria2c.set_scoop_cache_dir(scoop_cache_dir); // 设置aria2c的缓存目录 
+        aria2c.set_scoop_cache_dir(scoop_cache_dir); // 设置aria2c的缓存目录
+
+        if self.options.contains(&ForceDownloadNoInstallOverrideCache)
+            || self.options.contains(&NoUseDownloadCache)
+        {
+            let cache_file_path = self
+                .get_cache_file_name()
+                .iter()
+                .map(|name| format!("{}\\{}", self.get_scoop_cache_dir(), name))
+                .collect::<Vec<String>>();
+            cache_file_path.iter().try_for_each(|path| {
+                println!(
+                    "{}",
+                    format!("Override Cache File '{path}'").dark_grey().bold()
+                );
+                std::fs::remove_file(path)
+            })?;
+        }
         let output = aria2c.invoke_aria2c_download();
         match output {
             Ok(output) => {
                 println!("{}", output);
+                std::fs::remove_file(input_file)?;
+                Ok(())
             }
             Err(e) => {
                 eprintln!("{}", e.to_string().dark_red().bold());
+                std::fs::remove_file(input_file)?;
+                Ok(())
             }
         }
+    }
+    pub fn check_cache_file_hash(&self) -> anyhow::Result<()> { 
+      
+        let  cache_files = self.get_final_cache_file_path(); 
+        let  hash_formats =self.get_hash_format(); 
+        let  hash_values = self.get_hash_value(); 
+        // let result  =  cache_files.iter().zip(hash_formats).zip(hash_values)
+        //   .try_for_each(|((file,format),hash_value)| {
+        //     let file = file.to_string();
+        //    
+        //   Ok(())
+        // }); 
         Ok(())
-    } 
+    }
 }
 
 mod test_download_manager {
+    #[allow(unused_imports)]
+    use super::*;
     #[test]
     fn test_cache_file_name() {
-        use crate::install::DownloadManager;
-        let option = vec![];
+        let option = vec![ForceDownloadNoInstallOverrideCache];
         // let d = DownloadManager::new(&option, r"A:\Scoop\buckets\extras\bucket\sfsu.json");
         // let d = DownloadManager::new(&option, r"A:\Scoop\buckets\extras\bucket\7ztm.json");
-        let d = DownloadManager::new(&option, r"A:\Scoop\buckets\main\bucket\yazi.json");
-        // d.start_download().unwrap();
-        println!("{}", d.ensure_version_dir_exist().unwrap().display())
+        // let d = DownloadManager::new(option.as_slice(), r"A:\Scoop\buckets\main\bucket\yazi.json");
+        let d = DownloadManager::new(option.as_slice(), r"A:\Scoop\buckets\main\bucket\bun.json");
+        d.get_final_cache_file_path().iter().for_each(|name| {
+            println!("{}", name);
+        })
     }
+  
+   #[test] 
+    fn test_check_hash(){ 
+      let options  = vec![];
+     let d = DownloadManager::new(options.as_slice(), r"A:\Scoop\buckets\main\bucket\bun.json");
+      d.check_cache_file_hash().unwrap();
+
+   }
 }

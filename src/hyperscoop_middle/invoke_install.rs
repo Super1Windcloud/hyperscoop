@@ -1,30 +1,30 @@
 use crate::command_args::install::InstallArgs;
+use crate::hyperscoop_middle::invoke_update::{update_buckets, update_hp};
 use anyhow::bail;
 use command_util_lib::install::*;
-use std::path::Path;
-use crossterm::style::Stylize;
 use command_util_lib::utils::system::{is_admin, request_admin};
-use crate::hyperscoop_middle::invoke_update::{update_buckets, update_hp};
+use crossterm::style::Stylize;
+use std::path::Path;
 
 pub async fn execute_install_command(args: InstallArgs) -> Result<(), anyhow::Error> {
     if args.app_name.is_none() {
         return Ok(());
-    }  
-   
-   if  args.global {
-       if  !is_admin()?{
-         request_admin()
-       }
-   }
-    let options = inject_user_options(&args)?; 
-    if  options.contains(&InstallOptions::UpdateHpAndBuckets) {
-       println!("{}", "开始更新hp和buckets".dark_cyan().bold()); 
-       let  update_option  = create_update_options(&options)?;
-       update_hp(&update_option).await?;
-       update_buckets().await?;
+    }
+
+    if args.global {
+        if !is_admin()? {
+            request_admin()
+        }
+    }
+    let options = inject_user_options(&args)?;
+    if options.contains(&InstallOptions::UpdateHpAndBuckets) {
+        println!("{}", "开始更新hp和buckets".dark_cyan().bold());
+        let update_option = create_update_options(&options)?;
+        update_hp(&update_option).await?;
+        update_buckets().await?;
     }
     let app_name = args.app_name.clone().unwrap();
-    let app_name = convert_path(app_name.trim()); 
+    let app_name = convert_path(app_name.trim());
     if Path::new(&app_name).exists() {
         log::debug!("manifest file {}", app_name);
         let manifest_path = app_name;
@@ -73,46 +73,46 @@ pub async fn execute_install_command(args: InstallArgs) -> Result<(), anyhow::Er
     Ok(())
 }
 
-fn create_update_options( option : &[InstallOptions]) ->  anyhow::Result<Vec<UpdateOptions>> {
-  let mut update_options = vec![];
-   if option.contains(&InstallOptions::UpdateHpAndBuckets) { 
-      update_options.push(UpdateOptions::UpdateHpAndBuckets);
-   } 
-   if option.contains(&InstallOptions::NoUseDownloadCache) {
-      update_options.push(UpdateOptions::NoUseDownloadCache);
-   }
-   if option.contains(&InstallOptions::SkipDownloadHashCheck) {
-      update_options.push(UpdateOptions::SkipDownloadHashCheck);
-   }
-  
-   if option.contains( &InstallOptions::NoAutoDownloadDepends) {
-      update_options.push(UpdateOptions::NoAutoDownloadDepends);
-   }
-  if option.contains(&InstallOptions::Global) {
-      update_options.push(UpdateOptions::Global);
-  }
-   
-  
-  Ok(update_options)
+fn create_update_options(option: &[InstallOptions]) -> anyhow::Result<Vec<UpdateOptions>> {
+    let mut update_options = vec![];
+    if option.contains(&InstallOptions::UpdateHpAndBuckets) {
+        update_options.push(UpdateOptions::UpdateHpAndBuckets);
+    }
+    if option.contains(&InstallOptions::NoUseDownloadCache) {
+        update_options.push(UpdateOptions::NoUseDownloadCache);
+    }
+    if option.contains(&InstallOptions::SkipDownloadHashCheck) {
+        update_options.push(UpdateOptions::SkipDownloadHashCheck);
+    }
+
+    if option.contains(&InstallOptions::NoAutoDownloadDepends) {
+        update_options.push(UpdateOptions::NoAutoDownloadDepends);
+    }
+    if option.contains(&InstallOptions::Global) {
+        update_options.push(UpdateOptions::Global);
+    }
+
+    Ok(update_options)
 }
 
 pub fn inject_user_options(install_args: &InstallArgs) -> anyhow::Result<Vec<InstallOptions>> {
     let mut install_options = vec![];
-  if let Some(  arch) = install_args.arch.as_ref() {
-    // as_ref 引用原始数据  
-    let arch = arch.trim(); 
-    if  arch!="64bit" && arch!="32bit" &&  arch!="arm64" {
-        bail!("arch 格式错误, 请使用 64bit, 32bit, arm64")
+    if let Some(arch) = install_args.arch.as_ref() {
+        // as_ref 引用原始数据
+        let arch = arch.trim();
+        if arch != "64bit" && arch != "32bit" && arch != "arm64" {
+            bail!("arch 格式错误, 请使用 64bit, 32bit, arm64")
+        }
+        install_options.push(InstallOptions::ArchOptions(arch));
     }
-    install_options.push(InstallOptions::ArchOptions(arch));
-  }
+    if install_args.force_download_no_install {
+        install_options.push(InstallOptions::ForceDownloadNoInstallOverrideCache)
+    }
     if install_args.skip_download_hash_check {
         install_options.push(InstallOptions::SkipDownloadHashCheck)
     }
     if install_args.update_hp_and_buckets {
         install_options.push(InstallOptions::UpdateHpAndBuckets)
-   
-        
     }
     if install_args.no_use_download_cache {
         install_options.push(InstallOptions::NoUseDownloadCache)

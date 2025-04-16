@@ -26,8 +26,8 @@ pub async fn install_app_from_local_manifest_file(
     options: Vec<InstallOptions<'_>>,
     bucket_source: Option<&str>,
 ) -> Result<()> {
-    let options: Box<[InstallOptions]> = options.into_boxed_slice(); 
-    
+    let options: Box<[InstallOptions]> = options.into_boxed_slice();
+
     let install_arch = handle_arch(&options)?;
     log::info!("install arch: {}", install_arch);
     let content = std::fs::read_to_string(&manifest_path)?;
@@ -60,25 +60,36 @@ pub async fn install_app_from_local_manifest_file(
         version
     };
 
-    let result = check_before_install(&app_name, &version, &options).await?;
+    let result = if !options.contains(&InstallOptions::ForceDownloadNoInstallOverrideCache)
+        && !options.contains(&InstallOptions::OnlyDownloadNoInstall)
+    {
+        check_before_install(&app_name, &version, &options).await?
+    } else {
+        0
+    };
     if result != 0 {
         return Ok(());
     };
     let end_message = if bucket_source.is_none() {
-        format!("from manifest file '{}'" , manifest_path)
-    } else { 
-       format!("from bucket '{}'", bucket_source.unwrap())
-    }; 
-     
-    println!("{}", format!("Installing '{app_name}' ({version}) [{install_arch}] {end_message}").bold().dark_green());
-    
+        format!("from manifest file '{}'", manifest_path)
+    } else {
+        format!("from bucket '{}'", bucket_source.unwrap())
+    };
+
+    println!(
+        "{}",
+        format!("Installing '{app_name}' ({version}) [{install_arch}] {end_message}")
+            .bold()
+            .dark_green()
+    );
+
     let depends = serde_obj.depends;
     let suggest = serde_obj.suggest;
     let notes = serde_obj.notes;
     let env_set = serde_obj.env_set;
     let env_add_path = serde_obj.env_add_path;
-    let url = serde_obj.url;
-    let hash = serde_obj.hash;
+    // let url = serde_obj.url;
+    // let hash = serde_obj.hash;
     let installer = serde_obj.installer;
     let shortcuts = serde_obj.shortcuts;
     let architecture = serde_obj.architecture;
@@ -90,18 +101,24 @@ pub async fn install_app_from_local_manifest_file(
     let psmodule = serde_obj.psmodule;
     let pre_install = serde_obj.pre_install;
     let post_install = serde_obj.post_install;
-
-    if options.contains(&InstallOptions::OnlyDownloadNoInstall) {
-        return Ok(());
-    }
     if !depends.is_none() {
         handle_depends(depends.unwrap().as_str(), &options).await?;
     }
+
     //  invoke aria2  to  download  file to cache
+    let download_manager = DownloadManager::new(&options, &manifest_path);
+    download_manager.start_download()?;
+    if options.contains(&InstallOptions::OnlyDownloadNoInstall) {
+        return Ok(());
+    }
+    // check hash 
+    if  !options.contains(&InstallOptions::SkipDownloadHashCheck) { 
+         download_manager.check_cache_file_hash()? 
+    }
     //  提取 cache 中的zip 到 app dir
     //  parse    pre_install
     //  parse    manifest installer
-  
+
     // linking   app current dir to app version dir
     //create_shims
     //create_startmenu_shortcuts
