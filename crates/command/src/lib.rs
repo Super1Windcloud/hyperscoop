@@ -1,4 +1,4 @@
-#![deny(clippy::shadow)]
+
 pub mod buckets;
 pub mod cat;
 pub mod init_env;

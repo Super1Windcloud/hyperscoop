@@ -9,8 +9,8 @@ pub enum InstallOptions<'a> {
     OnlyDownloadNoInstall,
     ForceDownloadNoInstallOverrideCache,
     CheckCurrentVersionIsLatest,
-    Global, 
-    ForceInstallOverride
+    Global,
+    ForceInstallOverride,
 }
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -22,8 +22,8 @@ pub enum UpdateOptions {
     UpdateHpAndBuckets,
     Global,
     UpdateAllAPP,
-    RemoveOldVersionApp, 
-     ForceUpdateOverride 
+    RemoveOldVersionApp,
+    ForceUpdateOverride,
 }
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -41,7 +41,7 @@ pub enum ArchiveFormat {
     TAR,
 }
 
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug)]
 #[non_exhaustive]
 pub enum HashFormat {
     MD5,

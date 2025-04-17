@@ -12,24 +12,30 @@ use crate::manifest::manifest_deserialize::{ArchitectureObject, StringArrayOrStr
 use crate::utils::system::get_system_default_arch;
 use anyhow::bail;
 use crossterm::style::Stylize;
+use digest::Digest;
 use hex;
-use sha2::{Digest, Sha256};
-use std::io::Write;
+use md5::compute;
+use sha1::Sha1;
+use sha2::{Sha256, Sha512};
+use std::borrow::Cow;
+use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::vec;
 use windows_sys::Win32::System::Registry::{HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE};
 use winreg::RegKey;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 #[non_exhaustive]
 pub struct DownloadManager<'a> {
     app_name: &'a str,
+    manifest_path: &'a str,
     app_version: String,
     pub aria2c: Aria2C<'a>,
     scoop_cache_dir: String,
     cache_file_name: Vec<String>,
     app_version_dir: String,
     app_current_dir: String,
+    bucket_source: Option<&'a str>,
     options: &'a [InstallOptions<'a>],
     hash_format: Box<[HashFormat]>,
     hash_value: Box<[String]>,
@@ -38,27 +44,28 @@ pub struct DownloadManager<'a> {
     target_rename_alias: Box<[String]>,
     persist_data_dir: String,
     final_cache_file_path: Box<[String]>,
+    install_arch: Cow<'a, str>,
+    origin_cache_file_names: Box<[String]>,
 }
 
 impl<'a> DownloadManager<'a> {
     pub fn get_final_cache_file_path(&self) -> &[String] {
         &self.final_cache_file_path
     }
+    pub fn get_origin_cache_file_names(&self) -> &[String] {
+        &self.origin_cache_file_names
+    }
+    pub fn set_origin_cache_file_names(&mut self, names: &[String]) {
+        self.origin_cache_file_names = names.to_vec().into_boxed_slice();
+    }
     pub fn set_final_cache_file_path(&mut self) -> anyhow::Result<()> {
         let cache_file = self.get_cache_file_name();
         let mut files = vec![];
-        let result = cache_file.iter().try_for_each(|name| {
+        let _ = cache_file.iter().for_each(|name| {
             let file = format!("{}\\{}", self.get_scoop_cache_dir(), name);
-            if !Path::new(file.as_str()).exists() {
-                bail!("下载缓存文件{}不存在, 是否下载失败?", &file)
-            } else {
-                files.push(file);
-                Ok(())
-            }
+            files.push(file);
         });
-        if result.is_err() {
-            bail!(result.unwrap_err())
-        }
+
         self.final_cache_file_path = files.into_boxed_slice();
         Ok(())
     }
@@ -192,6 +199,15 @@ impl<'a> DownloadManager<'a> {
             .collect::<Vec<_>>();
         self.set_target_rename_alias(alias);
         self.download_urls = download_urls.to_vec().into_boxed_slice();
+        let origin_files = download_urls
+            .iter()
+            .map(|url| {
+                // log::debug!("{}", format!("Downloading '{}'", url).dark_blue().bold());
+                let file_name = url.split('/').last().unwrap();
+                file_name.to_string()
+            })
+            .collect::<Vec<_>>();
+        self.set_origin_cache_file_names(&origin_files);
     }
 
     pub fn get_input_file(&self) -> &str {
@@ -246,7 +262,7 @@ impl<'a> DownloadManager<'a> {
             user_path
         };
         let dir = self.app_current_dir.as_str();
-        if env_path.contains(dir) {
+        if env_path.contains(dir) && !dir.is_empty() {
             bail!("{} 已经存在于 PATH 环境变量中, 请检查", dir)
         }
         Ok(())
@@ -301,7 +317,12 @@ impl<'a> DownloadManager<'a> {
             Ok(get_system_default_arch()?)
         }
     }
-
+    pub fn set_app_download_architecture(&mut self, arch: &str) {
+        self.install_arch = Cow::Owned(arch.to_string())
+    }
+    pub fn get_app_download_architecture(&self) -> Cow<'a, str> {
+        self.install_arch.clone()
+    }
     fn init(&mut self, manifest_path: &'a str) -> anyhow::Result<()> {
         let download_cache_dir = if self.options.contains(&Global) {
             get_cache_dir_path_global()
@@ -353,20 +374,27 @@ impl<'a> DownloadManager<'a> {
             } else {
                 bail!("架构选项错误");
             }
-        } 
-        self.set_final_cache_file_path()?; 
+            self.set_app_download_architecture(&final_arch);
+        }
         self.set_download_app_name(app_name);
         self.set_app_current_dir();
         self.set_app_version_dir();
         self.set_input_file();
         self.create_input_file()?;
+        self.set_final_cache_file_path()?;
         Ok(())
     }
 
-    pub fn new(options: &'a [InstallOptions], manifest_path: &'a str) -> DownloadManager<'a> {
+    pub fn new(
+        options: &'a [InstallOptions],
+        manifest_path: &'a str,
+        bucket_source: Option<&'a str>,
+    ) -> DownloadManager<'a> {
         let mut download = Self {
             app_name: "",
+            manifest_path,
             app_version: "".into(),
+            bucket_source,
             aria2c: Aria2C::new(),
             scoop_cache_dir: "".into(),
             cache_file_name: vec![],
@@ -378,8 +406,10 @@ impl<'a> DownloadManager<'a> {
             input_file: "".into(),
             download_urls: vec![].into_boxed_slice(),
             target_rename_alias: vec![].into_boxed_slice(),
-             persist_data_dir: "".to_string(),
-           final_cache_file_path: Box::new([]),
+            persist_data_dir: "".to_string(),
+            final_cache_file_path: Box::new([]),
+            install_arch: Cow::from(""),
+            origin_cache_file_names: Box::new([]),
         };
         match download.init(manifest_path) {
             Ok(_) => download,
@@ -443,6 +473,7 @@ impl<'a> DownloadManager<'a> {
                 short_hash
             })
             .collect::<Vec<String>>();
+
         let extensions = urls
             .iter()
             .map(|url| {
@@ -502,7 +533,40 @@ impl<'a> DownloadManager<'a> {
                 std::fs::remove_file(path)
             })?;
         }
+        if self
+            .options
+            .contains(&InstallOptions::OnlyDownloadNoInstall)
+        {
+            let end_message = if self.bucket_source.is_none() {
+                format!("from manifest file '{}'", self.manifest_path)
+            } else {
+                format!("from bucket '{}'", self.bucket_source.clone().unwrap())
+            };
+            println!(
+                "{}",
+                format!(
+                    "Downloading '{}' [{}] {}",
+                    self.app_name, self.install_arch, end_message
+                )
+                .dark_blue()
+                .bold()
+            );
+        }
+        let final_caches = self.final_cache_file_path.as_ref();
+        let result = final_caches.iter().all(|path| Path::new(path).exists());
+        if result {
+            self.origin_cache_file_names.iter().for_each(|name| {
+                println!(
+                    "{} {} {}",
+                    "Loading".dark_blue().bold(),
+                    name.to_string().dark_cyan().bold(),
+                    "from cache".blue().bold()
+                )
+            });
+            return Ok(());
+        }
         let output = aria2c.invoke_aria2c_download();
+
         match output {
             Ok(output) => {
                 println!("{}", output);
@@ -516,16 +580,70 @@ impl<'a> DownloadManager<'a> {
             }
         }
     }
-    pub fn check_cache_file_hash(&self) -> anyhow::Result<()> { 
-      
-        let  cache_files = self.get_final_cache_file_path(); 
-        let  hash_formats =self.get_hash_format(); 
-        let  hash_values = self.get_hash_value(); 
-        let result  =  cache_files.iter().zip(hash_formats).zip(hash_values)
-          .try_for_each(|((file,format),hash_value)| {  
-           
-          Ok(()) 
-        })  as  anyhow::Result<()>; 
+    pub fn check_cache_file_hash(&self) -> anyhow::Result<()> {
+        let cache_files = self.get_final_cache_file_path();
+        let hash_formats = self.get_hash_format();
+        let hash_values = self.get_hash_value();
+        let result = cache_files
+            .iter()
+            .zip(hash_formats)
+            .zip(hash_values)
+            .zip(self.get_cache_file_name())
+            .try_for_each(|(((file, format), hash_value), origin_name)| {
+                let mut open_file = std::fs::File::open(file)?;
+                let mut buffer = vec![];
+                open_file.read_to_end(&mut buffer)?;
+
+                let caculate_hash = match format {
+                    HashFormat::SHA1 => {
+                        let mut hasher = Sha1::new();
+                        hasher.update(&buffer);
+                        let caculate_hash = hasher.finalize();
+                        let caculate_hash = hex::encode(caculate_hash);
+                        caculate_hash
+                    }
+                    HashFormat::SHA512 => {
+                        let mut hasher = Sha512::new();
+                        hasher.update(&buffer);
+                        let caculate_hash = hasher.finalize();
+                        let caculate_hash = hex::encode(caculate_hash);
+                        caculate_hash
+                    }
+                    HashFormat::SHA256 => {
+                        let mut hasher = Sha256::new();
+                        hasher.update(&buffer);
+                        let caculate_hash = hasher.finalize();
+                        let caculate_hash = hex::encode(caculate_hash);
+                        caculate_hash
+                    }
+                    HashFormat::MD5 => {
+                        let digest = compute(&buffer);
+                        let hex_str = format!("{:x}", digest);
+                        hex_str
+                    }
+                };
+
+                if caculate_hash != *hash_value {
+                    bail!(
+                        "{} 文件校验失败, 期望hash: {}, 实际hash: {}",
+                        file,
+                        hash_value,
+                        caculate_hash
+                    )
+                } else {
+                    println!(
+                        "{} {}......{}",
+                        "Checking hash of".dark_blue().bold(),
+                        origin_name.to_string().dark_cyan().bold(),
+                        "✅"
+                    );
+                    Ok(())
+                }
+            }) as anyhow::Result<()>;
+
+        if result.is_err() {
+            bail!("{}", result.unwrap_err())
+        }
         Ok(())
     }
 }
@@ -536,20 +654,45 @@ mod test_download_manager {
     #[test]
     fn test_cache_file_name() {
         let option = vec![ForceDownloadNoInstallOverrideCache];
-        // let d = DownloadManager::new(&option, r"A:\Scoop\buckets\extras\bucket\sfsu.json");
         // let d = DownloadManager::new(&option, r"A:\Scoop\buckets\extras\bucket\7ztm.json");
         // let d = DownloadManager::new(option.as_slice(), r"A:\Scoop\buckets\main\bucket\yazi.json");
-        let d = DownloadManager::new(option.as_slice(), r"A:\Scoop\buckets\main\bucket\bun.json");
+        let d = DownloadManager::new(
+            option.as_slice(),
+            r"A:\Scoop\buckets\main\bucket\bun.json",
+            None,
+        );
         d.get_final_cache_file_path().iter().for_each(|name| {
             println!("{}", name);
         })
     }
-  
-   #[test] 
-    fn test_check_hash(){ 
-      let options  = vec![];
-     let d = DownloadManager::new(options.as_slice(), r"A:\Scoop\buckets\main\bucket\bun.json");
-      d.check_cache_file_hash().unwrap();
 
-   }
+    #[test]
+    fn test_check_hash() {
+        let options = vec![];
+        let d = DownloadManager::new(
+            options.as_slice(),
+            r"A:\Scoop\buckets\main\bucket\bun.json",
+            None,
+        );
+        d.check_cache_file_hash().unwrap();
+    }
+
+    #[test]
+    fn test_output() {
+        let options = vec![];
+        let d = DownloadManager::new(
+            options.as_slice(),
+            r"A:\Scoop\buckets\main\bucket\bun.json",
+            None,
+        );
+        println!("{}", d.get_app_current_dir());
+        d.ensure_install_dir_not_in_env_path().unwrap();
+    }
+
+    #[test]
+    fn test_origin_name() {
+        let binding = vec![];
+        let d = DownloadManager::new(&binding, r"A:\Scoop\buckets\extras\bucket\sfsu.json", None);
+        println!("{:?}", d.get_origin_cache_file_names())
+    }
 }

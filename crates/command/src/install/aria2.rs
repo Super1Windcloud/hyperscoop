@@ -140,16 +140,17 @@ impl<'a> Aria2C<'a> {
     pub fn invoke_aria2c_download<'cmd>(&self) -> anyhow::Result<String> {
         let aria2_exe = self.get_aria2c_path();
         println!(
-            "{}",
-            "Starting aria2 download file ......".dark_blue().bold()
+            "{}\n",
+            "Starting Aria2 Download Files......".dark_blue().bold()
         );
         let proxy = get_config_value_no_print("proxy");
-        let proxy = if !proxy.contains("http://") && !proxy.contains("https://") {
+        let proxy = if !proxy.contains("http://") && !proxy.contains("https://")
+           &&  !proxy.is_empty() {
             "http://".to_string() + &proxy
         } else {
             proxy
         };
-        if !is_valid_url(&proxy) {
+        if !is_valid_url(&proxy) &&  !proxy.is_empty() {
             bail!("Proxy is not valid, url format error");
         };
         let input_file = self.get_input_file();

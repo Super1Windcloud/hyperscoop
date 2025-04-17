@@ -84,7 +84,7 @@ pub async fn install_app_from_local_manifest_file(
     let end_message = if bucket_source.is_none() {
         format!("from manifest file '{}'", manifest_path)
     } else {
-        format!("from bucket '{}'", bucket_source.unwrap())
+        format!("from bucket '{}'", bucket_source.clone().unwrap())
     };
 
     println!(
@@ -117,14 +117,13 @@ pub async fn install_app_from_local_manifest_file(
     }
 
     //  invoke aria2  to  download  file to cache
-    let download_manager = DownloadManager::new(&options, &manifest_path);
+    let   download_manager = DownloadManager::new(&options, &manifest_path, bucket_source);
     download_manager.start_download()?;
+   if !options.contains(&InstallOptions::SkipDownloadHashCheck) {
+    download_manager.check_cache_file_hash()?
+   }
     if options.contains(&InstallOptions::OnlyDownloadNoInstall) {
         return Ok(());
-    }
-    // check hash
-    if !options.contains(&InstallOptions::SkipDownloadHashCheck) {
-        download_manager.check_cache_file_hash()?
     }
     //  提取 cache 中的zip 到 app dir
     //  parse    pre_install
@@ -189,9 +188,8 @@ pub async fn install_app_specific_version(
 
 pub async fn install_app(app_name: &str, options: &[InstallOptions<'_>]) -> Result<()> {
     log::info!("install from app {}", app_name);
-
     let install_arch = handle_arch(&options)?;
-    log::info!("install arch: {}", install_arch);
+    log::info!("install_app  arch: {}", install_arch);
     Ok(())
 }
 

@@ -94,8 +94,6 @@ pub fn handle_arch(arch: &[InstallOptions]) -> anyhow::Result<String> {
         Ok(option_arch.parse()?)
     } else {
         let system_arch = get_system_default_arch()?;
-         println!("{} {system_arch}", "架构选项错误,将使用系统默认架构: ".dark_yellow());
-
         if system_arch.is_empty() {
             bail!("获取系统默认架构失败")
         }

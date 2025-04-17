@@ -77,7 +77,7 @@ pub fn  get_config_value_no_print  (name : &str) ->String  {
     let config_file = std::fs::File::open(config_path).unwrap();
     let config_json: serde_json::Value = serde_json::from_reader(config_file).unwrap();
     if let Some(value) = config_json.get(name) {
-      value.as_str().unwrap().to_string()
+      value.as_str().unwrap().trim().to_string()
     } else {
       String::new()
     }

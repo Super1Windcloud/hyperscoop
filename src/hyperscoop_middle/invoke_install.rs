@@ -3,7 +3,7 @@ use crate::command_args::install::InstallArgs;
 use crate::hyperscoop_middle::invoke_update::{update_buckets, update_hp};
 use anyhow::bail;
 use command_util_lib::install::*;
-use command_util_lib::utils::system::{is_admin, request_admin};
+use command_util_lib::utils::system::{get_system_default_arch, is_admin, request_admin};
 use crossterm::style::Stylize;
 use std::path::Path;
 
@@ -107,7 +107,20 @@ pub fn inject_user_options(install_args: &InstallArgs) -> anyhow::Result<Vec<Ins
         if arch != "64bit" && arch != "32bit" && arch != "arm64" {
             bail!("arch 格式错误, 请使用 64bit, 32bit, arm64")
         }
-        install_options.push(InstallOptions::ArchOptions(arch));
+        if arch.is_empty() {
+            let arch = get_system_default_arch()?;
+            let arch = match arch.as_ref() {
+                "64bit" => "64bit",
+                "32bit" => "32bit",
+                "arm64" => "arm64",
+                _ => {
+                    bail!("获取系统默认架构失败")
+                }
+            };
+            install_options.push(InstallOptions::ArchOptions(arch));
+        } else {
+            install_options.push(InstallOptions::ArchOptions(arch));
+        }
     }
     if install_args.only_download_no_install_with_override_cache {
         install_options.push(InstallOptions::ForceDownloadNoInstallOverrideCache)
@@ -132,10 +145,10 @@ pub fn inject_user_options(install_args: &InstallArgs) -> anyhow::Result<Vec<Ins
     }
     if install_args.check_version_up_to_date {
         install_options.push(InstallOptions::CheckCurrentVersionIsLatest)
-    } 
-  
-    if install_args. force_install_override { 
-       install_options.push(InstallOptions::ForceInstallOverride) 
+    }
+
+    if install_args.force_install_override {
+        install_options.push(InstallOptions::ForceInstallOverride)
     }
     Ok(install_options)
 }
