@@ -521,12 +521,11 @@ impl<'a> DownloadManager<'a> {
         let  cache_files = self.get_final_cache_file_path(); 
         let  hash_formats =self.get_hash_format(); 
         let  hash_values = self.get_hash_value(); 
-        // let result  =  cache_files.iter().zip(hash_formats).zip(hash_values)
-        //   .try_for_each(|((file,format),hash_value)| {
-        //     let file = file.to_string();
-        //    
-        //   Ok(())
-        // }); 
+        let result  =  cache_files.iter().zip(hash_formats).zip(hash_values)
+          .try_for_each(|((file,format),hash_value)| {  
+           
+          Ok(()) 
+        })  as  anyhow::Result<()>; 
         Ok(())
     }
 }

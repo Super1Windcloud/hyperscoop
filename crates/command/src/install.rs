@@ -1,9 +1,10 @@
+use std::path::Path;
 use crate::manifest::install_manifest::InstallManifest;
 use anyhow::{bail, Result};
 use crossterm::style::Stylize;
 
 pub mod installer;
-use crate::init_env::get_app_current_dir;
+use crate::init_env::{get_app_current_dir, get_app_dir, get_app_dir_global};
 use crate::manifest::manifest_deserialize::*;
 pub use installer::*;
 pub mod check;
@@ -43,6 +44,16 @@ pub async fn install_app_from_local_manifest_file(
     let version = &serde_obj.version.unwrap_or(String::new());
     if version.is_empty() {
         bail!("manifest file version is empty")
+    }
+    if options.contains(&InstallOptions::ForceInstallOverride) {
+        let special_app_dir = if options.contains(&InstallOptions::Global) {
+            get_app_dir_global(&app_name)
+        } else {
+            get_app_dir(&app_name)
+        }; 
+       if Path::new(&special_app_dir).exists() {
+         std::fs::remove_dir_all(special_app_dir)?;
+       }
     }
     validate_version(version)?;
     let options = if version == "nightly" {
@@ -111,9 +122,9 @@ pub async fn install_app_from_local_manifest_file(
     if options.contains(&InstallOptions::OnlyDownloadNoInstall) {
         return Ok(());
     }
-    // check hash 
-    if  !options.contains(&InstallOptions::SkipDownloadHashCheck) { 
-         download_manager.check_cache_file_hash()? 
+    // check hash
+    if !options.contains(&InstallOptions::SkipDownloadHashCheck) {
+        download_manager.check_cache_file_hash()?
     }
     //  提取 cache 中的zip 到 app dir
     //  parse    pre_install
@@ -183,3 +194,5 @@ pub async fn install_app(app_name: &str, options: &[InstallOptions<'_>]) -> Resu
     log::info!("install arch: {}", install_arch);
     Ok(())
 }
+
+

@@ -1,14 +1,15 @@
-use std::fs;
 use crate::buckets::{get_buckets_name, get_buckets_path};
 use crate::utils::git::{
     git_pull_update_repo, git_pull_update_repo_with_scoop, local_scoop_latest_commit,
     remote_latest_scoop_commit,
 };
+use std::fs;
+use std::path::Path;
 pub(crate) mod update;
 use crate::init_env::{
-    get_app_current_dir, get_app_current_dir_global, get_apps_path, get_apps_path_global,
+    get_app_current_dir, get_app_current_dir_global, get_app_dir, get_app_dir_global 
 };
-use crate::install::UpdateOptions::{Global, RemoveOldVersionApp};
+use crate::install::UpdateOptions::{ForceUpdateOverride, Global, RemoveOldVersionApp};
 use crate::install::{install_app, InstallOptions, UpdateOptions};
 use crate::list::get_all_installed_apps_name;
 use crate::utils::progrees_bar::{gen_stats_callback, ProgressOptions};
@@ -20,6 +21,7 @@ use crate::utils::request::get_git_repo_remote_url;
 use crate::utils::utility::get_official_bucket_path;
 #[allow(unused_imports)]
 use anyhow::bail;
+use crossterm::style::Stylize;
 use rayon::prelude::*;
 pub use update::*;
 
@@ -27,13 +29,11 @@ const FINISH_MESSAGE: &str = "✅";
 
 pub async fn update_all_apps(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
     let all_apps_name = get_all_installed_apps_name();
-    let origin_options = options.to_vec();
-    let options = transform_update_options_to_install(options);
     for app in all_apps_name {
-        if origin_options.contains(&RemoveOldVersionApp) {
-            remove_old_version(&app, &origin_options)?;
-        }
-        install_app(&app, options.as_ref()).await?;
+        if check_app_version_latest(&app, &options)? {
+            continue;
+        };
+        update_specific_app(&app, options).await?;
     }
     Ok(())
 }
@@ -44,7 +44,7 @@ pub fn remove_old_version(app_name: &str, options: &[UpdateOptions]) -> anyhow::
     } else {
         get_app_current_dir(app_name)
     };
-    let  target_version_path = fs::read_link(app_current_dir)?; 
+    let target_version_path = fs::read_link(app_current_dir)?;
     log::debug!("target_version_path: {:?}", target_version_path);
     fs::remove_dir_all(target_version_path)?;
     Ok(())
@@ -74,12 +74,28 @@ pub async fn update_specific_app(
     options: &[UpdateOptions],
 ) -> Result<(), anyhow::Error> {
     log::debug!("update_specific_app {}", &app_name);
-    let apps_dir = if options.contains(&Global) {
-        get_apps_path_global()
-    } else {
-        get_apps_path()
+    let origin_options = options.to_vec();
+    let options = transform_update_options_to_install(options);
+
+    if origin_options.contains(&ForceUpdateOverride) {
+        let special_app_dir = if origin_options.contains(&Global) {
+            get_app_dir_global(&app_name)
+        } else {
+            get_app_dir(&app_name)
+        };
+        if Path::new(&special_app_dir).exists() {
+            fs::remove_dir_all(special_app_dir)?;
+        }
     };
- 
+    if check_app_version_latest(&app_name, &origin_options)? {
+        println!("{}", "当前App已是最新版本,无需更新".dark_cyan().bold());
+        return Ok(());
+    };
+    if origin_options.contains(&RemoveOldVersionApp) {
+        remove_old_version(&app_name, &origin_options)?;
+    }
+    install_app(&app_name, options.as_ref()).await?;
+
     Ok(())
 }
 

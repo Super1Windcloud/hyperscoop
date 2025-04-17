@@ -1,3 +1,4 @@
+use crate::check_self_update::auto_check_hp_update;
 use crate::command_args::install::InstallArgs;
 use crate::hyperscoop_middle::invoke_update::{update_buckets, update_hp};
 use anyhow::bail;
@@ -7,16 +8,19 @@ use crossterm::style::Stylize;
 use std::path::Path;
 
 pub async fn execute_install_command(args: InstallArgs) -> Result<(), anyhow::Error> {
+    let options = inject_user_options(&args)?;
+    if options.contains(&InstallOptions::CheckCurrentVersionIsLatest) {
+        auto_check_hp_update().await?;
+    }
     if args.app_name.is_none() {
         return Ok(());
     }
-
     if args.global {
         if !is_admin()? {
             request_admin()
         }
     }
-    let options = inject_user_options(&args)?;
+
     if options.contains(&InstallOptions::UpdateHpAndBuckets) {
         println!("{}", "开始更新hp和buckets".dark_cyan().bold());
         let update_option = create_update_options(&options)?;
@@ -105,7 +109,7 @@ pub fn inject_user_options(install_args: &InstallArgs) -> anyhow::Result<Vec<Ins
         }
         install_options.push(InstallOptions::ArchOptions(arch));
     }
-    if install_args.force_download_no_install {
+    if install_args.only_download_no_install_with_override_cache {
         install_options.push(InstallOptions::ForceDownloadNoInstallOverrideCache)
     }
     if install_args.skip_download_hash_check {
@@ -125,6 +129,13 @@ pub fn inject_user_options(install_args: &InstallArgs) -> anyhow::Result<Vec<Ins
     }
     if install_args.only_download_no_install {
         install_options.push(InstallOptions::OnlyDownloadNoInstall)
+    }
+    if install_args.check_version_up_to_date {
+        install_options.push(InstallOptions::CheckCurrentVersionIsLatest)
+    } 
+  
+    if install_args. force_install_override { 
+       install_options.push(InstallOptions::ForceInstallOverride) 
     }
     Ok(install_options)
 }

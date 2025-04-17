@@ -1,28 +1,29 @@
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[non_exhaustive]
-pub enum InstallOptions<'a>  {
+pub enum InstallOptions<'a> {
     NoUseDownloadCache,
     NoAutoDownloadDepends,
     SkipDownloadHashCheck,
-    ArchOptions(&'a str ),
+    ArchOptions(&'a str),
     UpdateHpAndBuckets,
     OnlyDownloadNoInstall,
     ForceDownloadNoInstallOverrideCache,
-    Global,
+    CheckCurrentVersionIsLatest,
+    Global, 
+    ForceInstallOverride
 }
-
-
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[non_exhaustive]
-pub enum  UpdateOptions {
+pub enum UpdateOptions {
     NoUseDownloadCache,
     NoAutoDownloadDepends,
     SkipDownloadHashCheck,
     UpdateHpAndBuckets,
     Global,
     UpdateAllAPP,
-    RemoveOldVersionApp
+    RemoveOldVersionApp, 
+     ForceUpdateOverride 
 }
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -49,24 +50,18 @@ pub enum HashFormat {
     SHA512,
 }
 
-
 #[derive(Clone, Debug, PartialEq)]
-pub  enum DownloadState {
-  Queued,                      
-  Downloading {
-    progress: f64,          
-    speed: f64,            
-  },
-  Paused,                    
-  Completed(String),           
-  Failed(String),           
+pub enum DownloadState {
+    Queued,
+    Downloading { progress: f64, speed: f64 },
+    Paused,
+    Completed(String),
+    Failed(String),
 }
-
-
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[non_exhaustive]
-pub enum   ParserUrl {
-  ExternalUrl(String),
-  InternalUrl(String), 
+pub enum ParserUrl {
+    ExternalUrl(String),
+    InternalUrl(String),
 }

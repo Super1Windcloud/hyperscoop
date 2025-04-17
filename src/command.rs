@@ -22,8 +22,9 @@ use anyhow::bail;
 use clap::{Args, Subcommand};
 use command_util_lib::init_env::get_app_dir_install_json;
 use crossterm::style::Stylize;
-use serde_json::Value;
+use serde_json::{Value};
 use std::path::Path;
+use crate::check_self_update::auto_check_hp_update;
 
 #[derive(Debug, Subcommand)]
 #[command(propagate_version = true)] // 自动传递版本信息
@@ -69,12 +70,16 @@ pub(crate) enum Commands {
 #[command(no_binary_name = true)]
 pub struct CreditsArgs {}
 
-pub fn execute_credits_command() -> anyhow::Result<()> {
-    let str = "hp  is created by superwindcloud(https://gitee.com/superwindcloud)"
+pub async   fn execute_credits_command() -> anyhow::Result<()> {
+    if !auto_check_hp_update().await? { 
+      println!("{}", "💖\tNow hp's  version is latest! Please enjoy it!".dark_cyan().bold());
+    };
+    
+    let str = "Hp  is created by superwindcloud(https://gitee.com/superwindcloud)(https://github.com/super1windcloud)"
         .to_string()
         .dark_blue()
         .bold();
-    println!("💖 {str}");
+    println!("💖\t{str}");
     Ok(())
 }
 

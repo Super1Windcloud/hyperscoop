@@ -18,9 +18,9 @@ pub async fn auto_check_hp_update() -> anyhow::Result<bool> {
     let cmd = Cli::command();
     let version = cmd.get_version().ok_or(anyhow!("hp version is empty"))?;
     let latest_github_version = get_latest_version_from_github().await?;
-
+    
     if version.to_string() < latest_github_version {
-        println!("{}", format!("发现hp新版本 {latest_github_version},请访问https://github.com/Super1Windcloud/hp/releases").yellow().bold());
+        println!("{}", format!("发现hp新版本 {latest_github_version},请访问https://github.com/Super1Windcloud/hp/releases").dark_cyan().bold());
         Ok(true)
     } else {
         Ok(false)
@@ -57,7 +57,6 @@ async fn get_latest_version_from_github() -> anyhow::Result<String> {
     Ok(tags.tag_name)
 }
 
-
 #[cfg(not(token_local))]
 async fn get_latest_version_from_github() -> anyhow::Result<String> {
     let owner = "super1windcloud";
@@ -66,18 +65,19 @@ async fn get_latest_version_from_github() -> anyhow::Result<String> {
         "https://api.github.com/repos/{}/{}/releases/latest",
         owner, repo
     );
-   let client = Client::new();
-   let response = client
-    .get(&url)
-    .header("User-Agent", "Rust-GitHub-API-Client")
-    .header("Accept", "application/vnd.github.v3+json")
-    .send()
-    .await.unwrap();
+    let client = Client::new();
+    let response = client
+        .get(&url)
+        .header("User-Agent", "Rust-GitHub-API-Client")
+        .header("Accept", "application/vnd.github.v3+json")
+        .send()
+        .await
+        .unwrap();
 
-  if!response.status().is_success() {
-    eprintln!("请求失败: {}", response.status());
-  }
-   let tags: GithubRelease = response.json().await.unwrap();
+    if !response.status().is_success() {
+        eprintln!("请求失败: {}", response.status());
+    }
+    let tags: GithubRelease = response.json().await.unwrap();
     Ok(tags.tag_name)
 }
 
@@ -126,9 +126,11 @@ async fn get_latest_version_from_gitee() -> anyhow::Result<String> {
     Ok(gitee_tag)
 }
 
+
+
 mod test_auto_update {
-  #[allow(unused)]
-  use super::*;
+    #[allow(unused)]
+    use super::*;
 
     #[tokio::test]
     async fn test_auto_check_hp_update() {
@@ -138,25 +140,26 @@ mod test_auto_update {
 
     #[tokio::test]
     async fn test_github_api() {
-      let token = "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";
-      let owner = "super1windcloud";
-      let repo = "hp";
-      let url = format!(
-        "https://api.github.com/repos/{}/{}/releases/latest",
-        owner, repo
-      );
-      let client = Client::new();
-      let response = client
-        .get(&url)
-        .header("User-Agent", "Rust-GitHub-API-Client")
-        .header("Accept", "application/vnd.github.v3+json")
-        .send()
-        .await.unwrap();
+        let _token = "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";
+        let owner = "super1windcloud";
+        let repo = "hp";
+        let url = format!(
+            "https://api.github.com/repos/{}/{}/releases/latest",
+            owner, repo
+        );
+        let client = Client::new();
+        let response = client
+            .get(&url)
+            .header("User-Agent", "Rust-GitHub-API-Client")
+            .header("Accept", "application/vnd.github.v3+json")
+            .send()
+            .await
+            .unwrap();
 
-      if!response.status().is_success() {
-         eprintln!("请求失败: {}", response.status());
-      }
-      let tags: GithubRelease = response.json().await.unwrap();
-      println!("{}", tags.tag_name);
+        if !response.status().is_success() {
+            eprintln!("请求失败: {}", response.status());
+        }
+        let tags: GithubRelease = response.json().await.unwrap();
+        println!("{}", tags.tag_name);
     }
 }

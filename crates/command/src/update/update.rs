@@ -1,8 +1,18 @@
+use crate::init_env::{
+    get_app_dir, get_app_dir_global, get_app_dir_manifest_json, get_app_dir_manifest_json_global,
+};
+use crate::install::UpdateOptions;
+use crate::install::UpdateOptions::Global;
+use crate::list::VersionJSON;
+use crate::manifest::manifest::{
+    get_latest_app_version_from_local_bucket, get_latest_app_version_from_local_bucket_global,
+};
 use crate::utils::utility::{get_official_bucket_path, get_official_buckets_name};
 use anyhow::{bail, Context};
 use crossterm::style::Stylize;
 use git2::{FetchOptions, Repository};
 use rayon::prelude::*;
+use std::path::Path;
 use std::sync::{Arc, Mutex};
 
 pub fn check_bucket_update_status<'a>() -> anyhow::Result<bool> {
@@ -60,6 +70,45 @@ pub fn check_bucket_update_status<'a>() -> anyhow::Result<bool> {
         );
     }
     Ok(flag)
+}
+
+pub fn check_app_version_latest(app_name: &str, options: &[UpdateOptions]) -> anyhow::Result<bool> {
+    let app_dir = if options.contains(&Global) {
+        get_app_dir_global(app_name)
+    } else {
+        get_app_dir(app_name)
+    };
+    if !Path::new(&app_dir).exists() {
+        bail!("Not found for '{}',App并未安装", app_name);
+    }
+    let manifest_path = if options.contains(&Global) {
+        get_app_dir_manifest_json_global(app_name)
+    } else {
+        get_app_dir_manifest_json(app_name)
+    };
+    if !Path::new(&manifest_path).exists() {
+        bail!("Manifest path {} does not exist", manifest_path);
+    }
+    let content = std::fs::read_to_string(&manifest_path)?;
+    let version: VersionJSON = serde_json::from_str(&content)?;
+    let old_version = version.version.ok_or(0);
+    match old_version {
+        Err(_) => {
+            bail!("该App没有找到版本信息,manifest.json格式错误")
+        }
+        Ok(old_version) => {
+            let latest_version = if options.contains(&Global) {
+                get_latest_app_version_from_local_bucket_global(app_name)?
+            } else {
+                get_latest_app_version_from_local_bucket(app_name)?
+            };
+            if old_version == latest_version {
+                Ok(true)
+            } else {
+                Ok(false)
+            }
+        }
+    }
 }
 
 mod test {

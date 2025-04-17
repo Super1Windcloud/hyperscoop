@@ -341,6 +341,17 @@ pub fn get_all_buckets_dir_path() -> anyhow::Result<Vec<String>> {
 
     Ok(buckets_path)
 }
+pub fn get_all_buckets_dir_child_bucket_path() -> anyhow::Result<Vec<String>> {
+    let bucket_path = get_bucket_dir_path();
+    // 遍历 bucket_path 下的所有文件夹，并将文件夹名加入 buckets_path
+    let buckets_path: Vec<String> = read_dir(&bucket_path)?
+        .filter_map(|e| e.ok())
+        .filter(|e| e.path().is_dir())
+        .map(|e| e.path().join("bucket").to_str().unwrap().to_string())
+        .collect();
+
+    Ok(buckets_path)
+}
 
 pub fn get_all_global_buckets_dir_path() -> anyhow::Result<Vec<String>> {
     let bucket_path = get_buckets_root_dir_path_global();
@@ -348,6 +359,15 @@ pub fn get_all_global_buckets_dir_path() -> anyhow::Result<Vec<String>> {
         .filter_map(|e| e.ok())
         .filter(|e| e.path().is_dir())
         .map(|e| e.path().to_str().unwrap().to_string())
+        .collect();
+    Ok(buckets_path)
+}
+pub fn get_all_global_buckets_dir_child_bucket_path() -> anyhow::Result<Vec<String>> {
+    let bucket_path = get_buckets_root_dir_path_global();
+    let buckets_path: Vec<String> = read_dir(&bucket_path)?
+        .filter_map(|e| e.ok())
+        .filter(|e| e.path().is_dir())
+        .map(|e| e.path().join("bucket").to_str().unwrap().to_string())
         .collect();
     Ok(buckets_path)
 }
@@ -407,7 +427,8 @@ mod test_path {
    #[test]
    fn  test_simple_output(){ 
       println!("{}", get_scoop_config_path().unwrap());  
-       println!("{}",get_special_bucket_path("main"))
+       println!("{}",get_special_bucket_path("main"));  
+       print!("{}"   ,get_app_dir("git")); 
    }
   
 }

@@ -55,7 +55,9 @@ fn inject_update_user_options(args: &UpdateArgs) -> anyhow::Result<Vec<UpdateOpt
     if args.no_auto_download_dependencies {
         options.push(UpdateOptions::NoAutoDownloadDepends);
     }
-
+   if  args.force_update_override {
+      options.push(UpdateOptions::ForceUpdateOverride); 
+   }
     Ok(options)
 }
 

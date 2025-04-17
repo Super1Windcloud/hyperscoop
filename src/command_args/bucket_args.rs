@@ -55,7 +55,7 @@ pub struct RmArgs {
 }
 
 #[derive(Args, Debug, Clone)]
-#[command(about = "添加一个指定bucket, 如何没有仓库名,使用URL最后一个层次名   \n---hp bucket add <name> [<repo>]")]
+#[command(about = "添加一个指定bucket, 如何没有仓库名,使用URL最后一个层次名   \n---hp bucket add <name> [<repo_url>] \n---hp bucket add <repo_url>")]
 #[command(arg_required_else_help = true, subcommand_negates_reqs = true)]
 pub struct AddArgs {
     #[arg(required = false ,help = "仓库名称")]

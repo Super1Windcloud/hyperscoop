@@ -93,7 +93,6 @@ async fn main() -> anyhow::Result<()> {
             Commands::Import(args) => execute_import_command(args).await ,
             Commands::Info(info) => execute_info_command(info),
             Commands::Install(args) => {
-                auto_check_hp_update().await?;
                 execute_install_command(args).await
             }
             Commands::List(query_app) => execute_list_installed_apps(query_app ),
@@ -108,7 +107,7 @@ async fn main() -> anyhow::Result<()> {
             }
             Commands::Which(which) => execute_which_command(which),
             Commands::Merge(args) => execute_merge_command(args),
-            Commands::Credits(_) => execute_credits_command(),
+            Commands::Credits(_) => execute_credits_command().await,
             Commands::Hold( hold_args ) => execute_hold_command( hold_args),
         },
     };
