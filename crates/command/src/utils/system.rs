@@ -3,7 +3,7 @@ use std::path::Path;
 use windows::core::PCWSTR;
 use windows::Win32::Foundation::HWND;
 use windows::Win32::UI::Shell::{IsUserAnAdmin, ShellExecuteW};
- 
+
 pub fn delete_env_var(var_key: &str) -> Result<(), anyhow::Error> {
     use winreg::enums::*;
     use winreg::RegKey;
@@ -78,11 +78,35 @@ pub fn request_admin() {
 pub fn is_admin() -> anyhow::Result<bool> {
     unsafe { Ok(IsUserAnAdmin().as_bool()) }
 }
-mod test {
+
+
+pub  fn  compute_hash_by_powershell( file_path :&str  , algorithm :&str )->anyhow::Result<String> {
+    let  cmd = format!(r#"$env:PSModulePath ="$PSHOME/Modules";(Get-FileHash -Algorithm {} -Path "{}").hash"#, algorithm,  file_path);
+    let  output = std::process::Command::new("powershell") 
+        .arg("-NoProfile")
+        .arg("-Command")
+        .arg(cmd )
+        .output()
+        .expect("Failed to execute command");
+    if  output.status.success() {
+        let  hash = String::from_utf8_lossy(&output.stdout);
+         Ok(hash.trim().to_string())
+    } else{
+        eprintln!("{}", String::from_utf8_lossy(&output.stderr));
+        bail!("powershell.exe  compute cache hash failed")
+    }
+}
+
+mod test_system  {
     #[allow(unused_imports)]
     use super::*;
     #[test]
     fn test_publish_env_var() {
         set_env_var("super", r"A:\Rust_Project\hyperscoop\target").unwrap()
+    }
+
+     #[test]
+     fn test_hash() {
+       println!("{}", compute_hash_by_powershell(r"A:\Scoop\cache\yazi#25.4.8#1319a47.zip", "sha256").unwrap());
     }
 }

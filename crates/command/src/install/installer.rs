@@ -1,6 +1,4 @@
-use crate::init_env::{
-    get_old_scoop_dir, get_scoop_cfg_path, init_user_scoop, init_scoop_global,
-};
+use crate::init_env::{get_old_scoop_dir, get_scoop_cfg_path, init_scoop_global, init_user_scoop};
 use crate::install::{install_app, install_from_specific_bucket, InstallOptions};
 use crate::manifest::install_manifest::{InstallManifest, SuggestObj, SuggestObjValue};
 use crate::manifest::manifest_deserialize::{ManifestObj, StringArrayOrString};
@@ -61,7 +59,7 @@ pub fn show_notes(notes: StringArrayOrString) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub async fn handle_depends(depends: &str , options:  &[InstallOptions<'_> ]) -> anyhow::Result<()> {
+pub async fn handle_depends(depends: &str, options: &[InstallOptions<'_>]) -> anyhow::Result<()> {
     if depends.contains('/') {
         let arr = depends.split('/').collect::<Vec<&str>>();
         if arr.len() != 2 {
@@ -69,9 +67,9 @@ pub async fn handle_depends(depends: &str , options:  &[InstallOptions<'_> ]) ->
         }
         let bucket = arr[0].to_string();
         let app_name = arr[1].to_string();
-        install_from_specific_bucket(&bucket, &app_name,  options ).await?;
+        install_from_specific_bucket(&bucket, &app_name, options).await?;
     } else {
-        install_app(&depends,  options ).await?;
+        install_app(&depends, options).await?;
     }
     Ok(())
 }
@@ -190,6 +188,8 @@ pub fn handle_env_add_path(
 
     Ok(())
 }
+
+
 pub fn add_bin_to_path(path: &str, app_current_dir: &String) -> anyhow::Result<()> {
     let path = path.replace('/', r"\");
     let path = path.replace('\\', r"\");
@@ -214,4 +214,8 @@ pub fn add_bin_to_path(path: &str, app_current_dir: &String) -> anyhow::Result<(
     Ok(())
 }
 
-
+pub fn add_scoop_shim_root_dir_to_env_path() -> anyhow::Result<()> { 
+  
+  
+    Ok(())
+}

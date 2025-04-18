@@ -28,3 +28,5 @@ impl std::fmt::Display for CommandOption {
       .fmt(f)
   }
 }
+
+fn main() {}

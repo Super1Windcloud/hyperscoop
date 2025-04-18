@@ -28,7 +28,8 @@ pub async fn execute_install_command(args: InstallArgs) -> Result<(), anyhow::Er
         update_buckets().await?;
     }
     let app_name = args.app_name.clone().unwrap();
-    let app_name = convert_path(app_name.trim());
+    let app_name = convert_path(app_name.trim()).to_lowercase();
+
     if Path::new(&app_name).exists() {
         log::debug!("manifest file {}", app_name);
         let manifest_path = app_name;
@@ -45,12 +46,12 @@ pub async fn execute_install_command(args: InstallArgs) -> Result<(), anyhow::Er
         }
         let split_arg = app_name.split('/').collect::<Vec<&str>>();
         if split_arg.iter().count() == 2 {
-            let bucket = split_arg[0];
-            let app_name = split_arg[1];
+            let bucket = split_arg[0].trim().to_lowercase();
+            let app_name = split_arg[1].trim().to_lowercase();
             if bucket.is_empty() || app_name.is_empty() {
                 bail!("指定的App格式不正确")
             }
-            install_from_specific_bucket(bucket, app_name, &options).await?;
+            install_from_specific_bucket( &bucket, &app_name, &options).await?;
             return Ok(());
         } else if split_arg.iter().count() > 2 || split_arg.len() == 1 {
             bail!("指定的APP格式错误")
@@ -59,12 +60,12 @@ pub async fn execute_install_command(args: InstallArgs) -> Result<(), anyhow::Er
     if app_name.contains('@') {
         let split_version = app_name.split('@').collect::<Vec<&str>>();
         if split_version.iter().count() == 2 {
-            let app_name = split_version[0];
-            let app_version = split_version[1];
-            if app_name.is_empty() || app_version.is_empty() {
+            let app_name = split_version[0].trim().to_lowercase();
+            let app_version = split_version[1].trim().to_lowercase();
+             if app_name.is_empty() || app_version.is_empty() {
                 bail!("指定的APP格式错误")
             }
-            install_app_specific_version(app_name, app_version, &options).await?;
+            install_app_specific_version(&app_name, &app_version, &options).await?;
             return Ok(());
         } else if split_version.len() == 1 || split_version.len() > 2 {
             bail!("指定的APP格式错误")

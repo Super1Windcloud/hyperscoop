@@ -1,12 +1,12 @@
-﻿use crate::init_env::{
+use crate::init_env::{
     get_all_buckets_dir_child_bucket_path, get_all_global_buckets_dir_child_bucket_path,
 };
+use crate::list::VersionJSON;
 use anyhow::bail;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use crate::list::VersionJSON;
 
 #[allow(clippy::unsafe_derive_deserialize)]
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
@@ -100,30 +100,29 @@ pub enum MainBucket {
 }
 
 pub fn get_latest_app_version_from_local_bucket(app_name: &str) -> anyhow::Result<String> {
-     let  better_manifest = get_latest_manifest_from_local_bucket(app_name)?; 
-     if !Path::new(&better_manifest).exists() { 
-       bail!("Manifest {}does not exist", better_manifest.display());
-     } 
-     let content = std::fs::read_to_string(&better_manifest)?; 
-     let version: VersionJSON = serde_json::from_str(&content)?;
+    let better_manifest = get_latest_manifest_from_local_bucket(app_name)?;
+    if !Path::new(&better_manifest).exists() {
+        bail!("Manifest {}does not exist", better_manifest.display());
+    }
+    let content = std::fs::read_to_string(&better_manifest)?;
+    let version: VersionJSON = serde_json::from_str(&content)?;
     if version.version.is_none() {
-      bail!("该App没有找到版本信息,manifest.json格式错误")
+        bail!("该App没有找到版本信息,manifest.json格式错误")
     }
     Ok(version.version.unwrap())
 }
 pub fn get_latest_app_version_from_local_bucket_global(app_name: &str) -> anyhow::Result<String> {
-  let  better_manifest = get_latest_manifest_from_local_bucket_global(app_name)?;
-  if !Path::new(&better_manifest).exists() {
-    bail!("Manifest {}does not exist", better_manifest.display());
-  }
-  let content = std::fs::read_to_string(&better_manifest)?;
-  let version: VersionJSON = serde_json::from_str(&content)?;
-  if version.version.is_none() {
-    bail!("该App没有找到版本信息,manifest.json格式错误")
-  }
-  Ok(version.version.unwrap())
+    let better_manifest = get_latest_manifest_from_local_bucket_global(app_name)?;
+    if !Path::new(&better_manifest).exists() {
+        bail!("Manifest {}does not exist", better_manifest.display());
+    }
+    let content = std::fs::read_to_string(&better_manifest)?;
+    let version: VersionJSON = serde_json::from_str(&content)?;
+    if version.version.is_none() {
+        bail!("该App没有找到版本信息,manifest.json格式错误")
+    }
+    Ok(version.version.unwrap())
 }
-
 
 pub fn get_all_manifest_files_from_bucket<'a>(
     all_buckets_root: &'a [String],
@@ -166,6 +165,7 @@ pub fn get_all_manifest_files_from_bucket<'a>(
         .collect::<Vec<_>>();
     manifest_path
 }
+
 pub fn get_latest_manifest_from_local_bucket(app_name: &str) -> anyhow::Result<PathBuf> {
     let all_buckets_root = get_all_buckets_dir_child_bucket_path()?;
     let result = get_all_manifest_files_from_bucket(all_buckets_root.as_slice(), app_name);
@@ -209,6 +209,7 @@ fn find_better_bucket(result: Vec<(PathBuf, MainBucket)>) -> PathBuf {
     };
     final_path
 }
+
 pub fn get_latest_manifest_from_local_bucket_global(app_name: &str) -> anyhow::Result<PathBuf> {
     let all_buckets_root = get_all_global_buckets_dir_child_bucket_path()?;
     let result = get_all_manifest_files_from_bucket(all_buckets_root.as_slice(), app_name);
@@ -221,11 +222,12 @@ pub fn get_latest_manifest_from_local_bucket_global(app_name: &str) -> anyhow::R
     Ok(app_manifest_path)
 }
 
-
 mod test_manifest {
     #[test]
     fn test_output() {
         use super::*;
         get_latest_manifest_from_local_bucket("zigmod").unwrap();
     }
+  
+ 
 }

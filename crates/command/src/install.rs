@@ -1,10 +1,13 @@
-use std::path::Path;
 use crate::manifest::install_manifest::InstallManifest;
 use anyhow::{bail, Result};
 use crossterm::style::Stylize;
+use std::path::Path;
 
 pub mod installer;
-use crate::init_env::{get_app_current_dir, get_app_dir, get_app_dir_global};
+use crate::init_env::{
+    check_bucket_whether_exists, get_app_current_dir, get_app_dir, get_app_dir_global,
+    get_special_bucket_all_manifest_path, get_special_bucket_all_manifest_path_global,
+};
 use crate::manifest::manifest_deserialize::*;
 pub use installer::*;
 pub mod check;
@@ -18,17 +21,21 @@ pub use aria2::*;
 pub mod sevenzip;
 pub use sevenzip::*;
 pub mod download;
+use crate::manifest::manifest::{
+    get_latest_manifest_from_local_bucket, get_latest_manifest_from_local_bucket_global,
+};
 use crate::utils::utility::{nightly_version, validate_version};
 pub use download::*;
 
 /// 下载, 解压, preinstall, create_shim_shortcut, postinstall
-pub async fn install_app_from_local_manifest_file(
-    manifest_path: String,
+pub async fn install_app_from_local_manifest_file<P: AsRef<Path>>(
+    manifest_path: P,
     options: Vec<InstallOptions<'_>>,
     bucket_source: Option<&str>,
-) -> Result<()> {
+) -> Result<()> { 
+     add_scoop_shim_root_dir_to_env_path().expect("add scoop shim root to env path failed");   
     let options: Box<[InstallOptions]> = options.into_boxed_slice();
-
+    let manifest_path = manifest_path.as_ref().to_str().unwrap();
     let install_arch = handle_arch(&options)?;
     log::info!("install arch: {}", install_arch);
     let content = std::fs::read_to_string(&manifest_path)?;
@@ -50,10 +57,10 @@ pub async fn install_app_from_local_manifest_file(
             get_app_dir_global(&app_name)
         } else {
             get_app_dir(&app_name)
-        }; 
-       if Path::new(&special_app_dir).exists() {
-         std::fs::remove_dir_all(special_app_dir)?;
-       }
+        };
+        if Path::new(&special_app_dir).exists() {
+            std::fs::remove_dir_all(special_app_dir)?;
+        }
     }
     validate_version(version)?;
     let options = if version == "nightly" {
@@ -112,16 +119,16 @@ pub async fn install_app_from_local_manifest_file(
     let psmodule = serde_obj.psmodule;
     let pre_install = serde_obj.pre_install;
     let post_install = serde_obj.post_install;
-    if !depends.is_none() {
+    if !depends.is_none()  && !options.contains(&InstallOptions::NoAutoDownloadDepends) {
         handle_depends(depends.unwrap().as_str(), &options).await?;
     }
 
     //  invoke aria2  to  download  file to cache
-    let   download_manager = DownloadManager::new(&options, &manifest_path, bucket_source);
+    let download_manager = DownloadManager::new(&options, &manifest_path, bucket_source);
     download_manager.start_download()?;
-   if !options.contains(&InstallOptions::SkipDownloadHashCheck) {
-    download_manager.check_cache_file_hash()?
-   }
+    if !options.contains(&InstallOptions::SkipDownloadHashCheck) {
+        download_manager.check_cache_file_hash()?
+    }
     if options.contains(&InstallOptions::OnlyDownloadNoInstall) {
         return Ok(());
     }
@@ -174,6 +181,29 @@ pub async fn install_from_specific_bucket(
     options: &[InstallOptions<'_>],
 ) -> Result<()> {
     log::info!("install from specific bucket from {}", bucket_name);
+
+    if !check_bucket_whether_exists(bucket_name, options)? {
+        bail!("bucket '{}' not exists,please check it!", bucket_name)
+    }
+    let all_manifests = if options.contains(&InstallOptions::Global) {
+        get_special_bucket_all_manifest_path_global(bucket_name)?
+    } else {
+        get_special_bucket_all_manifest_path(bucket_name)?
+    };
+    let manifest_path = all_manifests
+        .iter()
+        .find(|path| {
+            let file_name = path.file_stem().unwrap().to_str().unwrap();
+            file_name.to_lowercase() == app_name.to_lowercase()
+        })
+        .unwrap();
+    log::debug!("manifest path: {}", manifest_path.display());
+    Box::pin(install_app_from_local_manifest_file(
+        manifest_path,
+        options.to_vec(),
+        Some(bucket_name),
+    ))
+    .await?;
     Ok(())
 }
 
@@ -183,14 +213,24 @@ pub async fn install_app_specific_version(
     options: &Vec<InstallOptions<'_>>,
 ) -> Result<()> {
     log::info!("install from app specific version {}", app_version);
+
     Ok(())
 }
 
 pub async fn install_app(app_name: &str, options: &[InstallOptions<'_>]) -> Result<()> {
     log::info!("install from app {}", app_name);
-    let install_arch = handle_arch(&options)?;
-    log::info!("install_app  arch: {}", install_arch);
+    let manifest_path = if options.contains(&InstallOptions::Global) {
+        get_latest_manifest_from_local_bucket_global(app_name)?
+    } else {
+        get_latest_manifest_from_local_bucket(app_name)?
+    };
+    // 使用 Box::pin 对递归调用的结果进行装箱, 防止栈溢出
+    Box::pin(install_app_from_local_manifest_file(
+        manifest_path,
+        options.to_vec(),
+        None,
+    ))
+    .await?;
+
     Ok(())
 }
-
-

@@ -1,7 +1,8 @@
-﻿use std::env;
+﻿use crate::install::InstallOptions;
+use rayon::prelude::*;
+use std::env;
 use std::fs::read_dir;
-use std::path::Path;
-
+use std::path::{Path, PathBuf};
 pub fn init_user_scoop() -> String {
     let mut path = env::var("SCOOP").unwrap_or(String::new());
     if path.is_empty() {
@@ -372,27 +373,81 @@ pub fn get_all_global_buckets_dir_child_bucket_path() -> anyhow::Result<Vec<Stri
     Ok(buckets_path)
 }
 
-pub  fn get_scoop_config_path() -> anyhow::Result<String> {
-  let home_dir = env::var("USERPROFILE")?; 
-   let config_dir =  home_dir+"\\.config\\scoop"; 
-   if !Path::new(&config_dir).exists() { 
-       std::fs::create_dir_all(&config_dir)?;
-   }
-  let  config_file =  format!("{}\\config.json", config_dir); 
-  if !Path::new(&config_file).exists() {
-    std::fs::File::create(&config_file)?;
-  }
-  Ok(config_file)
+pub fn get_scoop_config_path() -> anyhow::Result<String> {
+    let home_dir = env::var("USERPROFILE")?;
+    let config_dir = home_dir + "\\.config\\scoop";
+    if !Path::new(&config_dir).exists() {
+        std::fs::create_dir_all(&config_dir)?;
+    }
+    let config_file = format!("{}\\config.json", config_dir);
+    if !Path::new(&config_file).exists() {
+        std::fs::File::create(&config_file)?;
+    }
+    Ok(config_file)
 }
 
-pub fn  get_special_bucket_path(bucket_name :&str) -> String { 
-  let  bucket_root_dir = get_buckets_root_dir_path(); 
-   format!("{}\\{}", bucket_root_dir, bucket_name)
+pub fn get_special_bucket_path(bucket_name: &str) -> String {
+    let bucket_root_dir = get_buckets_root_dir_path();
+    format!("{}\\{}", bucket_root_dir, bucket_name)
 }
-pub  fn  get_special_bucket_child_path(bucket_name:&str) -> String {
-   let  bucket_root_dir = get_buckets_root_dir_path();
-   format!("{}\\{}\\bucket", bucket_root_dir, bucket_name)
+pub fn get_special_bucket_child_path(bucket_name: &str) -> String {
+    let bucket_root_dir = get_buckets_root_dir_path();
+    format!("{}\\{}\\bucket", bucket_root_dir, bucket_name)
 }
+
+pub fn get_special_bucket_child_path_global(bucket_name: &str) -> String {
+    let bucket_root_dir = get_buckets_root_dir_path_global();
+    format!("{}\\{}\\bucket", bucket_root_dir, bucket_name)
+}
+
+pub fn get_special_bucket_path_global(bucket_name: &str) -> String {
+    let bucket_root_dir = get_buckets_root_dir_path_global();
+    format!("{}\\{}", bucket_root_dir, bucket_name)
+}
+
+pub fn get_special_bucket_all_manifest_path(bucket_name: &str) -> anyhow::Result<Vec<PathBuf>> {
+    let bucket_path = get_special_bucket_child_path(bucket_name);
+    let entries =
+        read_dir(&bucket_path).expect(format!("Failed to read dir {:?}", bucket_path).as_str());
+    let buckets_path = entries
+        .par_bridge()
+        .filter_map(|e| e.ok())
+        .map(|e| e.path())
+        .collect::<Vec<_>>();
+    Ok(buckets_path)
+}
+
+pub fn get_special_bucket_all_manifest_path_global(
+    bucket_name: &str,
+) -> anyhow::Result<Vec<PathBuf>> {
+    let bucket_path = get_special_bucket_child_path_global(bucket_name);
+    let entries =
+        read_dir(&bucket_path).expect(format!("Failed to read dir {:?}", bucket_path).as_str());
+
+    let buckets_path = entries
+        .par_bridge()
+        .filter_map(|e| e.ok())
+        .map(|e| e.path())
+        .collect::<Vec<_>>();
+    Ok(buckets_path)
+}
+
+pub fn check_bucket_whether_exists(
+    bucket_name: &str,
+    options: &[InstallOptions],
+) -> anyhow::Result<bool> {
+    let special_bucket_path = if options.contains(&InstallOptions::Global) {
+        get_special_bucket_path_global(bucket_name)
+    } else {
+        get_special_bucket_path(bucket_name)
+    };
+    if !Path::new(&special_bucket_path).exists() {
+        Ok(false)
+    } else {
+        Ok(true)
+    }
+}
+
 mod test_path {
     #[allow(unused)]
     use super::*;
@@ -424,11 +479,15 @@ mod test_path {
         let path = env::var("ProgramData").unwrap() + "\\scoop";
         println!("{}", path);
     }
-   #[test]
-   fn  test_simple_output(){ 
-      println!("{}", get_scoop_config_path().unwrap());  
-       println!("{}",get_special_bucket_path("main"));  
-       print!("{}"   ,get_app_dir("git")); 
-   }
-  
+    #[test]
+    fn test_simple_output() {
+        println!("{}", get_scoop_config_path().unwrap());
+        println!("{}", get_special_bucket_path("main"));
+        println!("{}", get_app_dir("git"));
+    }
+
+    #[test]
+    fn test_all_manifests() {
+        get_special_bucket_all_manifest_path("main").unwrap();
+    }
 }

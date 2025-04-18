@@ -37,7 +37,7 @@ const WONDERFUL_STYLES: Styles = Styles::styled()
     disable_help_subcommand = true,
     disable_version_flag = false
 )]
-#[command(after_help = "For more information about a command, run: hp  [COMMAND] -h/--help", after_long_help = None)]
+#[command(after_help = "For more information about a command, run: hp  [COMMAND] -h/--help\nYou can set env $SCOOP to change app installation directory", after_long_help = None)]
 #[command(disable_colored_help = false , styles = WONDERFUL_STYLES )]
 struct Cli {
     #[command(subcommand)]

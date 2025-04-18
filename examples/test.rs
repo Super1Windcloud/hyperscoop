@@ -11,3 +11,8 @@ fn cmd() -> clap::Command {
         .value_parser(value_parser!(usize)),
     )
 }
+
+fn main() { 
+   let args = cmd().get_matches(); 
+    
+}
