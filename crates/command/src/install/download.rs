@@ -12,7 +12,7 @@ use crate::manifest::manifest_deserialize::{ArchitectureObject, StringArrayOrStr
 use crate::utils::system::{compute_hash_by_powershell, get_system_default_arch};
 use anyhow::bail;
 use crossterm::style::Stylize;
-use digest::{Digest};
+use digest::Digest;
 use hex;
 use sha1::Sha1;
 use sha2::{Sha256, Sha512};
@@ -632,17 +632,17 @@ impl<'a> DownloadManager<'a> {
         let cache_files = self.get_final_cache_file_path();
         let hash_formats = self.get_hash_format();
         let hash_values = self.get_hash_value();
-        let origin_names = self. get_origin_cache_file_names (); 
+        let origin_names = self.get_origin_cache_file_names();
         let result = cache_files
             .iter()
             .zip(hash_formats)
             .zip(hash_values)
-            .zip(origin_names )
+            .zip(origin_names)
             .try_for_each(|(((file, format), hash_value), origin_name)| {
-                let    open_file = std::fs::File::open(file)?;
+                let open_file = std::fs::File::open(file)?;
                 let mut reader = BufReader::new(open_file);
                 let mut buffer = [0; 1024 * 64]; // 一次性读取64KB到缓冲区性能最好
-                 
+
                 let caculate_hash = match format {
                     HashFormat::SHA1 => {
                         let mut hasher = Sha1::new();
@@ -652,7 +652,7 @@ impl<'a> DownloadManager<'a> {
                                 break;
                             }
                             hasher.update(&buffer[..count]);
-                        } 
+                        }
                         let caculate_hash = hasher.finalize();
                         let caculate_hash = hex::encode(caculate_hash);
                         caculate_hash
@@ -665,12 +665,12 @@ impl<'a> DownloadManager<'a> {
                                 break;
                             }
                             hasher.update(&buffer[..count]);
-                        } 
+                        }
                         let caculate_hash = hasher.finalize();
                         let caculate_hash = hex::encode(caculate_hash);
                         caculate_hash
                     }
-                    HashFormat::SHA256 => { 
+                    HashFormat::SHA256 => {
                         let mut hasher = Sha256::new();
                         loop {
                             let count = reader.read(&mut buffer)?;
@@ -678,7 +678,7 @@ impl<'a> DownloadManager<'a> {
                                 break;
                             }
                             hasher.update(&buffer[..count]);
-                        } 
+                        }
                         let caculate_hash = hasher.finalize();
                         let caculate_hash = hex::encode(caculate_hash);
                         caculate_hash
