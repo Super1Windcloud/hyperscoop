@@ -1,6 +1,8 @@
 ![img ](./img/sky3.jpg)
 
-
+> [!IMPORTANT]  
+>##  Latest Release 请到 Github
+ 
 # hyperscoop 
 
 ## 🐼 一个更快,更强, 更精美的  windows 包管理器,By Rust( 继承自 scoop )
