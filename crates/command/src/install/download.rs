@@ -216,8 +216,9 @@ impl<'a> DownloadManager<'a> {
                     alias.push(suffix);
                     let url = s.split("#/").next().unwrap();
                     url.to_string()
-                } else {
-                    s.to_string()
+                } else { 
+                    alias.push(""); 
+                    s.to_string() 
                 }
             })
             .collect::<Vec<_>>();

@@ -185,40 +185,56 @@ impl<'a> SevenZipStruct<'a> {
             .zip(archive_paths)
             .zip(extract_to_dir)
             .zip(extract_dir)
-            .try_for_each(|(((archive_name, path), extract_to), extract_dir)| {
-                print!(
-                    "{}  {}......",
-                    "Extracting archive".dark_blue().bold(),
-                    archive_name.clone().dark_cyan().bold()
-                );
-
-                let target = format!("-o{}", extract_to);
-                let output = Command::new(&_7z)
-                    .arg("x")
-                    .arg(path)
-                    .arg(target)
-                    .arg("-aoa") // *!自动覆盖同名文件
-                    .stdout(Stdio::piped())
-                    .stderr(Stdio::piped())
-                    .output()?;
-                if !output.status.success() {
-                    let error = String::from_utf8_lossy(&output.stderr);
-                    bail!("7z command failed: {}", error)
-                } else {
-                    let child_dir = format!("{}\\{}", extract_to, extract_dir);
-                    // log::debug!("child dir: {}", child_dir);
-                    for entry in std::fs::read_dir(&child_dir)? {
-                        let entry = entry?;
-                        let from = entry.path();
-                        let file_name = entry.file_name();
-                        let to = Path::new(&extract_to).join(file_name);
-                        std::fs::rename(from, to)?;
+            .zip(self.get_archive_format())
+            .zip(self.get_target_alias_name())
+            .try_for_each(
+                |(((((archive_name, path), extract_to), extract_dir), archive_format), alias)| {
+                    print!(
+                        "{}  {}......",
+                        "Extracting archive".dark_blue().bold(),
+                        archive_name.clone().dark_cyan().bold()
+                    );
+                    if *archive_format == ArchiveFormat::EXE
+                        || *archive_format == ArchiveFormat::Other
+                    {
+                        let target_dir = if alias.is_empty() {
+                            format!("{}\\{}", target_dir, archive_name)
+                        } else {
+                            format!("{}\\{}", target_dir, alias)
+                        };
+                        std::fs::copy(path, target_dir).expect("Failed to copy archive");
+                        println!("✅");
+                        Ok(())
+                    } else {
+                        let target = format!("-o{}", extract_to);
+                        let output = Command::new(&_7z)
+                            .arg("x")
+                            .arg(path)
+                            .arg(target)
+                            .arg("-aoa") // *!自动覆盖同名文件
+                            .stdout(Stdio::piped())
+                            .stderr(Stdio::piped())
+                            .output()?;
+                        if !output.status.success() {
+                            let error = String::from_utf8_lossy(&output.stderr);
+                            bail!("7z command failed: {}", error)
+                        } else {
+                            let child_dir = format!("{}\\{}", extract_to, extract_dir);
+                            // log::debug!("child dir: {}", child_dir);
+                            for entry in std::fs::read_dir(&child_dir)? {
+                                let entry = entry?;
+                                let from = entry.path();
+                                let file_name = entry.file_name();
+                                let to = Path::new(&extract_to).join(file_name);
+                                std::fs::rename(from, to)?;
+                            }
+                            std::fs::remove_dir_all(&child_dir)?;
+                            println!("✅");
+                            Ok(())
+                        }
                     }
-                    std::fs::remove_dir_all(&child_dir)?;
-                    println!("✅");
-                    Ok(())
-                }
-            });
+                },
+            );
         if result.is_err() {
             bail!("Failed to extract archive: {}", result.unwrap_err());
         }
@@ -248,38 +264,57 @@ impl<'a> SevenZipStruct<'a> {
             .iter()
             .zip(archive_paths)
             .zip(archive_child_dir)
-            .try_for_each(|((archive_name, path), child_dir)| {
-                print!(
-                    "{}  {}......",
-                    "Extracting archive".dark_blue().bold(),
-                    archive_name.clone().dark_cyan().bold()
-                );
-                let target = format!("-o{}", target_dir);
-                let child_dir = format!("{}\\{}", target_dir, child_dir);
-                let output = Command::new(&_7z)
-                    .arg("x")
-                    .arg(path)
-                    .arg(target)
-                    .arg("-aoa") // *!自动覆盖同名文件
-                    .stdout(Stdio::piped())
-                    .stderr(Stdio::piped())
-                    .output()?;
-                if !output.status.success() {
-                    let error = String::from_utf8_lossy(&output.stderr);
-                    bail!("7z command failed: {}", error)
-                } else {
-                    for entry in std::fs::read_dir(&child_dir)? {
-                        let entry = entry?;
-                        let from = entry.path();
-                        let file_name = entry.file_name();
-                        let to = Path::new(&target_dir).join(file_name);
-                        std::fs::rename(from, to)?;
+            .zip(self.get_archive_format())
+            .zip(self.get_target_alias_name())
+            .try_for_each(
+                |((((archive_name, path), child_dir), archive_format), alias)| {
+                    print!(
+                        "{}  {}......",
+                        "Extracting archive".dark_blue().bold(),
+                        archive_name.clone().dark_cyan().bold()
+                    );
+                    if *archive_format == ArchiveFormat::EXE
+                        || *archive_format == ArchiveFormat::Other
+                    {
+                        let target_dir = if alias.is_empty() {
+                            format!("{}\\{}", target_dir, archive_name)
+                        } else {
+                            format!("{}\\{}", target_dir, alias)
+                        };
+                        std::fs::copy(path, target_dir).expect("Failed to copy archive");
+                        println!("✅");
+                        Ok(())
+                    } else {
+                        let target = format!("-o{}", target_dir);
+                        let child_dir = format!("{}\\{}", target_dir, child_dir);
+                        let output = Command::new(&_7z)
+                            .arg("x")
+                            .arg(path)
+                            .arg(target)
+                            .arg("-aoa") // *!自动覆盖同名文件
+                            .stdout(Stdio::piped())
+                            .stderr(Stdio::piped())
+                            .output()
+                            .expect("Failed to extract archive");
+                        if !output.status.success() {
+                            let error = String::from_utf8_lossy(&output.stderr);
+                            bail!("7z command failed: {}", error)
+                        } else {
+                            for entry in std::fs::read_dir(&child_dir)? {
+                                let entry = entry?;
+                                let from = entry.path();
+                                let file_name = entry.file_name();
+                                let to = Path::new(&target_dir).join(file_name);
+                                std::fs::rename(from, to)?;
+                            }
+                            std::fs::remove_dir_all(&child_dir)?; // 清理原来的空目录
+                            println!("✅");
+                            Ok(())
+                        }
                     }
-                    std::fs::remove_dir_all(&child_dir)?; // 清理原来的空目录
-                    println!("✅");
-                    Ok(())
-                }
-            });
+                },
+            );
+
         if result.is_err() {
             bail!("Failed to extract archive: {}", result.unwrap_err());
         }
@@ -311,7 +346,8 @@ impl<'a> SevenZipStruct<'a> {
                 .iter()
                 .zip(archive_paths)
                 .zip(self.get_archive_format())
-                .try_for_each(|((archive_name, path), archive_format)| {
+                .zip(self.get_target_alias_name())
+                .try_for_each(|(((archive_name, path), archive_format), target_alias)| {
                     print!(
                         "{}  {}......",
                         "Extracting archive".dark_blue().bold(),
@@ -319,54 +355,35 @@ impl<'a> SevenZipStruct<'a> {
                     );
                     if *archive_format == ArchiveFormat::EXE
                         || *archive_format == ArchiveFormat::Other
-                    {  
-                      // 复制exe到别名路径 
-                        let target = format!("{}\\{}", target_dir, archive_name);
-                      let target_alias = self.get_target_alias_name();
-                      if !target_alias.is_empty() {
-                        let target_alias_dir = target_alias
-                          .iter()
-                          .map(|name| format!("{}\\{}", target_dir, name))
-                          .collect::<Vec<_>>();
-                        let old_target_exe_path = archive_items
-                          .iter()
-                          .map(|name| format!("{}\\{}", target_dir, name))
-                          .collect::<Vec<_>>();
-
-                        let result = target_alias_dir
-                          .iter()
-                          .zip(old_target_exe_path)
-                          .try_for_each(|(alia_name, old_name)| {
-                            std::fs::rename(old_name, alia_name)?;
-                            Ok(())
-                          }) as anyhow::Result<()>;
-                        if result.is_err() {
-                          bail!("Failed to rename target alias: {}", result.unwrap_err());
-                        }
-                      }
-                         std::fs::copy(path , target )?;
-                       Ok(())
-                    } else {
-                      let target = format!("-o{}", target_dir);
-                       
-                      let output = Command::new(&_7z)
-                        .arg("x")
-                        .arg(path)
-                        .arg(target)
-                        .arg("-aoa") // *!自动覆盖同名文件
-                        .stdout(Stdio::piped())
-                        .stderr(Stdio::piped())
-                        .output()?;
-                      if !output.status.success() {
-                        let error = String::from_utf8_lossy(&output.stderr);
-                        bail!("7z command failed: {}", error)
-                      } else {
-                     
+                    {
+                        // 复制exe到别名路径
+                        let target_dir = if target_alias.is_empty() {
+                            format!("{}\\{}", target_dir, archive_name)
+                        } else {
+                            format!("{}\\{}", target_dir, target_alias)
+                        };
+                        std::fs::copy(path, target_dir).expect("Failed to copy archive");
                         println!("✅");
                         Ok(())
-                      } 
+                    } else {
+                        let target = format!("-o{}", target_dir);
+
+                        let output = Command::new(&_7z)
+                            .arg("x")
+                            .arg(path)
+                            .arg(target)
+                            .arg("-aoa") // *!自动覆盖同名文件
+                            .stdout(Stdio::piped())
+                            .stderr(Stdio::piped())
+                            .output()?;
+                        if !output.status.success() {
+                            let error = String::from_utf8_lossy(&output.stderr);
+                            bail!("7z command failed: {}", error)
+                        } else {
+                            println!("✅");
+                            Ok(())
+                        }
                     }
-                  
                 });
             if result.is_err() {
                 bail!("Failed to extract archive: {}", result.unwrap_err());

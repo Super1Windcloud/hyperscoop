@@ -90,7 +90,7 @@ pub async fn install_app_from_local_manifest_file<P: AsRef<Path>>(
         && !options.contains(&InstallOptions::OnlyDownloadNoInstall)
         && !options.contains(&InstallOptions::ForceInstallOverride)
     {
-        check_before_install(&app_name, &version, &options).await?
+        check_before_install(&app_name, &version, &options).await? 
     } else {
         0
     };
