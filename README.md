@@ -28,7 +28,7 @@
 [//]: # ( ![pinpix.png]&#40;https://imgfans.com/_oONbC&#41;)
 ![cmd.png](https://imgfans.com/_s0giY)
 --- 
-## ☑️ TODO
+## ☑️ TODO (主要功能全部完成, 如果遇到BUG,请截图反馈Issue)
 - [x] Bucket
 - [x]  cat 
 - [x] cache 
@@ -40,7 +40,7 @@
 - [x]  import 
 - [x]  info 
 - [x]  hold 
-- [ ] install 
+- [x] install 
 - [x] list 
 - [x] prefix 
 - [x] reset 
