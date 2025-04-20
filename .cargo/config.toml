@@ -29,10 +29,8 @@ space_example = ["run", "--release", "--", "\"command list\""]
 target-dir = "target"
 rustc = "rustc"
 rustdoc = "rustdoc"
-incremental = true
 rustflags = ["-C", "link-arg=-fuse-ld=lld",
   "-C", "target-cpu=native", ]
-
 
 [net]
 retry = 3                   # network retries
@@ -52,3 +50,5 @@ hyperlinks = true      # whether cargo inserts links into output
 unicode = true         # whether cargo can render output using non-ASCII unicode characters
 progress.when = 'auto' # whether cargo shows progress bar
 progress.width = 80    # width of progress bar
+
+

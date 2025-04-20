@@ -106,13 +106,12 @@ panic = "abort"
 opt-level = 3
 strip = "symbols"
 codegen-units = 16   # 编译单元数量
-incremental = true
+incremental = false
 debug-assertions = false
 overflow-checks = false
 rpath = false   # 关闭运行时路径
 
 [profile.dev]
-#  rust-cranelift后端不支持Windows, 并且mold链接器也不支持Windows,只能使用LLVM
 opt-level = 0
 debug = false
 lto = false
@@ -171,3 +170,5 @@ unexpected_cfgs = { level = "allow" }
 name ="hash"
 path = "benches/hash_benchmark.rs"
 harness = false # 必须设置为 false 才能使用 criterion 进行基准测试
+
+
