@@ -62,6 +62,7 @@ impl<'a> DownloadManager<'a> {
     pub fn get_install_arch(&self) -> &Cow<'a, str> {
         &self.install_arch
     }
+  
     pub fn get_final_cache_file_path(&self) -> &[String] {
         &self.final_cache_file_path
     }
