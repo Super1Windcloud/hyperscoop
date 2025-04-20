@@ -16,9 +16,41 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+
       - uses: dtolnay/rust-toolchain@stable
+
+      # 完整Rust缓存
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ runner.os }}-rust-${{ matrix.arch }}-${{ hashFiles('**/Cargo.lock') }}
+          workspaces: |
+            ~/.cargo/bin
+            ~/.cargo/registry
+            ~/.cargo/git
+            ~/.rustup
+            target
+
+
+      - name: Cache cargo registry
+        uses: actions/cache@v3
+        with:
+          path: |
+            C:\Program Files (x86)\Microsoft Visual Studio
+            C:\ProgramData\Microsoft\VisualStudio
+            C:\hostedtoolcache\windows
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+
+
       - run: rustup target add ${{ matrix.arch }}-pc-windows-msvc
       - run: cargo build  --target ${{ matrix.arch }}-pc-windows-msvc --release
+
+
       - name: Upload build artifact for ${{ matrix.arch }}  # 传递构建产物给 publish job
         uses: actions/upload-artifact@v4
         with:

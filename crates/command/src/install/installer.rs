@@ -272,4 +272,11 @@ mod test_installer {
         let options = vec![].into_boxed_slice();
         add_scoop_shim_root_dir_to_env_path(&options).unwrap();
     }
+  
+  
+    #[test] 
+     fn test_symbolic_meta(){ 
+        let info =  std::fs::read_link(r"A:\Scoop\apps\motrix\current").unwrap();
+        println!("{:?}", info.display());
+    }
 }

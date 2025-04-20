@@ -26,7 +26,8 @@ pub async fn check_before_install(
     };
     let app_dir_path = Path::new(&app_dir);
     if !app_dir_path.exists() {
-        std::fs::create_dir_all(app_dir_path)?;
+        std::fs::create_dir_all(app_dir_path)?; 
+        return Ok(0); 
     }
     let app_version_dir = if options.contains(&InstallOptions::Global) {
         get_app_version_dir_global(name, &version)
