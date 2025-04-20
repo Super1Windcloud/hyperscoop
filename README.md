@@ -3,12 +3,12 @@
 > [!IMPORTANT]  
 > ##  Latest Release 请到 [Github](https://github.com/Super1Windcloud/hp/releases)
  
-# hyperscoop 
+------ 
+# HYPERSCOOP  
 
 ## 🐼 一个更快,更强, 更精美的  windows 包管理器,By Rust( 继承自 scoop )
 
-## 快速开始 [source_bucket]( https://gitee.com/SuperWindcloud/hyperscoop_bucket.git)
-## 两种方式 
+## 快速开始,两种方式 
 ###  1.  By Powershell or cmd 
 -  `scoop bucket add hp https://gitee.com/SuperWindcloud/hyperscoop_bucket.git` 
 -  `scoop  install  -u  -s   hp/hp`    
