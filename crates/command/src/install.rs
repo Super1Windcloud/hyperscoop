@@ -161,9 +161,10 @@ pub async fn install_app_from_local_manifest_file<P: AsRef<Path>>(
     }
     // linking  persist_data  链接 Persist 目录
     // persist_permission  主要用于 设置文件系统权限，确保特定用户（通常是 "Users" 组）对某个目录具有写入权限。
-    //  parse post_install
+    //  parse post_install 
+  
     //  save  install.json , manifest.json  to app version dir
-
+    download_manager.save_install_info()?; 
     if !suggest.is_none() {
         show_suggest(&suggest.unwrap())?;
     }
@@ -173,7 +174,6 @@ pub async fn install_app_from_local_manifest_file<P: AsRef<Path>>(
             .dark_green()
             .bold()
     );
-
     if notes.is_some() {
         let notes = notes.unwrap();
         if notes != StringArrayOrString::Null {

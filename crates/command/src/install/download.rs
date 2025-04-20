@@ -51,6 +51,25 @@ pub struct DownloadManager<'a> {
 }
 
 impl<'a> DownloadManager<'a> {
+    pub fn save_install_info(&self) -> anyhow::Result<()> {
+        let current_dir = self.get_app_current_dir();
+        let arch = self.get_install_arch().as_ref();
+        let install_json_path = format!("{}\\install.json", current_dir);
+        let manifest = if self.bucket_source.is_some() {
+             self.bucket_source.clone().unwrap()
+        } else {
+            self.manifest_path
+        };
+        let install_json = serde_json::json!({
+            "architecture": arch ,
+            "bucket": manifest
+        });
+        let  write_manifest_path = format!("{}\\manifest.json", current_dir); 
+        let file = std::fs::File::create(install_json_path)?;
+        serde_json::to_writer_pretty(&file, &install_json)?; 
+        std::fs::copy(self.manifest_path , write_manifest_path)?;
+        Ok(())
+    }
     pub fn get_archive_files_format(&self) -> &[ArchiveFormat] {
         &self.archive_files_format
     }
@@ -62,7 +81,7 @@ impl<'a> DownloadManager<'a> {
     pub fn get_install_arch(&self) -> &Cow<'a, str> {
         &self.install_arch
     }
-  
+
     pub fn get_final_cache_file_path(&self) -> &[String] {
         &self.final_cache_file_path
     }
@@ -217,9 +236,9 @@ impl<'a> DownloadManager<'a> {
                     alias.push(suffix);
                     let url = s.split("#/").next().unwrap();
                     url.to_string()
-                } else { 
-                    alias.push(""); 
-                    s.to_string() 
+                } else {
+                    alias.push("");
+                    s.to_string()
                 }
             })
             .collect::<Vec<_>>();
@@ -577,7 +596,7 @@ impl<'a> DownloadManager<'a> {
                 "tar" => ArchiveFormat::TAR,
                 _ => ArchiveFormat::Other,
             })
-            .collect::<Vec<_>>(); 
+            .collect::<Vec<_>>();
         self.set_archive_files_format(archive_formats);
 
         let final_suffix = hashs
@@ -798,9 +817,9 @@ impl<'a> DownloadManager<'a> {
         _7z.set_archive_names(self.origin_cache_file_names.as_ref());
         _7z.set_app_version(self.app_version.as_str());
         _7z.set_app_manifest_path(self.manifest_path);
-         let binding = self.get_target_rename_alias();
-        _7z.set_target_alias_name(binding.as_ref());  
-        _7z.set_archive_format(self.get_archive_files_format()); 
+        let binding = self.get_target_rename_alias();
+        _7z.set_target_alias_name(binding.as_ref());
+        _7z.set_archive_format(self.get_archive_files_format());
         _7z.init();
         let extract_dir = if architecture.is_some() {
             let arch = architecture.clone().unwrap();

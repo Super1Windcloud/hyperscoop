@@ -261,6 +261,8 @@ pub fn add_scoop_shim_root_dir_to_env_path(options: &Box<[InstallOptions]>) -> a
     }
 }
 
+
+
 mod test_installer {
     #[allow(unused)]
     use super::*;
