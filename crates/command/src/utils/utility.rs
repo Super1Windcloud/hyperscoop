@@ -254,6 +254,19 @@ pub fn nightly_version( ) ->  anyhow::Result<String> {
 }
 
 
+
+pub fn  get_parse_url_query (url : &str) -> anyhow::Result<String> {
+  let url = Url::parse(url)?;
+  if let Some(query) = url.query() {
+      let  last_equal_item = query .rsplit('=').next().unwrap(); 
+      Ok(last_equal_item.to_string())
+  }
+  else {
+    bail!("url query is empty");
+  }
+}
+
+
 #[cfg(test)]
 mod tests {
     #[allow(unused_imports)]

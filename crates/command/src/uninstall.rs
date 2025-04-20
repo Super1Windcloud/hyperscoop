@@ -12,6 +12,7 @@ use crate::init_env::{
     get_apps_path, get_apps_path_global, get_persist_dir_path, get_persist_dir_path_global,
     get_shims_path, get_shims_path_global,
 };
+use crate::utils::system::{is_admin, request_admin, set_user_env_var};
 use shim_and_shortcuts::*;
 
 pub fn uninstall_app_with_purge(app_name: &str, global: bool) -> Result<(), anyhow::Error> {
@@ -41,6 +42,9 @@ pub fn uninstall_app_with_purge(app_name: &str, global: bool) -> Result<(), anyh
 }
 
 pub fn uninstall_app(app_name: &str, is_global: bool) -> Result<(), anyhow::Error> {
+    if is_global && !is_admin()? {
+        request_admin();
+    }
     let app_path = if is_global {
         get_apps_path_global()
     } else {
@@ -96,7 +100,7 @@ pub fn uninstall_app(app_name: &str, is_global: bool) -> Result<(), anyhow::Erro
         eprintln!("{}", e);
         bail!("checked installed status, {e}");
     }
-    let result = uninstall_matched_app(&app_path, app_name, &shim_path);
+    let result = uninstall_matched_app(&app_path, app_name, &shim_path, is_global);
     if let Err(e) = result {
         eprintln!("{}", e);
         let app_path = Path::new(&app_path).join(app_name);
@@ -124,6 +128,7 @@ fn uninstall_matched_app(
     app_path: &str,
     app_name: &str,
     shim_path: &str,
+    is_global: bool,
 ) -> Result<(), anyhow::Error> {
     for entry in std::fs::read_dir(app_path)? {
         let entry = entry?;
@@ -163,7 +168,7 @@ fn uninstall_matched_app(
                 invoke_hook_script(HookType::PostUninstall, &manifest, arch)?;
                 uninstall_psmodule(&manifest)?;
 
-                env_path_var_rm(&current_path, &manifest)?;
+                env_path_var_rm(&current_path, &manifest, is_global)?;
 
                 env_var_rm(&manifest)?;
                 rm_shim_file(shim_path, &manifest, app_name)?;
@@ -180,7 +185,11 @@ fn uninstall_matched_app(
     }
     Ok(())
 }
-fn env_path_var_rm(current: &PathBuf, manifest: &UninstallManifest) -> Result<(), anyhow::Error> {
+fn env_path_var_rm(
+    current: &PathBuf,
+    manifest: &UninstallManifest,
+    is_global: bool,
+) -> Result<(), anyhow::Error> {
     use winreg::enums::*;
     use winreg::RegKey;
     if let Some(StringArrayOrString::String(env_add_path_str)) = manifest.env_add_path.clone() {
@@ -200,9 +209,15 @@ fn env_path_var_rm(current: &PathBuf, manifest: &UninstallManifest) -> Result<()
             log::debug!("\n 更新后的用户的 PATH: {}", user_path);
 
             // environment_key.set_value("PATH", &user_path)?;
-            let script = format!(
-                r#"[System.Environment]::SetEnvironmentVariable("PATH","{user_path}", "User")"#
-            );
+            let script = if is_global {
+                format!(
+                    r#"[System.Environment]::SetEnvironmentVariable("PATH","{user_path}", "Machine")"#
+                )
+            } else {
+                format!(
+                    r#"[System.Environment]::SetEnvironmentVariable("PATH","{user_path}", "User")"#
+                )
+            };
             let output = std::process::Command::new("powershell")
                 .arg("-ExecutionPolicy")
                 .arg("Bypass")
@@ -243,18 +258,7 @@ fn env_path_var_rm(current: &PathBuf, manifest: &UninstallManifest) -> Result<()
             log::debug!("\n 没有需要移除的路径变量");
             return Ok(());
         }
-        let script = format!(
-            r#"[System.Environment]::SetEnvironmentVariable("PATH","{user_path}", "User")"#
-        );
-        let output = std::process::Command::new("powershell")
-            .arg("-ExecutionPolicy")
-            .arg("Bypass")
-            .arg("-Command")
-            .arg(script)
-            .output()?;
-        if !output.status.success() {
-            bail!("Failed to remove path var");
-        }
+        set_user_env_var("Path", user_path.as_str())?;
     }
     Ok(())
 }

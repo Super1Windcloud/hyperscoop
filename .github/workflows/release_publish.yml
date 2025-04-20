@@ -1,7 +1,7 @@
 name: Hp  Release Pipeline
 on:
   push:
-    branches: ["main"]
+    branches: ["dev"]
 permissions:
   contents: write
 env:

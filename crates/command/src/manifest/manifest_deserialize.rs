@@ -26,7 +26,8 @@ pub struct ArchitectureObject {
 pub struct BaseArchitecture {
     pub bin: Option<StringOrArrayOrDoubleDimensionArray>,
     pub checkver: Option<ObjectOrString>,
-    pub extract_dir: Option<String>,
+    pub extract_dir: Option<StringArrayOrString>,
+    pub extract_to: Option<StringArrayOrString>,
     pub hash: Option<StringArrayOrString>,
     pub installer: Option<ManifestObj>,
     pub uninstaller: Option<ManifestObj>,
@@ -35,21 +36,34 @@ pub struct BaseArchitecture {
     pub pre_install: Option<StringArrayOrString>,
     pub post_install: Option<StringArrayOrString>,
 }
+
+impl ArchitectureObject { 
+    pub fn  get_specific_architecture(&self, arch: &str) -> Option<&BaseArchitecture> {
+        match arch {
+            "64bit" => self.x64bit.as_ref(),
+            "32bit" => self.x86bit.as_ref(),
+            "arm64" => self.arm64.as_ref(),
+            _ => None,
+        }
+    }
+}
+
+
 #[must_use]
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
-pub  struct  AutoUpdateStruct {
-  pub bin: Option<StringOrArrayOrDoubleDimensionArray>,
-  pub extract_dir: Option<String>,
-  pub extract_to: Option<StringArrayOrString>,
-  pub note: Option<StringArrayOrString>, //  !complete
+pub struct AutoUpdateStruct {
+    pub bin: Option<StringOrArrayOrDoubleDimensionArray>,
+    pub extract_dir: Option<String>,
+    pub extract_to: Option<StringArrayOrString>,
+    pub note: Option<StringArrayOrString>, //  !complete
 
-  pub hash: Option<ObjectArrayOrStringOrObjectOrStringArray>,
-  pub installer: Option<ManifestObj>,
-  pub uninstaller: Option<ManifestObj>,
-  pub url: Option<ObjectArrayOrStringOrObjectOrStringArray>,
-  pub shortcuts: Option<ArrayOrDoubleDimensionArray>,
-  pub pre_install: Option<StringArrayOrString>,
-  pub post_install: Option<StringArrayOrString>,
+    pub hash: Option<ObjectArrayOrStringOrObjectOrStringArray>,
+    pub installer: Option<ManifestObj>,
+    pub uninstaller: Option<ManifestObj>,
+    pub url: Option<ObjectArrayOrStringOrObjectOrStringArray>,
+    pub shortcuts: Option<ArrayOrDoubleDimensionArray>,
+    pub pre_install: Option<StringArrayOrString>,
+    pub post_install: Option<StringArrayOrString>,
 }
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(untagged)]
@@ -69,7 +83,7 @@ pub enum ObjectOrString {
     String(String),                 // 字符串类型
 }
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(untagged, deny_unknown_fields )]
+#[serde(untagged, deny_unknown_fields)]
 pub enum ArrayOrDoubleDimensionArray {
     #[default]
     Null,
@@ -118,8 +132,6 @@ pub enum ObjectArrayOrStringOrObjectOrStringArray {
     StringArray(Vec<String>),
 }
 
-
-
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(untagged)]
 pub enum StringOrArrayOrDotDimensionArrayOrObject {
@@ -132,8 +144,8 @@ pub enum StringOrArrayOrDotDimensionArrayOrObject {
 }
 
 mod tests {
-  #[test]
-  fn test_serde_json() {
+    #[test]
+    fn test_serde_json() {
         let json = r#"
        {
          "name": "hp",
@@ -155,23 +167,23 @@ mod tests {
         let manifest: serde_json::Value = serde_json::from_str(json).unwrap();
         let suggest = manifest["suggest"].as_object().unwrap();
         let depends = manifest["depends"].as_object().unwrap();
-       let   shortcuts  = manifest["shortcuts"].as_array().unwrap();
+        let shortcuts = manifest["shortcuts"].as_array().unwrap();
         println!("suggest {:?}", suggest);
         println!("depends {:?}", depends.values().collect::<Vec<_>>());
-        println!("shortcuts {:?}",  shortcuts);
+        println!("shortcuts {:?}", shortcuts);
     }
-  #[test]
-  fn  test_manifest_file(){
-    use crate::manifest::install_manifest::InstallManifest;
-     let  file = r"A:\Scoop\buckets\ScoopMaster\bucket\zigmod.json";
-     let  content  = std::fs::read_to_string(file).unwrap();
-      let manifest  : InstallManifest = serde_json::from_str(&content).unwrap();
-      let  shortcuts = manifest.shortcuts;
-       if shortcuts.is_some(){
-          let  shortcuts = shortcuts.unwrap();
-         println!("shortcuts {:?}", shortcuts);
-       }else {
-         println!("shortcuts is none ");
-       }
-  }
+    #[test]
+    fn test_manifest_file() {
+        use crate::manifest::install_manifest::InstallManifest;
+        let file = r"A:\Scoop\buckets\ScoopMaster\bucket\zigmod.json";
+        let content = std::fs::read_to_string(file).unwrap();
+        let manifest: InstallManifest = serde_json::from_str(&content).unwrap();
+        let shortcuts = manifest.shortcuts;
+        if shortcuts.is_some() {
+            let shortcuts = shortcuts.unwrap();
+            println!("shortcuts {:?}", shortcuts);
+        } else {
+            println!("shortcuts is none ");
+        }
+    }
 }

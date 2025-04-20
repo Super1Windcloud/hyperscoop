@@ -1,15 +1,16 @@
 use crate::init_env::{
     get_app_current_dir, get_app_current_dir_global, get_app_version_dir,
-    get_app_version_dir_global, get_cache_dir_path, get_cache_dir_path_global,
-    get_persist_app_data_dir, get_persist_app_data_dir_global,
+    get_app_version_dir_global, get_apps_path, get_apps_path_global, get_cache_dir_path,
+    get_cache_dir_path_global, get_persist_app_data_dir, get_persist_app_data_dir_global,
 };
 use crate::install::InstallOptions::{
     ArchOptions, ForceDownloadNoInstallOverrideCache, Global, NoUseDownloadCache,
 };
-use crate::install::{Aria2C, HashFormat, InstallOptions};
+use crate::install::{ArchiveFormat, Aria2C, HashFormat, InstallOptions, SevenZipStruct};
 use crate::manifest::install_manifest::InstallManifest;
 use crate::manifest::manifest_deserialize::{ArchitectureObject, StringArrayOrString};
 use crate::utils::system::{compute_hash_by_powershell, get_system_default_arch};
+use crate::utils::utility::get_parse_url_query;
 use anyhow::bail;
 use crossterm::style::Stylize;
 use digest::Digest;
@@ -45,9 +46,19 @@ pub struct DownloadManager<'a> {
     final_cache_file_path: Box<[String]>,
     install_arch: Cow<'a, str>,
     origin_cache_file_names: Box<[String]>,
+    archive_files_format: Box<[ArchiveFormat]>,
+    exe_setup: bool,
 }
 
 impl<'a> DownloadManager<'a> {
+    pub fn get_archive_files_format(&self) -> &[ArchiveFormat] {
+        &self.archive_files_format
+    }
+
+    pub fn set_archive_files_format(&mut self, format: Vec<ArchiveFormat>) {
+        self.archive_files_format = format.into_boxed_slice()
+    }
+
     pub fn get_install_arch(&self) -> &Cow<'a, str> {
         &self.install_arch
     }
@@ -210,17 +221,33 @@ impl<'a> DownloadManager<'a> {
                 }
             })
             .collect::<Vec<_>>();
-        self.set_target_rename_alias(alias);
         self.download_urls = download_urls.to_vec().into_boxed_slice();
         let origin_files = download_urls
             .iter()
             .map(|url| {
                 // log::debug!("{}", format!("Downloading '{}'", url).dark_blue().bold());
-                let file_name = url.split('/').last().unwrap();
-                file_name.to_string()
+                if !self.check_is_no_special_char_url(url) {
+                    let file_name =
+                        get_parse_url_query(url).expect(&format!("Could not parse url {}", url));
+                    file_name
+                } else {
+                    let file_name = url.split('/').last().unwrap();
+                    file_name.to_string()
+                }
             })
             .collect::<Vec<_>>();
         self.set_origin_cache_file_names(&origin_files);
+        self.set_target_rename_alias(alias);
+    }
+
+    pub fn check_is_no_special_char_url(&self, url: &str) -> bool {
+        let special_chars = ['?', '&', '=', '#', '%'];
+        for char in special_chars {
+            if url.contains(char) {
+                return false;
+            }
+        }
+        true
     }
 
     pub fn get_input_file(&self) -> &str {
@@ -348,6 +375,10 @@ impl<'a> DownloadManager<'a> {
     pub fn get_app_download_architecture(&self) -> Cow<'a, str> {
         self.install_arch.clone()
     }
+
+    pub fn set_whether_exe_setup_installer(&mut self, is_setup: bool) {
+        self.exe_setup = is_setup;
+    }
     fn init(&mut self, manifest_path: &'a str) -> anyhow::Result<()> {
         let download_cache_dir = if self.options.contains(&Global) {
             get_cache_dir_path_global()
@@ -363,6 +394,9 @@ impl<'a> DownloadManager<'a> {
         let content = std::fs::read_to_string(manifest_path)?;
         let serde_obj = serde_json::from_str::<InstallManifest>(&content)?;
         let version = serde_obj.version.expect("version 不能为空");
+        let innosetup = serde_obj.innosetup;
+        let exe_setup = innosetup.unwrap_or(false);
+        self.set_whether_exe_setup_installer(exe_setup);
         self.set_app_version(&version);
         self.set_scoop_cache_dir(&download_cache_dir);
         let architecture = serde_obj.architecture;
@@ -437,6 +471,8 @@ impl<'a> DownloadManager<'a> {
             final_cache_file_path: Box::new([]),
             install_arch: Cow::from(""),
             origin_cache_file_names: Box::new([]),
+            archive_files_format: Box::new([]),
+            exe_setup: false,
         };
         match download.init(manifest_path) {
             Ok(_) => download,
@@ -518,6 +554,30 @@ impl<'a> DownloadManager<'a> {
             })
             .collect::<Vec<&str>>();
 
+        let archive_formats = extensions
+            .iter()
+            .map(|extension| match extension.to_lowercase().as_str() {
+                "7z" => ArchiveFormat::SevenZip,
+                "zip" => ArchiveFormat::ZIP,
+                "gz" => ArchiveFormat::GZIP,
+                "xz" => ArchiveFormat::XZIP,
+                "bz2" => ArchiveFormat::BZIP2,
+                "zst" => ArchiveFormat::ZSTD,
+                "rar" => ArchiveFormat::RAR,
+                "exe" => {
+                    if self.exe_setup {
+                        ArchiveFormat::INNO
+                    } else {
+                        ArchiveFormat::EXE
+                    }
+                }
+                "msi" => ArchiveFormat::MSI,
+                "tar" => ArchiveFormat::TAR,
+                _ => ArchiveFormat::Other,
+            })
+            .collect::<Vec<_>>(); 
+        self.set_archive_files_format(archive_formats);
+
         let final_suffix = hashs
             .iter()
             .zip(extensions)
@@ -534,6 +594,7 @@ impl<'a> DownloadManager<'a> {
                 file_name
             })
             .collect::<Vec<String>>();
+
         let final_file_names = final_suffix
             .iter()
             .map(|suffix| {
@@ -712,11 +773,89 @@ impl<'a> DownloadManager<'a> {
         }
         Ok(())
     }
+
+    pub fn invoke_7z_extract(
+        &self,
+        extract_dir: Option<StringArrayOrString>,
+        extract_to: Option<StringArrayOrString>,
+        architecture: Option<ArchitectureObject>,
+    ) -> anyhow::Result<()> {
+        let mut _7z = SevenZipStruct::new();
+        let cache_files = self.get_final_cache_file_path();
+        let str_slice: Vec<&str> = cache_files.iter().map(String::as_str).collect();
+
+        if self.options.contains(&Global) {
+            let apps = get_apps_path_global();
+            _7z.set_apps_root_dir(apps)
+        } else {
+            _7z.set_apps_root_dir(get_apps_path())
+        }
+
+        _7z.set_archive_cache_files_path(str_slice.as_slice());
+        _7z.set_app_name(self.app_name);
+        _7z.set_archive_names(self.origin_cache_file_names.as_ref());
+        _7z.set_app_version(self.app_version.as_str());
+        _7z.set_app_manifest_path(self.manifest_path);
+         let binding = self.get_target_rename_alias();
+        _7z.set_target_alias_name(binding.as_ref());  
+        _7z.set_archive_format(self.get_archive_files_format()); 
+        _7z.init();
+        let extract_dir = if architecture.is_some() {
+            let arch = architecture.clone().unwrap();
+            let system_arch = self.get_install_arch().as_ref();
+            let arch = arch.get_specific_architecture(system_arch);
+            if arch.is_some() {
+                let arch = arch.unwrap();
+                let extract_dir = arch.extract_dir.clone();
+                if extract_dir.is_some() {
+                    let extract_dir = extract_dir.unwrap();
+                    Some(extract_dir)
+                } else {
+                    extract_dir
+                }
+            } else {
+                extract_dir
+            }
+        } else {
+            extract_dir
+        };
+        let extract_to = if architecture.is_some() {
+            let arch = architecture.unwrap();
+            let system_arch = self.get_install_arch().as_ref();
+            let arch = arch.get_specific_architecture(system_arch);
+            if arch.is_some() {
+                let arch = arch.unwrap();
+                let extract_to = arch.extract_to.clone();
+                if extract_to.is_some() {
+                    let extract_to = extract_to.unwrap();
+                    Some(extract_to)
+                } else {
+                    extract_to
+                }
+            } else {
+                extract_to
+            }
+        } else {
+            extract_to
+        };
+        _7z.invoke_7z_command(extract_dir, extract_to)?;
+        Ok(())
+    }
 }
 
 mod test_download_manager {
     #[allow(unused_imports)]
     use super::*;
+    #[test]
+    fn test_7z_extract() {
+        let options = vec![];
+        let d = DownloadManager::new(
+            options.as_slice(),
+            r"A:\Scoop\buckets\main\bucket\scons.json",
+            None,
+        );
+    }
+
     #[test]
     fn test_cache_file_name() {
         let option = vec![ForceDownloadNoInstallOverrideCache];
@@ -756,10 +895,10 @@ mod test_download_manager {
     }
 
     #[test]
-    fn test_origin_name() {
+    fn test_target_alias_name() {
         let binding = vec![];
         let d = DownloadManager::new(&binding, r"A:\Scoop\buckets\extras\bucket\sfsu.json", None);
-        println!("{:?}", d.get_origin_cache_file_names())
+        println!("{:?}", d.get_target_rename_alias())
     }
 
     #[test]

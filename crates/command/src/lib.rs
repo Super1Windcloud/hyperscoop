@@ -22,7 +22,7 @@ pub fn init_hyperscoop() -> Result<HyperScoop, anyhow::Error> {
 }
 
 pub fn  init_hyperscoop_global()-> Result<HyperScoopGlobal, anyhow::Error> {
-    let hyperscoop = HyperScoopGlobal::new() ; 
+    let hyperscoop = HyperScoopGlobal::new() ;
     Ok(hyperscoop)
 }
 pub mod config;

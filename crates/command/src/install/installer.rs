@@ -1,8 +1,14 @@
-use crate::init_env::{get_old_scoop_dir, get_scoop_cfg_path, init_scoop_global, init_user_scoop};
+use crate::init_env::{
+    get_old_scoop_dir, get_scoop_cfg_path, get_shims_path, get_shims_path_global,
+    init_scoop_global, init_user_scoop,
+};
 use crate::install::{install_app, install_from_specific_bucket, InstallOptions};
 use crate::manifest::install_manifest::{InstallManifest, SuggestObj, SuggestObjValue};
 use crate::manifest::manifest_deserialize::{ManifestObj, StringArrayOrString};
-use crate::utils::system::get_system_default_arch;
+use crate::utils::system::{
+    get_system_default_arch, get_system_env_str,
+    get_user_env_str, set_global_env_var, set_user_env_var,
+};
 use anyhow::bail;
 use crossterm::style::Stylize;
 use windows_sys::Win32::System::Registry::HKEY_CURRENT_USER;
@@ -99,15 +105,23 @@ pub fn handle_arch(arch: &[InstallOptions]) -> anyhow::Result<String> {
     }
 }
 
-pub fn handle_env_set(env_set: ManifestObj, manifest: InstallManifest) -> anyhow::Result<()> {
+pub fn handle_env_set(
+    env_set: ManifestObj,
+    manifest: InstallManifest,
+    options: &Box<[InstallOptions]>,
+) -> anyhow::Result<()> {
     let app_name = manifest.name.unwrap_or(String::new());
     let app_version = manifest.version.unwrap_or(String::new());
-    let scoop_home = init_user_scoop();
+    let scoop_home = if options.contains(&InstallOptions::Global) {
+        init_scoop_global()
+    } else {
+        init_user_scoop()
+    };
     let global_scoop_home = init_scoop_global();
 
     let app_dir = format!(
         r#"function app_dir($other_app) {{
-      return    "{scoop_home}\apps\$other_app\current" ;
+      return  "{scoop_home}\apps\$other_app\current" ;
   }}"#
     );
     let old_scoop_dir = get_old_scoop_dir();
@@ -119,7 +133,7 @@ pub fn handle_env_set(env_set: ManifestObj, manifest: InstallManifest) -> anyhow
       $cmd ="uninstall" ;
       $global = $false  ;
       $scoopdir ="{scoop_home}" ;
-      $dir = "{scoop_home}\apps\$app" ;
+      $dir = "{scoop_home}\apps\$app\current" ;
       $globaldir  ="{global_scoop_home}";
       $oldscoopdir  = "{old_scoop_dir}" ;
       $original_dir = "{scoop_home}\apps\$app\$version";
@@ -147,7 +161,6 @@ pub fn handle_env_set(env_set: ManifestObj, manifest: InstallManifest) -> anyhow
                 r#"Set-ItemProperty -Path "HKCU:\Environment" -Name "{key}" -Value {env_value}"#
             );
 
-            println!("cmd: {}", cmd);
             let output = std::process::Command::new("powershell")
                 .arg("-Command")
                 .arg(&app_dir)
@@ -161,12 +174,11 @@ pub fn handle_env_set(env_set: ManifestObj, manifest: InstallManifest) -> anyhow
                     error_output
                 );
             }
-
+          
             println!(
-                "{} {} {}",
-                "env set success : ".to_string().dark_green().bold(),
+                "{} {}",
+                "Env set successfully for".to_string().dark_green().bold(),
                 key.to_string().dark_cyan().bold(),
-                env_value.dark_cyan().bold()
             );
         }
     }
@@ -176,21 +188,25 @@ pub fn handle_env_set(env_set: ManifestObj, manifest: InstallManifest) -> anyhow
 pub fn handle_env_add_path(
     env_add_path: StringArrayOrString,
     app_current_dir: String,
+    options: &Box<[InstallOptions]>,
 ) -> anyhow::Result<()> {
     let app_current_dir = app_current_dir.replace('/', r"\");
     if let StringArrayOrString::StringArray(paths) = env_add_path {
         for path in paths {
-            add_bin_to_path(path.as_ref(), &app_current_dir)?;
+            add_bin_to_path(path.as_ref(), &app_current_dir, options)?;
         }
     } else if let StringArrayOrString::String(path) = env_add_path {
-        add_bin_to_path(path.as_ref(), &app_current_dir)?;
+        add_bin_to_path(path.as_ref(), &app_current_dir, options)?;
     }
 
     Ok(())
 }
 
-
-pub fn add_bin_to_path(path: &str, app_current_dir: &String) -> anyhow::Result<()> {
+pub fn add_bin_to_path(
+    path: &str,
+    app_current_dir: &String,
+    options: &Box<[InstallOptions]>,
+) -> anyhow::Result<()> {
     let path = path.replace('/', r"\");
     let path = path.replace('\\', r"\");
     let path = format!(r"{app_current_dir}\{path}");
@@ -202,20 +218,56 @@ pub fn add_bin_to_path(path: &str, app_current_dir: &String) -> anyhow::Result<(
     log::debug!("\n 更新后的用户的 PATH: {}", user_path);
 
     let script =
-        format!(r#"[System.Environment]::SetEnvironmentVariable("PATH","{user_path}", "User")"#);
-    let output = std::process::Command::new("powershell")
-        .arg("-Command")
-        .arg(script)
-        .output()?;
-    if !output.status.success() {
-        bail!("Failed to remove path var");
+        format!(r#"[System.Environment]::SetEnvironmentVariable("PATH","{user_path}", "Machine")"#);
+    if options.contains(&InstallOptions::Global) {
+        let output = std::process::Command::new("powershell")
+            .arg("-Command")
+            .arg(script)
+            .output()?;
+        if !output.status.success() {
+            bail!("Failed to remove path var");
+        }
+        Ok(())
+    } else {
+        set_user_env_var("Path", &user_path)?;
+        Ok(())
     }
-
-    Ok(())
 }
 
-pub fn add_scoop_shim_root_dir_to_env_path() -> anyhow::Result<()> { 
-  
-  
-    Ok(())
+pub fn add_scoop_shim_root_dir_to_env_path(options: &Box<[InstallOptions]>) -> anyhow::Result<()> {
+    let origin = if options.contains(&InstallOptions::Global) {
+        get_system_env_str()
+    } else {
+        get_user_env_str()
+    };
+
+    let scoop_shim_root_dir = if options.contains(&InstallOptions::Global) {
+        get_shims_path_global()
+    } else {
+        get_shims_path()
+    };
+    if !origin.contains(&scoop_shim_root_dir) {
+        if options.contains(&InstallOptions::Global) {
+            let path = origin + ";" + &scoop_shim_root_dir;
+            set_global_env_var("Path", path.as_str())?
+        } else {
+            let path = origin + ";" + &scoop_shim_root_dir;
+            set_user_env_var("Path", path.as_str())?
+        }
+        eprint!("not have  shim root ");
+        Ok(())
+    } else {
+        Ok(())
+    }
+}
+
+mod test_installer {
+    #[allow(unused)]
+    use super::*;
+
+    #[test]
+    fn output_env_path() {
+        let options = vec![].into_boxed_slice();
+        add_scoop_shim_root_dir_to_env_path(&options).unwrap();
+    }
 }

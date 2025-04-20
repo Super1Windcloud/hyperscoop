@@ -170,7 +170,7 @@ pub fn get_latest_manifest_from_local_bucket(app_name: &str) -> anyhow::Result<P
     let all_buckets_root = get_all_buckets_dir_child_bucket_path()?;
     let result = get_all_manifest_files_from_bucket(all_buckets_root.as_slice(), app_name);
     if result.is_empty() {
-        bail!("No manifest found for '{app_name}'");
+        bail!("No app manifest found for '{app_name}'");
     }
     let app_manifest_path = find_better_bucket(result);
 
@@ -228,6 +228,5 @@ mod test_manifest {
         use super::*;
         get_latest_manifest_from_local_bucket("zigmod").unwrap();
     }
-  
  
 }

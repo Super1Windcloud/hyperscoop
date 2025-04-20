@@ -1,5 +1,6 @@
 ﻿use crate::manifest::manifest_deserialize::*;
 use serde::{Deserialize, Serialize};
+use std::path::Path;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(untagged)]
@@ -113,7 +114,7 @@ pub struct InstallManifest {
     ///   如果url指向压缩文件（支持 .zip、.7z、.tar、.gz、.lzma 和 .lzh），Scoop 将仅提取其中指定的目录
     pub extract_dir: Option<StringArrayOrString>, // 数组中元素和URL数组一一对应
     /// 如果url指向压缩文件（支持 .zip、.7z、.tar、.gz、.lzma 和 .lzh），Scoop 会将所有内容提取到指定目录
-    pub extract_to: Option<StringArrayOrString>, // 数组中元素和URL数组一一对应 
+    pub extract_to: Option<StringArrayOrString>, // 数组中元素和URL数组一一对应
     ///将此目录添加到用户路径（如果使用--global则添加到系统路径）。
     /// 该目录是相对于安装目录的，并且必须位于安装目录内。
     pub env_add_path: Option<StringArrayOrString>, // !complete
@@ -214,11 +215,8 @@ pub struct InstallManifest {
 
 impl InstallManifest {
     pub fn set_name(&mut self, path: &str) -> &mut Self {
-        let arr = path.split('/').collect::<Vec<&str>>();
-        let name = arr.last().unwrap();
-        let name = name.split('.').collect::<Vec<&str>>();
-        let name = name.iter().next().unwrap();
-        self.name = Some(name.to_string());
+        let app_name = Path::new(path).file_stem().unwrap().to_str().unwrap();
+        self.name = Some(app_name.to_string());
         self
     }
     pub fn get_name(&self) -> Option<String> {
@@ -234,8 +232,9 @@ mod test_manifest_deserialize {
     #[allow(unused_imports)]
     use rayon::prelude::*;
     use std::path::PathBuf;
- 
-  #[test]
+    use std::sync::{Arc, Mutex};
+
+    #[test]
     fn test_install_manifest() {
         use crate::buckets::get_buckets_path;
         use std::path::Path;
@@ -264,61 +263,74 @@ mod test_manifest_deserialize {
             }
 
             let _manifest: InstallManifest = manifest.unwrap();
-            // if find_extract(_manifest, &path, &_count) {
-            //     return;
-            // }; 
-             if  find_url_and_hash(_manifest, &path, &_count ) { return; }; 
+            if find_extract(_manifest, &path, &_count) {
+                return;
+            };
+            //  if  find_url_and_hash(_manifest, &path, &_count ) { return; };
             // if  find_suggest_and_depends(_manifest, path , &_count ) { return; };
             //  find_architecture_test(_manifest, path);
+            // if find_env_set(_manifest, path, &_count) {
+            //     return;
+            // }
         }
-        fn  find_extract(_manifest: InstallManifest, path: &PathBuf, _count: &Arc<Mutex<i32>>)
-          -> bool { 
-            let extract_dir = _manifest.extract_dir;
-            let  _extract_to = _manifest.extract_to;
-             if extract_dir.is_some() {
-                   let  dir = extract_dir.unwrap();
-                   let  array = if let StringArrayOrString::StringArray(array)= dir {
-                     *_count.lock().unwrap() += 1;
-                     array
-                   }else { vec![]};
-                println!("{:?}", array);
-                println!(" path {}", path.display());
-               if _count.lock().unwrap().to_owned()>= 2  {
-                    return true;
-               }
-            }
-          
-          false 
-        }
-      
-        fn find_url_and_hash(
-            manifest: InstallManifest,
-            path: &Path ,
+        fn find_extract(
+            _manifest: InstallManifest,
+            path: &PathBuf,
             _count: &Arc<Mutex<i32>>,
         ) -> bool {
-           let url = manifest.url;
-           let hash = manifest.hash;
-           if  url.is_some() && hash.is_some()   {
-             let  hash=hash.unwrap(); 
-            let  hash_arr  =   match hash {
-                StringArrayOrString::StringArray(array) => {
-                  array 
+            let _extract_dir = _manifest.extract_dir;
+            let _extract_to = _manifest.extract_to;
+            if _extract_dir.is_some() {
+                let dir = _extract_dir.unwrap();
+                let _array = if let StringArrayOrString::StringArray(array) = dir {
+                    *_count.lock().unwrap() += 1;
+                    println!("{:?}", array);
+                    println!(" path {}", path.display());
+                    array
+                } else if let StringArrayOrString::String(str) = dir {
+                    vec![str]
+                } else {
+                    vec![]
+                };
+                if _count.lock().unwrap().to_owned() >= 3{
+                    return true;
                 }
-               StringArrayOrString::String(hash ) => {
-                     vec![hash ]
-               }
-               StringArrayOrString::Null => {vec![]}  
-             };  
-             let result = hash_arr.iter().filter(|hash| hash.contains("sha")).collect::<Vec<&String>>(); 
-             if  result.len() > 1 {  
-                println!("hash {:?}", result);
-                println!("url {:?}", url.unwrap());
-                println!(" path {}", path.display());
-               *_count.lock().unwrap() += 1;
-             }
-              if *_count.lock().unwrap() >= 2  {
-               return true; }
-           }
+            }
+            false
+        }
+
+        fn find_url_and_hash(
+            manifest: InstallManifest,
+            path: &Path,
+            _count: &Arc<Mutex<i32>>,
+        ) -> bool {
+            let url = manifest.url;
+            let hash = manifest.hash;
+            if url.is_some() && hash.is_some() {
+                let hash = hash.unwrap();
+                let hash_arr = match hash {
+                    StringArrayOrString::StringArray(array) => array,
+                    StringArrayOrString::String(hash) => {
+                        vec![hash]
+                    }
+                    StringArrayOrString::Null => {
+                        vec![]
+                    }
+                };
+                let result = hash_arr
+                    .iter()
+                    .filter(|hash| hash.contains("sha"))
+                    .collect::<Vec<&String>>();
+                if result.len() > 1 {
+                    println!("hash {:?}", result);
+                    println!("url {:?}", url.unwrap());
+                    println!(" path {}", path.display());
+                    *_count.lock().unwrap() += 1;
+                }
+                if *_count.lock().unwrap() >= 2 {
+                    return true;
+                }
+            }
             let architecture = manifest.architecture;
             if architecture.is_some() {}
             false
@@ -419,17 +431,35 @@ mod test_manifest_deserialize {
     }
     #[allow(unused)]
     #[ignore]
-    fn find_env_add_oath(manifest: InstallManifest, path: PathBuf) -> u8 {
+    fn find_env_add_path(manifest: InstallManifest, path: PathBuf, count: &Arc<Mutex<i32>>) -> u8 {
         let env_add_path = &manifest.env_add_path;
         if env_add_path.is_some() {
             let env_add_path = env_add_path.clone();
             if env_add_path.is_some() {
                 let env_add_path = env_add_path.unwrap();
+                *count.lock().unwrap() += 1;
+                if *count.lock().unwrap() >= 10 {
+                    return 1;
+                }
                 println!("env_add_path {:?}", env_add_path);
                 println!(" path {}", path.display());
-                return 1;
             }
         }
         0
+    }
+
+    #[allow(unused)]
+    fn find_env_set(manifest: InstallManifest, path: PathBuf, count: &Arc<Mutex<i32>>) -> bool {
+        let env_set = &manifest.env_set;
+        if env_set.is_some() {
+            let env_set = env_set.clone().unwrap();
+            let pretty_str = serde_json::to_string_pretty(&env_set).unwrap();
+            println!("env_set {:?}", pretty_str);
+            *count.lock().unwrap() += 1;
+            if *count.lock().unwrap() >= 10 {
+                return true;
+            }
+        }
+        false
     }
 }

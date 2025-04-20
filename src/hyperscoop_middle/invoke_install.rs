@@ -61,8 +61,9 @@ pub async fn execute_install_command(args: InstallArgs) -> Result<(), anyhow::Er
         let split_version = app_name.split('@').collect::<Vec<&str>>();
         if split_version.iter().count() == 2 {
             let app_name = split_version[0].trim().to_lowercase();
-            let app_version = split_version[1].trim().to_lowercase();
-             if app_name.is_empty() || app_version.is_empty() {
+             let app_version = split_version[1].trim().to_lowercase();
+            log::info!("install   {} specific version {}", app_name , app_version);
+           if app_name.is_empty() || app_version.is_empty() {
                 bail!("指定的APP格式错误")
             }
             install_app_specific_version(&app_name, &app_version, &options).await?;
@@ -155,7 +156,7 @@ pub fn inject_user_options(install_args: &InstallArgs) -> anyhow::Result<Vec<Ins
 }
 
 fn contains_special_char(s: &str) -> bool {
-    let special_chars = r#"!#$%^&*()+=\[]\{}|;':",.<>?~`"#;
+    let special_chars = r#"!#$%^&*()+=\[]\{}|;':",<>?~`"#;
     s.chars().any(|c| special_chars.contains(c))
 }
 

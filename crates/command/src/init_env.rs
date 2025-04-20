@@ -429,6 +429,7 @@ pub fn get_special_bucket_all_manifest_path_global(
         .filter_map(|e| e.ok())
         .map(|e| e.path())
         .collect::<Vec<_>>();
+
     Ok(buckets_path)
 }
 
@@ -448,6 +449,37 @@ pub fn check_bucket_whether_exists(
     }
 }
 
+pub fn get_special_version_all_manifest_path_global(
+) -> anyhow::Result<Vec<PathBuf>> {
+    let all_buckets_dir = get_all_global_buckets_dir_child_bucket_path()?;
+    let entries = all_buckets_dir
+        .iter()
+        .map(|path| read_dir(path).unwrap())
+        .collect::<Vec<_>>();
+
+    let buckets_path = entries
+        .into_par_iter()
+        .map(|dir| dir.par_bridge().filter_map(|e| e.ok()).map(|e| e.path()))
+        .flatten()
+        .collect::<Vec<_>>();
+  
+    Ok(buckets_path)
+}
+
+pub fn get_special_version_all_manifest_path() -> anyhow::Result<Vec<PathBuf>> {
+    let all_buckets_dir = get_all_buckets_dir_child_bucket_path()?;
+    let entries = all_buckets_dir
+        .iter()
+        .map(|path| read_dir(path).unwrap())
+        .collect::<Vec<_>>();
+
+    let buckets_path = entries
+        .into_par_iter()
+        .map(|dir| dir.par_bridge().filter_map(|e| e.ok()).map(|e| e.path()))
+        .flatten()
+        .collect::<Vec<_>>();
+    Ok(buckets_path)
+}
 mod test_path {
     #[allow(unused)]
     use super::*;

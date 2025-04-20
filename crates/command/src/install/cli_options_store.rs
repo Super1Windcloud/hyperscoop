@@ -37,8 +37,10 @@ pub enum ArchiveFormat {
     ZSTD,
     RAR,
     EXE,
+    INNO,
     MSI,
-    TAR,
+    TAR, 
+    Other
 }
 
 #[derive(Clone, Debug)]
