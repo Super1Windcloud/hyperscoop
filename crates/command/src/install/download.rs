@@ -811,7 +811,6 @@ impl<'a> DownloadManager<'a> {
         } else {
             _7z.set_apps_root_dir(get_apps_path())
         }
-
         _7z.set_archive_cache_files_path(str_slice.as_slice());
         _7z.set_app_name(self.app_name);
         _7z.set_archive_names(self.origin_cache_file_names.as_ref());

@@ -31,7 +31,7 @@ const WONDERFUL_STYLES: Styles = Styles::styled()
 #[command(propagate_version = true)] //  版本信息传递
 #[command(override_usage = "hp  [COMMAND]  [OPTIONS] ")]
 #[command(
-    author = "superwindcloud",
+    author = "SuperWindCloud",
     name = "hp",
     disable_help_flag = false,
     disable_help_subcommand = true,

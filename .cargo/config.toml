@@ -29,8 +29,7 @@ space_example = ["run", "--release", "--", "\"command list\""]
 target-dir = "target"
 rustc = "rustc"
 rustdoc = "rustdoc"
-rustflags = ["-C", "link-arg=-fuse-ld=lld",
-  "-C", "target-cpu=native", ]
+rustflags = ["-C", "target-cpu=native"]
 
 [net]
 retry = 3                   # network retries

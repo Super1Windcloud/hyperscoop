@@ -101,11 +101,11 @@ criterion = { version = "0.5.1"   }
 
 [profile.release]
 debug = false
-lto = true   # 链接时间优化,如果 codegen 单位为 1 或opt-level为 0，则不执行 LTO。
+lto = true
 panic = "abort"
 opt-level = 3
 strip = "symbols"
-codegen-units = 16   # 编译单元数量
+codegen-units = 1    # 编译单元数量
 incremental = false
 debug-assertions = false
 overflow-checks = false
