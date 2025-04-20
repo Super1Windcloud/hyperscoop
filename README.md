@@ -1,7 +1,7 @@
 ![img ](./img/sky3.jpg)
 
 > [!IMPORTANT]  
->##  Latest Release 请到 Github
+> ##  Latest Release 请到 Github
  
 # hyperscoop 
 
