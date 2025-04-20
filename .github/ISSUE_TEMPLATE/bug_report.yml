@@ -1,9 +1,7 @@
-name: 问题反馈 / Bug report
+name: "问题反馈 / Bug report"
 title: "[BUG] "
-description: 反馈你遇到的问题 / Report the issue you are experiencing
+description: "反馈你遇到的问题 / Report the issue you are experiencing"
 labels: ["bug"]
-type: "Bug"
-
 body:
   - type: markdown
     attributes:
@@ -14,15 +12,15 @@ body:
   - type: textarea
     id: description
     attributes:
-      label: 问题描述 / Describe the bug
-      description: 详细清晰地描述你遇到的问题，并配合截图 / Describe the problem you encountered in detail and clearly, and provide screenshots
+      label: "问题描述 / Describe the bug"
+      description: "详细清晰地描述你遇到的问题，并配合截图 / Describe the problem you encountered in detail and clearly, and provide screenshots"
     validations:
       required: true
 
   - type: textarea
     attributes:
-      label: 复现步骤 / To Reproduce
-      description: 请提供复现问题的步骤 / Steps to reproduce the behavior
+      label: "复现步骤 / To Reproduce"
+      description: "请提供复现问题的步骤 / Steps to reproduce the behavior"
       placeholder: |
         1. Go to '...'
         2. Click on '....'
@@ -34,27 +32,25 @@ body:
   - type: textarea
     id: expected
     attributes:
-      label: Expected Behavior
-      description: What did you expect to happen?
+      label: "Expected Behavior"
+      description: "What did you expect to happen?"
     validations:
       required: true
 
   - type: textarea
     id: actual
     attributes:
-      label: Actual Behavior
-      description: What actually happened?
+      label: "Actual Behavior"
+      description: "What actually happened?"
     validations:
       required: true
 
   - type: dropdown
     attributes:
-      label: 操作系统 / OS
+      label: "操作系统 / OS"
       options:
-        - Windows
-        - Linux
-        - MacOS
+        - "Windows"
+        - "Linux"
+        - "MacOS"
     validations:
       required: true
-
-
