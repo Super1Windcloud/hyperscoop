@@ -13,7 +13,7 @@
 -  `scoop bucket add hp https://gitee.com/SuperWindcloud/hyperscoop_bucket.git` 
 -  `scoop  install  -u  -s   hp/hp`    
 --- 
-###   2.  下载[exe](https://gitee.com/SuperWindcloud/hyperscoop/releases)使用,并添加到 `$env:Path`
+###   2.  下载[exe](https://github.com/Super1Windcloud/hp/releases)使用,并添加到 `$env:Path`
  
 ## 🏗 Project Status   (WIP) 
 
