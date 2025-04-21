@@ -87,7 +87,6 @@ async fn get_latest_version_from_github() -> anyhow::Result<String> {
 
     let client = if !proxy_url.is_empty() {
         // log::info!("Using proxy: {}", proxy_url);
-
         let proxy_url = if proxy_url.starts_with("http://") || proxy_url.starts_with("https://") {
             proxy_url
         } else {
