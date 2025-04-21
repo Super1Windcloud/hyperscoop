@@ -22,6 +22,7 @@ use crate::utils::utility::get_official_bucket_path;
 #[allow(unused_imports)]
 use anyhow::bail;
 use crossterm::style::Stylize;
+use indicatif::ProgressDrawTarget;
 use rayon::prelude::*;
 pub use update::*;
 
@@ -127,7 +128,8 @@ pub fn update_scoop_bar() -> anyhow::Result<()> {
         .with_message("Checking for updates")
         .with_prefix(format!("🐧{:<longest_bucket_name$}", "Scoop "))
         .with_finish(ProgressFinish::WithMessage(FINISH_MESSAGE.into()));
-
+    pb.set_draw_target(ProgressDrawTarget::stdout());
+    
     let scoop_status = check_scoop_update()?;
 
     if !scoop_status {
@@ -162,6 +164,7 @@ pub fn update_all_buckets_bar() -> anyhow::Result<()> {
                     .with_finish(ProgressFinish::WithMessage(FINISH_MESSAGE.into())),
             );
             pb.set_position(0);
+            pb.set_draw_target(ProgressDrawTarget::stdout());
             (pb, bucket_path)
         })
         .collect::<Vec<_>>();

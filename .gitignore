@@ -21,6 +21,9 @@ shim_proxy
 .env
 .github_token
 
+script/.venv
+
+
 
 
 

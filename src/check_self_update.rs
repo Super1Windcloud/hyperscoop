@@ -6,6 +6,8 @@ use command_util_lib::utils::utility::is_valid_url;
 use crossterm::style::Stylize;
 use reqwest::{header, Client};
 use serde::{Deserialize, Serialize};
+#[allow(unused_imports)]
+use crate::crypto::decrypt_gitee;
 
 #[allow(clippy::unsafe_derive_deserialize)]
 #[allow(dead_code)]
@@ -146,9 +148,7 @@ async fn get_latest_version_from_gitee() -> anyhow::Result<String> {
 
 #[cfg(not(token_local))]
 async fn get_latest_version_from_gitee() -> anyhow::Result<String> {
-    let access_token = "1fba69da2f34d7b0b42c6812153d6d12"; 
-    let 
-    let access_token = access_token?.trim().to_string();
+    let access_token  = decrypt_gitee()?; 
     let client = Client::new();
     let response = client
         .get("https://gitee.com/api/v5/repos/superwindcloud/hyperscoop/releases/latest")

@@ -4,7 +4,7 @@ use crate::utils::request::get_git_repo_remote_url;
 use crate::utils::utility::{remove_bom_and_control_chars_from_utf8_file, LARGE_COMMUNITY_BUCKET};
 use anyhow::{anyhow, bail};
 use crossterm::style::Stylize;
-use indicatif::{MultiProgress, ProgressBar, ProgressFinish, ProgressStyle};
+use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressFinish, ProgressStyle};
 use rand::{thread_rng, Rng};
 use rayon::prelude::*;
 use std::collections::{HashMap, HashSet};
@@ -315,6 +315,8 @@ fn merge_same_latest_version(
         .with_prefix(format!("🐎 {:<10}", "ProgressBar"))
         .with_message("Remove Redundant Manifests")
         .with_finish(ProgressFinish::WithMessage("Done 🎉".into()));
+   pb.set_draw_target(ProgressDrawTarget::stdout());
+  
     // 并行处理文件
     let _ = same_latest_version_manifests
         .into_par_iter()
@@ -422,6 +424,8 @@ pub fn rm_err_manifest() -> Result<(), anyhow::Error> {
       );
 
       pb.set_position(0);
+      pb.set_draw_target(ProgressDrawTarget::stdout());
+      
       (bucket, pb)
     }).collect::<Vec<_>>();
 
@@ -612,6 +616,8 @@ fn finebars(file_finish_count: u64, total_file_count: u64) {
                     .unwrap()
                     .progress_chars(s.1),
             );
+           pb.set_draw_target(ProgressDrawTarget::stdout());
+            
             pb.set_prefix(s.0);
             let wait = Duration::from_millis(thread_rng().gen_range(10..20));
             thread::spawn(move || {

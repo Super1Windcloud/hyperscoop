@@ -3,7 +3,7 @@ use crate::utils::utility::write_into_log_file_append_mode;
 use anyhow::bail;
 use crossterm::style::Stylize;
 use git2::{FetchOptions, Progress, ProxyOptions, RemoteCallbacks, Repository};
-use indicatif::{ProgressBar, ProgressStyle};
+use indicatif::{ProgressBar, ProgressDrawTarget, ProgressStyle};
 use regex::Regex;
 use reqwest::get;
 use std::fs::{create_dir_all, read_dir, remove_dir, remove_dir_all, remove_file, rename, File};
@@ -205,6 +205,8 @@ pub async fn request_download_git_clone(
     })();
     // ---
     let pb = ProgressBar::new(total_size as u64);
+    pb.set_draw_target(ProgressDrawTarget::stdout());
+   
     pb.set_style(ProgressStyle::with_template("{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({bytes_per_sec}, {eta})")?
     .progress_chars("#>-"));
     while downloaded < total_size {
@@ -213,7 +215,7 @@ pub async fn request_download_git_clone(
         pb.set_position(new as u64);
         // 更新进度条的信息
         //pb.set_message(format!("{:.2} KB / {:.2} MB", downloaded_mb, total_size_mb));
-
+       
         time::sleep(Duration::from_millis(12)).await;
     }
 
@@ -270,6 +272,8 @@ pub   fn request_git_clone_by_git2_with_progress(
         create_dir_all(destination)?
     }
     let pb = ProgressBar::new(100);
+    pb.set_draw_target(ProgressDrawTarget::stdout());
+  
     pb.set_style(
         ProgressStyle::with_template("[{elapsed_precise}] [{bar:40.cyan/blue}] {pos}%  {msg}")?
             .progress_chars("#>-"),
