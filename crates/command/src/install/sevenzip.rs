@@ -384,7 +384,8 @@ impl<'a> SevenZipStruct<'a> {
                             format!("{}\\{}", target_dir, archive_name)
                         } else {
                             format!("{}\\{}", target_dir, target_alias)
-                        };
+                        }; 
+                        // println!("target alias dir {target_dir}"); 
                         std::fs::copy(path, target_dir).expect("Failed to copy archive");
                         println!("✅");
                         Ok(())

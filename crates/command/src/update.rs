@@ -49,7 +49,7 @@ pub fn remove_old_version(app_name: &str, options: &[UpdateOptions]) -> anyhow::
     fs::remove_dir_all(target_version_path)?;
     Ok(())
 }
-fn transform_update_options_to_install(update_options: &[UpdateOptions]) -> Vec<InstallOptions> {
+pub fn transform_update_options_to_install(update_options: &[UpdateOptions]) -> Vec<InstallOptions> {
     let mut options = vec![];
     if update_options.contains(&Global) {
         options.push(InstallOptions::Global);
@@ -66,6 +66,9 @@ fn transform_update_options_to_install(update_options: &[UpdateOptions]) -> Vec<
     if update_options.contains(&UpdateOptions::SkipDownloadHashCheck) {
         options.push(InstallOptions::SkipDownloadHashCheck)
     }
+   if update_options.contains(&ForceUpdateOverride) { 
+       options.push(InstallOptions::ForceInstallOverride)
+   }
     options
 }
 

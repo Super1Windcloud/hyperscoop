@@ -3,4 +3,4 @@
 *.py text eol=crlf
 
 *.txt text eol=crlf
-* text eol=lf
+* text eol=crlf

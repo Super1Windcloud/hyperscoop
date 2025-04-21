@@ -357,7 +357,7 @@ pub fn create_default_shim_name_file(
     if !out_dir.exists() {
         bail!(format!("shim 目录 {shim_dir} 不存在"));
     }
-    if !Path::new(&target_path).exists() {
+    if !Path::new(&target_path).exists() && exe_name != "hp.exe" {
         bail!(format!("链接目标文件 {target_path} 不存在"))
     };
     if suffix == "exe" || suffix == "com" {

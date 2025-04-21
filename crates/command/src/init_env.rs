@@ -280,6 +280,26 @@ pub fn get_app_dir_manifest_json_global(app_name: &str) -> String {
     format!("{}\\apps\\{}\\current\\manifest.json", scoop_home, app_name)
 }
 
+pub fn get_app_dir_version_dir_manifest_global(app_name: &str, version: &str) -> String { 
+   let scoop_home = init_scoop_global();
+   format!("{}\\apps\\{}\\{}\\manifest.json", scoop_home, app_name, version)
+}
+pub fn get_app_dir_version_dir_manifest(app_name: &str, version: &str) -> String { 
+   let scoop_home = init_user_scoop();
+   format!("{}\\apps\\{}\\{}\\manifest.json", scoop_home, app_name, version)
+}
+
+pub fn get_app_dir_version_dir_install_json_global(app_name: &str, version: &str) -> String { 
+   let scoop_home = init_scoop_global();
+  format!("{}\\apps\\{}\\{}\\install.json", scoop_home, app_name, version)
+}
+
+pub fn get_app_dir_version_dir_install_json(app_name: &str, version: &str) -> String { 
+   let scoop_home =  init_user_scoop();
+  format!("{}\\apps\\{}\\{}\\install.json", scoop_home, app_name, version)
+}
+
+
 // 全局版本的 get_app_current_bin_path
 pub fn get_app_current_bin_path_global(app_name: String, bin_name: &String) -> String {
     let scoop_home = init_scoop_global();

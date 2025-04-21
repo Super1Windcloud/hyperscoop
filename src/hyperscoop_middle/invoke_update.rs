@@ -3,10 +3,17 @@ use crate::command_args::update::UpdateArgs;
 use crate::Cli;
 use anyhow::anyhow;
 use clap::CommandFactory;
-use command_util_lib::install::UpdateOptions;
+use command_util_lib::init_env::{get_app_current_dir, get_app_current_dir_global};
+use command_util_lib::install::UpdateOptions::ForceUpdateOverride;
+use command_util_lib::install::{
+    install_and_replace_hp, InstallOptions, UpdateOptions,
+};
 use command_util_lib::update::*;
 use command_util_lib::utils::utility::update_scoop_config_last_update_time;
 use crossterm::style::Stylize;
+use std::fs::File;
+use std::io::Write;
+use std::process::Command;
 
 pub async fn execute_update_command(update_args: UpdateArgs) -> Result<(), anyhow::Error> {
     let options = inject_update_user_options(&update_args)?;
@@ -26,7 +33,10 @@ pub async fn execute_update_command(update_args: UpdateArgs) -> Result<(), anyho
     }
     let app_name = update_args.app_name.unwrap();
     log::debug!("update app: {}", app_name);
-
+    if app_name.to_lowercase() == "hp" {
+        update_hp(&options).await?;
+        return Ok(());
+    }
     update_specific_app(&app_name, &options).await?;
     Ok(())
 }
@@ -56,7 +66,7 @@ fn inject_update_user_options(args: &UpdateArgs) -> anyhow::Result<Vec<UpdateOpt
         options.push(UpdateOptions::NoAutoDownloadDepends);
     }
     if args.force_update_override {
-        options.push(UpdateOptions::ForceUpdateOverride);
+        options.push(ForceUpdateOverride);
     }
     Ok(options)
 }
@@ -75,7 +85,11 @@ pub(crate) fn update_buckets() -> Result<(), anyhow::Error> {
 pub async fn update_hp(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
     let cmd = Cli::command();
     let version = cmd.get_version().ok_or(anyhow!("hp version is empty"))?;
-    let result = auto_check_hp_update().await?;
+    let result = if !options.contains(&ForceUpdateOverride) {
+        auto_check_hp_update().await?
+    } else {
+        true
+    };
     if !result {
         println!(
             "{}",
@@ -86,6 +100,50 @@ pub async fn update_hp(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
         );
         return Ok(());
     }
-    update_specific_app("hp", options).await?;
+    let options = transform_update_options_to_install(options);
+    let global = if options.contains(&InstallOptions::Global) {
+        true
+    } else {
+        false
+    };
+    install_and_replace_hp(options.as_slice()).await?;
+    launch_update_script(global).expect("update hp script failed");
+    std::process::exit(0);
+}
+
+fn launch_update_script(global: bool) -> anyhow::Result<()> {
+    let script_content = r#"@echo off
+setlocal enabledelayedexpansion
+timeout /t 2 > nul
+:waitloop
+tasklist | findstr /i "hp.exe" > nul
+if not errorlevel 1 (
+    timeout /t 1 > nul
+    goto waitloop
+)
+
+move /y "%~dp0hp_updater.exe" "%~dp0hp.exe" > nul
+
+for /f "delims=" %%v in ('"%~dp0hp.exe" -V') do (
+    set VERSION=%%v
+)
+
+powershell -Command "Write-Host 'Hp Updates Successfully! Current Version ：!VERSION!' -ForegroundColor Green"
+
+endlocal
+"#;
+    let hp_current = if global {
+        get_app_current_dir_global("hp")
+    } else {
+        get_app_current_dir("hp")
+    };
+    let  updater = format!("{hp_current}\\updater.bat"); 
+    let mut file = File::create(&updater)?;
+    file.write_all(script_content.as_bytes())?;
+
+    // Command::new("cmd")
+    //     .args(&["/C",  &updater])
+    //     .spawn()?; // 非阻塞方式启动
+
     Ok(())
 }

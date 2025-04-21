@@ -26,8 +26,8 @@ pub async fn check_before_install(
     };
     let app_dir_path = Path::new(&app_dir);
     if !app_dir_path.exists() {
-        std::fs::create_dir_all(app_dir_path)?; 
-        return Ok(0); 
+        std::fs::create_dir_all(app_dir_path)?;
+        return Ok(0);
     }
     let app_version_dir = if options.contains(&InstallOptions::Global) {
         get_app_version_dir_global(name, &version)
@@ -109,9 +109,9 @@ pub async fn check_before_install(
         }
     } else if app_version_path.exists() && std::fs::symlink_metadata(&app_current_dir).is_err() {
         let manifest_json = if options.contains(&InstallOptions::Global) {
-            get_app_dir_manifest_json_global(name)
+            get_app_dir_version_dir_manifest_global(name, version)
         } else {
-            get_app_dir_manifest_json(name)
+            get_app_dir_version_dir_manifest(name, version)
         };
         if !Path::new(&manifest_json).exists() {
             eprintln!(
@@ -151,6 +151,8 @@ pub async fn check_before_install(
             "{}",
             format!("Resetting '{name}' ({version})").dark_cyan().bold()
         );
+        create_dir_symbolic_link(&app_version_dir, &app_current_dir)?;
+        create_shim_or_shortcuts(&manifest_json, name, options)?;
         let install_json = if options.contains(&InstallOptions::Global) {
             get_app_dir_install_json_global(name)
         } else {
@@ -198,13 +200,8 @@ pub async fn check_before_install(
                     .dark_green()
                     .bold(),
             );
+            Ok(0)
         }
-
-        create_dir_symbolic_link(&app_version_dir, &app_current_dir)?;
-
-        create_shim_or_shortcuts(&manifest_json, name, options)?;
-
-        Ok(0)
     } else if std::fs::symlink_metadata(&app_current_dir).is_ok() && !app_current_path.exists()
     //exists默认会解析符号链接
     {

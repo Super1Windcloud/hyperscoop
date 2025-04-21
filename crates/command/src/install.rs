@@ -152,9 +152,9 @@ pub async fn install_app_from_local_manifest_file<P: AsRef<Path>>(
     create_shim_or_shortcuts(manifest_path  ,&app_name , &options).expect("create shim or shortcuts failed");
 
     // * install_psmodule
-    if  psmodule.is_some() {  
+    if  psmodule.is_some() {
        let psmodule = psmodule.unwrap();
-       let  global = if options.contains(&InstallOptions::Global) { true } else { false }; 
+       let  global = if options.contains(&InstallOptions::Global) { true } else { false };
        install_psmodule(global , psmodule ,&app_name ,version ).expect("install_psmodule failed");
     }
     if !env_set.is_none() {
@@ -168,7 +168,7 @@ pub async fn install_app_from_local_manifest_file<P: AsRef<Path>>(
         }
     }
     // ! linking  persist_data  链接 Persist 目录
-    //  create_persist_data_link()?; 
+    //  create_persist_data_link()?;
 
     //*persist_permission  主要用于 设置文件系统权限，确保特定用户（通常是 "Users" 组）对某个目录具有写入权限。
    if persist.is_some(){
@@ -346,7 +346,39 @@ pub async fn install_app_specific_version(
 }
 
 pub async fn install_app(app_name: &str, options: &[InstallOptions<'_>]) -> Result<()> {
-    log::info!("install from app {}", app_name);
+    log::info!("install from app {}", app_name); 
+    if app_name.to_lowercase()=="hp" { 
+       bail!("Update self please use `hp u hp` or `hp u -f -s hp`")
+    }
+    let manifest_path = if options.contains(&InstallOptions::Global) {
+        get_latest_manifest_from_local_bucket_global(app_name)?
+    } else {
+        get_latest_manifest_from_local_bucket(app_name)?
+    };
+    let duplicate = manifest_path.clone();
+    if !duplicate.exists() {
+        bail!("No app manifest found for '{app_name}', please check it!")
+    }
+    log::info!("manifest path: {}", manifest_path.display());
+    let source_bucket = (|| {
+        let parent = duplicate.parent().unwrap().parent().unwrap();
+        parent.file_name().unwrap().to_str().unwrap()
+    })();
+
+    // 使用 Box::pin 对递归调用的结果进行装箱, 防止栈溢出
+    Box::pin(install_app_from_local_manifest_file(
+        manifest_path,
+        options.to_vec(),
+        Some(source_bucket),
+    ))
+    .await?;
+
+    Ok(())
+}
+
+
+pub async fn install_and_replace_hp( options: &[InstallOptions<'_>]) -> Result<()> {
+    let app_name  = "hp" ; 
     let manifest_path = if options.contains(&InstallOptions::Global) {
         get_latest_manifest_from_local_bucket_global(app_name)?
     } else {
