@@ -12,6 +12,7 @@ use std::fs;
 use std::fs::File;
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use textwrap::LineEnding;
 
 const DRIVER_SHIM_BYTES: &[u8] = include_bytes!("..\\bin\\shim.exe");
 
@@ -713,8 +714,9 @@ pub fn create_cmd_or_bat_shim_scripts(
     );
 
     let mut cmd_file = File::create(shim_cmd_path)?;
-    cmd_file.write_all(cmd_content.as_bytes())?;
-
+    let crlf_content= cmd_content.replace(LineEnding::LF.as_str(), LineEnding::CRLF.as_str());
+    cmd_file.write_all(crlf_content.as_bytes())?;
+   
     let shim_shell_path = format!("{out_shim_dir}\\{target_name}");
     println!(
         "{} {}",
@@ -734,8 +736,9 @@ pub fn create_cmd_or_bat_shim_scripts(
         )
     };
 
-    let mut sh_file = File::create(shim_shell_path)?;
-    sh_file.write_all(sh_content.as_bytes())?;
+    let mut sh_file = File::create(shim_shell_path)?; 
+    let crlf_content= sh_content.replace(LineEnding::LF.as_str(), LineEnding::CRLF.as_str());
+    sh_file.write_all(crlf_content.as_bytes())?;
 
     Ok(())
 }
@@ -777,7 +780,9 @@ pub fn create_exe_type_shim_file_and_shim_bin<P1: AsRef<Path>, P2: AsRef<Path>>(
     }
     // Write the shim file
     let mut file = File::create(&shim_path)?;
-    file.write_all(content.as_bytes())?;
+    let crlf_content= content.replace(LineEnding::LF.as_str(), LineEnding::CRLF.as_str());
+    
+    file.write_all(crlf_content.as_bytes())?;
     println!(
         "{} {}",
         "Creating  shim  file => ".to_string().dark_blue().bold(),

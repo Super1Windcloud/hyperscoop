@@ -11,6 +11,7 @@ use std::path::Path;
 use anyhow::bail;
 use chrono::Local;
 use regex::Regex;
+use textwrap::LineEnding;
 use url::Url;
 
 pub fn compare_versions(ver1: String, ver2: String) -> Ordering {
@@ -224,7 +225,8 @@ pub fn write_utf8_file(path: &String, content: &str) -> anyhow::Result<()> {
     如果文件存在： 会 直接清空文件内容（相当于 truncate 模式），然后写入新数据。
     不会报错，但原内容会丢失！
     如果文件不存在： 创建新文件并写入内容。*/
-    file.write_all(content.as_bytes())?; // 一次性全部写入
+    let  crlf_content = content.replace(LineEnding::LF.as_str(), LineEnding::CRLF.as_str());
+    file.write_all(crlf_content.as_bytes())?; // 一次性全部写入
     Ok(())
 }
 

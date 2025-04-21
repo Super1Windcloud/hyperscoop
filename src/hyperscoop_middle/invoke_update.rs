@@ -5,12 +5,11 @@ use anyhow::anyhow;
 use clap::CommandFactory;
 use command_util_lib::init_env::{get_app_current_dir, get_app_current_dir_global};
 use command_util_lib::install::UpdateOptions::ForceUpdateOverride;
-use command_util_lib::install::{
-    install_and_replace_hp, InstallOptions, UpdateOptions,
-};
+use command_util_lib::install::{install_and_replace_hp, InstallOptions, UpdateOptions};
 use command_util_lib::update::*;
 use command_util_lib::utils::utility::update_scoop_config_last_update_time;
 use crossterm::style::Stylize;
+use line_ending::LineEnding;
 use std::fs::File;
 use std::io::Write;
 use std::process::Command;
@@ -106,44 +105,50 @@ pub async fn update_hp(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
     } else {
         false
     };
-    install_and_replace_hp(options.as_slice()).await?;
+    let version = install_and_replace_hp(options.as_slice()).await?;
     launch_update_script(global).expect("update hp script failed");
-    std::process::exit(0);
+    println!(
+        "{}",
+        format!("Hp Latest Version('{version}') Update Successfully! ❤️‍🔥💝🐉🍾🎉")
+            .to_string()
+            .dark_green()
+            .bold()
+    ); 
+    Ok(())
 }
 
 fn launch_update_script(global: bool) -> anyhow::Result<()> {
-    let script_content = r#"@echo off
-setlocal enabledelayedexpansion
-timeout /t 2 > nul
-:waitloop
-tasklist | findstr /i "hp.exe" > nul
-if not errorlevel 1 (
-    timeout /t 1 > nul
-    goto waitloop
-)
-
-move /y "%~dp0hp_updater.exe" "%~dp0hp.exe" > nul
-
-for /f "delims=" %%v in ('"%~dp0hp.exe" -V') do (
-    set VERSION=%%v
-)
-
-powershell -Command "Write-Host 'Hp Updates Successfully! Current Version ：!VERSION!' -ForegroundColor Green"
-
-endlocal
-"#;
     let hp_current = if global {
         get_app_current_dir_global("hp")
     } else {
         get_app_current_dir("hp")
     };
-    let  updater = format!("{hp_current}\\updater.bat"); 
+
+    let script_content = format!(
+        r#"@echo off
+chcp 65001 > nul
+setlocal enabledelayedexpansion
+timeout /t 1 > nul
+:waitloop
+tasklist /fi "imagename eq hp.exe" | findstr /i "hp.exe" > nul
+if not errorlevel 1 (
+    timeout /t 1 > nul
+    goto waitloop
+)
+move /y "{hp_current}\hp_updater.exe" "{hp_current}\hp.exe" > nul
+if errorlevel 1 (
+    echo ERROR: Failed to move hp_updater.exe
+    exit /b 1
+)
+endlocal
+"#
+    );
+
+    let updater = format!("{hp_current}\\updater.bat");
     let mut file = File::create(&updater)?;
+    let script_content = script_content.replace(LineEnding::LF.as_str(), LineEnding::CRLF.as_str());
     file.write_all(script_content.as_bytes())?;
 
-    // Command::new("cmd")
-    //     .args(&["/C",  &updater])
-    //     .spawn()?; // 非阻塞方式启动
-
+    Command::new("cmd").args(&["/C", &updater]).spawn()?;
     Ok(())
 }
