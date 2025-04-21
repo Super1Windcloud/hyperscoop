@@ -3,7 +3,7 @@ use anyhow::anyhow;
 use command_util_lib::buckets::Buckets;
 use crossterm::style::Stylize;
 
-pub async fn execute_bucket_command(args: &Option<BucketSubcommands>) -> Result<(), anyhow::Error> {
+pub   fn execute_bucket_command(args: &Option<BucketSubcommands>) -> Result<(), anyhow::Error> {
     let buckets = Buckets::new()?;
    
     let bucket_args = args.as_ref().expect("bucket_args cannot be none");
@@ -13,12 +13,12 @@ pub async fn execute_bucket_command(args: &Option<BucketSubcommands>) -> Result<
                 (true, true) => {
                     if add_args.global {
                         buckets
-                            .add_buckets(&add_args.name, &add_args.repo_url, true)
-                            .await?
+                            .add_buckets(&add_args.name, &add_args.repo_url, true)?
+                            
                     } else {
                         buckets
-                            .add_buckets(&add_args.name, &add_args.repo_url, false)
-                            .await?;
+                            .add_buckets(&add_args.name, &add_args.repo_url, false)?
+                            
                     }
                 }
                 (true, false) => {
@@ -26,15 +26,15 @@ pub async fn execute_bucket_command(args: &Option<BucketSubcommands>) -> Result<
                     if buckets.is_valid_url(&first) {
                         let url = first;
                         if add_args.global {
-                            buckets.add_buckets(&None, &Some(url), true).await?;
+                            buckets.add_buckets(&None, &Some(url), true)?
                         } else {
-                            buckets.add_buckets(&None, &Some(url), false).await?;
+                            buckets.add_buckets(&None, &Some(url), false)?
                         }
                     } else {
                         if add_args.global {
-                            buckets.add_buckets(&add_args.name, &None, true).await?;
+                            buckets.add_buckets(&add_args.name, &None, true)?
                         } else {
-                            buckets.add_buckets(&add_args.name, &None, false).await?;
+                            buckets.add_buckets(&add_args.name, &None, false)?
                         }
                     }
                 }
@@ -57,10 +57,10 @@ pub async fn execute_bucket_command(args: &Option<BucketSubcommands>) -> Result<
                 &rm_args.name.clone().dark_green().bold()
             ); 
             
-            buckets.rm_buckets(&rm_args.name ,rm_args.global).await?;
+            buckets.rm_buckets(&rm_args.name ,rm_args.global)?;
         }
         BucketSubcommands::Update(_) => {
-            crate::hyperscoop_middle::invoke_update::update_buckets().await?;
+            crate::hyperscoop_middle::invoke_update::update_buckets()?;
         }
     }
     Ok(())

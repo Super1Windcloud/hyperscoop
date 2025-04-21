@@ -7,7 +7,7 @@ use std::fs;
 use std::path::Path;
 pub(crate) mod update;
 use crate::init_env::{
-    get_app_current_dir, get_app_current_dir_global, get_app_dir, get_app_dir_global 
+    get_app_current_dir, get_app_current_dir_global, get_app_dir, get_app_dir_global,
 };
 use crate::install::UpdateOptions::{ForceUpdateOverride, Global, RemoveOldVersionApp};
 use crate::install::{install_app, InstallOptions, UpdateOptions};
@@ -99,7 +99,7 @@ pub async fn update_specific_app(
     Ok(())
 }
 
-async fn check_scoop_update() -> anyhow::Result<bool> {
+fn check_scoop_update() -> anyhow::Result<bool> {
     let remote_head = remote_latest_scoop_commit()?;
     let local_head = local_scoop_latest_commit().expect("failed to get local_scoop_latest_commit");
     if remote_head == local_head {
@@ -110,7 +110,7 @@ async fn check_scoop_update() -> anyhow::Result<bool> {
     Ok(true)
 }
 
-pub async fn update_scoop_bar() -> anyhow::Result<()> {
+pub fn update_scoop_bar() -> anyhow::Result<()> {
     let progress_style = style(Some(ProgressOptions::PosLen), Some(Message::suffix()));
     let buckets_name = get_buckets_name()?;
 
@@ -125,7 +125,7 @@ pub async fn update_scoop_bar() -> anyhow::Result<()> {
         .with_prefix(format!("🐧{:<longest_bucket_name$}", "Scoop "))
         .with_finish(ProgressFinish::WithMessage(FINISH_MESSAGE.into()));
 
-    let scoop_status = check_scoop_update().await?;
+    let scoop_status = check_scoop_update()?;
 
     if !scoop_status {
         pb.finish_with_message("✅ No updates available");

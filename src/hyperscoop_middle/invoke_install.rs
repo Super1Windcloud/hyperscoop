@@ -25,7 +25,7 @@ pub async fn execute_install_command(args: InstallArgs) -> Result<(), anyhow::Er
         println!("{}", "开始更新hp和buckets".dark_cyan().bold());
         let update_option = create_update_options(&options)?;
         update_hp(&update_option).await?;
-        update_buckets().await?;
+        update_buckets()?;
     }
     let app_name = args.app_name.clone().unwrap();
     let app_name = convert_path(app_name.trim()).to_lowercase();

@@ -13,7 +13,7 @@ pub async fn execute_update_command(update_args: UpdateArgs) -> Result<(), anyho
     if update_args.update_self_and_buckets {
         println!("{}", "开始更新hp和buckets".dark_cyan().bold());
         update_hp(&options).await?;
-        update_buckets().await?;
+        update_buckets()?;
         return Ok(());
     }
     if update_args.all {
@@ -55,14 +55,14 @@ fn inject_update_user_options(args: &UpdateArgs) -> anyhow::Result<Vec<UpdateOpt
     if args.no_auto_download_dependencies {
         options.push(UpdateOptions::NoAutoDownloadDepends);
     }
-   if  args.force_update_override {
-      options.push(UpdateOptions::ForceUpdateOverride); 
-   }
+    if args.force_update_override {
+        options.push(UpdateOptions::ForceUpdateOverride);
+    }
     Ok(options)
 }
 
-pub(crate) async fn update_buckets() -> Result<(), anyhow::Error> {
-    update_scoop_bar().await?;
+pub(crate) fn update_buckets() -> Result<(), anyhow::Error> {
+    update_scoop_bar()?;
     let status = check_bucket_update_status()?;
     if !status {
         return Ok(());

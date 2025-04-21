@@ -12,7 +12,7 @@ pub async fn check_before_install(
     options: &Box<[InstallOptions<'_>]>,
 ) -> anyhow::Result<u8> {
     if options.contains(&InstallOptions::UpdateHpAndBuckets) {
-        update_scoop_bar().await?;
+        update_scoop_bar()?;
         let status = check_bucket_update_status()?;
         if status {
             update_all_buckets_bar()?;

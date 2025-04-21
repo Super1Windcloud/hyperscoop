@@ -251,7 +251,7 @@ pub async fn request_git_clone_by_git2(
     Ok("下载成功!!!".dark_green().bold().to_string())
 }
 
-pub async fn request_git_clone_by_git2_with_progress(
+pub   fn request_git_clone_by_git2_with_progress(
     repo_url: &str,
     destination: &String,
 ) -> Result<String, anyhow::Error> {
@@ -302,7 +302,6 @@ pub async fn request_git_clone_by_git2_with_progress(
       #[cfg(debug_assertions)]
       write_into_log_file_append_mode("git2_clone.txt",
                                       format!("speed {speed:.2}, total_objects {total_objects}, received_objects {received_objects},percent {percent:.2}"));
-
 
       pb.set_position(percent as u64);
       pb.set_message(format!(

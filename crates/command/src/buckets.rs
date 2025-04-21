@@ -55,7 +55,7 @@ pub fn get_buckets_name() -> Result<Vec<String>, anyhow::Error> {
 }
 impl Buckets {
     //参数传递尽量以借用为主，避免拷贝大量数据
-    pub async fn rm_buckets(&self, name: &String, is_global: bool) -> Result<(), anyhow::Error> {
+    pub   fn rm_buckets(&self, name: &String, is_global: bool) -> Result<(), anyhow::Error> {
         let (bucket_paths, buckets_names) = if is_global {
             self.get_global_bucket_self()?
         } else {
@@ -91,7 +91,7 @@ impl Buckets {
 }
 
 impl Buckets {
-    pub async fn add_buckets(
+    pub   fn add_buckets(
         &self,
         name: &Option<String>,
         url: &Option<String>,
@@ -120,13 +120,12 @@ impl Buckets {
         }
         let result = self
             .download_bucket(&url, &bucket_name, &bucket_root_dir)
-            .await
             .expect("Failed to download bucket");
         println!("{}", result);
         Ok(())
     }
 
-    pub async fn download_bucket(
+    pub   fn download_bucket(
         &self,
         url: &str,
         bucket_name: &str,
@@ -134,7 +133,7 @@ impl Buckets {
     ) -> Result<String, anyhow::Error> {
         let bucket_path = bucket_path.to_string() + "\\" + bucket_name;
         println!("{} ", "开始下载...... ".dark_green().bold());
-        let result = request_git_clone_by_git2_with_progress(url, &bucket_path).await?;
+        let result = request_git_clone_by_git2_with_progress(url, &bucket_path)?;
         Ok(result)
     }
     pub fn check_file_ishave_content(&self, bucket_path: &str) -> Result<(), anyhow::Error> {
