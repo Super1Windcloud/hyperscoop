@@ -15,8 +15,11 @@ use hyperscoop_middle::*;
 mod logger_err;
 use logger_err::init_logger;
 mod check_self_update;
+mod crypto;
+
 use crate::command::{execute_credits_command, execute_hold_command};
 use check_self_update::*;
+use crate::command_args::alias::execute_alias_command;
 
 const WONDERFUL_STYLES: Styles = Styles::styled()
     .header(AnsiColor::Green.on_default().effects(Effects::BOLD))
@@ -82,6 +85,7 @@ async fn main() -> anyhow::Result<()> {
             Ok(())
         }
         Some(input_command) => match input_command {
+            Commands::Alias(alias_args) => execute_alias_command(alias_args),
             Commands::Bucket(bucket) => execute_bucket_command(&bucket.command),
             Commands::Cat(cat) => execute_cat_command(cat),
             Commands::Cache(cache_args) => execute_cache_command(cache_args),

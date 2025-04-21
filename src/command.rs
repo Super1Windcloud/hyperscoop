@@ -17,6 +17,7 @@ use crate::command_args::status::StatusArgs;
 use crate::command_args::uninstall::UninstallArgs;
 use crate::command_args::update::UpdateArgs;
 use crate::command_args::which::WhichArgs;
+use crate::command_args::alias::AliasArgs;
 pub(crate) use crate::command_args::{bucket_args::BucketArgs, cache::CacheArgs};
 use anyhow::bail;
 use clap::{Args, Subcommand};
@@ -36,8 +37,8 @@ use crate::check_self_update::auto_check_hp_update;
     disable_help_subcommand = true
 )]
 pub(crate) enum Commands {
+    Alias(AliasArgs),
     Bucket(BucketArgs),
-
     Cat(CatArgs),
     Cache(CacheArgs),
     Checkup(CheckupArgs),
@@ -71,10 +72,10 @@ pub(crate) enum Commands {
 pub struct CreditsArgs {}
 
 pub async   fn execute_credits_command() -> anyhow::Result<()> {
-    if !auto_check_hp_update().await? { 
+    if !auto_check_hp_update().await? {
       println!("{}", "💖\tNow hp's  version is latest! Please enjoy it!".dark_cyan().bold());
     };
-    
+
     let str = "Hp  is created by superwindcloud(https://gitee.com/superwindcloud)(https://github.com/super1windcloud)"
         .to_string()
         .dark_blue()
@@ -93,6 +94,8 @@ pub struct HoldArgs {
     #[arg(short = 'u', long, required = false, help = "取消锁定, 支持多参数")]
     pub cancel_hold: bool,
 }
+
+
 
 pub fn add_key_value_to_json(
     file_path: &str,

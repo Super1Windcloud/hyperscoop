@@ -20,10 +20,16 @@ struct GiteeRelease {
 pub async fn auto_check_hp_update() -> anyhow::Result<bool> {
     let cmd = Cli::command();
     let version = cmd.get_version().ok_or(anyhow!("hp version is empty"))?;
-    let latest_github_version = get_latest_version_from_github().await?;
-
-    if version.to_string() < latest_github_version {
-        println!("{}", format!("发现hp新版本 {latest_github_version},请访问https://github.com/Super1Windcloud/hp/releases").dark_cyan().bold());
+    let latest_github_version = get_latest_version_from_github().await.expect(
+      "failed to get latest github version",
+    ); 
+    let  latest_version =  if latest_github_version.is_empty() {
+         get_latest_version_from_gitee().await.expect("failed to get latest gitee version")
+    }else {
+       latest_github_version   
+    }; 
+    if version.to_string() < latest_version {
+        println!("{}", format!("发现hp新版本 {latest_version},请访问https://github.com/Super1Windcloud/hp/releases").dark_cyan().bold());
         Ok(true)
     } else {
         Ok(false)
@@ -50,7 +56,7 @@ async fn get_latest_version_from_github() -> anyhow::Result<String> {
     );
     const USER_AGENT: &str = "Rust-GitHub-API-Client";
     let mut headers = header::HeaderMap::new();
-    headers.insert(header::USER_AGENT, USER_AGENT.parse()?); 
+    headers.insert(header::USER_AGENT, USER_AGENT.parse()?);
     headers.insert("Accept", "application/vnd.github.v3+json".parse()?);
     headers.insert(header::AUTHORIZATION, format!("token {}", token).parse()?);
 
@@ -109,13 +115,15 @@ async fn get_latest_version_from_github() -> anyhow::Result<String> {
 
     if !response.status().is_success() {
         eprintln!("请求失败: {}", response.status());
+        eprintln!("Response: {}", response.text().await.unwrap());
+        return Ok("".into())
     }
     let tags: GithubRelease = response.json().await.unwrap();
     Ok(tags.tag_name)
 }
 
 #[cfg(token_local)]
-async fn _get_latest_version_from_gitee() -> anyhow::Result<String> {
+async fn get_latest_version_from_gitee() -> anyhow::Result<String> {
     let access_token = include_str!("../.env").trim();
     if access_token.is_empty() {
         bail!("GITEE_TOKEN environment variable is empty");
@@ -138,10 +146,8 @@ async fn _get_latest_version_from_gitee() -> anyhow::Result<String> {
 
 #[cfg(not(token_local))]
 async fn get_latest_version_from_gitee() -> anyhow::Result<String> {
-    let access_token = std::env::var("GITEE_TOKEN");
-    if access_token.is_err() {
-        bail!("GITEE_TOKEN environment variable is empty");
-    }
+    let access_token = "1fba69da2f34d7b0b42c6812153d6d12"; 
+    let 
     let access_token = access_token?.trim().to_string();
     let client = Client::new();
     let response = client
@@ -158,6 +164,8 @@ async fn get_latest_version_from_gitee() -> anyhow::Result<String> {
 
     Ok(gitee_tag)
 }
+
+
 
 mod test_auto_update {
     #[allow(unused)]

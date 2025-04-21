@@ -19,4 +19,5 @@ pub mod  status ;
 pub mod  uninstall ;
 pub mod  update ;
 pub mod   which;
+pub mod alias;
 
