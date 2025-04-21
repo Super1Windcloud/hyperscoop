@@ -11,6 +11,13 @@ pub enum StringArrayOrString {
     String(String), // 字符串类型
 }
 
+
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub struct   PSModuleStruct {
+   pub   name :String
+}
+
 #[must_use]
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 // #[serde(untagged)]    // 只能用于枚举
@@ -37,7 +44,7 @@ pub struct BaseArchitecture {
     pub post_install: Option<StringArrayOrString>,
 }
 
-impl ArchitectureObject { 
+impl ArchitectureObject {
     pub fn  get_specific_architecture(&self, arch: &str) -> Option<&BaseArchitecture> {
         match arch {
             "64bit" => self.x64bit.as_ref(),

@@ -6,6 +6,7 @@ use rayon::prelude::*;
 use serde_json::Value;
 use std::fs;
 use std::io;
+use std::path::Path;
 
 pub fn display_app_info(app_name: String, bucket_paths: Vec<String>) {
     let app_name = app_name.trim().to_lowercase();
@@ -148,8 +149,8 @@ impl DisplayInfo for &[Value] {
 }
 
 fn process_manifest_file(
-    file_path: &std::path::Path,
-    manifest_path: &str,
+    file_path: &Path,
+    bucket_root_dir : &str,
     app_name: &str,
 ) -> anyhow::Result<Vec<(String, String)>> {
     let content = fs::read_to_string(file_path)?;
@@ -157,13 +158,7 @@ fn process_manifest_file(
 
     let description = serde_obj["description"].as_str().unwrap_or_default();
     let version = serde_obj["version"].as_str().unwrap_or_default();
-    let bucket_name = manifest_path
-        .split('\\')
-        .collect::<Vec<_>>()
-        .into_iter()
-        .rev()
-        .nth(2)
-        .unwrap_or("");
+    let bucket_name = Path::new(bucket_root_dir).file_name().unwrap_or("unknown".as_ref()).to_str().unwrap();
     let website = serde_obj["homepage"].as_str().unwrap_or_default();
     let license = serde_obj["license"].as_str().unwrap_or_default();
     let update_at = get_file_modified_time(file_path.to_str().unwrap_or(""))?;

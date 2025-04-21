@@ -455,14 +455,14 @@ impl Buckets {
 
     pub fn get_known_bucket_path(&self) -> String {
         let home_dir = std::env::var("USERPROFILE").unwrap();
-        let config_dir = home_dir + "\\.config\\scoop"; 
+        let config_dir = home_dir + "\\.config\\scoop";
         if !Path::new(&config_dir).exists() {
             create_dir_all(&config_dir).unwrap();
         }
-        let known = format!("{}\\known_bucket.json", config_dir);  
+        let known = format!("{}\\known_bucket.json", config_dir);
         let known_bucket = Path::new( &known);
         if !known_bucket.exists() {
-            let mut file = File::create(&known_bucket).unwrap();  // 截断写入  
+            let mut file = File::create(&known_bucket).unwrap();  // 截断写入
            let  content = r#"{
     "main": "https://github.com/ScoopInstaller/Main",
     "extras": "https://github.com/ScoopInstaller/Extras",
@@ -475,7 +475,7 @@ impl Buckets {
     "java": "https://github.com/ScoopInstaller/Java",
     "games": "https://github.com/Calinou/scoop-games"
 }
-            "#;  
+            "#;
             file.write_all(content.as_bytes()).unwrap();
             file.flush().unwrap();
         }
@@ -494,7 +494,7 @@ impl Buckets {
         if !Path::new(&apps_dir).exists() {
             bail!("global {apps_dir} is not  exist");
         }
-        let known_bucket_path = self.get_known_bucket_path(); 
+        let known_bucket_path = self.get_known_bucket_path();
         let file_buffer = File::open(&known_bucket_path).expect("Failed to open known_bucket_path");
         let reader_buffer = BufReader::new(file_buffer);
         let content: serde_json::Value = serde_json::from_reader(reader_buffer)?;

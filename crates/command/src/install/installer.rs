@@ -1,19 +1,22 @@
 use crate::init_env::{
-    get_old_scoop_dir, get_scoop_cfg_path, get_shims_path, get_shims_path_global,
+    get_app_version_dir, get_app_version_dir_global, get_old_scoop_dir, get_psmodules_root_dir,
+    get_psmodules_root_global_dir, get_scoop_cfg_path, get_shims_path, get_shims_path_global,
     init_scoop_global, init_user_scoop,
 };
 use crate::install::{install_app, install_from_specific_bucket, InstallOptions};
 use crate::manifest::install_manifest::{InstallManifest, SuggestObj, SuggestObjValue};
-use crate::manifest::manifest_deserialize::{ManifestObj, StringArrayOrString};
+use crate::manifest::manifest_deserialize::{ManifestObj, PSModuleStruct, StringArrayOrString};
 use crate::utils::system::{
-    get_system_default_arch, get_system_env_str,
-    get_user_env_str, set_global_env_var, set_user_env_var,
+    get_system_default_arch, get_system_env_str, get_system_env_var, get_user_env_str,
+    get_user_env_var, set_global_env_var, set_user_env_var,
 };
 use anyhow::bail;
 use crossterm::style::Stylize;
+use regex::Regex;
+use std::os::windows::fs;
+use std::path::Path;
 use windows_sys::Win32::System::Registry::HKEY_CURRENT_USER;
 use winreg::RegKey;
-
 pub fn show_suggest(suggest: &SuggestObj) -> anyhow::Result<()> {
     println!(
         "{}",
@@ -174,7 +177,7 @@ pub fn handle_env_set(
                     error_output
                 );
             }
-          
+
             println!(
                 "{} {}",
                 "Env set successfully for".to_string().dark_green().bold(),
@@ -261,7 +264,74 @@ pub fn add_scoop_shim_root_dir_to_env_path(options: &Box<[InstallOptions]>) -> a
     }
 }
 
+pub fn install_psmodule(
+    global: bool,
+    psmodule: PSModuleStruct,
+    app_name: &str,
+    version: &str,
+) -> anyhow::Result<()> {
+    let psmodule_root_dir = if global {
+        get_psmodules_root_global_dir()
+    } else {
+        get_psmodules_root_dir()
+    };
+    ensure_in_psmodulepath(&psmodule_root_dir, global)?;
+    let app_version_dir = if global {
+        get_app_version_dir_global(app_name, version)
+    } else {
+        get_app_version_dir(app_name, version)
+    };
+    let module_name = psmodule.name;
+    if module_name.is_empty() {
+        bail!("module name cannot be empty, manifest format error");
+    }
+    let link_dir = format!("{}\\{}", psmodule_root_dir, module_name);
+    if Path::new(&link_dir).exists() {
+        eprintln!(
+            "{}",
+            format!("{link_dir} is already exists. It will be replaced.")
+                .dark_grey()
+                .bold()
+        );
+        std::fs::remove_dir_all(&link_dir)?;
+    }
+    fs::symlink_dir(&app_version_dir, &link_dir)?;
+    println!(
+        "{}  {} => {}",
+        "Linking".dark_blue().bold(),
+        link_dir.dark_green().bold(),
+        app_version_dir.dark_green().bold()
+    );
+    Ok(())
+}
 
+fn ensure_in_psmodulepath(psmodule_root_dir: &str, global: bool) -> anyhow::Result<()> {
+    let path = if global {
+        get_system_env_var("PSModulePath")?
+    } else {
+        get_user_env_var("PSModulePath")?
+    };
+    let path = if path.is_empty() && !global {
+        let home = std::env::var("USERPROFILE")?;
+        format!("{home}\\Documents\\WindowsPowerShell\\Modules")
+    } else {
+        path
+    };
+    let re = Regex::new(&regex::escape(&psmodule_root_dir))?;
+    if !re.is_match(&path) {
+        println!(
+            "Adding {} to {} PowerShell module path.",
+            psmodule_root_dir,
+            if global { "global" } else { "your" }
+        );
+        if global {
+            set_global_env_var("PSModulePath", &format!("{psmodule_root_dir}\\{path}"))?;
+        } else {
+            set_user_env_var("PSModulePath", &format!("{psmodule_root_dir}\\{path}"))?;
+        }
+    }
+    Ok(())
+}
 
 mod test_installer {
     #[allow(unused)]
@@ -272,11 +342,10 @@ mod test_installer {
         let options = vec![].into_boxed_slice();
         add_scoop_shim_root_dir_to_env_path(&options).unwrap();
     }
-  
-  
-    #[test] 
-     fn test_symbolic_meta(){ 
-        let info =  std::fs::read_link(r"A:\Scoop\apps\motrix\current").unwrap();
+
+    #[test]
+    fn test_symbolic_meta() {
+        let info = std::fs::read_link(r"A:\Scoop\apps\motrix\current").unwrap();
         println!("{:?}", info.display());
     }
 }

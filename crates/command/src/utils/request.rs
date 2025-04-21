@@ -267,7 +267,7 @@ pub async fn request_git_clone_by_git2_with_progress(
       }
     }
     if !Path::new(destination).exists() {
-        create_dir_all(destination)? 
+        create_dir_all(destination)?
     }
     let pb = ProgressBar::new(100);
     pb.set_style(
@@ -302,12 +302,15 @@ pub async fn request_git_clone_by_git2_with_progress(
       #[cfg(debug_assertions)]
       write_into_log_file_append_mode("git2_clone.txt",
                                       format!("speed {speed:.2}, total_objects {total_objects}, received_objects {received_objects},percent {percent:.2}"));
+
+
       pb.set_position(percent as u64);
       pb.set_message(format!(
         "{} / {} objects, {:.2} objs/s",
         received_objects, total_objects, speed
       ));
-
+      pb.tick();
+      std::io::stdout().flush().unwrap();
       last_received = received_objects;
       last_time = now;
     }

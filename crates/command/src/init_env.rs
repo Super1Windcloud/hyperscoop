@@ -292,6 +292,7 @@ pub fn get_old_scoop_dir_global() -> String {
     path + "\\scoop"
 }
 
+
 // 全局版本的 get_scoop_cfg_path
 pub fn get_scoop_cfg_path_global() -> String {
     let path = env::var("ProgramData").unwrap();
@@ -303,6 +304,18 @@ pub fn get_persist_dir_path_global() -> String {
     let hyper_scoop = HyperScoopGlobal::new();
     hyper_scoop.get_persist_path()
 }
+
+pub fn get_psmodules_root_global_dir() -> String {
+ let  hp = HyperScoopGlobal::new();
+   hp.get_psmodule_path()
+}
+
+pub fn  get_psmodules_root_dir()->String {
+   let  hp= HyperScoop::new(); 
+   hp. get_psmodule_path()
+}
+
+
 pub fn get_persist_app_data_dir_global(app_name: &str) -> String {
     let scoop_global_home = init_scoop_global();
     format!("{}\\persist\\{}", scoop_global_home, app_name)

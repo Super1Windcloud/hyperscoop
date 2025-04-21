@@ -85,30 +85,26 @@ async fn main() -> anyhow::Result<()> {
             Commands::Bucket(bucket) => execute_bucket_command(&bucket.command).await,
             Commands::Cat(cat) => execute_cat_command(cat),
             Commands::Cache(cache_args) => execute_cache_command(cache_args),
-            Commands::Checkup( args ) => execute_checkup_command(args.global),
+            Commands::Checkup(args) => execute_checkup_command(args.global),
             Commands::Cleanup(args) => execute_cleanup_command(args),
             Commands::Config(args) => execute_config_command(args),
             Commands::Export(file) => execute_export_command(file),
             Commands::Home(home) => execute_home_command(home),
-            Commands::Import(args) => execute_import_command(args).await ,
+            Commands::Import(args) => execute_import_command(args).await,
             Commands::Info(info) => execute_info_command(info),
-            Commands::Install(args) => {
-                execute_install_command(args).await
-            }
-            Commands::List(query_app) => execute_list_installed_apps(query_app ),
+            Commands::Install(args) => execute_install_command(args).await,
+            Commands::List(query_app) => execute_list_installed_apps(query_app),
             Commands::Prefix(prefix) => execute_prefix_command(prefix),
             Commands::Reset(args) => execute_reset_command(args),
             Commands::Search(search_app) => execute_search_command(search_app),
             Commands::Shim(args) => execute_shim_command(args),
-            Commands::Status(args ) => execute_status_command(args ),
+            Commands::Status(args) => execute_status_command(args),
             Commands::Uninstall(args) => execute_uninstall_command(args),
-            Commands::Update(update_args) => {
-                execute_update_command(update_args).await
-            }
+            Commands::Update(update_args) => execute_update_command(update_args).await,
             Commands::Which(which) => execute_which_command(which),
             Commands::Merge(args) => execute_merge_command(args),
             Commands::Credits(_) => execute_credits_command().await,
-            Commands::Hold( hold_args ) => execute_hold_command( hold_args),
+            Commands::Hold(hold_args) => execute_hold_command(hold_args),
         },
     };
     if let Err(err) = result {

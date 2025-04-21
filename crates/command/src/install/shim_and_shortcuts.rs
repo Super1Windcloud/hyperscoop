@@ -16,7 +16,7 @@ use std::path::{Path, PathBuf};
 const DRIVER_SHIM_BYTES: &[u8] = include_bytes!("..\\bin\\shim.exe");
 
 pub fn create_shim_or_shortcuts(
-    manifest_json: String,
+    manifest_json: &str,
     app_name: &str,
     options: &Box<[InstallOptions]>,
 ) -> anyhow::Result<()> {
@@ -31,7 +31,7 @@ pub fn create_shim_or_shortcuts(
     if shortcuts.is_some() {
         create_start_menu_shortcuts(shortcuts.unwrap(), app_name.into())?;
     }
-    if    architecture.is_some() {
+    if architecture.is_some() {
         let architecture = architecture.unwrap();
         let system_arch = get_system_default_arch()?;
         if system_arch == "64bit" {
@@ -103,9 +103,9 @@ pub fn create_shims_file(
     } else {
         get_shims_path()
     };
-   if  !Path::new(&shim_path).exists() { 
-       fs::create_dir_all(&shim_path)?;
-   }
+    if !Path::new(&shim_path).exists() {
+        fs::create_dir_all(&shim_path)?;
+    }
     match bin {
         StringOrArrayOrDoubleDimensionArray::String(s) => {
             create_default_shim_name_file(s, &shim_path, app_name)?;
@@ -281,11 +281,11 @@ pub fn start_create_shortcut<P: AsRef<Path>>(
     let link = start_menu_path.as_ref().to_str().unwrap();
     println!(
         "{} {} => {}",
-        "Creating Shortcuts for".to_string().dark_blue().bold(),
+        "Creating  Shortcuts for".to_string().dark_blue().bold(),
         app_name.to_string().dark_cyan().bold(),
         link.to_string().dark_green().bold()
     );
-    let shell_link = ShellLink::new(link_target_path)?; 
+    let shell_link = ShellLink::new(link_target_path)?;
     shell_link.create_lnk(start_menu_path)?;
     Ok(())
 }
@@ -301,7 +301,7 @@ pub fn create_alias_shim_name_file(
     let out_dir = PathBuf::from(shim_dir);
     let temp = exe_name.clone();
     let suffix = temp.split('.').last().unwrap();
-    log::debug!("Origin file type {}", suffix);
+    // log::debug!("Origin file type {}", suffix);
 
     let target_path = get_app_current_bin_path(app_name.into(), &exe_name);
     if !out_dir.exists() {
@@ -349,7 +349,7 @@ pub fn create_default_shim_name_file(
     let out_dir = PathBuf::from(shim_dir);
     let temp = exe_name.clone();
     let suffix = temp.split('.').last().unwrap();
-    log::debug!("Origin file type {}", suffix);
+    // log::debug!("Origin file type {}", suffix);
     if suffix.is_empty() {
         bail!(format!("shim 文件名 {exe_name} 后缀为空 WTF?"))
     }
@@ -780,7 +780,7 @@ pub fn create_exe_type_shim_file_and_shim_bin<P1: AsRef<Path>, P2: AsRef<Path>>(
     file.write_all(content.as_bytes())?;
     println!(
         "{} {}",
-        "Created  shim  file => ".to_string().dark_blue().bold(),
+        "Creating  shim  file => ".to_string().dark_blue().bold(),
         &shim_path.to_str().unwrap().dark_green().bold()
     );
 
@@ -886,7 +886,7 @@ mod test_shim {
             .flat_map(|path| path.read_dir().unwrap().map(|res| res.unwrap().path()))
             .collect::<Vec<_>>();
         for path in files {
-            let content = std::fs::read_to_string(&path);
+            let content = fs::read_to_string(&path);
             if content.is_err() {
                 println!("decode   error {:?}", path.display());
                 continue;

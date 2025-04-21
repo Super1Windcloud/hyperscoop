@@ -14,6 +14,7 @@ pub enum SuggestObjValue {
 
 pub type SuggestObj = std::collections::HashMap<String, SuggestObjValue>;
 
+
 #[must_use]
 #[allow(clippy::unsafe_derive_deserialize)]
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
@@ -141,7 +142,7 @@ pub struct InstallManifest {
 
     ///作为 PowerShell 模块安装在~/scoop/modules中。
     ///name （ psmodule必需）：模块的名称，该名称应与解压目录中的至少一个文件匹配，以便 PowerShell 将其识别为模块。
-    pub psmodule: Option<ManifestObj>,
+    pub psmodule: Option<PSModuleStruct >,
 
     /// 为用户（或系统，如果使用--global ）设置一个或多个环境变量
     pub env_set: Option<ManifestObj>, // !complete

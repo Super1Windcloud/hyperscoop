@@ -1,3 +1,4 @@
+use crate::init_env::get_persist_dir_path_global;
 use anyhow::bail;
 use std::path::Path;
 use std::process::{Command, Stdio};
@@ -28,6 +29,21 @@ pub fn delete_global_env_var(var_key: &str) -> Result<(), anyhow::Error> {
     bail!("Environment variable not  exists");
 }
 
+pub  fn  get_user_env_var(var_key: &str) -> Result<String , anyhow::Error> {
+  let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+  let environment = hkcu.open_subkey("Environment")?;
+  let value :String  = environment.get_value(var_key)?;
+   Ok(value)
+}
+
+pub fn get_system_env_var(var_key: &str) -> Result<String, anyhow::Error> {
+  let  hkcu = RegKey::predef(HKEY_LOCAL_MACHINE);
+  let key = r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment";
+  let environment_key = hkcu.open_subkey_with_flags(key, KEY_ALL_ACCESS)?;
+   let value :String  = environment_key.get_value(var_key)?; 
+   Ok(value)
+}
+
 pub fn set_user_env_var(var_key: &str, var_value: &str) -> Result<(), anyhow::Error> {
     if var_key.is_empty() || var_value.is_empty() {
         bail!("Environment variable  can't be empty ");
@@ -41,10 +57,10 @@ pub fn set_user_env_var(var_key: &str, var_value: &str) -> Result<(), anyhow::Er
 pub fn set_global_env_var(var_key: &str, var_value: &str) -> Result<(), anyhow::Error> {
     if var_key.is_empty() || var_value.is_empty() {
         bail!("Environment variable  can't be empty ");
-    } 
-    if !is_admin()?{ 
-      request_admin(); 
-    } 
+    }
+    if !is_admin()? {
+        request_admin();
+    }
     let powershell_command = format!(
         "[System.Environment]::SetEnvironmentVariable(\"{}\", \"{}\", \"Machine\")",
         var_key, var_value
@@ -165,9 +181,9 @@ pub fn compute_hash_by_powershell(file_path: &str, algorithm: &str) -> anyhow::R
     let cmd = format!(
         r#"$env:PSModulePath ="$PSHOME/Modules";(Get-FileHash -Algorithm {} -Path "{}").hash"#,
         algorithm, file_path
-    ); 
-    let output = std::process::Command::new("powershell")
-        .arg("-NoProfile") 
+    );
+    let output = Command::new("powershell")
+        .arg("-NoProfile")
         .arg("-Command")
         .arg(cmd)
         .output()
@@ -179,6 +195,27 @@ pub fn compute_hash_by_powershell(file_path: &str, algorithm: &str) -> anyhow::R
         eprintln!("{}", String::from_utf8_lossy(&output.stderr));
         bail!("powershell.exe  compute cache hash failed")
     }
+}
+
+pub fn ensure_persist_permission() -> anyhow::Result<()> {
+    if is_admin()? {
+        let persist_dir = get_persist_dir_path_global();
+        let cmd = format!(
+            r"
+        $path={persist_dir};
+        $user = New-Object System.Security.Principal.SecurityIdentifier 'S-1-5-32-545';
+        $target_rule = New-Object System.Security.AccessControl.FileSystemAccessRule($user, 'Write', 'ObjectInherit', 'none', 'Allow');
+        $acl = Get-Acl -Path $path;
+        $acl.SetAccessRule($target_rule);
+        $acl | Set-Acl -Path $path;
+       "
+        );
+        let output = Command::new(&cmd).output()?;
+        if !output.status.success() {
+            bail!("Error : {}", String::from_utf8_lossy(&output.stderr));
+        }
+    }
+    Ok(())
 }
 
 mod test_system {

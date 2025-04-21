@@ -7,6 +7,7 @@ use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use crate::manifest::manifest_deserialize::ObjectOrString;
 
 #[allow(clippy::unsafe_derive_deserialize)]
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
@@ -38,7 +39,7 @@ pub struct Manifest {
     pub description: Option<String>,
     //应用程序维护人员和开发人员可以使用bin/checkver工具来检查应用程序的更新版本
     // 。清单中的checkver属性是一个正则表达式，可用于匹配应用程序主页中应用程序的当前稳定版本
-    pub checkver: Option<String>, // 用于检查更新的配置
+    pub checkver: Option<ObjectOrString>, // 用于检查更新的配置
 
     //在用户路径上可用的程序（可执行文件或脚本）的字符串或字符串数 组
     pub bin: Option<String>,      //可执行文件所在的目录。

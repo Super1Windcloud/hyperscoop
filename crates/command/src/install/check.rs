@@ -202,7 +202,7 @@ pub async fn check_before_install(
 
         create_dir_symbolic_link(&app_version_dir, &app_current_dir)?;
 
-        create_shim_or_shortcuts(manifest_json, name, options)?;
+        create_shim_or_shortcuts(&manifest_json, name, options)?;
 
         Ok(0)
     } else if std::fs::symlink_metadata(&app_current_dir).is_ok() && !app_current_path.exists()

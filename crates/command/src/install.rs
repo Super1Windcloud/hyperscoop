@@ -23,8 +23,8 @@ pub use aria2::*;
 pub mod sevenzip;
 pub use sevenzip::*;
 pub mod download;
-pub mod  parse_lifecycle_scripts; 
-pub use  parse_lifecycle_scripts::*;  
+pub mod  parse_lifecycle_scripts;
+pub use  parse_lifecycle_scripts::*;
 
 
 use crate::list::VersionJSON;
@@ -33,6 +33,7 @@ use crate::manifest::manifest::{
 };
 use crate::utils::utility::{nightly_version, validate_version};
 pub use download::*;
+use crate::utils::system::ensure_persist_permission;
 
 /// 下载, 解压, preinstall, create_shim_shortcut, postinstall
 pub async fn install_app_from_local_manifest_file<P: AsRef<Path>>(
@@ -90,7 +91,7 @@ pub async fn install_app_from_local_manifest_file<P: AsRef<Path>>(
         && !options.contains(&InstallOptions::OnlyDownloadNoInstall)
         && !options.contains(&InstallOptions::ForceInstallOverride)
     {
-        check_before_install(&app_name, &version, &options).await? 
+        check_before_install(&app_name, &version, &options).await?
     } else {
         0
     };
@@ -118,9 +119,9 @@ pub async fn install_app_from_local_manifest_file<P: AsRef<Path>>(
     // let url = serde_obj.url;
     // let hash = serde_obj.hash;
     let installer = serde_obj.installer;
-    let shortcuts = serde_obj.shortcuts;
+    // let shortcuts = serde_obj.shortcuts;
     let architecture = serde_obj.architecture;
-    let bin = serde_obj.bin;
+    // let bin = serde_obj.bin;
     let extract_dir = serde_obj.extract_dir;
     let extract_to = serde_obj.extract_to;
     // let innosetup = serde_obj.innosetup;
@@ -140,15 +141,22 @@ pub async fn install_app_from_local_manifest_file<P: AsRef<Path>>(
     if options.contains(&InstallOptions::OnlyDownloadNoInstall) {
         return Ok(());
     }
-    //  提取 cache 中的zip 到 app dir 
-    // linking   app current dir to app version dir
-    download_manager.invoke_7z_extract(extract_dir, extract_to ,architecture.clone()  )? ; 
-    //  parse    pre_install 
-    //  parse    manifest installer 
-    //create_shims
-    //create_startmenu_shortcuts
-    //install_psmodule
+    //  * 提取 cache 中的zip 到 app dir
+    //  *linking   app current dir to app version dir
+    download_manager.invoke_7z_extract(extract_dir, extract_to ,architecture.clone()  )? ;
+    // !  parse    pre_install
+    // !  parse    manifest installer
 
+    //*create_shims
+    //*create_startmenu_shortcuts
+    create_shim_or_shortcuts(manifest_path  ,&app_name , &options).expect("create shim or shortcuts failed");
+
+    // * install_psmodule
+    if  psmodule.is_some() {  
+       let psmodule = psmodule.unwrap();
+       let  global = if options.contains(&InstallOptions::Global) { true } else { false }; 
+       install_psmodule(global , psmodule ,&app_name ,version ).expect("install_psmodule failed");
+    }
     if !env_set.is_none() {
         handle_env_set(env_set.unwrap(), obj_copy, &options)?;
     };
@@ -159,12 +167,20 @@ pub async fn install_app_from_local_manifest_file<P: AsRef<Path>>(
             handle_env_add_path(env_add_path, app_current_dir, &options)?;
         }
     }
-    // linking  persist_data  链接 Persist 目录
-    // persist_permission  主要用于 设置文件系统权限，确保特定用户（通常是 "Users" 组）对某个目录具有写入权限。
-    //  parse post_install 
-  
-    //  save  install.json , manifest.json  to app version dir
-    download_manager.save_install_info()?; 
+    // ! linking  persist_data  链接 Persist 目录
+    //  create_persist_data_link()?; 
+
+    //*persist_permission  主要用于 设置文件系统权限，确保特定用户（通常是 "Users" 组）对某个目录具有写入权限。
+   if persist.is_some(){
+      let  global = if options.contains(&InstallOptions::Global) { true } else { false };
+      if global{
+        ensure_persist_permission().expect("persist dir check failed");
+      }
+   }
+    // !   parse post_install
+
+    //*  save  install.json , manifest.json  to app version dir
+    download_manager.save_install_info()?;
     if !suggest.is_none() {
         show_suggest(&suggest.unwrap())?;
     }
