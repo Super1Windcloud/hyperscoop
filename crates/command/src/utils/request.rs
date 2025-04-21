@@ -324,7 +324,7 @@ pub   fn request_git_clone_by_git2_with_progress(
             "http://".to_string() + &config_proxy
         };
         proxy_option.url(proxy_url.as_str());
-        log::info!("proxy_option {:?}", proxy_url);
+        // log::info!("proxy_option {:?}", proxy_url);
     }
     let mut fo = FetchOptions::new();
     fo.remote_callbacks(callbacks);

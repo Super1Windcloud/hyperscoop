@@ -1,3 +1,4 @@
+use crate::config::get_config_value_no_print;
 use crate::init_env::{
     get_app_dir, get_app_dir_global, get_app_dir_manifest_json, get_app_dir_manifest_json_global,
 };
@@ -10,7 +11,7 @@ use crate::manifest::manifest::{
 use crate::utils::utility::{get_official_bucket_path, get_official_buckets_name};
 use anyhow::{bail, Context};
 use crossterm::style::Stylize;
-use git2::{FetchOptions, Repository};
+use git2::{FetchOptions, ProxyOptions, Repository};
 use rayon::prelude::*;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
@@ -21,17 +22,35 @@ pub fn check_bucket_update_status<'a>() -> anyhow::Result<bool> {
         .iter()
         .map(|b| get_official_bucket_path(b.clone()))
         .collect::<Vec<_>>();
+
     let status_flag = Arc::new(Mutex::new(false));
     let result: anyhow::Result<()> = official_buckets_path.par_iter().try_for_each(|path| {
+        let mut proxy_options = ProxyOptions::new();
+
+        let config_proxy = get_config_value_no_print("proxy");
+        if !config_proxy.is_empty() {
+            let proxy_url =
+                if config_proxy.starts_with("http://") || config_proxy.starts_with("https://") {
+                    config_proxy.clone()
+                } else {
+                    format!("http://{}", config_proxy)
+                };
+
+            proxy_options.url(&proxy_url);
+            // log::info!("Using proxy: {}", proxy_url);
+        }
+
+        let mut fetch_options = FetchOptions::new();
+        fetch_options
+            .download_tags(git2::AutotagOption::All)
+            .proxy_options(proxy_options); // 应用代理配置
+
         let repo = Repository::open(&path)
             .with_context(|| format!("Failed to open repository at {}", path))?;
 
         let mut remote = repo
             .find_remote("origin")
             .with_context(|| format!("Failed to find remote 'origin' in {}", path))?;
-
-        let mut fetch_options = FetchOptions::new();
-        fetch_options.download_tags(git2::AutotagOption::All);
 
         remote
             .fetch::<&str>(&[], Some(&mut fetch_options), None)
