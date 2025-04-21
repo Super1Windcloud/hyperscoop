@@ -4,3 +4,6 @@
 
 *.txt text eol=crlf
 * text eol=crlf
+
+*.ps1 text eol=crlf
+
