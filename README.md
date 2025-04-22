@@ -29,6 +29,7 @@
 ![cmd.png](https://imgfans.com/_s0giY)
 --- 
 ## ☑️ TODO (主要功能全部完成, 如果遇到BUG,请截图反馈Issue)
+- [x]  Alias
 - [x] Bucket
 - [x]  cat 
 - [x] cache 

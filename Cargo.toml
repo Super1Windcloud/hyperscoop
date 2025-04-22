@@ -38,6 +38,7 @@ rand  = { workspace = true }
 sha1 = { workspace = true }
 line-ending = {workspace = true}
 magic-crypt = "4.0.1"
+console = "0.15.11"
 
 
 [workspace.dependencies]

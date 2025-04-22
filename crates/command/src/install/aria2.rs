@@ -187,7 +187,8 @@ impl<'a> Aria2C<'a> {
             "Starting aria2 download file ......".dark_blue().bold()
         );
         let proxy = get_config_value_no_print("proxy");
-        let proxy = if !proxy.contains("http://") && !proxy.contains("https://") {
+        let proxy = if !proxy.contains("http://") && !proxy.contains("https://")
+         && !proxy.is_empty() {
             "http://".to_string() + &proxy
         } else {
             proxy

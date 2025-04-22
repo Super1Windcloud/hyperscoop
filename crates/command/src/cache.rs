@@ -41,10 +41,10 @@ pub fn display_all_cache_info(is_global: bool) -> anyhow::Result<()> {
     let total_size_parsed = format!("{:.2}", total_size);
     println!(
         "{} {} {} {} {}\n",
-        "Total : ".to_string().yellow().bold(),
+        "Total : ".to_string().dark_yellow().bold(),
         count.to_string().dark_yellow().bold(),
-        "Files, ".to_string().yellow().bold(),
-        total_size_parsed.to_string().yellow().bold(),
+        "Files, ".to_string().dark_yellow().bold(),
+        total_size_parsed.to_string().dark_yellow().bold(),
         "MB".to_string().dark_yellow().bold()
     );
     if count == 0 {
@@ -121,9 +121,9 @@ pub fn display_specified_cache_info(app_name: String, is_global: bool) -> anyhow
     let size = format!("{:.2}", size);
     println!(
         "{} {} {}",
-        "Deleted  : 1 File,".to_string().yellow().bold(),
-        size.to_string().yellow().bold(),
-        "MB".yellow().bold()
+        "Deleted  : 1 File,".to_string().dark_yellow().bold(),
+        size.to_string().dark_yellow().bold(),
+        "MB".dark_yellow().bold()
     );
     Ok(())
 }
@@ -166,11 +166,11 @@ fn rm_cache_file(cache_dir: String) -> anyhow::Result<()> {
     let size = format!("{:.2}", size);
     println!(
         "{} {} {} {} {}",
-        "Deleted  : ".to_string().yellow().bold(),
-        count.to_string().yellow().bold(),
-        "Files, ".to_string().yellow().bold(),
-        size.to_string().yellow().bold(),
-        "MB".to_string().yellow().bold()
+        "Deleted  : ".to_string().dark_yellow().bold(),
+        count.to_string().dark_yellow().bold(),
+        "Files, ".to_string().dark_yellow().bold(),
+        size.to_string().dark_yellow().bold(),
+        "MB".to_string().dark_yellow().bold()
     );
 
     Ok(())

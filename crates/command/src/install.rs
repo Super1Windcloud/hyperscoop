@@ -65,12 +65,12 @@ pub async fn install_app_from_local_manifest_file<P: AsRef<Path>>(
             get_app_dir_global(&app_name)
         } else {
             get_app_dir(&app_name)
-        }; 
-        
+        };
+
         if Path::new(&special_app_dir).exists()  &&  app_name.to_lowercase() !="hp"{
             std::fs::remove_dir_all(special_app_dir).expect("remove  app dir failed, process is running");
-        } 
-       
+        }
+
     }
     validate_version(version)?;
     let options = if version == "nightly" {
