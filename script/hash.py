@@ -192,7 +192,6 @@ def update_manifest():
 
 
 
-
 def write_to_manifest_from_store(x64, x86 , arm64  ):
     """Write the hash value to the manifest file"""
     update_version_and_url()

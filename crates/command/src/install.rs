@@ -411,7 +411,7 @@ pub async fn install_and_replace_hp(options: &[InstallOptions<'_>]) -> Result<St
         options.to_vec(),
         Some(source_bucket),
     ))
-    .await.expect("update hp exe failed");
+    .await?;
     if version.version.is_none() {
         bail!("hp version is empty")
     }

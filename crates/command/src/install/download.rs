@@ -659,13 +659,19 @@ impl<'a> DownloadManager<'a> {
                 .iter()
                 .map(|name| format!("{}\\{}", self.get_scoop_cache_dir(), name))
                 .collect::<Vec<String>>();
-            cache_file_path.iter().try_for_each(|path| {
+            let result =  cache_file_path.iter().try_for_each(|path| {
+               if !Path::new(path).exists() { 
+                  return  Ok(())
+               }
                 println!(
                     "{}",
                     format!("Override Cache File '{path}'").dark_grey().bold()
                 );
                 std::fs::remove_file(path)
-            })?;
+            });
+           if result.is_err() {
+             bail!("this app cache file is not exist, you can directly install")
+           }
         }
         if self
             .options
