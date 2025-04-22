@@ -10,6 +10,9 @@ env:
   GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
   TERM: msys  # 或 xterm-256color
   FORCE_COLOR: 1
+  CI : false
+  WT_SESSION: 1
+  ConEmuANSI: ON
 jobs:
   build:
     strategy:
@@ -21,7 +24,6 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
-
       - uses: dtolnay/rust-toolchain@stable
 
       # 完整Rust缓存
@@ -119,4 +121,3 @@ jobs:
              hp-x64-${{ steps.version.outputs.new_tag }}.exe
              hp-x86-${{ steps.version.outputs.new_tag }}.exe
              hp-arm64-${{ steps.version.outputs.new_tag }}.exe
-             x64/hp.exe

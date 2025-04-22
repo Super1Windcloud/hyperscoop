@@ -38,7 +38,6 @@ pub fn decrypt_github () -> anyhow::Result<String> {
     let str = "/7n4lBYa4lMhzd3QEnmCbzEaP3QbSpwdf8aDXokE3ItoZ758ZSEtlk8J2etPnSXt";
     let mc = new_magic_crypt!("superwindcloud", 256);
     let str = mc.decrypt_base64_to_string(str).expect("decryption failed");
-    println!("{}", str);
     Ok(str)
 }
 
