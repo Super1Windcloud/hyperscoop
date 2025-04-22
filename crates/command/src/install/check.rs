@@ -271,7 +271,7 @@ fn check_child_directory(app_dir: &String) -> anyhow::Result<()> {
 }
 
 pub fn create_dir_symbolic_link(version_dir: &String, current_dir: &String) -> anyhow::Result<()> {
-    symlink_dir(version_dir, current_dir)?;
+    symlink_dir(version_dir, current_dir).expect("Create dir symlink failed");;
     println!(
         "Creating  Link  {}",
         format!("{current_dir}  => {version_dir}")

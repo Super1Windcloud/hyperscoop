@@ -295,7 +295,7 @@ pub fn install_psmodule(
         );
         std::fs::remove_dir_all(&link_dir)?;
     }
-    fs::symlink_dir(&app_version_dir, &link_dir)?;
+    fs::symlink_dir(&app_version_dir, &link_dir).expect("Create dir symlink failed");;
     println!(
         "{}  {} => {}",
         "Linking".dark_blue().bold(),

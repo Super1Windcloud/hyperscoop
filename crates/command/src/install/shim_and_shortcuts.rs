@@ -21,6 +21,7 @@ pub fn create_shim_or_shortcuts(
     app_name: &str,
     options: &Box<[InstallOptions]>,
 ) -> anyhow::Result<()> {
+
     let content = fs::read_to_string(manifest_json)?;
     let serde_obj: InstallManifest = serde_json::from_str(&content)?;
     let bin = serde_obj.bin;
@@ -716,7 +717,7 @@ pub fn create_cmd_or_bat_shim_scripts(
     let mut cmd_file = File::create(shim_cmd_path)?;
     let crlf_content= cmd_content.replace(LineEnding::LF.as_str(), LineEnding::CRLF.as_str());
     cmd_file.write_all(crlf_content.as_bytes())?;
-   
+
     let shim_shell_path = format!("{out_shim_dir}\\{target_name}");
     println!(
         "{} {}",
@@ -736,7 +737,7 @@ pub fn create_cmd_or_bat_shim_scripts(
         )
     };
 
-    let mut sh_file = File::create(shim_shell_path)?; 
+    let mut sh_file = File::create(shim_shell_path)?;
     let crlf_content= sh_content.replace(LineEnding::LF.as_str(), LineEnding::CRLF.as_str());
     sh_file.write_all(crlf_content.as_bytes())?;
 
@@ -781,7 +782,7 @@ pub fn create_exe_type_shim_file_and_shim_bin<P1: AsRef<Path>, P2: AsRef<Path>>(
     // Write the shim file
     let mut file = File::create(&shim_path)?;
     let crlf_content= content.replace(LineEnding::LF.as_str(), LineEnding::CRLF.as_str());
-    
+
     file.write_all(crlf_content.as_bytes())?;
     println!(
         "{} {}",
@@ -800,13 +801,15 @@ pub fn create_exe_type_shim_file_and_shim_bin<P1: AsRef<Path>, P2: AsRef<Path>>(
         if !parent_dir.exists() {
             fs::create_dir_all(&parent_dir)?; // 递归创建所有不存在的父目录
         }
-
+        if output_shim_exe.exists() {
+            return Ok(());
+        }
         println!(
             "{} {}",
             "Creating  shim  proxy launcher =>".dark_blue().bold(),
             &output_shim_exe.display().to_string().dark_green().bold()
         );
-        fs::write(&output_shim_exe, DRIVER_SHIM_BYTES)?;
+        fs::write(&output_shim_exe, DRIVER_SHIM_BYTES).expect("failed create shim.exe, maybe process is running");
     }
     Ok(())
 }

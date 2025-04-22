@@ -133,7 +133,7 @@ pub fn get_all_manifest_files_from_bucket<'a>(
         .par_iter()
         .map(|bucket_dir| {
             let child_files = std::fs::read_dir(bucket_dir)
-                .unwrap()
+                .expect(format!("Don't have child dir: {}", bucket_dir).as_str())
                 .filter_map(|e| e.ok())
                 .filter(|e| {
                     let file_type = e.file_type().unwrap();

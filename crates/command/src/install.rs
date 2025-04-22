@@ -65,10 +65,12 @@ pub async fn install_app_from_local_manifest_file<P: AsRef<Path>>(
             get_app_dir_global(&app_name)
         } else {
             get_app_dir(&app_name)
-        };
-        if Path::new(&special_app_dir).exists() {
-            std::fs::remove_dir_all(special_app_dir)?;
-        }
+        }; 
+        
+        if Path::new(&special_app_dir).exists()  &&  app_name.to_lowercase() !="hp"{
+            std::fs::remove_dir_all(special_app_dir).expect("remove  app dir failed, process is running");
+        } 
+       
     }
     validate_version(version)?;
     let options = if version == "nightly" {
@@ -188,7 +190,7 @@ pub async fn install_app_from_local_manifest_file<P: AsRef<Path>>(
     // !   parse post_install
 
     //*  save  install.json , manifest.json  to app version dir
-    download_manager.save_install_info()?;
+    download_manager.save_install_info().expect("save install info failed");
     if !suggest.is_none() {
         show_suggest(&suggest.unwrap())?;
     }
@@ -409,7 +411,7 @@ pub async fn install_and_replace_hp(options: &[InstallOptions<'_>]) -> Result<St
         options.to_vec(),
         Some(source_bucket),
     ))
-    .await?;
+    .await.expect("update hp exe failed");
     if version.version.is_none() {
         bail!("hp version is empty")
     }

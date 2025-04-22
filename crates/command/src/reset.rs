@@ -121,7 +121,7 @@ pub fn reset_specific_version(
                 std::fs::remove_dir_all(&current_path).unwrap_or_else(|e| {
                     eprintln!("Failed to remove current directory, error: {}", e);
                 });
-                symlink_dir(version_path, current_path.as_path())?;
+                symlink_dir(version_path, current_path.as_path()).expect("Create dir symlink failed");;
                 println!("Reset {}@{} success", name, &version);
                 return Ok(());
             }

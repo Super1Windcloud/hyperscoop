@@ -56,7 +56,7 @@ impl<'a> DownloadManager<'a> {
         let arch = self.get_install_arch().as_ref();
         let install_json_path = format!("{}\\install.json", current_dir);
         let manifest = if self.bucket_source.is_some() {
-             self.bucket_source.clone().unwrap()
+            self.bucket_source.clone().unwrap()
         } else {
             self.manifest_path
         };
@@ -64,10 +64,19 @@ impl<'a> DownloadManager<'a> {
             "architecture": arch ,
             "bucket": manifest
         });
-        let  write_manifest_path = format!("{}\\manifest.json", current_dir);
-        let file = std::fs::File::create(install_json_path)?;
-        serde_json::to_writer_pretty(&file, &install_json)?;
-        std::fs::copy(self.manifest_path , write_manifest_path)?;
+        let write_manifest_path = format!("{}\\manifest.json", current_dir);
+        if Path::new(&install_json_path).exists() {
+            std::fs::remove_file(&install_json_path)?;
+        }
+
+        let file =
+            std::fs::File::create(&install_json_path).expect("Failed to create install.json");
+
+        serde_json::to_writer_pretty(&file, &install_json).expect("Failed to write install.json");
+        if Path::new(&write_manifest_path).exists() {
+            std::fs::remove_file(&write_manifest_path)?;
+        }
+        std::fs::copy(self.manifest_path, write_manifest_path).expect("copy manifest failed");
         Ok(())
     }
     pub fn get_archive_files_format(&self) -> &[ArchiveFormat] {
@@ -219,11 +228,11 @@ impl<'a> DownloadManager<'a> {
 
     pub fn set_target_rename_alias(&mut self, new_alias: Vec<&str>) {
         let a = new_alias.iter().map(|s| s.to_string()).collect::<Vec<_>>();
-        if  self.app_name =="hp" { 
-           log::debug!("start updating self process");
-           self.target_rename_alias =Box::from( vec!["hp_updater.exe".to_string()] );
-        }else {
-          self.target_rename_alias = a.into_boxed_slice();
+        if self.app_name == "hp" {
+            log::debug!("start updating self process");
+            self.target_rename_alias = Box::from(vec!["hp_updater.exe".to_string()]);
+        } else {
+            self.target_rename_alias = a.into_boxed_slice();
         }
     }
 
@@ -411,15 +420,15 @@ impl<'a> DownloadManager<'a> {
         } else {
             get_cache_dir_path()
         };
-       let app_name = Path::new(manifest_path)
-        .file_stem()
-        .unwrap()
-        .to_str()
-        .unwrap();
+        let app_name = Path::new(manifest_path)
+            .file_stem()
+            .unwrap()
+            .to_str()
+            .unwrap();
         self.set_download_app_name(app_name);
-      
+
         self.ensure_version_dir_exist()?;
-    
+
         let content = std::fs::read_to_string(manifest_path)?;
         let serde_obj = serde_json::from_str::<InstallManifest>(&content)?;
         let version = serde_obj.version.expect("version 不能为空");
@@ -865,7 +874,7 @@ impl<'a> DownloadManager<'a> {
         } else {
             extract_to
         };
-        _7z.invoke_7z_command(extract_dir, extract_to)?;
+        _7z.invoke_7z_command(extract_dir, extract_to).expect("extract zip failed");
         Ok(())
     }
 }

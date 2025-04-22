@@ -94,9 +94,11 @@ impl<'a> SevenZipStruct<'a> {
   
     pub fn link_current_target_version_dir(&self) -> anyhow::Result<()> {
         let target = self.get_target_app_version_dir();
-        let current = self.get_target_app_current_dir();
-        fs::symlink_dir(target, &current)?; 
-        println!("{} {} => {}", "Linking".dark_blue().bold(),&current.dark_green().bold() , target.dark_green().bold());
+        let current = self.get_target_app_current_dir(); 
+        if !Path::new(&current).exists() {
+          fs::symlink_dir(target, &current).expect("Create dir symlink failed");
+          println!("{} {} => {}", "Linking".dark_blue().bold(),&current.dark_green().bold() , target.dark_green().bold());
+        }
         Ok(())
     }
   
@@ -363,8 +365,8 @@ impl<'a> SevenZipStruct<'a> {
         if target_dir.is_none() {
             let target_dir = self.get_target_app_version_dir();
             if !Path::new(target_dir).exists() {
-                std::fs::create_dir_all(target_dir)?;
-            }
+                std::fs::create_dir_all(target_dir).expect("Failed to create target directory");
+            }; 
             let result = archive_items
                 .iter()
                 .zip(archive_paths)
@@ -463,7 +465,7 @@ impl<'a> SevenZipStruct<'a> {
         extract_to: Option<StringArrayOrString>,
     ) -> anyhow::Result<()> {
         if extract_dir.is_none() && extract_to.is_none() {
-            self.extract_archive_to_target_dir(None)?;
+            self.extract_archive_to_target_dir(None).expect("extract archive to target directory");
             Ok(())
         } else if extract_dir.is_none() && extract_to.is_some() {
             let target_dir = self.get_target_app_version_dir();
@@ -533,7 +535,7 @@ impl<'a> SevenZipStruct<'a> {
         let path = Path::new(&target_dir);
         let parent = path.parent().unwrap();
         let parent_name = parent.file_name().unwrap().to_str().unwrap().to_lowercase();
-        if parent_name != "apps" {
+        if  parent_name != "apps" {
             false
         } else {
             true

@@ -8,6 +8,8 @@ use reqwest::{header, Client};
 use serde::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use crate::crypto::decrypt_gitee;
+#[allow(unused_imports)]
+use crate::crypto::decrypt_github;
 
 #[allow(clippy::unsafe_derive_deserialize)]
 #[allow(dead_code)]
@@ -24,12 +26,12 @@ pub async fn auto_check_hp_update() -> anyhow::Result<bool> {
     let version = cmd.get_version().ok_or(anyhow!("hp version is empty"))?;
     let latest_github_version = get_latest_version_from_github().await.expect(
       "failed to get latest github version",
-    ); 
+    );
     let  latest_version =  if latest_github_version.is_empty() {
          get_latest_version_from_gitee().await.expect("failed to get latest gitee version")
     }else {
-       latest_github_version   
-    }; 
+       latest_github_version
+    };
     if version.to_string() < latest_version {
         println!("{}", format!("发现hp新版本 {latest_version},请访问https://github.com/Super1Windcloud/hp/releases").dark_cyan().bold());
         Ok(true)
@@ -91,36 +93,42 @@ async fn get_latest_version_from_github() -> anyhow::Result<String> {
         "https://api.github.com/repos/{}/{}/releases/latest",
         owner, repo
     );
+    let token =decrypt_github().expect("failed to decrypt github version"); 
     let proxy_url = get_config_value_no_print("proxy");
 
-    let client = if !proxy_url.is_empty() {
+
+  const USER_AGENT: &str = "Rust-GitHub-API-Client";
+  let mut headers = header::HeaderMap::new();
+  headers.insert(header::USER_AGENT, USER_AGENT.parse()?);
+  headers.insert("Accept", "application/vnd.github.v3+json".parse()?);
+  headers.insert(header::AUTHORIZATION, format!("token {}", token).parse()?);
+
+  let client = if !proxy_url.is_empty() {
         // log::info!("Using proxy: {}", proxy_url);
         let proxy_url = if proxy_url.starts_with("http://") || proxy_url.starts_with("https://") {
             proxy_url
         } else {
             format!("http://{}", proxy_url)
         };
-        is_valid_url(&proxy_url);
-        let proxy = reqwest::Proxy::https(proxy_url)?;
-        Client::builder().proxy(proxy).build()?
+        if is_valid_url(&proxy_url) {
+          let proxy = reqwest::Proxy::https(proxy_url)?;
+          Client::builder().proxy(proxy).build()?
+        }else {
+          Client::builder().build()?
+        }
+
     } else {
         Client::builder().build()?
     };
 
-    let response = client
-        .get(&url)
-        .header("User-Agent", "Rust-GitHub-API-Client")
-        .header("Accept", "application/vnd.github.v3+json")
-        .send()
-        .await
-        .unwrap();
+    let response = client.get(&url).headers(headers).send().await?;
 
     if !response.status().is_success() {
         eprintln!("请求失败: {}", response.status());
-        eprintln!("Response: {}", response.text().await.unwrap());
+        eprintln!("Response: {}", response.text().await?);
         return Ok("".into())
     }
-    let tags: GithubRelease = response.json().await.unwrap();
+    let tags: GithubRelease = response.json().await?;
     Ok(tags.tag_name)
 }
 
@@ -148,7 +156,7 @@ async fn get_latest_version_from_gitee() -> anyhow::Result<String> {
 
 #[cfg(not(token_local))]
 async fn get_latest_version_from_gitee() -> anyhow::Result<String> {
-    let access_token  = decrypt_gitee()?; 
+    let access_token  = decrypt_gitee()?;
     let client = Client::new();
     let response = client
         .get("https://gitee.com/api/v5/repos/superwindcloud/hyperscoop/releases/latest")

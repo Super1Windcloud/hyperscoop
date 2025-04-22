@@ -8,6 +8,8 @@ permissions:
 env:
   CARGO_TERM_COLOR: always
   GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+  TERM: msys  # 或 xterm-256color
+  FORCE_COLOR: 1
 jobs:
   build:
     strategy:

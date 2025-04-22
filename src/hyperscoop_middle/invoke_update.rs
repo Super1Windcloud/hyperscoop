@@ -71,12 +71,12 @@ fn inject_update_user_options(args: &UpdateArgs) -> anyhow::Result<Vec<UpdateOpt
 }
 
 pub(crate) fn update_buckets() -> Result<(), anyhow::Error> {
-    update_scoop_bar()?;
+    update_scoop_bar().expect("update scoop bar failed");
     let status = check_bucket_update_status()?;
     if !status {
         return Ok(());
     }
-    update_all_buckets_bar()?;
+    update_all_buckets_bar().expect("update all buckets bar failed");
     update_scoop_config_last_update_time();
     Ok(())
 }
@@ -135,6 +135,16 @@ if not errorlevel 1 (
     timeout /t 1 > nul
     goto waitloop
 )
+
+:: 先删除 hp.exe（如果存在）
+if exist "{hp_current}\hp.exe" (
+    del /f /q "{hp_current}\hp.exe" > nul
+    if errorlevel 1 (
+        echo ERROR: Failed to delete hp.exe
+        exit /b 1
+    )
+)
+
 move /y "{hp_current}\hp_updater.exe" "{hp_current}\hp.exe" > nul
 if errorlevel 1 (
     echo ERROR: Failed to move hp_updater.exe
@@ -145,7 +155,7 @@ endlocal
     );
 
     let updater = format!("{hp_current}\\updater.bat");
-    let mut file = File::create(&updater)?;
+    let mut file = File::create(&updater).expect("Failed to create updater.bat");
     let script_content = script_content.replace(LineEnding::LF.as_str(), LineEnding::CRLF.as_str());
     file.write_all(script_content.as_bytes())?;
 
