@@ -1,11 +1,15 @@
 use crate::init_env::{
-    get_app_version_dir, get_app_version_dir_global, get_old_scoop_dir, get_psmodules_root_dir,
-    get_psmodules_root_global_dir, get_scoop_cfg_path, get_shims_path, get_shims_path_global,
-    init_scoop_global, init_user_scoop,
+    get_app_current_dir, get_app_current_dir_global, get_app_version_dir,
+    get_app_version_dir_global, get_old_scoop_dir, get_persist_dir_path,
+    get_persist_dir_path_global, get_psmodules_root_dir, get_psmodules_root_global_dir,
+    get_scoop_cfg_path, get_shims_root_dir, get_shims_root_dir_global, init_scoop_global,
+    init_user_scoop,
 };
 use crate::install::{install_app, install_from_specific_bucket, InstallOptions};
 use crate::manifest::install_manifest::{InstallManifest, SuggestObj, SuggestObjValue};
-use crate::manifest::manifest_deserialize::{ManifestObj, PSModuleStruct, StringArrayOrString};
+use crate::manifest::manifest_deserialize::{
+    ManifestObj, PSModuleStruct, StringArrayOrString, StringOrArrayOrDoubleDimensionArray,
+};
 use crate::utils::system::{
     get_system_default_arch, get_system_env_str, get_system_env_var, get_user_env_str,
     get_user_env_var, set_global_env_var, set_user_env_var,
@@ -245,9 +249,9 @@ pub fn add_scoop_shim_root_dir_to_env_path(options: &Box<[InstallOptions]>) -> a
     };
 
     let scoop_shim_root_dir = if options.contains(&InstallOptions::Global) {
-        get_shims_path_global()
+        get_shims_root_dir_global()
     } else {
-        get_shims_path()
+        get_shims_root_dir()
     };
     if !origin.contains(&scoop_shim_root_dir) {
         if options.contains(&InstallOptions::Global) {
@@ -333,6 +337,147 @@ fn ensure_in_psmodulepath(psmodule_root_dir: &str, global: bool) -> anyhow::Resu
     Ok(())
 }
 
+pub fn create_persist_data_link(
+    persist: Option<StringOrArrayOrDoubleDimensionArray>,
+    options: &[InstallOptions],
+    app_name: &str,
+) -> anyhow::Result<()> {
+    if persist.is_none() {
+        return Ok(());
+    }
+    let persist = persist.unwrap();
+    let global = if options.contains(&InstallOptions::Global) {
+        true
+    } else {
+        false
+    };
+    match persist {
+        StringOrArrayOrDoubleDimensionArray::StringArray(arr) => {
+            for item in arr {
+                let item = item.trim();
+                if item.is_empty() {
+                    continue;
+                }
+                start_create_file_and_dir_link(global, item, app_name, item)?;
+            }
+        }
+        StringOrArrayOrDoubleDimensionArray::Null => {}
+        StringOrArrayOrDoubleDimensionArray::String(persist_dir) => {
+            let persist_dir = persist_dir.trim();
+            if persist_dir.is_empty() {
+                return Ok(());
+            }
+            start_create_file_and_dir_link(global, persist_dir, app_name, persist_dir)?;
+        }
+        StringOrArrayOrDoubleDimensionArray::DoubleDimensionArray(double_arr) => {
+            let len = double_arr.len();
+            if len == 0 {
+                return Ok(());
+            }
+            for item in double_arr {
+                if item.len() == 0 {
+                    bail!("persist array format error");
+                } else if item.len() == 1 {
+                    let [persist, source] =
+                        [item.get(0).unwrap().trim(), item.get(0).unwrap().trim()];
+                    start_create_file_and_dir_link(global, persist, app_name, source)?;
+                } else if item.len() == 2 {
+                    let [source, persist] =
+                        [item.get(0).unwrap().trim(), item.get(1).unwrap().trim()];
+                    start_create_file_and_dir_link(global, persist, app_name, source)?;
+                }
+            }
+        }
+        StringOrArrayOrDoubleDimensionArray::NestedStringArray(nested_str_arr) => {
+            for item in nested_str_arr {
+                match item {
+                    StringOrArrayOrDoubleDimensionArray::StringArray(arr) => {
+                        let len = arr.len();
+                        if len == 0 {
+                            continue;
+                        } else if len == 1 {
+                            let [persist, source] =
+                                [arr.get(0).unwrap().trim(), arr.get(0).unwrap().trim()];
+                            start_create_file_and_dir_link(global, persist, app_name, source)?;
+                        } else if len == 2 { 
+                           let [source, persist] = 
+                                [arr.get(0).unwrap().trim(), arr.get(1).unwrap().trim()];
+                           start_create_file_and_dir_link(global, persist, app_name, source)?;
+                        }
+                    }
+                    StringOrArrayOrDoubleDimensionArray::String(persist) => {
+                        let [persist_target, source] = [persist.trim(), persist.trim()];
+                        if persist_target.is_empty() {
+                            continue;
+                        }
+                        start_create_file_and_dir_link(global, persist_target, app_name, source)?;
+                    }
+                    StringOrArrayOrDoubleDimensionArray::Null => {}
+                    StringOrArrayOrDoubleDimensionArray::DoubleDimensionArray(_) => {}
+                    StringOrArrayOrDoubleDimensionArray::NestedStringArray(_) => {}
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
+pub fn ensure_directory(target: &str) -> std::io::Result<()> {
+    let path = Path::new(target);
+    if !path.exists() {
+        std::fs::create_dir_all(path)?;
+    } else if !path.is_dir() {
+        // 如果路径存在但不是目录，返回错误
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::AlreadyExists,
+            "Path exists but is not a directory",
+        ));
+    }
+
+    Ok(())
+}
+
+pub fn start_create_file_and_dir_link(
+    global: bool,
+    persist_dir: &str,
+    app_name: &str,
+    source_dir: &str,
+) -> anyhow::Result<()> {
+    let persist_root_dir = if global {
+        get_persist_dir_path_global()
+    } else {
+        get_persist_dir_path()
+    };
+    let app_current_dir = if global {
+        get_app_current_dir_global(app_name)
+    } else {
+        get_app_current_dir(app_name)
+    };
+    let target_persist_dir = format!("{persist_root_dir}\\{app_name}\\{persist_dir}");
+    let source_dir = format!("{app_current_dir}\\{source_dir}");
+    if Path::new(&target_persist_dir).exists() {
+        if Path::new(&source_dir).exists() {
+            std::fs::rename(&source_dir, format!("{source_dir}.original"))?
+        }
+    } else if Path::new(&source_dir).exists() {
+        let parent = Path::new(&target_persist_dir).parent().unwrap();
+        if !parent.exists() {
+            std::fs::create_dir_all(parent)?;
+        }
+        std::fs::rename(&source_dir, &target_persist_dir)?
+    } else {
+        ensure_directory(&target_persist_dir)?;
+    }
+
+    // create link
+    if Path::new(&target_persist_dir).is_dir() {
+        fs::symlink_dir(target_persist_dir, &source_dir)?;
+    } else {
+        std::fs::hard_link(target_persist_dir, &source_dir)?;
+    }
+
+    Ok(())
+}
 mod test_installer {
     #[allow(unused)]
     use super::*;

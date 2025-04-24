@@ -67,10 +67,10 @@ pub async fn install_app_from_local_manifest_file<P: AsRef<Path>>(
             get_app_dir(&app_name)
         };
 
-        if Path::new(&special_app_dir).exists()  &&  app_name.to_lowercase() !="hp"{
-            std::fs::remove_dir_all(special_app_dir).expect("remove  app dir failed, process is running");
+        if Path::new(&special_app_dir).exists() && app_name.to_lowercase() != "hp" {
+            std::fs::remove_dir_all(special_app_dir)
+                .expect("remove  app dir failed, process is running");
         }
-
     }
     validate_version(version)?;
     let options = if version == "nightly" {
@@ -130,6 +130,7 @@ pub async fn install_app_from_local_manifest_file<P: AsRef<Path>>(
     let psmodule = serde_obj.psmodule;
     let pre_install = serde_obj.pre_install;
     let post_install = serde_obj.post_install;
+
     if !depends.is_none() && !options.contains(&InstallOptions::NoAutoDownloadDepends) {
         handle_depends(depends.unwrap().as_str(), &options).await?;
     }
@@ -174,7 +175,7 @@ pub async fn install_app_from_local_manifest_file<P: AsRef<Path>>(
         }
     }
     // ! linking  persist_data  链接 Persist 目录
-    //  create_persist_data_link()?;
+    create_persist_data_link(persist.clone(), &options ,&app_name).expect("create persist link failed");
 
     //*persist_permission  主要用于 设置文件系统权限，确保特定用户（通常是 "Users" 组）对某个目录具有写入权限。
     if persist.is_some() {
@@ -190,7 +191,9 @@ pub async fn install_app_from_local_manifest_file<P: AsRef<Path>>(
     // !   parse post_install
 
     //*  save  install.json , manifest.json  to app version dir
-    download_manager.save_install_info().expect("save install info failed");
+    download_manager
+        .save_install_info()
+        .expect("save install info failed");
     if !suggest.is_none() {
         show_suggest(&suggest.unwrap())?;
     }
@@ -386,7 +389,6 @@ pub async fn install_app(app_name: &str, options: &[InstallOptions<'_>]) -> Resu
     Ok(())
 }
 
-#[must_use]
 pub async fn install_and_replace_hp(options: &[InstallOptions<'_>]) -> Result<String> {
     let app_name = "hp";
     let manifest_path = if options.contains(&InstallOptions::Global) {

@@ -1,4 +1,4 @@
-use crate::init_env::{get_app_current_bin_path, get_shims_path, get_shims_path_global};
+use crate::init_env::{get_app_current_bin_path, get_shims_root_dir, get_shims_root_dir_global};
 use crate::install::InstallOptions;
 use crate::manifest::install_manifest::InstallManifest;
 use crate::manifest::manifest_deserialize::{
@@ -8,6 +8,7 @@ use crate::utils::system::get_system_default_arch;
 use crate::utils::utility::write_utf8_file;
 use anyhow::bail;
 use crossterm::style::Stylize;
+use shortcuts_rs::ShellLink;
 use std::fs;
 use std::fs::File;
 use std::io::Write;
@@ -21,17 +22,21 @@ pub fn create_shim_or_shortcuts(
     app_name: &str,
     options: &Box<[InstallOptions]>,
 ) -> anyhow::Result<()> {
-
     let content = fs::read_to_string(manifest_json)?;
     let serde_obj: InstallManifest = serde_json::from_str(&content)?;
     let bin = serde_obj.bin;
     let architecture = serde_obj.architecture;
     let shortcuts = serde_obj.shortcuts;
+    let global = if options.contains(&InstallOptions::Global) {
+        true
+    } else {
+        false
+    };
     if bin.is_some() {
         create_shims_file(bin.unwrap(), app_name, options)?;
     }
     if shortcuts.is_some() {
-        create_start_menu_shortcuts(shortcuts.unwrap(), app_name.into())?;
+        create_start_menu_shortcuts(shortcuts.unwrap(), app_name.into(), global)?;
     }
     if architecture.is_some() {
         let architecture = architecture.unwrap();
@@ -53,7 +58,7 @@ pub fn create_shim_or_shortcuts(
                 return Ok(());
             }
             let shortcuts = shortcuts.unwrap();
-            create_start_menu_shortcuts(shortcuts, app_name.into())?;
+            create_start_menu_shortcuts(shortcuts, app_name.into(), global)?;
         } else if system_arch == "32bit" {
             let x86 = architecture.x86bit;
             if x86.is_none() {
@@ -71,7 +76,7 @@ pub fn create_shim_or_shortcuts(
                 return Ok(());
             }
             let shortcuts = shortcuts.unwrap();
-            create_start_menu_shortcuts(shortcuts, app_name.into())?;
+            create_start_menu_shortcuts(shortcuts, app_name.into(), global)?;
         } else if system_arch == "arm64" {
             let arm64 = architecture.arm64;
             if arm64.is_none() {
@@ -89,7 +94,7 @@ pub fn create_shim_or_shortcuts(
                 return Ok(());
             }
             let shortcuts = shortcuts.unwrap();
-            create_start_menu_shortcuts(shortcuts, app_name.into())?;
+            create_start_menu_shortcuts(shortcuts, app_name.into(), global)?;
         }
     }
     Ok(())
@@ -101,9 +106,9 @@ pub fn create_shims_file(
     options: &Box<[InstallOptions]>,
 ) -> anyhow::Result<()> {
     let shim_path = if options.contains(&InstallOptions::Global) {
-        get_shims_path_global()
+        get_shims_root_dir_global()
     } else {
-        get_shims_path()
+        get_shims_root_dir()
     };
     if !Path::new(&shim_path).exists() {
         fs::create_dir_all(&shim_path)?;
@@ -193,25 +198,39 @@ pub fn create_shims_file(
 pub fn create_start_menu_shortcuts(
     shortcuts: ArrayOrDoubleDimensionArray,
     app_name: String,
+    global: bool,
 ) -> anyhow::Result<()> {
+    let user_name = std::env::var("USERNAME").unwrap_or_else(|_| "Default".to_string());
+    let scoop_link_home = if global {
+        r"C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Scoop Apps".into()
+    } else {
+        format!(
+            r"C:\Users\{user_name}\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Scoop Apps"
+        )
+    };
+    if !Path::new(&scoop_link_home).exists() {
+        fs::create_dir_all(&scoop_link_home)?;
+    }
     match shortcuts {
         ArrayOrDoubleDimensionArray::Null => return Ok(()),
         ArrayOrDoubleDimensionArray::StringArray(shortcut) => {
             let arg_len = shortcut.len();
             if arg_len < 2 {
-                eprintln!(
-                    "{} ",
-                    "Failed to find shortcut, maybe manifest json file format error"
-                        .dark_yellow()
-                        .bold()
-                );
+                bail!("Error :  manifest shortcuts config format error, arg_len <2");
             }
             let bin_name_with_extension = shortcut[0].clone();
+            if bin_name_with_extension.is_empty() {
+                bail!("Error : shortcuts target link  cannot be empty")
+            }
             let shortcut_name = shortcut[1].clone() + ".lnk";
             if shortcut_name.is_empty() {
-                return Ok(());
+                bail!("Error : shortcut name cannot be empty")
             }
-            let scoop_link_home  = r"C:\Users\superuse\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Scoop Apps".to_string();
+            let start_parameters = if arg_len == 3 || arg_len == 4 {
+                shortcut[2].trim().to_string()
+            } else {
+                "".to_string()
+            };
             let scoop_link_home = PathBuf::from(scoop_link_home);
             if scoop_link_home.exists() {
                 let start_menu_link_path = scoop_link_home.join(&shortcut_name);
@@ -221,6 +240,7 @@ pub fn create_start_menu_shortcuts(
                         start_menu_link_path,
                         target_path,
                         &bin_name_with_extension,
+                        start_parameters,
                     )?;
                 }
             }
@@ -228,30 +248,27 @@ pub fn create_start_menu_shortcuts(
         ArrayOrDoubleDimensionArray::DoubleDimensionArray(shortcut) => {
             let arg_len = shortcut.len();
             if arg_len < 1 {
-                eprintln!(
-                    "{} ",
-                    "Failed to find shortcut, maybe manifest json file format error"
-                        .dark_yellow()
-                        .bold()
-                );
+                bail!("Failed to find shortcut field, manifest json file format error");
             }
             for shortcut_item in shortcut {
                 let arg_len = shortcut_item.len();
                 if arg_len < 2 {
-                    eprintln!(
-                        "{} ",
-                        "Failed to find shortcut, maybe manifest json file format error"
-                            .dark_yellow()
-                            .bold()
-                    );
+                    bail!("Error :  manifest shortcuts config format error, arg_len <2");
                 }
                 let shortcut_name = shortcut_item[1].clone() + ".lnk";
                 if shortcut_name.is_empty() {
-                    return Ok(());
+                    bail!("Error : shortcut name cannot be empty")
                 };
                 let bin_name_with_extension = shortcut_item[0].clone();
-                let scoop_link_home  = r"C:\Users\superuse\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Scoop Apps".to_string();
-                let scoop_link_home = PathBuf::from(scoop_link_home);
+                if bin_name_with_extension.is_empty() {
+                    bail!("Error : shortcuts target link  cannot be empty")
+                }
+                let start_parameters = if arg_len == 3 || arg_len == 4 {
+                    shortcut_item[2].trim().to_string()
+                } else {
+                    "".to_string()
+                };
+                let scoop_link_home = PathBuf::from(&scoop_link_home);
                 if scoop_link_home.exists() {
                     let start_menu_link_path = scoop_link_home.join(&shortcut_name);
                     if !start_menu_link_path.exists() {
@@ -264,6 +281,7 @@ pub fn create_start_menu_shortcuts(
                             start_menu_link_path,
                             target_path,
                             &bin_name_with_extension,
+                            start_parameters,
                         )?;
                     }
                 }
@@ -278,8 +296,14 @@ pub fn start_create_shortcut<P: AsRef<Path>>(
     start_menu_path: P,
     link_target_path: String,
     app_name: &String,
+    start_parameters: String,
 ) -> anyhow::Result<()> {
-    use mslnk::ShellLink;
+    let args = if start_parameters.is_empty() {
+        None
+    } else {
+        Some(start_parameters)
+    };
+
     let link = start_menu_path.as_ref().to_str().unwrap();
     println!(
         "{} {} => {}",
@@ -287,8 +311,14 @@ pub fn start_create_shortcut<P: AsRef<Path>>(
         app_name.to_string().dark_cyan().bold(),
         link.to_string().dark_green().bold()
     );
-    let shell_link = ShellLink::new(link_target_path)?;
-    shell_link.create_lnk(start_menu_path)?;
+    let shell_link = ShellLink::new(link_target_path, args, None, None)?;
+    let parent = start_menu_path.as_ref().parent().unwrap();
+    if !parent.exists() {
+        fs::create_dir_all(parent)?;
+    };
+    shell_link
+        .create_lnk(start_menu_path)
+        .expect("Create Shortcuts  Failed");
     Ok(())
 }
 
@@ -715,7 +745,7 @@ pub fn create_cmd_or_bat_shim_scripts(
     );
 
     let mut cmd_file = File::create(shim_cmd_path)?;
-    let crlf_content= cmd_content.replace(LineEnding::LF.as_str(), LineEnding::CRLF.as_str());
+    let crlf_content = cmd_content.replace(LineEnding::LF.as_str(), LineEnding::CRLF.as_str());
     cmd_file.write_all(crlf_content.as_bytes())?;
 
     let shim_shell_path = format!("{out_shim_dir}\\{target_name}");
@@ -738,7 +768,7 @@ pub fn create_cmd_or_bat_shim_scripts(
     };
 
     let mut sh_file = File::create(shim_shell_path)?;
-    let crlf_content= sh_content.replace(LineEnding::LF.as_str(), LineEnding::CRLF.as_str());
+    let crlf_content = sh_content.replace(LineEnding::LF.as_str(), LineEnding::CRLF.as_str());
     sh_file.write_all(crlf_content.as_bytes())?;
 
     Ok(())
@@ -781,7 +811,7 @@ pub fn create_exe_type_shim_file_and_shim_bin<P1: AsRef<Path>, P2: AsRef<Path>>(
     }
     // Write the shim file
     let mut file = File::create(&shim_path)?;
-    let crlf_content= content.replace(LineEnding::LF.as_str(), LineEnding::CRLF.as_str());
+    let crlf_content = content.replace(LineEnding::LF.as_str(), LineEnding::CRLF.as_str());
 
     file.write_all(crlf_content.as_bytes())?;
     println!(
@@ -809,7 +839,8 @@ pub fn create_exe_type_shim_file_and_shim_bin<P1: AsRef<Path>, P2: AsRef<Path>>(
             "Creating  shim  proxy launcher =>".dark_blue().bold(),
             &output_shim_exe.display().to_string().dark_green().bold()
         );
-        fs::write(&output_shim_exe, DRIVER_SHIM_BYTES).expect("failed create shim.exe, maybe process is running");
+        fs::write(&output_shim_exe, DRIVER_SHIM_BYTES)
+            .expect("failed create shim.exe, maybe process is running");
     }
     Ok(())
 }
@@ -830,7 +861,7 @@ mod test_shim {
         let manifest: InstallManifest = serde_json::from_str(&content).unwrap();
         let shortcuts = manifest.shortcuts.unwrap();
         let app_name = "zigmod".to_string();
-        create_start_menu_shortcuts(shortcuts, app_name).unwrap();
+        create_start_menu_shortcuts(shortcuts, app_name, false).unwrap();
     }
 
     #[test]

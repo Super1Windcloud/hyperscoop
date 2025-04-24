@@ -1,6 +1,6 @@
 use anyhow::bail;
 use clap::{Args, Subcommand};
-use command_util_lib::init_env::{get_shims_path, get_shims_path_global};
+use command_util_lib::init_env::{get_shims_root_dir, get_shims_root_dir_global};
 use crossterm::style::Stylize;
 use rayon::prelude::*;
 use std::cmp::max;
@@ -64,9 +64,9 @@ pub struct ListArgs {}
 
 pub fn execute_alias_command(args: AliasArgs) -> anyhow::Result<()> {
     let shim_root_dir = if args.global {
-        get_shims_path_global()
+        get_shims_root_dir_global()
     } else {
-        get_shims_path()
+        get_shims_root_dir()
     };
     match args.command {
         Some(AliasSubcommands::Add(add_args)) => {
@@ -104,7 +104,7 @@ fn rm_alias(alias_name: Option<String>, shim_root_dir: &str, all: bool) -> anyho
             let path = dir.path();
             let file_name = path.file_name().unwrap().to_str().unwrap();
             if file_name.starts_with("hp-") && file_name.ends_with(".ps1") {
-                // log::debug!("{}", format!("remove file: {}", path.display()).green())
+                println!("{}", format!("remove file: {}", path.display()).dark_grey());
                 std::fs::remove_file(path)?;
             }
         }

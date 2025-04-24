@@ -152,7 +152,7 @@ pub async fn check_before_install(
             format!("Resetting '{name}' ({version})").dark_cyan().bold()
         );
         create_dir_symbolic_link(&app_version_dir, &app_current_dir)?;
-        create_shim_or_shortcuts(&manifest_json, name, options)?;
+        create_shim_or_shortcuts(&manifest_json, name, options).expect("Could not create shim or shortcuts");
         let install_json = if options.contains(&InstallOptions::Global) {
             get_app_dir_install_json_global(name)
         } else {

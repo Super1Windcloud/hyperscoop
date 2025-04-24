@@ -10,7 +10,7 @@ use env_set::*;
 pub(crate) mod shim_and_shortcuts;
 use crate::init_env::{
     get_apps_path, get_apps_path_global, get_persist_dir_path, get_persist_dir_path_global,
-    get_shims_path, get_shims_path_global,
+    get_shims_root_dir, get_shims_root_dir_global,
 };
 use crate::utils::system::{is_admin, request_admin, set_user_env_var};
 use shim_and_shortcuts::*;
@@ -51,9 +51,9 @@ pub fn uninstall_app(app_name: &str, is_global: bool) -> Result<(), anyhow::Erro
         get_apps_path()
     };
     let shim_path = if is_global {
-        get_shims_path_global()
+        get_shims_root_dir_global()
     } else {
-        get_shims_path()
+        get_shims_root_dir()
     };
     if !Path::new(&app_path).exists() {
         bail!("{} is not existing", app_path);

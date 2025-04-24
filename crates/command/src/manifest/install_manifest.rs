@@ -14,7 +14,6 @@ pub enum SuggestObjValue {
 
 pub type SuggestObj = std::collections::HashMap<String, SuggestObjValue>;
 
-
 #[must_use]
 #[allow(clippy::unsafe_derive_deserialize)]
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
@@ -142,7 +141,7 @@ pub struct InstallManifest {
 
     ///作为 PowerShell 模块安装在~/scoop/modules中。
     ///name （ psmodule必需）：模块的名称，该名称应与解压目录中的至少一个文件匹配，以便 PowerShell 将其识别为模块。
-    pub psmodule: Option<PSModuleStruct >,
+    pub psmodule: Option<PSModuleStruct>,
 
     /// 为用户（或系统，如果使用--global ）设置一个或多个环境变量
     pub env_set: Option<ManifestObj>, // !complete
@@ -264,15 +263,91 @@ mod test_manifest_deserialize {
             }
 
             let _manifest: InstallManifest = manifest.unwrap();
-            if find_extract(_manifest, &path, &_count) {
-                return;
-            };
+            // if find_extract(_manifest, &path, &_count) {
+            //     return;
+            // };
             //  if  find_url_and_hash(_manifest, &path, &_count ) { return; };
             // if  find_suggest_and_depends(_manifest, path , &_count ) { return; };
             //  find_architecture_test(_manifest, path);
             // if find_env_set(_manifest, path, &_count) {
             //     return;
             // }
+        /*    if find_bin_and_shortcuts(_manifest, &path, &_count) {
+                return; 
+            };*/ 
+             if  find_persist(_manifest, &path, &_count ) { return; }; 
+        } 
+        fn  find_persist  (
+          _manifest: InstallManifest,
+          path: &PathBuf,
+          _count: &Arc<Mutex<i32>>,
+        ) -> bool  { 
+          let  persist = _manifest.persist; 
+          if  persist.is_some() {
+            let  persist = persist.unwrap();
+            match  persist {
+              StringOrArrayOrDoubleDimensionArray::StringArray(array) => {
+                // println!("persist {:?}", array);
+                // println!(" path {}", path.display());
+                // *_count.lock().unwrap() += 1;
+              },
+              StringOrArrayOrDoubleDimensionArray::String(str) => {
+                // println!("persist {:?}", str);
+              } ,
+              StringOrArrayOrDoubleDimensionArray::DoubleDimensionArray(double_arr) => {
+                println!("persist {:?}", &double_arr);
+                println!(" path {}", path.display()); 
+                *_count.lock().unwrap() += 1;
+              },
+              StringOrArrayOrDoubleDimensionArray::Null => {
+                println!("persist {:?}", "Null");
+                println!(" path {}", path.display()); 
+              }
+              StringOrArrayOrDoubleDimensionArray::NestedStringArray(_) => {
+                
+              }
+            }
+            if *_count.lock().unwrap() >= 3  {
+              return true;
+            }
+          }
+           
+          
+          false 
+        }
+        fn find_bin_and_shortcuts(
+            _manifest: InstallManifest,
+            path: &PathBuf,
+            _count: &Arc<Mutex<i32>>,
+        ) -> bool {
+            let bin = _manifest.bin;
+            let shortcuts = _manifest.shortcuts;
+            if shortcuts.is_some() {
+                let shortcuts = shortcuts.unwrap();
+                let result = match shortcuts {
+                    ArrayOrDoubleDimensionArray::StringArray(array) => {
+                      println!("shortcuts {:?}", array); 
+                       println!(" path {}", path.display());
+                       *_count.lock().unwrap() += 1; 
+                       array 
+                    },
+                    ArrayOrDoubleDimensionArray::DoubleDimensionArray(double_arr) => {
+                      // println!("shortcuts {:?}", &double_arr);
+                      // println!(" path {}", path.display());
+                      double_arr.into_iter().flatten().collect::<Vec<String>>()
+                    }
+                    ArrayOrDoubleDimensionArray::Null => { 
+                        println!("shortcuts {:?}", "Null");
+                        println!(" path {}", path.display());
+                        vec![]
+                    }
+                };
+
+                if *_count.lock().unwrap() >= 2 {
+                    return true;
+                }
+            }
+            false
         }
         fn find_extract(
             _manifest: InstallManifest,
@@ -293,7 +368,7 @@ mod test_manifest_deserialize {
                 } else {
                     vec![]
                 };
-                if _count.lock().unwrap().to_owned() >= 3{
+                if _count.lock().unwrap().to_owned() >= 3 {
                     return true;
                 }
             }

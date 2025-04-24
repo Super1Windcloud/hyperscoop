@@ -131,7 +131,7 @@ impl HyperScoop {
         }
         cache_path
     }
-    pub fn get_shims_path(&self) -> String {
+    pub fn get_shims_root_dir (&self) -> String {
         let shim_path = self.shims_path.clone();
         if !Path::new(&shim_path).exists() {
             std::fs::create_dir_all(&shim_path).unwrap();
@@ -198,7 +198,7 @@ impl HyperScoopGlobal {
         }
         cache_path
     }
-    pub fn get_shims_path(&self) -> String {
+    pub fn _get_shims_path(&self) -> String {
         let shim_path = self.shims_path.clone();
         if !Path::new(&shim_path).exists() {
             std::fs::create_dir_all(&shim_path).unwrap();
@@ -235,9 +235,10 @@ pub fn get_buckets_root_dir_path() -> String {
     let hyper_scoop = HyperScoop::new();
     hyper_scoop.get_bucket_path()
 }
-pub fn get_shims_path() -> String {
+
+pub fn get_shims_root_dir() -> String {
     let hyper_scoop = HyperScoop::new();
-    hyper_scoop.get_shims_path()
+    hyper_scoop.get_shims_root_dir()
 }
 
 pub fn get_apps_path() -> String {
@@ -353,9 +354,9 @@ pub fn get_buckets_root_dir_path_global() -> String {
 }
 
 // 全局版本的 get_shims_path
-pub fn get_shims_path_global() -> String {
+pub fn get_shims_root_dir_global() -> String {
     let hyper_scoop = HyperScoopGlobal::new();
-    hyper_scoop.get_shims_path()
+    hyper_scoop._get_shims_path()
 }
 
 // 全局版本的 get_apps_path

@@ -54,7 +54,7 @@ pub fn rm_start_menu_shortcut(manifest: &UninstallManifest) -> Result<(), anyhow
                 }
                 let shortcut_name = shortcut[1].clone() + ".lnk";
                 if shortcut_name.is_empty() {
-                    return Ok(());
+                    bail!("Shortcut name cannot be empty");
                 }
                 let scoop_links = get_all_shortcuts_link_paths();
                 for scoop_link in scoop_links {
