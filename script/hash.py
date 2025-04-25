@@ -211,7 +211,7 @@ old_version = get_version_from_manifest()
 
 
 if __name__ == '__main__':
-    calculate_hash_from_github()
+#     calculate_hash_from_github()
     update_manifest()
 
 
