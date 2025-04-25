@@ -95,7 +95,12 @@ pub async fn install_app_from_local_manifest_file<P: AsRef<Path>>(
         match check_before_install(&app_name, &version, &options) {
             Ok(result) => result,
             Err(e) => {
-                eprintln!("{}", format!("check before install failed, Error message:\n{}", e).dark_red().bold());
+                eprintln!(
+                    "{}",
+                    format!("check before install failed, Error message:\n{}", e)
+                        .dark_red()
+                        .bold()
+                );
                 let special_app_dir = if options.contains(&InstallOptions::Global) {
                     get_app_dir_global(&app_name)
                 } else {
@@ -168,6 +173,7 @@ pub async fn install_app_from_local_manifest_file<P: AsRef<Path>>(
         manifest_path,
         &options,
         &app_name,
+        None,
     )
     .expect("parse pre_install failed");
 
@@ -177,6 +183,7 @@ pub async fn install_app_from_local_manifest_file<P: AsRef<Path>>(
         manifest_path,
         &options,
         &app_name,
+        None,
     )
     .expect("parse installer scripts failed");
     //*create_shims
@@ -225,6 +232,7 @@ pub async fn install_app_from_local_manifest_file<P: AsRef<Path>>(
         &manifest_path,
         &options,
         &app_name,
+        None,
     )
     .expect("parse post_install failed");
     //*  save  install.json , manifest.json  to app version dir

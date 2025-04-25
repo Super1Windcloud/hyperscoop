@@ -31,6 +31,7 @@ pub fn parse_lifecycle_scripts(
     manifest_path: &str,
     options: &[InstallOptions],
     app_name: &str,
+    installed_arch: Option<&str>,
 ) -> anyhow::Result<()> {
     let content = std::fs::read_to_string(manifest_path)
         .expect("Failed to read manifest file on parse_lifecycle_scripts");
@@ -51,6 +52,8 @@ pub fn parse_lifecycle_scripts(
     let install_arch =
         if let Some(ArchOptions(arch)) = options.iter().find(|opt| matches!(opt, ArchOptions(_))) {
             Ok(arch.to_string()) as anyhow::Result<String>
+        } else if installed_arch.is_some() {
+            Ok(installed_arch.unwrap().to_string())
         } else {
             Ok(get_system_default_arch()?)
         }

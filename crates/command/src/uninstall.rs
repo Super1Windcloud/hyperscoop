@@ -1,7 +1,6 @@
 use crate::init_hyperscoop;
 use crate::manifest::manifest_deserialize::StringArrayOrString;
 use crate::manifest::uninstall_manifest::UninstallManifest;
-use crate::utils::invoke_hook_script::*;
 use anyhow::bail;
 use crossterm::style::Stylize;
 use std::path::{Path, PathBuf};
@@ -12,6 +11,8 @@ use crate::init_env::{
     get_apps_path, get_apps_path_global, get_persist_dir_path, get_persist_dir_path_global,
     get_shims_root_dir, get_shims_root_dir_global,
 };
+use crate::install::LifecycleScripts::{PostUninstall, PreUninstall, Uninstaller};
+use crate::install::{parse_lifecycle_scripts, InstallOptions};
 use crate::utils::system::{is_admin, request_admin, set_user_env_var};
 use shim_and_shortcuts::*;
 
@@ -145,7 +146,7 @@ fn uninstall_matched_app(
                 if !manifest_path.exists() {
                     bail!("{} is not  existing ", manifest_path.display());
                 }
-                let contents = std::fs::read_to_string(manifest_path)?;
+                let contents = std::fs::read_to_string(&manifest_path)?;
                 let mut manifest: UninstallManifest = serde_json::from_str(&contents)?;
                 manifest.set_name(&app_name.to_string()); // 先进行可变借用
 
@@ -157,15 +158,27 @@ fn uninstall_matched_app(
                 let install_info = std::fs::read_to_string(install_path)?;
                 let install_info: serde_json::Value = serde_json::from_str(&install_info)?;
                 let arch = install_info["architecture"].as_str().unwrap_or("Unknown");
-                invoke_hook_script(HookType::PreUninstall, &manifest, arch)?;
+                let manifest_path = manifest_path.to_str().unwrap();
+                let options = if is_global {
+                    vec![InstallOptions::Global]
+                } else {
+                    vec![]
+                };
+                parse_lifecycle_scripts(PreUninstall, manifest_path, &options, app_name, Some(arch ) )
+                    .expect("Failed to run pre-uninstall lifecycle script");
                 println!(
                     "{} '{}'  ({})",
                     "Uninstalling".to_string().dark_blue().bold(),
                     app_name.dark_red().bold(),
                     version.dark_red().bold()
                 );
-                invoke_hook_script(HookType::Uninstaller, &manifest, arch)?;
-                invoke_hook_script(HookType::PostUninstall, &manifest, arch)?;
+                parse_lifecycle_scripts(Uninstaller, manifest_path, &options, app_name , Some(arch ) )
+                    .expect("Failed to run Uninstaller lifecycle script");
+                parse_lifecycle_scripts(PostUninstall, manifest_path, &options, app_name ,  Some(arch ) )
+                    .expect("Failed to run PostUninstall lifecycle script");
+
+                // invoke_hook_script(HookType::Uninstaller, &manifest, arch)?;
+                // invoke_hook_script(HookType::PostUninstall, &manifest, arch)?;
                 uninstall_psmodule(&manifest)?;
 
                 env_path_var_rm(&current_path, &manifest, is_global)?;
@@ -271,10 +284,10 @@ fn uninstall_psmodule(manifest: &UninstallManifest) -> Result<(), anyhow::Error>
     let psmodule = psmodule.unwrap();
     let hp = init_hyperscoop()?;
     let psmodule_dir = hp.get_psmodule_path();
-    let module_name = psmodule.get("name").unwrap().as_str().unwrap();
+    let module_name = psmodule.name;
     println!(
         "Uninstalling PowerShell module  '{}'",
-        module_name.dark_red().bold()
+        module_name.clone().dark_red().bold()
     );
     let lind_path = Path::new(&psmodule_dir).join(module_name);
     if lind_path.exists() {

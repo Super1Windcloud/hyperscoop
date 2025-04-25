@@ -1,10 +1,8 @@
 use crate::config::get_all_config;
-use crate::init_env::{
-    get_old_scoop_dir, get_scoop_cfg_path, init_user_scoop, init_scoop_global,
-};
+use crate::init_env::{get_old_scoop_dir, get_scoop_cfg_path, init_scoop_global, init_user_scoop};
 use crate::manifest::manifest_deserialize::StringArrayOrString;
 use crate::manifest::uninstall_manifest::UninstallManifest;
-use serde_json::Value;
+use crossterm::style::Stylize;
 use std::io::{self, Write};
 use std::process::Command;
 
@@ -25,7 +23,7 @@ pub enum ProcessorArchitecture {
     Arm64,
 }
 
-fn arch_specific(hook_type: HookType, manifest: &UninstallManifest ) -> Option<String> {
+fn arch_specific(hook_type: HookType, manifest: &UninstallManifest) -> Option<String> {
     match hook_type {
         HookType::Uninstaller => {
             let uninstaller = manifest.clone().uninstaller;
@@ -33,17 +31,16 @@ fn arch_specific(hook_type: HookType, manifest: &UninstallManifest ) -> Option<S
                 return None;
             }
             let uninstaller = uninstaller.unwrap();
-            let script = uninstaller.get("script").unwrap_or(&Value::Null);
+            let script = uninstaller.script;
+            if script.is_none() {
+                eprintln!("{}", "Uninstaller script not found.".dark_red().bold());
+                return None;
+            }
+            let script = script.unwrap();
             let result = match script {
-                Value::String(s) => Some(s.clone()),
-                Value::Array(arr) => {
-                    let mut result = String::new();
-                    for item in arr {
-                        if let Value::String(s) = item {
-                            result += s.as_str();
-                            result.push('\n');
-                        }
-                    }
+                StringArrayOrString::String(s) => Some(s.clone()),
+                StringArrayOrString::StringArray(arr) => {
+                     let result  =arr.join("\n");
                     Some(result)
                 }
                 _ => None,
@@ -110,12 +107,12 @@ pub fn invoke_hook_script(
     manifest: &UninstallManifest,
     arch: &str,
 ) -> io::Result<()> {
-    let script = arch_specific(hook_type.clone(), manifest );
+    let script = arch_specific(hook_type.clone(), manifest);
     let app_name = manifest.name.clone().unwrap_or(String::new());
     let app_version = manifest.version.clone().unwrap_or(String::new());
     let cfg = get_all_config();
     let scoop_home = init_user_scoop();
-    let global_scoop_home =  init_scoop_global() ;
+    let global_scoop_home = init_scoop_global();
     let cfg = serde_json::to_string(&cfg).unwrap_or(String::new());
     let cfg_obj = format!(
         "$json =  '{}'; $cfg = $json | ConvertFrom-Json; $obj | ConvertTo-Json -Depth 10",
@@ -188,7 +185,7 @@ mod tests {
         let hp = init_hyperscoop().unwrap();
 
         let bucket_path = hp.get_bucket_path();
-        std::fs::read_dir(bucket_path)
+        fs::read_dir(bucket_path)
             .unwrap()
             .par_bridge()
             .for_each(|entry| {
