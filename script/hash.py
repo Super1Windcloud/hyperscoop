@@ -77,6 +77,8 @@ def  calculate_hash(file_path):
     with open(file_path, 'rb') as f:
           #  scoop 默认使用sha256 哈希算法
           return hashlib.sha256(f.read()).hexdigest()
+
+
 def  write_to_manifest(x64 ,x86, arm64   ):
     """Write the hash value to the manifest file"""
     manifest_path = os.path.join(os.path.dirname(os.path.dirname(__file__)),
