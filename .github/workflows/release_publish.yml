@@ -1,7 +1,7 @@
 name: Hp  Release Pipeline
 on:
-#  pull_request:
-  push:
+  pull_request:
+#  push:
     branches: ["main"]
 permissions:
   contents: write
