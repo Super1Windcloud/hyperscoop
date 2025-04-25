@@ -11,11 +11,17 @@ pub enum StringArrayOrString {
     String(String), // 字符串类型
 }
 
-
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PSModuleStruct {
+    pub name: String,
+}
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
-pub struct   PSModuleStruct {
-   pub   name :String
+pub struct InstallerUninstallerStruct {
+    pub file: Option<String>,
+    pub script: Option<StringArrayOrString>,
+    pub args: Option<StringArrayOrString>,
+    pub keep: Option<bool>,
 }
 
 #[must_use]
@@ -36,8 +42,8 @@ pub struct BaseArchitecture {
     pub extract_dir: Option<StringArrayOrString>,
     pub extract_to: Option<StringArrayOrString>,
     pub hash: Option<StringArrayOrString>,
-    pub installer: Option<ManifestObj>,
-    pub uninstaller: Option<ManifestObj>,
+    pub installer: Option<InstallerUninstallerStruct>,
+    pub uninstaller: Option<InstallerUninstallerStruct>,
     pub url: Option<StringArrayOrString>,
     pub shortcuts: Option<ArrayOrDoubleDimensionArray>,
     pub pre_install: Option<StringArrayOrString>,
@@ -45,7 +51,7 @@ pub struct BaseArchitecture {
 }
 
 impl ArchitectureObject {
-    pub fn  get_specific_architecture(&self, arch: &str) -> Option<&BaseArchitecture> {
+    pub fn get_specific_architecture(&self, arch: &str) -> Option<&BaseArchitecture> {
         match arch {
             "64bit" => self.x64bit.as_ref(),
             "32bit" => self.x86bit.as_ref(),
@@ -54,7 +60,6 @@ impl ArchitectureObject {
         }
     }
 }
-
 
 #[must_use]
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]

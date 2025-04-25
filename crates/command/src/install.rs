@@ -119,7 +119,7 @@ pub async fn install_app_from_local_manifest_file<P: AsRef<Path>>(
     let env_add_path = serde_obj.env_add_path;
     // let url = serde_obj.url;
     // let hash = serde_obj.hash;
-    let installer = serde_obj.installer;
+    // let installer = serde_obj.installer;
     // let shortcuts = serde_obj.shortcuts;
     let architecture = serde_obj.architecture;
     // let bin = serde_obj.bin;
@@ -128,8 +128,8 @@ pub async fn install_app_from_local_manifest_file<P: AsRef<Path>>(
     // let innosetup = serde_obj.innosetup;
     let persist = serde_obj.persist;
     let psmodule = serde_obj.psmodule;
-    let pre_install = serde_obj.pre_install;
-    let post_install = serde_obj.post_install;
+    // let pre_install = serde_obj.pre_install;
+    // let post_install = serde_obj.post_install;
 
     if !depends.is_none() && !options.contains(&InstallOptions::NoAutoDownloadDepends) {
         handle_depends(depends.unwrap().as_str(), &options).await?;
@@ -147,8 +147,12 @@ pub async fn install_app_from_local_manifest_file<P: AsRef<Path>>(
     //  *linking   app current dir to app version dir
     download_manager.invoke_7z_extract(extract_dir, extract_to, architecture.clone())?;
     // !  parse    pre_install
-    // !  parse    manifest installer
+    parse_lifecycle_scripts(LifecycleScripts::PreInstall, manifest_path, &options ,& app_name )
+        .expect("parse pre_install failed");
 
+    // !  parse    manifest installer
+    parse_lifecycle_scripts(LifecycleScripts::Installer, manifest_path, &options ,&app_name)
+        .expect("parse installer scripts failed");
     //*create_shims
     //*create_startmenu_shortcuts
     create_shim_or_shortcuts(manifest_path, &app_name, &options)
@@ -175,7 +179,8 @@ pub async fn install_app_from_local_manifest_file<P: AsRef<Path>>(
         }
     }
     // ! linking  persist_data  链接 Persist 目录
-    create_persist_data_link(persist.clone(), &options ,&app_name).expect("create persist link failed");
+    create_persist_data_link(persist.clone(), &options, &app_name)
+        .expect("create persist link failed");
 
     //*persist_permission  主要用于 设置文件系统权限，确保特定用户（通常是 "Users" 组）对某个目录具有写入权限。
     if persist.is_some() {
@@ -189,7 +194,8 @@ pub async fn install_app_from_local_manifest_file<P: AsRef<Path>>(
         }
     }
     // !   parse post_install
-
+    parse_lifecycle_scripts(LifecycleScripts::PostInstall, &manifest_path, &options,  &app_name )
+        .expect("parse post_install failed");
     //*  save  install.json , manifest.json  to app version dir
     download_manager
         .save_install_info()

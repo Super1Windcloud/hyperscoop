@@ -1,5 +1,4 @@
 ﻿use crate::config::get_config_value_no_print;
-use crate::utils::utility::write_into_log_file_append_mode;
 use anyhow::bail;
 use crossterm::style::Stylize;
 use git2::{FetchOptions, Progress, ProxyOptions, RemoteCallbacks, Repository};
@@ -303,9 +302,9 @@ pub   fn request_git_clone_by_git2_with_progress(
       } else {
         0.0
       };
-      #[cfg(debug_assertions)]
-      write_into_log_file_append_mode("git2_clone.txt",
-                                      format!("speed {speed:.2}, total_objects {total_objects}, received_objects {received_objects},percent {percent:.2}"));
+      // #[cfg(debug_assertions)]
+      // write_into_log_file_append_mode("git2_clone.txt",
+      //                                 format!("speed {speed:.2}, total_objects {total_objects}, received_objects {received_objects},percent {percent:.2}"));
 
       pb.set_position(percent as u64);
       pb.set_message(format!(

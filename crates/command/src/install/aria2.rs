@@ -140,7 +140,7 @@ impl<'a> Aria2C<'a> {
     pub fn invoke_aria2c_download<'cmd>(&self) -> anyhow::Result<String> {
         let aria2_exe = self.get_aria2c_path();
         println!(
-            "{}\n",
+            "{}",
             "Starting Aria2 Download Files......".dark_blue().bold()
         );
         let proxy = get_config_value_no_print("proxy");
@@ -167,7 +167,7 @@ impl<'a> Aria2C<'a> {
 
         let status = child.status;
         let result = if status.success() {
-            Ok("Aria2c download completed successfully"
+            Ok("Aria2c download completed successfully!"
                 .dark_green()
                 .bold()
                 .to_string())

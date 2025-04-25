@@ -1406,7 +1406,6 @@ function Out-UTF8File {
 #       for all communication with api.github.com
 Optimize-SecurityProtocol
 
-# Load Scoop config
 $configHome = $env:XDG_CONFIG_HOME, "$env:USERPROFILE\.config" | Select-Object -First 1
 $configFile = "$configHome\scoop\config.json"
 # Check if it's the expected install path for scoop: <root>/apps/scoop/current
@@ -1440,11 +1439,7 @@ $scoopdir = $env:SCOOP, (get_config ROOT_PATH), "$PSScriptRoot\..\..\..\..", "$(
 # Scoop global apps directory
 $globaldir = $env:SCOOP_GLOBAL, (get_config GLOBAL_PATH), "$([System.Environment]::GetFolderPath('CommonApplicationData'))\scoop" | Where-Object { $_ } | Select-Object -First 1 | Get-AbsolutePath
 
-# Scoop cache directory
-# Note: Setting the SCOOP_CACHE environment variable to use a shared directory
-#       is experimental and untested. There may be concurrency issues when
-#       multiple users write and access cached files at the same time.
-#       Use at your own risk.
+
 $cachedir = $env:SCOOP_CACHE, (get_config CACHE_PATH), "$scoopdir\cache" | Where-Object { $_ } | Select-Object -First 1 | Get-AbsolutePath
 
 # Scoop apps' PATH Environment Variable
@@ -1457,5 +1452,3 @@ $scoopPathEnvVar = switch (get_config USE_ISOLATED_PATH) {
 # OS information
 $WindowsBuild = [System.Environment]::OSVersion.Version.Build
 
-# Setup proxy globally
-setup_proxy

@@ -36,18 +36,20 @@ pub fn show_suggest(suggest: &SuggestObj) -> anyhow::Result<()> {
                 println!(
                     "{}",
                     format!("{} : {}", name, value)
-                        .to_string()
                         .dark_grey()
                         .bold()
+                      .to_string()
+                    
                 );
             }
             SuggestObjValue::StringArray(arr) => {
                 println!(
                     "{}",
                     format!("{} : {:?}", name, arr)
-                        .to_string()
                         .dark_grey()
                         .bold()
+                      .to_string()
+                     
                 );
             }
         }
@@ -295,7 +297,7 @@ pub fn install_psmodule(
             "{}",
             format!("{link_dir} is already exists. It will be replaced.")
                 .dark_grey()
-                .bold()
+                .bold().to_string()
         );
         std::fs::remove_dir_all(&link_dir)?;
     }

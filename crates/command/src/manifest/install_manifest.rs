@@ -37,7 +37,7 @@ pub struct InstallManifest {
     script和args可用的变量： $fname （上次下载的文件）， $manifest （反序列化的清单引用），
     $architecture （ 64bit或32bit ）， $dir （安装目录）
     在scoop install和scoop update期间调用。*/
-    pub installer: Option<ManifestObj>,
+    pub installer: Option<InstallerUninstallerStruct>,
 
     /**
     该数组必须包含可执行文件/标签对。第三和第四个元素是可选的。
@@ -186,7 +186,7 @@ pub struct InstallManifest {
 
     ///  与installer相同的选项，但运行文件/脚本来卸载应用程序。在scoop uninstall和scoop update期间调用
     #[serde(skip)]
-    pub uninstaller: Option<ManifestObj>,
+    pub uninstaller: Option<InstallerUninstallerStruct>,
     #[serde(skip)]
     pub pre_uninstall: Option<StringArrayOrString>, // 卸载前执行的命令
     #[serde(skip)]
@@ -272,48 +272,98 @@ mod test_manifest_deserialize {
             // if find_env_set(_manifest, path, &_count) {
             //     return;
             // }
-        /*    if find_bin_and_shortcuts(_manifest, &path, &_count) {
-                return; 
-            };*/ 
-             if  find_persist(_manifest, &path, &_count ) { return; }; 
-        } 
-        fn  find_persist  (
-          _manifest: InstallManifest,
-          path: &PathBuf,
-          _count: &Arc<Mutex<i32>>,
-        ) -> bool  { 
-          let  persist = _manifest.persist; 
-          if  persist.is_some() {
-            let  persist = persist.unwrap();
-            match  persist {
-              StringOrArrayOrDoubleDimensionArray::StringArray(array) => {
-                // println!("persist {:?}", array);
-                // println!(" path {}", path.display());
-                // *_count.lock().unwrap() += 1;
-              },
-              StringOrArrayOrDoubleDimensionArray::String(str) => {
-                // println!("persist {:?}", str);
-              } ,
-              StringOrArrayOrDoubleDimensionArray::DoubleDimensionArray(double_arr) => {
-                println!("persist {:?}", &double_arr);
-                println!(" path {}", path.display()); 
+            /*    if find_bin_and_shortcuts(_manifest, &path, &_count) {
+                return;
+            };*/
+            // if  find_persist(_manifest, &path, &_count ) { return; };
+            if find_install_and_uninstall(_manifest, path, &_count) {
+                return;
+            };
+        }
+        pub fn find_install_and_uninstall(
+            _manifest: InstallManifest,
+            path: PathBuf,
+            _count: &Arc<Mutex<i32>>,
+        ) -> bool {
+            let installer = _manifest.installer;
+            let uninstaller = _manifest.uninstaller;
+            let architecture = _manifest.architecture;
+            if architecture.is_some() {
+                let architecture = architecture.unwrap();
+                let x64 = architecture.x64bit;
+                if x64.is_some() {
+                    let x64 = x64.unwrap();
+                    let installer = x64.installer;
+                    let uninstaller = x64.uninstaller;
+                    if installer.is_some() {
+                        let installer = installer.unwrap();
+                        println!("installer  {:?}", installer);
+                        println!("path  {}", path.display());
+                        // *_count.lock().unwrap() += 1;
+                    }
+                    if uninstaller.is_some() {
+                        let uninstaller = uninstaller.unwrap();
+                        println!("uninstaller  {:?}", uninstaller);
+                        println!("path  {}", path.display());
+                        // *_count.lock().unwrap() += 1;
+                    }
+                }
+            }
+
+            if installer.is_some() {
+                let installer = installer.unwrap();
+                println!("installer  {:?}", installer);
+                println!("path  {}", path.display());
                 *_count.lock().unwrap() += 1;
-              },
-              StringOrArrayOrDoubleDimensionArray::Null => {
-                println!("persist {:?}", "Null");
-                println!(" path {}", path.display()); 
-              }
-              StringOrArrayOrDoubleDimensionArray::NestedStringArray(_) => {
-                
-              }
+                if *_count.lock().unwrap() >= 10 {
+                    return true;
+                }
             }
-            if *_count.lock().unwrap() >= 3  {
-              return true;
+            if uninstaller.is_some() {
+                let uninstaller = uninstaller.unwrap();
+                println!("uninstaller  {:?}", uninstaller);
+                println!("path  {}", path.display());
+                *_count.lock().unwrap() += 1;
+                if *_count.lock().unwrap() >= 10 {
+                    return true;
+                }
             }
-          }
-           
-          
-          false 
+            false
+        }
+        fn find_persist(
+            _manifest: InstallManifest,
+            path: &PathBuf,
+            _count: &Arc<Mutex<i32>>,
+        ) -> bool {
+            let persist = _manifest.persist;
+            if persist.is_some() {
+                let persist = persist.unwrap();
+                match persist {
+                    StringOrArrayOrDoubleDimensionArray::StringArray(array) => {
+                        // println!("persist {:?}", array);
+                        // println!(" path {}", path.display());
+                        // *_count.lock().unwrap() += 1;
+                    }
+                    StringOrArrayOrDoubleDimensionArray::String(str) => {
+                        // println!("persist {:?}", str);
+                    }
+                    StringOrArrayOrDoubleDimensionArray::DoubleDimensionArray(double_arr) => {
+                        println!("persist {:?}", &double_arr);
+                        println!(" path {}", path.display());
+                        *_count.lock().unwrap() += 1;
+                    }
+                    StringOrArrayOrDoubleDimensionArray::Null => {
+                        println!("persist {:?}", "Null");
+                        println!(" path {}", path.display());
+                    }
+                    StringOrArrayOrDoubleDimensionArray::NestedStringArray(_) => {}
+                }
+                if *_count.lock().unwrap() >= 3 {
+                    return true;
+                }
+            }
+
+            false
         }
         fn find_bin_and_shortcuts(
             _manifest: InstallManifest,
@@ -326,17 +376,17 @@ mod test_manifest_deserialize {
                 let shortcuts = shortcuts.unwrap();
                 let result = match shortcuts {
                     ArrayOrDoubleDimensionArray::StringArray(array) => {
-                      println!("shortcuts {:?}", array); 
-                       println!(" path {}", path.display());
-                       *_count.lock().unwrap() += 1; 
-                       array 
-                    },
-                    ArrayOrDoubleDimensionArray::DoubleDimensionArray(double_arr) => {
-                      // println!("shortcuts {:?}", &double_arr);
-                      // println!(" path {}", path.display());
-                      double_arr.into_iter().flatten().collect::<Vec<String>>()
+                        println!("shortcuts {:?}", array);
+                        println!(" path {}", path.display());
+                        *_count.lock().unwrap() += 1;
+                        array
                     }
-                    ArrayOrDoubleDimensionArray::Null => { 
+                    ArrayOrDoubleDimensionArray::DoubleDimensionArray(double_arr) => {
+                        // println!("shortcuts {:?}", &double_arr);
+                        // println!(" path {}", path.display());
+                        double_arr.into_iter().flatten().collect::<Vec<String>>()
+                    }
+                    ArrayOrDoubleDimensionArray::Null => {
                         println!("shortcuts {:?}", "Null");
                         println!(" path {}", path.display());
                         vec![]
