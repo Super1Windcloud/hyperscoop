@@ -3,6 +3,9 @@ import  os
 import http.client
 import json
 from changelog import   download_file_then_compute_hash
+
+
+
 def   get_gitee_latest_version () :
       host = "gitee.com"
       url = "/api/v5/repos/SuperWindcloud/hyperscoop/releases/latest"
@@ -47,7 +50,6 @@ def  update_version_and_url() :
       manifest_path2 = r'A:\Scoop\buckets\hp\bucket\hp.json'
       with open(manifest_path1, "r" ,encoding="utf-8") as f:
           data =  json.load(f)
-          old_version = data["version"]
           print(data["url"])
           data["version"] = version.replace('"', '')
           data["url"]  = data["url"].replace(old_version,version.replace('"', ''))
@@ -59,7 +61,6 @@ def  update_version_and_url() :
 
       with open(manifest_path2, "r" ,encoding="utf-8") as f:
               data =  json.load(f)
-              old_version = data["version"]
               print(data["url"])
               data["version"] = version.replace('"', '')
               data["url"]  = data["url"].replace(old_version,version.replace('"', ''))
@@ -88,8 +89,6 @@ def  write_to_manifest(x64 ,x86, arm64   ):
     with open(manifest_path, "r" ,encoding="utf-8") as f:
         version=  get_version_from_cargo()
         data =  json.load(f)
-        old_version = compute_old(data["version"])
-        print(old_version)
         data["hash"] = x64
         data["architecture"]["64bit"]["hash"] = x64
         data["architecture"]["arm64"]["hash"] = arm64
@@ -121,7 +120,6 @@ def  write_scoop_bucket(   x64 ,x86 ,arm64     ) :
      with open(hyperscoop_bucekt, "r" ,encoding="utf-8") as f:
          version=  get_version_from_cargo()
          data =  json.load(f)
-         old_version = compute_old(data["version"])
 
          data["hash"] = x64
          data["architecture"]["64bit"]["hash"] = x64
@@ -192,7 +190,11 @@ def update_manifest():
         print("update manifest success")
 
 
-
+def  get_version_from_manifest():
+      manifest_path1 = os.path.join(os.path.dirname(os.path.dirname(__file__)),  r"hyperscoop_source_bucket/bucket/hp.json")
+      with open(manifest_path1, "r" ,encoding="utf-8") as f:
+          data =  json.load(f)
+          return data["version"]
 
 def write_to_manifest_from_store(x64, x86 , arm64  ):
     """Write the hash value to the manifest file"""
@@ -203,6 +205,9 @@ def write_to_manifest_from_store(x64, x86 , arm64  ):
 def test():
       version = get_version_from_cargo()
       print(version)
+
+
+old_version = get_version_from_manifest()
 
 
 if __name__ == '__main__':
