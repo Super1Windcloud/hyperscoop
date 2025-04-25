@@ -116,7 +116,8 @@ jobs:
         with:
           name:  "Here We Go!"
           tag_name:   ${{ steps.version.outputs.new_tag }}
-          body:  "Hp  '${{ steps.version.outputs.new_tag }}'  is published, More new features are now supported."
+          body:  "Hp  '${{ steps.version.outputs.new_tag }}'  is published, First normal release of Hp,
+          All new features are now supported.Now please enjoy it! "
           files: | #yaml 配置会把\ 当做转义字符
              hp-x64-${{ steps.version.outputs.new_tag }}.exe
              hp-x86-${{ steps.version.outputs.new_tag }}.exe
