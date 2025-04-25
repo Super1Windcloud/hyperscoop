@@ -80,7 +80,7 @@ async fn main() -> anyhow::Result<()> {
 
     let result = match cli.command {
         None => {
-            auto_check_hp_update().await?;
+            auto_check_hp_update(None).await?;
             eprintln!("No command provided. Run `hp  --help` to see available commands!");
             Ok(())
         }

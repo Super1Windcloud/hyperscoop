@@ -5,8 +5,29 @@ use crate::utils::utility::update_scoop_config_last_update_time;
 use crossterm::style::Stylize;
 use std::os::windows::fs::symlink_dir;
 use std::path::Path;
+use anyhow::bail;
+use crate::list::VersionJSON;
 
-pub async fn check_before_install(
+pub fn get_app_old_version(app_name: &str, options: &[InstallOptions]) -> anyhow::Result<String> {
+  let hp_install_manifest = if options.contains(&InstallOptions::Global) {
+    get_app_dir_manifest_json_global(app_name)
+  } else {
+    get_app_dir_manifest_json(app_name)
+  };
+  if !Path::new(&hp_install_manifest).exists() {
+    bail!("not found hp install manifest file, please run hp u -f hp")
+  }
+  let content = std::fs::read_to_string(&hp_install_manifest)?;
+  let version: VersionJSON = serde_json::from_str(content.as_str())?;
+  let version = version.version;
+  if version.is_none() {
+    bail!("not found version in hp install manifest file, please run hp u -f hp")
+  }
+  Ok(version.unwrap())
+}
+
+
+pub   fn check_before_install(
     name: &str,
     version: &String,
     options: &Box<[InstallOptions<'_>]>,
@@ -41,6 +62,7 @@ pub async fn check_before_install(
     };
     let app_version_path = Path::new(&app_version_dir);
     let app_current_path = Path::new(&app_current_dir);
+    let  old_version = get_app_old_version("hp", options)?;
     if app_current_path.exists() {
         let install_json = if options.contains(&InstallOptions::Global) {
             get_app_dir_install_json_global(name)
@@ -51,8 +73,10 @@ pub async fn check_before_install(
             get_app_dir_manifest_json_global(name)
         } else {
             get_app_dir_manifest_json(name)
-        };
-        if Path::new(&install_json).exists() && Path::new(&manifest_json).exists() {
+        }; 
+       
+        if Path::new(&install_json).exists() && Path::new(&manifest_json).exists() 
+         && &old_version  ==version {
             println!(
                 "{}",
                 format!("WARN  '{name }' ({version}) is already installed")

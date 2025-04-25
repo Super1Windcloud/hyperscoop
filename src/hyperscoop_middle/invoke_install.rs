@@ -5,12 +5,12 @@ use anyhow::bail;
 use command_util_lib::install::*;
 use command_util_lib::utils::system::{get_system_default_arch, is_admin, request_admin};
 use crossterm::style::Stylize;
-use std::path::Path;
+use std::path::Path; 
 
 pub async fn execute_install_command(args: InstallArgs) -> Result<(), anyhow::Error> {
     let options = inject_user_options(&args)?;
     if options.contains(&InstallOptions::CheckCurrentVersionIsLatest) {
-        auto_check_hp_update().await?;
+        auto_check_hp_update(None).await?;
     }
     if args.app_name.is_none() {
         return Ok(());

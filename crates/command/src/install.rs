@@ -92,7 +92,7 @@ pub async fn install_app_from_local_manifest_file<P: AsRef<Path>>(
         && !options.contains(&InstallOptions::OnlyDownloadNoInstall)
         && !options.contains(&InstallOptions::ForceInstallOverride)
     {
-        check_before_install(&app_name, &version, &options).await?
+        check_before_install(&app_name, &version, &options).expect("check before install failed")
     } else {
         0
     };
@@ -147,12 +147,22 @@ pub async fn install_app_from_local_manifest_file<P: AsRef<Path>>(
     //  *linking   app current dir to app version dir
     download_manager.invoke_7z_extract(extract_dir, extract_to, architecture.clone())?;
     // !  parse    pre_install
-    parse_lifecycle_scripts(LifecycleScripts::PreInstall, manifest_path, &options ,& app_name )
-        .expect("parse pre_install failed");
+    parse_lifecycle_scripts(
+        LifecycleScripts::PreInstall,
+        manifest_path,
+        &options,
+        &app_name,
+    )
+    .expect("parse pre_install failed");
 
     // !  parse    manifest installer
-    parse_lifecycle_scripts(LifecycleScripts::Installer, manifest_path, &options ,&app_name)
-        .expect("parse installer scripts failed");
+    parse_lifecycle_scripts(
+        LifecycleScripts::Installer,
+        manifest_path,
+        &options,
+        &app_name,
+    )
+    .expect("parse installer scripts failed");
     //*create_shims
     //*create_startmenu_shortcuts
     create_shim_or_shortcuts(manifest_path, &app_name, &options)
@@ -194,8 +204,13 @@ pub async fn install_app_from_local_manifest_file<P: AsRef<Path>>(
         }
     }
     // !   parse post_install
-    parse_lifecycle_scripts(LifecycleScripts::PostInstall, &manifest_path, &options,  &app_name )
-        .expect("parse post_install failed");
+    parse_lifecycle_scripts(
+        LifecycleScripts::PostInstall,
+        &manifest_path,
+        &options,
+        &app_name,
+    )
+    .expect("parse post_install failed");
     //*  save  install.json , manifest.json  to app version dir
     download_manager
         .save_install_info()
@@ -397,11 +412,13 @@ pub async fn install_app(app_name: &str, options: &[InstallOptions<'_>]) -> Resu
 
 pub async fn install_and_replace_hp(options: &[InstallOptions<'_>]) -> Result<String> {
     let app_name = "hp";
+    
     let manifest_path = if options.contains(&InstallOptions::Global) {
         get_latest_manifest_from_local_bucket_global(app_name)?
     } else {
         get_latest_manifest_from_local_bucket(app_name)?
     };
+
     let duplicate = manifest_path.clone();
     if !duplicate.exists() {
         bail!("No app manifest found for '{app_name}', please check it!")
@@ -419,7 +436,8 @@ pub async fn install_and_replace_hp(options: &[InstallOptions<'_>]) -> Result<St
         options.to_vec(),
         Some(source_bucket),
     ))
-    .await?;
+    .await
+    .expect("hp new version install failed");
     if version.version.is_none() {
         bail!("hp version is empty")
     }

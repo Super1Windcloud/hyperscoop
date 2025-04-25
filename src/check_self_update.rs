@@ -1,15 +1,19 @@
-use crate::Cli;
-use anyhow::{anyhow, bail};
-use clap::CommandFactory;
-use command_util_lib::config::get_config_value_no_print;
-use command_util_lib::utils::utility::is_valid_url;
-use crossterm::style::Stylize;
-use reqwest::{header, Client};
-use serde::{Deserialize, Serialize};
 #[allow(unused_imports)]
 use crate::crypto::decrypt_gitee;
 #[allow(unused_imports)]
 use crate::crypto::decrypt_github;
+use crate::Cli;
+use anyhow::{anyhow, bail};
+use clap::CommandFactory;
+use command_util_lib::config::get_config_value_no_print;
+use command_util_lib::init_env::{get_app_dir_manifest_json, get_app_dir_manifest_json_global};
+use command_util_lib::install::UpdateOptions;
+use command_util_lib::list::VersionJSON;
+use command_util_lib::utils::utility::is_valid_url;
+use crossterm::style::Stylize;
+use reqwest::{header, Client};
+use serde::{Deserialize, Serialize};
+use std::path::Path;
 
 #[allow(clippy::unsafe_derive_deserialize)]
 #[allow(dead_code)]
@@ -21,16 +25,40 @@ struct GiteeRelease {
     body: Option<String>,
 }
 
-pub async fn auto_check_hp_update() -> anyhow::Result<bool> {
+pub fn get_app_old_version(app_name: &str, options: &[UpdateOptions]) -> anyhow::Result<String> {
+    let hp_install_manifest = if options.contains(&UpdateOptions::Global) {
+        get_app_dir_manifest_json_global(app_name)
+    } else {
+        get_app_dir_manifest_json(app_name)
+    };
+    if !Path::new(&hp_install_manifest).exists() {
+        bail!("not found hp install manifest file, please run hp u -f hp")
+    }
+    let content = std::fs::read_to_string(&hp_install_manifest)?;
+    let version: VersionJSON = serde_json::from_str(content.as_str())?;
+    let version = version.version;
+    if version.is_none() {
+        bail!("not found version in hp install manifest file, please run hp u -f hp")
+    }
+    Ok(version.unwrap())
+}
+
+pub async fn auto_check_hp_update(old_version: Option<&str>) -> anyhow::Result<bool> {
     let cmd = Cli::command();
-    let version = cmd.get_version().ok_or(anyhow!("hp version is empty"))?;
-    let latest_github_version = get_latest_version_from_github().await.expect(
-      "failed to get latest github version",
-    );
-    let  latest_version =  if latest_github_version.is_empty() {
-         get_latest_version_from_gitee().await.expect("failed to get latest gitee version")
-    }else {
-       latest_github_version
+    let version = if old_version.is_some() {
+        old_version.unwrap()
+    } else {
+        cmd.get_version().ok_or(anyhow!("hp version is empty"))?
+    };
+    let latest_github_version = get_latest_version_from_github()
+        .await
+        .expect("failed to get latest github version");
+    let latest_version = if latest_github_version.is_empty() {
+        get_latest_version_from_gitee()
+            .await
+            .expect("failed to get latest gitee version")
+    } else {
+        latest_github_version
     };
     if version.to_string() < latest_version {
         println!("{}", format!("发现hp新版本 {latest_version},请访问https://github.com/Super1Windcloud/hp/releases").dark_cyan().bold());
@@ -93,17 +121,16 @@ async fn get_latest_version_from_github() -> anyhow::Result<String> {
         "https://api.github.com/repos/{}/{}/releases/latest",
         owner, repo
     );
-    let token =decrypt_github().expect("failed to decrypt github version"); 
+    let token = decrypt_github().expect("failed to decrypt github version");
     let proxy_url = get_config_value_no_print("proxy");
 
+    const USER_AGENT: &str = "Rust-GitHub-API-Client";
+    let mut headers = header::HeaderMap::new();
+    headers.insert(header::USER_AGENT, USER_AGENT.parse()?);
+    headers.insert("Accept", "application/vnd.github.v3+json".parse()?);
+    headers.insert(header::AUTHORIZATION, format!("token {}", token).parse()?);
 
-  const USER_AGENT: &str = "Rust-GitHub-API-Client";
-  let mut headers = header::HeaderMap::new();
-  headers.insert(header::USER_AGENT, USER_AGENT.parse()?);
-  headers.insert("Accept", "application/vnd.github.v3+json".parse()?);
-  headers.insert(header::AUTHORIZATION, format!("token {}", token).parse()?);
-
-  let client = if !proxy_url.is_empty() {
+    let client = if !proxy_url.is_empty() {
         // log::info!("Using proxy: {}", proxy_url);
         let proxy_url = if proxy_url.starts_with("http://") || proxy_url.starts_with("https://") {
             proxy_url
@@ -111,12 +138,11 @@ async fn get_latest_version_from_github() -> anyhow::Result<String> {
             format!("http://{}", proxy_url)
         };
         if is_valid_url(&proxy_url) {
-          let proxy = reqwest::Proxy::https(proxy_url)?;
-          Client::builder().proxy(proxy).build()?
-        }else {
-          Client::builder().build()?
+            let proxy = reqwest::Proxy::https(proxy_url)?;
+            Client::builder().proxy(proxy).build()?
+        } else {
+            Client::builder().build()?
         }
-
     } else {
         Client::builder().build()?
     };
@@ -126,7 +152,7 @@ async fn get_latest_version_from_github() -> anyhow::Result<String> {
     if !response.status().is_success() {
         eprintln!("请求失败: {}", response.status());
         eprintln!("Response: {}", response.text().await?);
-        return Ok("".into())
+        return Ok("".into());
     }
     let tags: GithubRelease = response.json().await?;
     Ok(tags.tag_name)
@@ -156,7 +182,7 @@ async fn get_latest_version_from_gitee() -> anyhow::Result<String> {
 
 #[cfg(not(token_local))]
 async fn get_latest_version_from_gitee() -> anyhow::Result<String> {
-    let access_token  = decrypt_gitee()?;
+    let access_token = decrypt_gitee()?;
     let client = Client::new();
     let response = client
         .get("https://gitee.com/api/v5/repos/superwindcloud/hyperscoop/releases/latest")
@@ -173,8 +199,6 @@ async fn get_latest_version_from_gitee() -> anyhow::Result<String> {
     Ok(gitee_tag)
 }
 
-
-
 mod test_auto_update {
     #[allow(unused)]
     use super::*;
@@ -182,7 +206,7 @@ mod test_auto_update {
     #[tokio::test]
     async fn test_auto_check_hp_update() {
         use super::auto_check_hp_update;
-        auto_check_hp_update().await.unwrap();
+        auto_check_hp_update(None).await.unwrap();
     }
 
     #[tokio::test]
@@ -209,4 +233,10 @@ mod test_auto_update {
         let tags: GithubRelease = response.json().await.unwrap();
         println!("{}", tags.tag_name);
     }
+  
+  #[test]
+   fn test_old_version() {
+      let old_version = get_app_old_version("hp", &vec![]).unwrap();
+      println!("{}", old_version);
+  } 
 }

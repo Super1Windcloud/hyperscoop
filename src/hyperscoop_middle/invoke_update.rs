@@ -1,8 +1,5 @@
-﻿use crate::check_self_update::auto_check_hp_update;
+﻿use crate::check_self_update::{auto_check_hp_update, get_app_old_version};
 use crate::command_args::update::UpdateArgs;
-use crate::Cli;
-use anyhow::anyhow;
-use clap::CommandFactory;
 use command_util_lib::init_env::{get_app_current_dir, get_app_current_dir_global};
 use command_util_lib::install::UpdateOptions::ForceUpdateOverride;
 use command_util_lib::install::{install_and_replace_hp, InstallOptions, UpdateOptions};
@@ -82,17 +79,16 @@ pub(crate) fn update_buckets() -> Result<(), anyhow::Error> {
 }
 
 pub async fn update_hp(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
-    let cmd = Cli::command();
-    let version = cmd.get_version().ok_or(anyhow!("hp version is empty"))?;
+    let old_version  = get_app_old_version("hp", options).expect("get app old version failed"); 
     let result = if !options.contains(&ForceUpdateOverride) {
-        auto_check_hp_update().await?
+        auto_check_hp_update(Some(old_version.as_str())).await?
     } else {
         true
     };
     if !result {
         println!(
             "{}",
-            format!("hp '{version}' are up to date")
+            format!("hp '{old_version}' are up to date")
                 .to_string()
                 .dark_green()
                 .bold()
@@ -105,7 +101,9 @@ pub async fn update_hp(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
     } else {
         false
     };
-    let version = install_and_replace_hp(options.as_slice()).await?;
+    let version = install_and_replace_hp(options.as_slice())
+        .await
+        .expect("hp update failed");
     launch_update_script(global).expect("update hp script failed");
     println!(
         "{}",
@@ -113,7 +111,7 @@ pub async fn update_hp(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
             .to_string()
             .dark_green()
             .bold()
-    ); 
+    );
     Ok(())
 }
 

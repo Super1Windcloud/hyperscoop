@@ -72,7 +72,7 @@ pub(crate) enum Commands {
 pub struct CreditsArgs {}
 
 pub async   fn execute_credits_command() -> anyhow::Result<()> {
-    if !auto_check_hp_update().await? {
+    if !auto_check_hp_update(None).await? {
       println!("{}", "💖\tNow hp's  version is latest! Please enjoy it!".dark_cyan().bold());
     };
 
