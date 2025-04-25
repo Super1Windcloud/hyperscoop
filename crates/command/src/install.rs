@@ -92,7 +92,23 @@ pub async fn install_app_from_local_manifest_file<P: AsRef<Path>>(
         && !options.contains(&InstallOptions::OnlyDownloadNoInstall)
         && !options.contains(&InstallOptions::ForceInstallOverride)
     {
-        check_before_install(&app_name, &version, &options).expect("check before install failed")
+        match check_before_install(&app_name, &version, &options) {
+            Ok(result) => result,
+            Err(e) => {
+                eprintln!("{}", format!("check before install failed, Error message:\n{}", e).dark_red().bold());
+                let special_app_dir = if options.contains(&InstallOptions::Global) {
+                    get_app_dir_global(&app_name)
+                } else {
+                    get_app_dir(&app_name)
+                };
+
+                if Path::new(&special_app_dir).exists() && app_name.to_lowercase() != "hp" {
+                    std::fs::remove_dir_all(special_app_dir)
+                        .expect("remove  app dir failed, process is running");
+                }
+                0
+            }
+        }
     } else {
         0
     };
@@ -412,7 +428,7 @@ pub async fn install_app(app_name: &str, options: &[InstallOptions<'_>]) -> Resu
 
 pub async fn install_and_replace_hp(options: &[InstallOptions<'_>]) -> Result<String> {
     let app_name = "hp";
-    
+
     let manifest_path = if options.contains(&InstallOptions::Global) {
         get_latest_manifest_from_local_bucket_global(app_name)?
     } else {

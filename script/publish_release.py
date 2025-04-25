@@ -1,4 +1,4 @@
-
+import requests
 import http.client
 import json
 import  os
@@ -16,7 +16,6 @@ new_asset_path=  r"A:\Rust_Project\hyperscoop\target\release\hp.exe"
 
 
 def join_paths(base_path, *paths):
-
     path_obj = Path(base_path)
     for p in paths:
         path_obj = path_obj / p
@@ -33,120 +32,50 @@ def get_hp_bin_path():
      return hp_bin
 
 
-def get_release_id( ):
-      access_token = get_access_token()
-      host = "gitee.com"
-      url = f"/api/v5/repos/SuperWindcloud/hyperscoop/releases/tags/{tag_name}"
-      headers = {
-           "Content-Type": "application/json;charset=UTF-8"
-      }
-      data = {
-                "access_token": access_token ,
-                "tag_name": tag_name ,
-                "name": release_title ,
-                "body": "add install shim feature",
-                "prerelease": "false",
-                "target_commitish": "master"
-            }
 
-      json_data = json.dumps(data)
-      conn = http.client.HTTPSConnection(host)
-      conn.request("GET", url, body=json_data, headers=headers)
+def  get_github_release_id ():
+   url = f"https://api.github.com/repos/{owner}/{repo}/releases/latest"
+   access_token = get_github_access_token()
+   headers = {
+     "Accept": "application/vnd.github.v3+json",
+     "X-GitHub-Api-Version": "2022-11-28",
+     "Authorization": f"Bearer  {access_token}"
+   }
+   response = requests.get(url, headers=headers)
+   response.raise_for_status()  # 如果请求失败会抛出异常
+   release_data = response.json()
+   return  release_data["id"]
 
-      response = conn.getresponse()
-      response_data = response.read().decode()
-      if response.status != 200 or not response_data:
-              print(f"获取release ID失败，状态码: {response.status}")
-              print("响应内容:", response_data)
-              conn.close()
-              return None
 
-      try:
-          release_info = json.loads(response_data)
-          return release_info.get('id')
-      except json.JSONDecodeError:
-          print("解析JSON响应失败")
-          print("原始响应:", response_data)
-          return None
-      finally:
-          conn.close()
+def  get_github_asset_id():
+     url = f"https://api.github.com/repos/{owner}/{repo}/releases/latest"
+     access_token = get_github_access_token()
+     headers = {
+        "Accept": "application/vnd.github.v3+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+        "Authorization": f"Bearer  {access_token}"
+     }
+     try:
+         response = requests.get(url, headers=headers)
+         response.raise_for_status()  # 如果请求失败会抛出异常
+         release_data = response.json()
+         assets = release_data["assets"]
+         for   asset in assets:
+             if  asset["name"] ==  asset_name_to_update:
+                 return  asset["id"]
+         return  None
+     except requests.exceptions.RequestException as e:
+         raise Exception(f"获取 release ID 失败: {str(e)}")
+     except KeyError:
+         raise Exception("解析 release 数据失败，可能是 API 响应格式变化")
 
-def upload_hp_to_release(access_token):
-    release_id = get_release_id( )
-    if not release_id:
-        print("无法获取 release_id，无法上传文件")
-        return
-
-    hp_path = get_hp_bin_path()
-    if not os.path.exists(hp_path):
-        print(f"文件 {hp_path} 不存在")
-        return
-
-    with open(hp_path, 'rb') as f:
-        hp_buffer = f.read()
-
-    boundary = '----WebKitFormBoundary' + ''.join(random.choices(string.ascii_letters + string.digits, k=16))
-    headers = {
-        "Content-Type": f"multipart/form-data; boundary={boundary}",
-        "User-Agent": "Python Upload Script"
-    }
-
-    # 构建 multipart 请求体
-    body = (
-        f"--{boundary}\r\n"
-        f'Content-Disposition: form-data; name="access_token"\r\n\r\n'
-        f"{access_token}\r\n"
-        f"--{boundary}\r\n"
-        f'Content-Disposition: form-data; name="file"; filename="hp.exe"\r\n'
-        f"Content-Type: application/octet-stream\r\n\r\n"
-    ).encode('utf-8') + hp_buffer + f"\r\n--{boundary}--\r\n".encode('utf-8')
-
-    host = "gitee.com"
-    url = f"/api/v5/repos/SuperWindcloud/hyperscoop/releases/{release_id}/attach_files"
-
-    conn = http.client.HTTPSConnection(host)
-    conn.request("POST", url, body=body, headers=headers)
-
-    response = conn.getresponse()
-    print("Status:", response.status, response.reason)
-    print("Response:", response.read().decode())
-    conn.close()
-def create_new_release(access_token):
-       host = "gitee.com"
-       url = "/api/v5/repos/SuperWindcloud/hyperscoop/releases"
-       headers = {
-           "Content-Type": "application/json;charset=UTF-8"
-       }
-
-       data = {
-           "access_token": access_token ,
-           "tag_name": tag_name ,
-           "name": release_title ,
-           "body": "add install shim feature",
-           "prerelease": "false",
-           "target_commitish": "master"
-       }
-
-       json_data = json.dumps(data)
-
-       conn = http.client.HTTPSConnection(host)
-       conn.request("POST", url, body=json_data, headers=headers)
-
-       response = conn.getresponse()
-       print("Status:", response.status, response.reason)
-       print("Response:", response.read().decode())
-
-       conn.close()
-
-def get_access_token():
-   current_file_path =Path(__file__).absolute()
-   root = current_file_path.parent.parent
-   hp_bin = join_paths(root, ".env")
-   with open (hp_bin ,"r" ,encoding="utf-8") as  file:
+def  get_github_access_token():
+      current_file_path =Path(__file__).absolute()
+      root = current_file_path.parent.parent
+      hp_bin = join_paths(root, ".github_token")
+      with open (hp_bin ,"r" ,encoding="utf-8") as  file:
         content = file.read()
-   print(content )
-   return content
-
+      return content.strip()
 
 def  init_parser():
       parser = argparse.ArgumentParser(description='Publish hp   release to gitee',
@@ -171,57 +100,61 @@ def  init_parser():
 
 
 
-def  update_release():
-      access_token = get_access_token()
+def    upload_github_asset():
+      access_token = get_github_access_token()
       headers = {
-          "Authorization": f"token {token}",
-          "Accept": "application/vnd.github.v3+json"
+          "Authorization": f"Bearer  {access_token}",
+          "Accept": "application/vnd.github.v3+json",
+          "X-GitHub-Api-Version": "2022-11-28",
+          "Content-Type": "application/octet-stream"
+      }
+      release_id = get_github_release_id()
+      upload_url = f"https://uploads.github.com/repos/{owner}/{repo}/releases/{release_id}/assets?name={asset_name_to_update}"
+
+      try:
+            with open(new_asset_path, 'rb') as file:
+                response = requests.post(
+                    upload_url,
+                    headers=headers,
+                    data=file
+                )
+
+            response.raise_for_status()
+            return response.json()
+
+      except requests.exceptions.RequestException as e:
+          raise Exception(f"上传失败: {str(e)}")
+
+
+def  update_release():
+      access_token = get_github_access_token()
+      headers = {
+          "Authorization": f"Bearer  {access_token}",
+          "Accept": "application/vnd.github.v3+json",
+          "X-GitHub-Api-Version": "2022-11-28"
       }
 
-      # 1. 获取最新的release信息
-      releases_url = f"https://api.github.com/repos/{owner}/{repo}/releases/latest"
-      response = requests.get(releases_url, headers=headers)
-      response.raise_for_status()
-      release = response.json()
-      release_id = release['id']
+      release_id = get_github_asset_id( )
+      if  release_id  is  None:
+          upload_github_asset()
+          return
 
-      print(f"找到最新release: {release['tag_name']} (ID: {release_id})")
-
-      assets = release['assets']
-      asset_found =False
-       for asset in assets:
-             if asset['name'] == asset_name_to_update:
-                 asset_id = asset['id']
-                 delete_url = f"https://api.github.com/repos/{owner}/{repo}/releases/assets/{asset_id}"
-                 print(f"删除现有附件: {asset['name']}")
-                 requests.delete(delete_url, headers=headers)
-                 asset_found = True
-                 break
-
-         if not asset_found:
-             print(f"警告: 未找到名为 '{asset_name_to_update}' 的附件，将作为新附件上传")
-
-
-       upload_url = release['upload_url'].split("{")[0]
-
-       with open(new_asset_path, 'rb') as f:
-          files = {'file': (asset_name_to_update, f)}
-          params = {'name': asset_name_to_update}
-          print(f"上传新附件: {asset_name_to_update}")
-          response = requests.post(upload_url, headers=headers, files=files, params=params)
-
-       response.raise_for_status()
-       print("附件更新成功!")
-       return response.json()
-
+      url = f"https://api.github.com/repos/{owner}/{repo}/releases/assets/{release_id}"
+      response = requests.delete(url , headers=headers  )
+      if response.status_code == 200:
+           print("Asset Delete  successfully!")
+           print(response.json())
+      else:
+         print(f"Error Delete  asset: {response.status_code}")
+         print(response.text)
+      upload_github_asset()
 
 
 def main() :
-  access_token = get_access_token()
   parser  =init_parser()
   args = parser.parse_args()
   if args.only_upload_attach_files:
-      upload_hp_to_release(access_token)
+      update_release()
       return
   create_new_release(access_token)
 #   upload_hp_to_release(access_token)
@@ -229,4 +162,4 @@ def main() :
 
 
 if __name__ == '__main__':
-      main()
+  main()

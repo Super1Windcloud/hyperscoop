@@ -1,33 +1,32 @@
 use crate::init_env::*;
 use crate::install::{create_shim_or_shortcuts, InstallOptions};
+use crate::list::VersionJSON;
 use crate::update::{check_bucket_update_status, update_all_buckets_bar, update_scoop_bar};
 use crate::utils::utility::update_scoop_config_last_update_time;
+use anyhow::bail;
 use crossterm::style::Stylize;
 use std::os::windows::fs::symlink_dir;
 use std::path::Path;
-use anyhow::bail;
-use crate::list::VersionJSON;
 
 pub fn get_app_old_version(app_name: &str, options: &[InstallOptions]) -> anyhow::Result<String> {
-  let hp_install_manifest = if options.contains(&InstallOptions::Global) {
-    get_app_dir_manifest_json_global(app_name)
-  } else {
-    get_app_dir_manifest_json(app_name)
-  };
-  if !Path::new(&hp_install_manifest).exists() {
-    bail!("not found hp install manifest file, please run hp u -f hp")
-  }
-  let content = std::fs::read_to_string(&hp_install_manifest)?;
-  let version: VersionJSON = serde_json::from_str(content.as_str())?;
-  let version = version.version;
-  if version.is_none() {
-    bail!("not found version in hp install manifest file, please run hp u -f hp")
-  }
-  Ok(version.unwrap())
+    let hp_install_manifest = if options.contains(&InstallOptions::Global) {
+        get_app_dir_manifest_json_global(app_name)
+    } else {
+        get_app_dir_manifest_json(app_name)
+    };
+    if !Path::new(&hp_install_manifest).exists() {
+        bail!("not found hp install manifest file, please run hp u -f hp")
+    }
+    let content = std::fs::read_to_string(&hp_install_manifest)?;
+    let version: VersionJSON = serde_json::from_str(content.as_str())?;
+    let version = version.version;
+    if version.is_none() {
+        bail!("not found version in hp install manifest file, please run hp u -f hp")
+    }
+    Ok(version.unwrap())
 }
 
-
-pub   fn check_before_install(
+pub fn check_before_install(
     name: &str,
     version: &String,
     options: &Box<[InstallOptions<'_>]>,
@@ -62,7 +61,7 @@ pub   fn check_before_install(
     };
     let app_version_path = Path::new(&app_version_dir);
     let app_current_path = Path::new(&app_current_dir);
-    let  old_version = get_app_old_version(name, options).expect("get old version failed");
+    let old_version = get_app_old_version(name, options)?;
     if app_current_path.exists() {
         let install_json = if options.contains(&InstallOptions::Global) {
             get_app_dir_install_json_global(name)
@@ -73,10 +72,12 @@ pub   fn check_before_install(
             get_app_dir_manifest_json_global(name)
         } else {
             get_app_dir_manifest_json(name)
-        }; 
-       
-        if Path::new(&install_json).exists() && Path::new(&manifest_json).exists() 
-         && &old_version  ==version {
+        };
+
+        if Path::new(&install_json).exists()
+            && Path::new(&manifest_json).exists()
+            && &old_version == version
+        {
             println!(
                 "{}",
                 format!("WARN  '{name }' ({version}) is already installed")
@@ -176,7 +177,8 @@ pub   fn check_before_install(
             format!("Resetting '{name}' ({version})").dark_cyan().bold()
         );
         create_dir_symbolic_link(&app_version_dir, &app_current_dir)?;
-        create_shim_or_shortcuts(&manifest_json, name, options).expect("Could not create shim or shortcuts");
+        create_shim_or_shortcuts(&manifest_json, name, options)
+            .expect("Could not create shim or shortcuts");
         let install_json = if options.contains(&InstallOptions::Global) {
             get_app_dir_install_json_global(name)
         } else {

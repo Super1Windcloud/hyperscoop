@@ -2,18 +2,17 @@
 set shell := ["pwsh.exe", "-NoProfile", "-c"]
 
 release:
-    # cargo build  --release
+    cargo build  --release
     just  update_hash
-    uv run   script/publish_release.py  -u
-
+    just  upload
 
 
 publish:
        git add -A  && git commit -m ":panda_face:    publish hp" && git push repo   master  && git push github  master:dev &&  git  push github master:main
 
 
-upload_hp:
-     python  script/publish_release.py   -u
+upload:
+     cd script  &&    uv run  publish_release.py  -u
 
 hp  :
     scoop uninstall hp && scoop install  -u -s -k  hp
