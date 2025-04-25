@@ -1,6 +1,8 @@
 use anyhow::bail;
+use clap::ArgAction;
 use clap::{Args, Subcommand};
 use command_util_lib::init_env::{get_shims_root_dir, get_shims_root_dir_global};
+use command_util_lib::utils::utility::clap_args_to_lowercase;
 use crossterm::style::Stylize;
 use rayon::prelude::*;
 use std::cmp::max;
@@ -39,7 +41,8 @@ pub enum AliasSubcommands {
 #[command(about = "删除一个alias shim")]
 #[command(arg_required_else_help = true, subcommand_negates_reqs = true)]
 pub struct RmArgs {
-    #[arg(required = false, help = "删除的alias名称")]
+    #[arg(required = false, help = "删除的alias名称",
+    value_parser = clap_args_to_lowercase,)]
     pub(crate) alias_name: Option<String>,
     #[arg(required = false, short, long, help = "删除所有的alias")]
     pub all: bool,
@@ -49,7 +52,10 @@ pub struct RmArgs {
 #[command(about = "添加一个alias shim")]
 #[command(arg_required_else_help = true, subcommand_negates_reqs = true)]
 pub struct AddArgs {
-    #[arg(required = false, help = "添加的alias名称")]
+    #[arg(required = false, help = "添加的alias名称"
+        ,value_parser = clap_args_to_lowercase,
+        action = ArgAction::Set
+    )]
     pub(crate) alias_name: Option<String>,
     #[arg(required = false, help = "alias的目标命令")]
     pub(crate) command: Option<String>,

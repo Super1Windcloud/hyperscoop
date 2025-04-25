@@ -1,3 +1,4 @@
+use command_util_lib::utils::utility::clap_args_to_lowercase;
 use clap::Args;
 
 #[derive(Args, Debug)]
@@ -13,7 +14,7 @@ use clap::Args;
 )]
 pub struct UpdateArgs {
     #[arg(required = false)]
-    #[arg(help = "指定要更新的APP名称,仅单个更新")]
+    #[arg(help = "指定要更新的APP名称,仅单个更新",value_parser = clap_args_to_lowercase)]
     pub(crate) app_name: Option<String>,
 
     #[arg(short, long, help = "更新所有已安装APP")]

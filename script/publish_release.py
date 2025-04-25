@@ -7,8 +7,14 @@ import  base64
 import argparse
 import random
 import string
-tag_name = "3.3.5"
+tag_name = "4.0.0"
 release_title = "here we go"
+owner = "Super1Windcloud"
+repo = "hp"
+asset_name_to_update="hp.exe"
+new_asset_path=  r"A:\Rust_Project\hyperscoop\target\release\hp.exe"
+
+
 def join_paths(base_path, *paths):
 
     path_obj = Path(base_path)
@@ -162,6 +168,54 @@ def  init_parser():
       flags.add_argument('-u', '--only_upload_attach_files', action='store_true',
                                help='Only upload attach files for release')
       return parser
+
+
+
+def  update_release():
+      access_token = get_access_token()
+      headers = {
+          "Authorization": f"token {token}",
+          "Accept": "application/vnd.github.v3+json"
+      }
+
+      # 1. 获取最新的release信息
+      releases_url = f"https://api.github.com/repos/{owner}/{repo}/releases/latest"
+      response = requests.get(releases_url, headers=headers)
+      response.raise_for_status()
+      release = response.json()
+      release_id = release['id']
+
+      print(f"找到最新release: {release['tag_name']} (ID: {release_id})")
+
+      assets = release['assets']
+      asset_found =False
+       for asset in assets:
+             if asset['name'] == asset_name_to_update:
+                 asset_id = asset['id']
+                 delete_url = f"https://api.github.com/repos/{owner}/{repo}/releases/assets/{asset_id}"
+                 print(f"删除现有附件: {asset['name']}")
+                 requests.delete(delete_url, headers=headers)
+                 asset_found = True
+                 break
+
+         if not asset_found:
+             print(f"警告: 未找到名为 '{asset_name_to_update}' 的附件，将作为新附件上传")
+
+
+       upload_url = release['upload_url'].split("{")[0]
+
+       with open(new_asset_path, 'rb') as f:
+          files = {'file': (asset_name_to_update, f)}
+          params = {'name': asset_name_to_update}
+          print(f"上传新附件: {asset_name_to_update}")
+          response = requests.post(upload_url, headers=headers, files=files, params=params)
+
+       response.raise_for_status()
+       print("附件更新成功!")
+       return response.json()
+
+
+
 def main() :
   access_token = get_access_token()
   parser  =init_parser()

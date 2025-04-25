@@ -22,7 +22,7 @@ pub  fn execute_cache_command(cache_args: CacheArgs) -> Result<(), anyhow::Error
               return Ok(());
             }
           if let Some(app_name) = sub.rm_app {
-            display_specified_cache_info(app_name , sub.global )? ;
+            display_specified_cache_info(app_name.as_str() , sub.global )? ;
             Ok(())
           }
           else {  

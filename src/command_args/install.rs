@@ -1,5 +1,6 @@
 ﻿use clap::ArgAction;
 use clap::Args;
+use command_util_lib::utils::utility::clap_args_to_lowercase;
 
 #[derive(Args, Debug)]
 #[command(name = "install", alias = "i", about = "🐘\t\t安装指定APP,别名i")]
@@ -15,7 +16,8 @@ e.g. 安装应用程序的通常方法（使用您的本地buckets）： hp inst
 从计算机上的指定路径清单中安装应用程序 :   hp install \path\to\app.json
      "#)]
 pub struct InstallArgs {
-    #[arg(help = "安装APP的名称,精准匹配,仅单个安装", required = false)]
+    #[arg(help = "安装APP的名称,精准匹配,仅单个安装", required = false, 
+    value_parser = clap_args_to_lowercase)]
     pub app_name: Option<String>,
 
     #[arg(short, long, help = "跳过下载文件的哈希校验", required = false, action = ArgAction::SetTrue,help_heading = "Install Options"  )]
@@ -52,7 +54,8 @@ pub struct InstallArgs {
         help_heading = "Install Options",
         required = false,
         default_value = "64bit",
-        value_name = "<32bit|64bit|arm64>"
+        value_name = "<32bit|64bit|arm64>",
+       value_parser = clap_args_to_lowercase
     )]
     pub arch: Option<String>,
 

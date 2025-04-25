@@ -27,6 +27,9 @@ use serde_json::{Value};
 use std::path::Path;
 use crate::check_self_update::auto_check_hp_update;
 
+use command_util_lib::utils::utility::clap_args_to_lowercase;
+
+
 #[derive(Debug, Subcommand)]
 #[command(propagate_version = true)] // 自动传递版本信息
 #[command(subcommand_negates_reqs = true)] // 禁止子命令的短选项冲突
@@ -89,7 +92,8 @@ pub async   fn execute_credits_command() -> anyhow::Result<()> {
 #[command(arg_required_else_help = true, subcommand_negates_reqs = true)]
 #[command(no_binary_name = true)]
 pub struct HoldArgs {
-    #[arg( required = false,  num_args =1.., help = "要锁定的APP名称,精准匹配,支持多参数")]
+    #[arg( required = false,  num_args =1.., help = "要锁定的APP名称,精准匹配,支持多参数"
+    ,value_parser = clap_args_to_lowercase)]
     pub app_names: Option<Vec<String>>,
     #[arg(short = 'u', long, required = false, help = "取消锁定, 支持多参数")]
     pub cancel_hold: bool,

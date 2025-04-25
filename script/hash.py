@@ -209,9 +209,37 @@ def test():
 
 old_version = get_version_from_manifest()
 
+def write_local_release_x64_hash_to_store(hash):
+
+      hash_store = os.path.join(os.path.dirname(os.path.dirname(__file__)), r"log/hash.json")
+      if not os.path.isfile(hash_store):
+         print("hash.json not found")
+         return None
+      with open(hash_store, "r",encoding="utf-8") as f:
+          data =  json.load(f)
+          arm64 = data["arm64"]
+          x64 =  hash
+          x86 = data["x86"]
+          write_to_hash_file(arm64,x64,x86)
+
+      with open(hash_store, "r" ,encoding="utf-8") as f :
+          data  =  json.load(f)
+          arm64 = data["arm64"]
+          x64 =  data["x64"]
+          x86 =  data["x86"]
+          write_to_manifest_from_store(x64,x86,arm64 )
+          print("update manifest success")
+
+
+def calculate_hash_target_release():
+    """Calculate the hash value of a file"""
+    release_x64 = r"A:\Rust_Project\hyperscoop\target\release\hp.exe"
+    hash =calculate_hash(release_x64)
+    write_local_release_x64_hash_to_store(hash)
 
 if __name__ == '__main__':
 #     calculate_hash_from_github()
+    calculate_hash_target_release()
     update_manifest()
 
 

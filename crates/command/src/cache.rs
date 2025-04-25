@@ -31,7 +31,9 @@ pub fn display_all_cache_info(is_global: bool) -> anyhow::Result<()> {
         log::info!("cache file : {}", &app_name);
         log::info!("cache file : {}", &path2);
         log::info!("cache size : {} MB", &zip_size);
-        if ! path1.contains("#") {  continue } 
+        if !path1.contains("#") {
+            continue;
+        }
         let version = path1.split("#").collect::<Vec<&str>>()[1].to_string();
         log::info!("cache version : {}", &version);
         infos.push((app_name, version, zip_size));
@@ -79,7 +81,7 @@ fn println_cache_info(app_name: &Vec<(String, String, f64)>) {
     }
 }
 
-pub fn display_specified_cache_info(app_name: String, is_global: bool) -> anyhow::Result<()> {
+pub fn display_specified_cache_info(app_name: &str, is_global: bool) -> anyhow::Result<()> {
     let cache_dir = if is_global {
         get_cache_dir_path_global()
     } else {
@@ -94,8 +96,8 @@ pub fn display_specified_cache_info(app_name: String, is_global: bool) -> anyhow
     }
     log::info!("display_specified_cache_info : {}", app_name);
     let cache_files = std::fs::read_dir(cache_dir)?;
-    let mut size = 0f64; 
-   let mut  flag = false; 
+    let mut size = 0f64;
+    let mut flag = false;
     for file in cache_files {
         let path = file?;
         let t = path.path().clone().to_string_lossy().to_string();
@@ -107,17 +109,17 @@ pub fn display_specified_cache_info(app_name: String, is_global: bool) -> anyhow
             .unwrap()
             .to_string();
         let app = path_name.split("#").collect::<Vec<&str>>()[0].to_string();
-        if app == app_name {
+        if app.trim().to_lowercase() == app_name {
             size =
                 size + (std::fs::metadata(path.path().clone())?.len() as f64) / 1024f64 / 1024f64;
             println!("Removing cache file : {}", path_name.green().bold());
-            std::fs::remove_file(t)?; 
-             flag = true; 
+            std::fs::remove_file(t)?;
+            flag = true;
         }
     }
-  if  !flag {
+    if !flag {
         bail!("{} cache is not exist ", &app_name);
-  }
+    }
     let size = format!("{:.2}", size);
     println!(
         "{} {} {}",

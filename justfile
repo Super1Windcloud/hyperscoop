@@ -2,9 +2,11 @@
 set shell := ["pwsh.exe", "-NoProfile", "-c"]
 
 release:
+    # cargo build  --release
     just  update_hash
-    cargo build  --release
-    python  script/publish_release.py
+    uv run   script/publish_release.py  -u
+
+
 
 publish:
        git add -A  && git commit -m ":panda_face:    publish hp" && git push repo   master  && git push github  master:dev &&  git  push github master:main

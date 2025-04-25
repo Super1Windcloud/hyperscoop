@@ -268,7 +268,9 @@ pub fn  get_parse_url_query (url : &str) -> anyhow::Result<String> {
   }
 }
 
-
+pub  fn clap_args_to_lowercase(s: &str) -> Result<String, String> {
+  Ok(s.to_lowercase())
+}
 #[cfg(test)]
 mod tests {
     #[allow(unused_imports)]

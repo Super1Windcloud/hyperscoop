@@ -1,7 +1,10 @@
 use crate::command_args::cleanup::CleanupArgs;
 use anyhow::anyhow;
 use anyhow::bail;
-use command_util_lib::init_env::{ get_app_dir, get_app_dir_global, get_app_version_dir, get_app_version_dir_global, get_apps_path, get_apps_path_global};
+use command_util_lib::init_env::{
+    get_app_dir, get_app_dir_global, get_app_version_dir, get_app_version_dir_global,
+    get_apps_path, get_apps_path_global,
+};
 use command_util_lib::utils::utility::compare_versions;
 use crossterm::style::Stylize;
 use rayon::prelude::*;
@@ -60,19 +63,19 @@ fn clean_specific_old_version(app_name: Vec<String>, is_global: bool) -> anyhow:
             })
             .ok_or(anyhow!("No version directory found"))?;
 
-        let retain_dir = highest_version_dir; 
-        let      flag = Arc::new(Mutex::new(false )) ; 
+        let retain_dir = highest_version_dir;
+        let flag = Arc::new(Mutex::new(false));
         let result = child_dirs.par_iter().try_for_each(|dir| {
             if dir != retain_dir {
                 log::info!("Removing old version: {}", dir.display());
                 std::fs::remove_dir_all(dir)?;
-                *flag.lock().unwrap() = true; 
+                *flag.lock().unwrap() = true;
             }
             Ok(())
         });
-       if  !* flag.lock().unwrap()  { 
-          println!("No old version for '{}'", dir.display());
-       }
+        if !*flag.lock().unwrap() {
+            println!("No old version for '{}'", dir.display());
+        }
         result
     });
     if result.is_err() {
@@ -83,14 +86,13 @@ fn clean_specific_old_version(app_name: Vec<String>, is_global: bool) -> anyhow:
 }
 
 fn clean_all_old_versions(is_global: bool) -> anyhow::Result<()> {
-  
-   let apps_dir =  if  is_global {
-       get_apps_path_global()
+    let apps_dir = if is_global {
+        get_apps_path_global()
     } else {
         get_apps_path()
-    }; 
-   
-    let apps_dir = std::fs::read_dir(apps_dir)? ; 
+    };
+
+    let apps_dir = std::fs::read_dir(apps_dir)?;
     let mut versions_with_name = HashMap::new();
 
     for app_dir in apps_dir {
@@ -143,9 +145,17 @@ fn clean_all_old_versions(is_global: bool) -> anyhow::Result<()> {
     }
     log::info!("{:?}", versions_with_name);
     for (app_name, version) in versions_with_name {
-        let exclude_path =  if  is_global { get_app_version_dir_global(&app_name, &version )} else  {get_app_version_dir(&app_name, &version) }; 
+        let exclude_path = if is_global {
+            get_app_version_dir_global(&app_name, &version)
+        } else {
+            get_app_version_dir(&app_name, &version)
+        };
         let exclude_path = Path::new(&exclude_path);
-        let dir =  if  is_global { get_app_dir_global(&app_name)} else  {get_app_dir(&app_name)}; 
+        let dir = if is_global {
+            get_app_dir_global(&app_name)
+        } else {
+            get_app_dir(&app_name)
+        };
         log::info!("{:?}", dir);
         if exclude_path.exists() {
             for entry in std::fs::read_dir(dir).expect("Failed to read app directory") {

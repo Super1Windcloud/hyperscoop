@@ -10,7 +10,7 @@ pub fn catch_manifest(bucket_paths: Vec<String>, app_name: String) -> anyhow::Re
             let file_str = file.as_path().display().to_string();
             if file_type.is_file() && file_str.ends_with(".json") {
                 let file_name = file.file_stem().unwrap().to_str().unwrap();
-                if file_name != app_name {
+                if file_name.to_lowercase() != app_name   {
                     continue;
                 }
                 let content = std::fs::read_to_string(file)?;
