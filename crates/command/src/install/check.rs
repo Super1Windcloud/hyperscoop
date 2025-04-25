@@ -62,7 +62,7 @@ pub   fn check_before_install(
     };
     let app_version_path = Path::new(&app_version_dir);
     let app_current_path = Path::new(&app_current_dir);
-    let  old_version = get_app_old_version("hp", options)?;
+    let  old_version = get_app_old_version(name, options).expect("get old version failed");
     if app_current_path.exists() {
         let install_json = if options.contains(&InstallOptions::Global) {
             get_app_dir_install_json_global(name)
