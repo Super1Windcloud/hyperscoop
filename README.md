@@ -20,7 +20,7 @@
 >  `hp b k` 查看官方的bucket列表, 'hp b add' 建议添加所有bucket
 
 ## Bucket Demo 
-> ![img.png](img/bucket.png)
+> ![img.png](img/img.png)
 
 ## 🏗 Project Status   (WIP) 
 
