@@ -18,7 +18,9 @@
 
 ## 使用前提
 >  `hp b k` 查看官方的bucket列表, 'hp b add' 建议添加所有bucket
-> ![img.png](img.png)
+
+## Bucket Demo 
+> ![img.png](img/img.png)
 
 ## 🏗 Project Status   (WIP) 
 
