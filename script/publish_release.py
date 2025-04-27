@@ -135,18 +135,13 @@ def  update_release():
       }
 
       release_id = get_github_asset_id( )
+      print(release_id)
       if  release_id  is  None:
           upload_github_asset()
           return
 
       url = f"https://api.github.com/repos/{owner}/{repo}/releases/assets/{release_id}"
       response = requests.delete(url , headers=headers  )
-      if response.status_code == 200:
-           print("Asset Delete  successfully!")
-           print(response.json())
-      else:
-         print(f"Error Delete  asset: {response.status_code}")
-         print(response.text)
       upload_github_asset()
 
 

@@ -15,6 +15,11 @@
 --- 
 ###   2.  下载[exe](https://github.com/Super1Windcloud/hp/releases)使用,并添加到 `$env:Path`
  
+
+## 使用前提
+>  `hp b k` 查看官方的bucket列表, 'hp b add' 建议添加所有bucket
+> ![img.png](img.png)
+
 ## 🏗 Project Status   (WIP) 
 
 |![](https://i.giphy.com/media/CwfC5Pv6Rtp66h4coK/giphy.gif) |
