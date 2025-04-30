@@ -23,7 +23,6 @@
 
 ![bucket.png](https://imgfans.com/_Ww0K4)
 
-[//]: # (![bucket]&#40;./img/bucket.png&#41;)
 ## 🏗 Project Status   (WIP)
 | ![](https://i.giphy.com/media/CwfC5Pv6Rtp66h4coK/giphy.gif) |
 |:-----------------------------------------------------------:|
