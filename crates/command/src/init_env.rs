@@ -67,7 +67,7 @@ pub fn get_app_dir_manifest_json(app_name: &str) -> String {
     format!("{}\\apps\\{}\\current\\manifest.json", scoop_home, app_name)
 }
 
-pub fn get_app_current_bin_path(app_name: String, bin_name: &String) -> String {
+pub fn get_app_current_bin_path(app_name: &str ,bin_name: &str) -> String {
     let scoop_home = init_user_scoop();
     format!("{}\\apps\\{}\\current\\{}", scoop_home, app_name, bin_name)
 }
@@ -566,7 +566,7 @@ mod test_path {
     fn get_current_bin_path() {
         let app_name = "zigmod";
         let exe_name = "zig/zig.exe";
-        let path = get_app_current_bin_path(app_name.to_string(), &exe_name.to_string());
+        let path = get_app_current_bin_path(app_name, &exe_name);
         if Path::new(&path).exists() {
             println!("{}", path);
         }

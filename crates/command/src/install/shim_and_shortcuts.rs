@@ -235,7 +235,7 @@ pub fn create_start_menu_shortcuts(
             if scoop_link_home.exists() {
                 let start_menu_link_path = scoop_link_home.join(&shortcut_name);
                 if !start_menu_link_path.exists() {
-                    let target_path = get_app_current_bin_path(app_name, &bin_name_with_extension);
+                    let target_path = get_app_current_bin_path(app_name.as_str(), &bin_name_with_extension);
                     start_create_shortcut(
                         start_menu_link_path,
                         target_path,
@@ -273,7 +273,7 @@ pub fn create_start_menu_shortcuts(
                     let start_menu_link_path = scoop_link_home.join(&shortcut_name);
                     if !start_menu_link_path.exists() {
                         let target_path =
-                            get_app_current_bin_path(app_name.clone(), &bin_name_with_extension);
+                            get_app_current_bin_path(app_name.as_str(), &bin_name_with_extension);
                         if !Path::new(&target_path).exists() {
                             bail!(format!("链接目标文件 {target_path} 不存在"))
                         };
@@ -885,7 +885,7 @@ mod test_shim {
         let output_dir = cwd.join("src\\bin\\output");
         let app_name = "sbt".to_string();
         let exe_name = r"bin\\sbt.bat".to_string();
-        let target_path = get_app_current_bin_path(app_name.into(), &exe_name);
+        let target_path = get_app_current_bin_path(app_name.as_str(), &exe_name);
         if Path::new(&target_path).exists() {
             println!("target {target_path}");
         }
@@ -902,7 +902,7 @@ mod test_shim {
         let output_dir = cwd.join("src\\bin\\output");
         let app_name = "composer".to_string();
         let exe_name = r"composer.ps1".to_string();
-        let target_path = get_app_current_bin_path(app_name.into(), &exe_name);
+        let target_path = get_app_current_bin_path(app_name.as_str(), &exe_name);
         if Path::new(&target_path).exists() {
             println!("target {target_path}");
         }

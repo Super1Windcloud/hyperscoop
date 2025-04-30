@@ -1,6 +1,8 @@
 ﻿use crate::check_self_update::{auto_check_hp_update, get_app_old_version};
 use crate::command_args::update::UpdateArgs;
-use command_util_lib::init_env::{get_app_current_dir, get_app_current_dir_global};
+use command_util_lib::init_env::{
+    get_app_current_bin_path, get_app_current_dir, get_app_current_dir_global, get_app_dir,
+};
 use command_util_lib::install::UpdateOptions::ForceUpdateOverride;
 use command_util_lib::install::{install_and_replace_hp, InstallOptions, UpdateOptions};
 use command_util_lib::update::*;
@@ -9,6 +11,7 @@ use crossterm::style::Stylize;
 use line_ending::LineEnding;
 use std::fs::File;
 use std::io::Write;
+use std::path::Path;
 use std::process::Command;
 
 pub async fn execute_update_command(update_args: UpdateArgs) -> Result<(), anyhow::Error> {
@@ -79,8 +82,41 @@ pub(crate) fn update_buckets() -> Result<(), anyhow::Error> {
 }
 
 pub async fn update_hp(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
-    let old_version  = get_app_old_version("hp", options).expect("get app old version failed"); 
-    let result = if !options.contains(&ForceUpdateOverride) {
+    let  update_options = options;
+    let install_options = transform_update_options_to_install(options);
+    let global = if install_options.contains(&InstallOptions::Global) {
+        true
+    } else {
+        false
+    };
+
+    let old_version = if !update_options.contains(&ForceUpdateOverride) {
+        let app_dir = get_app_dir("hp");
+        if !Path::new(&app_dir).exists() {
+            let version = install_and_replace_hp(install_options.as_slice())
+                .await
+                .expect("hp update failed");
+            launch_update_script(global).expect("update hp script failed");
+            println!(
+                "{}",
+                format!("Hp Latest Version('{version}') Update Successfully! ❤️‍🔥💝🐉🍾🎉")
+                    .to_string()
+                    .dark_green()
+                    .bold()
+            );
+            return Ok(());
+        }
+        get_app_old_version("hp", update_options).expect("get app old version failed")
+    } else {
+        let hp_exe = get_app_current_bin_path("hp", "hp.exe");
+        let output = Command::new(hp_exe)
+            .arg("--version")
+            .output()
+            .expect("failed to get hp version");
+        let version = String::from_utf8(output.stdout).expect("failed to parse hp version");
+        version.trim().to_string()
+    };
+    let result = if !update_options.contains(&ForceUpdateOverride) {
         auto_check_hp_update(Some(old_version.as_str())).await?
     } else {
         true
@@ -95,13 +131,8 @@ pub async fn update_hp(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
         );
         return Ok(());
     }
-    let options = transform_update_options_to_install(options);
-    let global = if options.contains(&InstallOptions::Global) {
-        true
-    } else {
-        false
-    };
-    let version = install_and_replace_hp(options.as_slice())
+
+    let version = install_and_replace_hp(install_options.as_slice())
         .await
         .expect("hp update failed");
     launch_update_script(global).expect("update hp script failed");

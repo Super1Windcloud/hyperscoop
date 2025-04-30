@@ -1,4 +1,6 @@
 #![deny(clippy::shadow)]
+extern crate core;
+
 mod command_args;
 
 use clap::builder::styling::{AnsiColor, Effects};
