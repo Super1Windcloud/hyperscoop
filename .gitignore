@@ -15,6 +15,9 @@ node_modules
 package-lock.json
 submodule
 
+
+.idea
+
 *.txt
 shim_proxy
 
