@@ -7,12 +7,31 @@ import  base64
 import argparse
 import random
 import string
-tag_name = "4.0.0"
+
+def get_version_from_cargo():
+      version_toml= r'A:\Rust_Project\hyperscoop\Cargo.toml'
+      with open(version_toml, "r" ,encoding="utf-8") as f:
+            data =  f.readlines()
+            count  =0
+            for line in data:
+              line = line.strip()
+              if  line.startswith("version") :
+                     count +=1
+                     if  count <=1 :
+                            continue
+                     version = line.split("=", 1)[1].strip().strip('"\'')
+                     return version
+      return None
+
+
+
+tag_name =  get_version_from_cargo()
 release_title = "here we go"
 owner = "Super1Windcloud"
 repo = "hp"
 asset_name_to_update="hp.exe"
 new_asset_path=  r"A:\Rust_Project\hyperscoop\target\release\hp.exe"
+
 
 
 def join_paths(base_path, *paths):
