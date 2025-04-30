@@ -15,8 +15,8 @@ pub async fn execute_update_command(update_args: UpdateArgs) -> Result<(), anyho
     let options = inject_update_user_options(&update_args)?;
     if update_args.update_self_and_buckets {
         println!("{}", "开始更新hp和buckets".dark_cyan().bold());
-        update_hp(&options).await?;
         update_buckets()?;
+        update_hp(&options).await?;
         return Ok(());
     }
     if update_args.all {

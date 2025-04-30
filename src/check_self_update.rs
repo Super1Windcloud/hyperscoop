@@ -61,7 +61,7 @@ pub async fn auto_check_hp_update(old_version: Option<&str>) -> anyhow::Result<b
         latest_github_version
     };
     if version.to_string() < latest_version {
-        println!("{}", format!("发现hp新版本 {latest_version},请访问https://github.com/Super1Windcloud/hp/releases").dark_cyan().bold());
+        println!("{}", format!("发现hp新版本 {latest_version},`hp u hp` of `hp u -f -k hp`  \n请访问https://github.com/Super1Windcloud/hp/releases").dark_cyan().bold());
         Ok(true)
     } else {
         Ok(false)
