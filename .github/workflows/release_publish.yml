@@ -1,7 +1,7 @@
 name: Hp  Release Pipeline
 on:
   pull_request:
-#  push:
+  push:
     branches: ["main"]
 permissions:
   contents: write
@@ -117,7 +117,9 @@ jobs:
           name:  "Here We Go!"
           tag_name:   ${{ steps.version.outputs.new_tag }}
           body:  "Hp  '${{ steps.version.outputs.new_tag }}'  is published, First normal release of Hp,
-          All new features are now supported.Now please enjoy it! "
+          All new features are now supported.Now please enjoy it!
+         update hp config help
+          "
           files: | #yaml 配置会把\ 当做转义字符
              hp-x64-${{ steps.version.outputs.new_tag }}.exe
              hp-x86-${{ steps.version.outputs.new_tag }}.exe

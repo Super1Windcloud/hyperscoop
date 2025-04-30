@@ -1,12 +1,22 @@
-﻿use crate::install::InstallOptions;
+﻿use crate::config::get_config_value_no_print;
+use crate::install::InstallOptions;
 use rayon::prelude::*;
 use std::env;
 use std::fs::read_dir;
 use std::path::{Path, PathBuf};
+
 pub fn init_user_scoop() -> String {
     let mut path = env::var("SCOOP").unwrap_or(String::new());
+    let root_path = get_config_value_no_print("root_path");
+    if !Path::new(&root_path).exists() {
+        std::fs::create_dir_all(&root_path).unwrap();
+    }
     if path.is_empty() {
-        path = env::var("USERPROFILE").unwrap() + "\\scoop"; // 可以使用or_else 替代
+        path = if !root_path.is_empty() && Path::new(&root_path).exists() {
+            root_path
+        } else {
+            env::var("USERPROFILE").unwrap() + "\\scoop" // 可以使用or_else 替代
+        }
     }
     if !Path::new(&path).exists() {
         std::fs::create_dir_all(&path).unwrap();
@@ -16,6 +26,10 @@ pub fn init_user_scoop() -> String {
 
 pub fn init_scoop_global() -> String {
     let path = env::var("SCOOP_GLOBAL").or(env::var("ProgramData"));
+    let root_path = get_config_value_no_print("global_path");
+    if !Path::new(&root_path).exists() {
+        std::fs::create_dir_all(&root_path).unwrap();
+    }
     if path.is_err() {
         panic!("No SCOOP_GLOBAL environment variable provided.");
     }
@@ -23,8 +37,11 @@ pub fn init_scoop_global() -> String {
     if !Path::new(&path).exists() {
         std::fs::create_dir_all(&path).unwrap()
     }
-
-    path + "\\scoop"
+    if !root_path.is_empty() && Path::new(&root_path).exists() {
+        root_path
+    } else {
+        path + "\\scoop"
+    }
 }
 
 pub fn get_app_current_dir(app_name: &str) -> String {
@@ -89,7 +106,17 @@ impl HyperScoop {
         Self {
             scoop_path: init_user_scoop(),
             bucket_path: format!("{}\\buckets", init_user_scoop()),
-            cache_path: format!("{}\\cache", init_user_scoop()),
+            cache_path: {
+                let cache_path = get_config_value_no_print("cache_path");
+                if !Path::new(&cache_path).exists() {
+                    std::fs::create_dir_all(&cache_path).unwrap();
+                }
+                if !cache_path.is_empty() {
+                    cache_path
+                } else {
+                    format!("{}\\cache", init_user_scoop())
+                }
+            },
             shims_path: format!("{}\\shims", init_user_scoop()),
             persist_path: format!("{}\\persist", init_user_scoop()),
             apps_path: format!("{}\\apps", init_user_scoop()),
@@ -131,7 +158,7 @@ impl HyperScoop {
         }
         cache_path
     }
-    pub fn get_shims_root_dir (&self) -> String {
+    pub fn get_shims_root_dir(&self) -> String {
         let shim_path = self.shims_path.clone();
         if !Path::new(&shim_path).exists() {
             std::fs::create_dir_all(&shim_path).unwrap();
@@ -156,7 +183,17 @@ impl HyperScoopGlobal {
         Self {
             scoop_path: init_scoop_global(),
             bucket_path: format!("{}\\buckets", init_scoop_global()),
-            cache_path: format!("{}\\cache", init_scoop_global()),
+            cache_path: {
+                let cache_path = get_config_value_no_print("cache_path");
+                if !Path::new(&cache_path).exists() {
+                    std::fs::create_dir_all(&cache_path).unwrap();
+                }
+                if !cache_path.is_empty() {
+                    cache_path
+                } else {
+                    format!("{}\\cache", init_scoop_global())
+                }
+            },
             shims_path: format!("{}\\shims", init_scoop_global()),
             persist_path: format!("{}\\persist", init_scoop_global()),
             apps_path: format!("{}\\apps", init_scoop_global()),
@@ -281,25 +318,36 @@ pub fn get_app_dir_manifest_json_global(app_name: &str) -> String {
     format!("{}\\apps\\{}\\current\\manifest.json", scoop_home, app_name)
 }
 
-pub fn get_app_dir_version_dir_manifest_global(app_name: &str, version: &str) -> String { 
-   let scoop_home = init_scoop_global();
-   format!("{}\\apps\\{}\\{}\\manifest.json", scoop_home, app_name, version)
+pub fn get_app_dir_version_dir_manifest_global(app_name: &str, version: &str) -> String {
+    let scoop_home = init_scoop_global();
+    format!(
+        "{}\\apps\\{}\\{}\\manifest.json",
+        scoop_home, app_name, version
+    )
 }
-pub fn get_app_dir_version_dir_manifest(app_name: &str, version: &str) -> String { 
-   let scoop_home = init_user_scoop();
-   format!("{}\\apps\\{}\\{}\\manifest.json", scoop_home, app_name, version)
-}
-
-pub fn get_app_dir_version_dir_install_json_global(app_name: &str, version: &str) -> String { 
-   let scoop_home = init_scoop_global();
-  format!("{}\\apps\\{}\\{}\\install.json", scoop_home, app_name, version)
-}
-
-pub fn get_app_dir_version_dir_install_json(app_name: &str, version: &str) -> String { 
-   let scoop_home =  init_user_scoop();
-  format!("{}\\apps\\{}\\{}\\install.json", scoop_home, app_name, version)
+pub fn get_app_dir_version_dir_manifest(app_name: &str, version: &str) -> String {
+    let scoop_home = init_user_scoop();
+    format!(
+        "{}\\apps\\{}\\{}\\manifest.json",
+        scoop_home, app_name, version
+    )
 }
 
+pub fn get_app_dir_version_dir_install_json_global(app_name: &str, version: &str) -> String {
+    let scoop_home = init_scoop_global();
+    format!(
+        "{}\\apps\\{}\\{}\\install.json",
+        scoop_home, app_name, version
+    )
+}
+
+pub fn get_app_dir_version_dir_install_json(app_name: &str, version: &str) -> String {
+    let scoop_home = init_user_scoop();
+    format!(
+        "{}\\apps\\{}\\{}\\install.json",
+        scoop_home, app_name, version
+    )
+}
 
 // 全局版本的 get_app_current_bin_path
 pub fn get_app_current_bin_path_global(app_name: String, bin_name: &String) -> String {
@@ -312,7 +360,6 @@ pub fn get_old_scoop_dir_global() -> String {
     let path = env::var("ProgramData").unwrap_or(String::new());
     path + "\\scoop"
 }
-
 
 // 全局版本的 get_scoop_cfg_path
 pub fn get_scoop_cfg_path_global() -> String {
@@ -327,15 +374,14 @@ pub fn get_persist_dir_path_global() -> String {
 }
 
 pub fn get_psmodules_root_global_dir() -> String {
- let  hp = HyperScoopGlobal::new();
-   hp.get_psmodule_path()
+    let hp = HyperScoopGlobal::new();
+    hp.get_psmodule_path()
 }
 
-pub fn  get_psmodules_root_dir()->String {
-   let  hp= HyperScoop::new(); 
-   hp. get_psmodule_path()
+pub fn get_psmodules_root_dir() -> String {
+    let hp = HyperScoop::new();
+    hp.get_psmodule_path()
 }
-
 
 pub fn get_persist_app_data_dir_global(app_name: &str) -> String {
     let scoop_global_home = init_scoop_global();
@@ -483,8 +529,7 @@ pub fn check_bucket_whether_exists(
     }
 }
 
-pub fn get_special_version_all_manifest_path_global(
-) -> anyhow::Result<Vec<PathBuf>> {
+pub fn get_special_version_all_manifest_path_global() -> anyhow::Result<Vec<PathBuf>> {
     let all_buckets_dir = get_all_global_buckets_dir_child_bucket_path()?;
     let entries = all_buckets_dir
         .iter()
@@ -496,7 +541,7 @@ pub fn get_special_version_all_manifest_path_global(
         .map(|dir| dir.par_bridge().filter_map(|e| e.ok()).map(|e| e.path()))
         .flatten()
         .collect::<Vec<_>>();
-  
+
     Ok(buckets_path)
 }
 
@@ -555,5 +600,11 @@ mod test_path {
     #[test]
     fn test_all_manifests() {
         get_special_bucket_all_manifest_path("main").unwrap();
+    }
+
+    #[test]
+    fn test_config_path() {
+        let scoop_config = get_config_value_no_print("ROOT_PATH");
+        println!("{scoop_config}");
     }
 }
