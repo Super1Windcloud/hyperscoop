@@ -73,7 +73,6 @@
 - **[ROADMAP](./roadmap.md)** 
 
 [//]: # ([![sky2.jpg]&#40;https://i.postimg.cc/76yfL7XC/sky2.jpg&#41;]&#40;https://postimg.cc/FfD9WYMm&#41;)
-
 ![sky](./img/sky2.jpg)
 --- 
 - 美是一种选择，甚至是一种放弃，而不是贪婪。
