@@ -7,6 +7,11 @@ release:
     just  upload
 
 
+release_build:
+    cargo br
+    just update_hash
+
+
 publish:
        git add -A  && git commit -m ":panda_face:    publish hp" && git push repo   master  && git push github  master:dev &&  git  push github master:main
 
