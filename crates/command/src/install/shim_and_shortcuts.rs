@@ -354,17 +354,17 @@ pub fn create_alias_shim_name_file(
         if result != 0 {
             bail!("Origin 二进制名或者该二进制别名 '{exe_name}' 与scoop 内置脚本的shim 冲突, 禁止覆盖")
         }
-        create_cmd_or_bat_shim_scripts(target_path, out_dir, Some(alias_name), program_args)?;
+        create_cmd_or_bat_shim_scripts(target_path.as_str(), out_dir, Some(alias_name), program_args)?;
     } else if suffix == "ps1" {
         let result = exclude_scoop_self_scripts(&exe_name, None)?;
         if result != 0 {
             bail!("Origin 二进制名或者该二进制别名 '{exe_name}' 与scoop 内置脚本的shim 冲突, 禁止覆盖")
         }
-        create_ps1_shim_scripts(target_path, out_dir, Some(alias_name), program_args)?;
+        create_ps1_shim_scripts(&target_path, out_dir, Some(alias_name), program_args)?;
     } else if suffix == "jar" {
-        create_jar_shim_scripts(target_path, out_dir, Some(alias_name), program_args)?;
+        create_jar_shim_scripts(&target_path, out_dir, Some(alias_name), program_args)?;
     } else if suffix == "py" {
-        create_py_shim_scripts(target_path, out_dir, Some(alias_name), program_args)?;
+        create_py_shim_scripts(&target_path, out_dir, Some(alias_name), program_args)?;
     } else {
         bail!(format!(" 后缀{suffix}类型文件不支持, WTF?"))
     }
@@ -399,25 +399,25 @@ pub fn create_default_shim_name_file(
         if result != 0 {
             bail!("Origin 二进制名或者该二进制别名 '{exe_name}' 与scoop 内置脚本的shim 冲突, 禁止覆盖")
         }
-        create_cmd_or_bat_shim_scripts(target_path, out_dir, None, None)?;
+        create_cmd_or_bat_shim_scripts(target_path.as_str(), out_dir, None, None)?;
     } else if suffix == "ps1" {
         let result = exclude_scoop_self_scripts(&exe_name, None)?;
         if result != 0 {
             bail!("Origin 二进制名或者该二进制别名 '{exe_name}' 与scoop 内置脚本的shim 冲突, 禁止覆盖")
         }
-        create_ps1_shim_scripts(target_path, out_dir, None, None)?;
+        create_ps1_shim_scripts(&target_path, out_dir, None, None)?;
     } else if suffix == "jar" {
-        create_jar_shim_scripts(target_path, out_dir, None, None)?;
+        create_jar_shim_scripts(&target_path, out_dir, None, None)?;
     } else if suffix == "py" {
-        create_py_shim_scripts(target_path, out_dir, None, None)?;
+        create_py_shim_scripts(&target_path, out_dir, None, None)?;
     } else {
         bail!(format!(" 后缀{suffix}类型文件不支持, WTF?"))
     }
     Ok(())
 }
 
-fn create_py_shim_scripts(
-    target_path: String,
+pub fn create_py_shim_scripts(
+    target_path: &str ,
     out_shim_dir: PathBuf,
     alias_name: Option<String>,
     program_args: Option<String>,
@@ -490,8 +490,8 @@ python.exe "{}"  "$@""#,
     Ok(())
 }
 
-fn create_jar_shim_scripts(
-    target_path: String,
+pub  fn create_jar_shim_scripts(
+    target_path: &str ,
     out_shim_dir: PathBuf,
     alias_name: Option<String>,
     program_args: Option<String>,
@@ -584,8 +584,8 @@ java.exe -jar "{}" {} "$@""#,
     Ok(())
 }
 
-fn create_ps1_shim_scripts(
-    target_path: String,
+pub fn create_ps1_shim_scripts(
+    target_path: &str ,
     out_shim_dir: PathBuf,
     alias_name: Option<String>,
     program_params: Option<String>,
@@ -682,8 +682,8 @@ fi
 }
 
 pub fn exclude_scoop_self_scripts(
-    script_name: &String,
-    alias_name: Option<String>,
+    script_name: &str ,
+    alias_name: Option<&str>,
 ) -> anyhow::Result<u8> {
     let split = script_name.split(".").collect::<Vec<&str>>();
     if split.len() != 2 {
@@ -692,7 +692,7 @@ pub fn exclude_scoop_self_scripts(
     if alias_name.is_some() {
         let script_name = alias_name.unwrap();
         let exclude_list = vec!["scoop", "scoop-pre", "scoop-premake", "scoop-rm_nm"];
-        if exclude_list.contains(&script_name.as_str()) {
+        if exclude_list.contains(&script_name) {
             return Ok(1);
         }
         return Ok(0);
@@ -706,7 +706,7 @@ pub fn exclude_scoop_self_scripts(
 }
 
 pub fn create_cmd_or_bat_shim_scripts(
-    target_path: String,
+    target_path: &str ,
     out_shim_dir: PathBuf,
     alias_name: Option<String>,
     program_args: Option<String>,
@@ -890,7 +890,7 @@ mod test_shim {
             println!("target {target_path}");
         }
         let _ =
-            create_cmd_or_bat_shim_scripts(target_path, output_dir, Some("sbtsbt".into()), None);
+            create_cmd_or_bat_shim_scripts(target_path.as_str(), output_dir, Some("sbtsbt".into()), None);
     }
 
     #[test]
@@ -906,7 +906,7 @@ mod test_shim {
         if Path::new(&target_path).exists() {
             println!("target {target_path}");
         }
-        let _ = create_ps1_shim_scripts(target_path, output_dir, Some("composer".into()), None);
+        let _ = create_ps1_shim_scripts(target_path.as_ref(), output_dir, Some("composer".into()), None);
     }
     #[test]
     fn find_cmd_bat_ps_scripts_alias() {
