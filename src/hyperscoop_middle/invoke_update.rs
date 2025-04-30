@@ -72,7 +72,7 @@ fn inject_update_user_options(args: &UpdateArgs) -> anyhow::Result<Vec<UpdateOpt
 }
 
 pub(crate) fn update_buckets() -> Result<(), anyhow::Error> {
-    update_scoop_bar().expect("update scoop bar failed");
+    // update_scoop_bar().expect("update scoop bar failed");
     // let status = check_bucket_update_status()?;
     // if !status {
     //     return Ok(());

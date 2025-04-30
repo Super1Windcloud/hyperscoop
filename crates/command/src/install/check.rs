@@ -1,7 +1,7 @@
 use crate::init_env::*;
 use crate::install::{create_shim_or_shortcuts, InstallOptions};
 use crate::list::VersionJSON;
-use crate::update::{check_bucket_update_status, update_all_buckets_bar, update_scoop_bar};
+use crate::update::{check_bucket_update_status, update_all_buckets_bar};
 use crate::utils::utility::update_scoop_config_last_update_time;
 use anyhow::bail;
 use crossterm::style::Stylize;
@@ -32,7 +32,7 @@ pub fn check_before_install(
     options: &Box<[InstallOptions<'_>]>,
 ) -> anyhow::Result<u8> {
     if options.contains(&InstallOptions::UpdateHpAndBuckets) {
-        update_scoop_bar()?;
+        // update_scoop_bar()?;
         let status = check_bucket_update_status()?;
         if status {
             update_all_buckets_bar()?;
