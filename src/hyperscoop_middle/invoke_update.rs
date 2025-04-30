@@ -2,6 +2,7 @@
 use crate::command_args::update::UpdateArgs;
 use command_util_lib::init_env::{
     get_app_current_bin_path, get_app_current_dir, get_app_current_dir_global, get_app_dir,
+    get_app_version_dir,
 };
 use command_util_lib::install::UpdateOptions::ForceUpdateOverride;
 use command_util_lib::install::{install_and_replace_hp, InstallOptions, UpdateOptions};
@@ -82,7 +83,7 @@ pub(crate) fn update_buckets() -> Result<(), anyhow::Error> {
 }
 
 pub async fn update_hp(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
-    let  update_options = options;
+    let update_options = options;
     let install_options = transform_update_options_to_install(options);
     let global = if install_options.contains(&InstallOptions::Global) {
         true
@@ -131,7 +132,10 @@ pub async fn update_hp(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
         );
         return Ok(());
     }
-
+    let app_old_version_dir = get_app_version_dir("hp", old_version.as_str());
+    if Path::new(&app_old_version_dir).exists() {
+        std::fs::remove_dir_all(&app_old_version_dir).expect("Failed to remove old version app");
+    }
     let version = install_and_replace_hp(install_options.as_slice())
         .await
         .expect("hp update failed");
@@ -143,6 +147,7 @@ pub async fn update_hp(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
             .dark_green()
             .bold()
     );
+
     Ok(())
 }
 

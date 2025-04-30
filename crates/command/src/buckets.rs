@@ -561,14 +561,12 @@ impl Buckets {
         Ok((known_name, known_source))
     }
 
-    //iter() 用于获取集合中元素的不可变引用，允许直接访问元素。
-    // enumerate() 用于在遍历时提供每个元素的索引，通常与其他迭代器方法组合使用。
     pub fn display_known_buckets(&self, is_global: bool) -> Result<(), anyhow::Error> {
         let (known_name, known_source) = self.get_bucket_known(is_global)?;
         let max_name_len = known_name.iter().map(|e| e.len()).max().unwrap_or(0);
         println!(
             "{}{}",
-            "BucketName\t\t\t".black().bold(),
+            "BucketName\t\t\t".dark_green().bold(),
             "SourceUrl  ".dark_green().bold()
         );
         for (name, source) in known_name.iter().zip(known_source.iter()) {
@@ -592,6 +590,6 @@ mod  tests_buckets  {
     let path = get_hp_bucket_repo_path("hp").unwrap();
     if path.is_some() {
       println!("hp bucket path: {}", path.unwrap());
-    } 
+    }
   }
 }
