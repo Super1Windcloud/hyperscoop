@@ -34,7 +34,8 @@
 
 [//]: # ( ![pinpix.png]&#40;https://imgfans.com/_oONbC&#41;)
 ![cmd.png](https://imgfans.com/_s0giY)
-[//]: # (![cmd]&#40;./img/cmd.png&#41;)
+
+
 --- 
 ## ☑️ TODO (主要功能全部完成, 如果遇到BUG,请截图反馈Issue)
 - [x]  Alias
