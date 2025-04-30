@@ -70,11 +70,6 @@
 - **[ROADMAP](./roadmap.md)** 
 
 
-![img ](./img/sea.jpg)
-
---- 
-
-
 ![img ](./img/sky2.jpg)
 
 --- 
