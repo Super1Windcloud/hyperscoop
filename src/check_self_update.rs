@@ -70,7 +70,6 @@ pub async fn auto_check_hp_update(old_version: Option<&str>) -> anyhow::Result<b
         }
         let hp_repo_path = hp_repo.unwrap();
         pull_special_local_repo(hp_repo_path.as_str())?;
-
         Ok(true)
     } else {
         Ok(false)
