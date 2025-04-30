@@ -20,8 +20,9 @@
 >  `hp b k` 查看官方的bucket列表, 'hp b add' 建议添加所有bucket
 
 ## Bucket Demo 
-![bucket.png](https://imgfans.com/_Ww0K4)
 
+[//]: # (![bucket.png]&#40;https://imgfans.com/_Ww0K4&#41;)
+![bucket](./img/bucket.png)
 ## 🏗 Project Status   (WIP) 
 
 |![](https://i.giphy.com/media/CwfC5Pv6Rtp66h4coK/giphy.gif) |
@@ -33,7 +34,8 @@
 --- 
 
 [//]: # ( ![pinpix.png]&#40;https://imgfans.com/_oONbC&#41;)
-![cmd.png](https://imgfans.com/_s0giY)
+[//]: # (![cmd.png]&#40;https://imgfans.com/_s0giY&#41;)
+![cmd](./img/cmd.png)
 --- 
 ## ☑️ TODO (主要功能全部完成, 如果遇到BUG,请截图反馈Issue)
 - [x]  Alias
@@ -69,11 +71,12 @@
 
 - **[ROADMAP](./roadmap.md)** 
 
-[![sky2.jpg](https://i.postimg.cc/76yfL7XC/sky2.jpg)](https://postimg.cc/FfD9WYMm)
+[//]: # ([![sky2.jpg]&#40;https://i.postimg.cc/76yfL7XC/sky2.jpg&#41;]&#40;https://postimg.cc/FfD9WYMm&#41;)
+
+![sky](./img/sky2.jpg)
 --- 
 - 美是一种选择，甚至是一种放弃，而不是贪婪。
 - 经过人生的荒芜, 才干抵达内心的繁华 
 - 君子应处木雁之间，当有龙蛇之变 
 --- 
 
-![img.png](./img/sea.jpg)

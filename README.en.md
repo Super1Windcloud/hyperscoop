@@ -6,11 +6,6 @@
 
 --- 
 
-
- ![img ](./img/sky1.jpg)
---- 
-
-
 ![img ](./img/sky2.jpg)
 
 --- 
