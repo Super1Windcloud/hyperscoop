@@ -21,8 +21,9 @@
 
 ## Bucket Demo 
 
-[//]: # (![bucket.png]&#40;https://imgfans.com/_Ww0K4&#41;)
-![bucket](./img/bucket.png)
+![bucket.png](https://imgfans.com/_Ww0K4)
+
+[//]: # (![bucket]&#40;./img/bucket.png&#41;)
 ## 🏗 Project Status   (WIP) 
 
 |![](https://i.giphy.com/media/CwfC5Pv6Rtp66h4coK/giphy.gif) |
@@ -34,8 +35,8 @@
 --- 
 
 [//]: # ( ![pinpix.png]&#40;https://imgfans.com/_oONbC&#41;)
-[//]: # (![cmd.png]&#40;https://imgfans.com/_s0giY&#41;)
-![cmd](./img/cmd.png)
+![cmd.png](https://imgfans.com/_s0giY)
+[//]: # (![cmd]&#40;./img/cmd.png&#41;)
 --- 
 ## ☑️ TODO (主要功能全部完成, 如果遇到BUG,请截图反馈Issue)
 - [x]  Alias
