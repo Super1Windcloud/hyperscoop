@@ -406,7 +406,7 @@ pub async fn install_app_specific_version(
 pub async fn install_app(app_name: &str, options: &[InstallOptions<'_>]) -> Result<()> {
     log::info!("install from app {}", app_name);
     if app_name.to_lowercase() == "hp" {
-        bail!("Update self please use `hp u hp` or `hp u -f -s hp`")
+        bail!("Update self please use `hp u hp` or `hp u -f -k hp`")
     }
     let manifest_path = if options.contains(&InstallOptions::Global) {
         get_latest_manifest_from_local_bucket_global(app_name)?

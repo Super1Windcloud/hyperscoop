@@ -55,7 +55,7 @@ pub fn get_buckets_name() -> Result<Vec<String>, anyhow::Error> {
 }
 impl Buckets {
     //参数传递尽量以借用为主，避免拷贝大量数据
-    pub   fn rm_buckets(&self, name: &String, is_global: bool) -> Result<(), anyhow::Error> {
+    pub fn rm_buckets(&self, name: &String, is_global: bool) -> Result<(), anyhow::Error> {
         let (bucket_paths, buckets_names) = if is_global {
             self.get_global_bucket_self()?
         } else {
@@ -91,7 +91,7 @@ impl Buckets {
 }
 
 impl Buckets {
-    pub   fn add_buckets(
+    pub fn add_buckets(
         &self,
         name: &Option<String>,
         url: &Option<String>,
@@ -125,7 +125,7 @@ impl Buckets {
         Ok(())
     }
 
-    pub   fn download_bucket(
+    pub fn download_bucket(
         &self,
         url: &str,
         bucket_name: &str,
@@ -323,7 +323,7 @@ impl Buckets {
         } else {
             get_buckets_name()?
         };
-        let bucket_source_url = Self::get_bucket_source_url(is_global)?;
+        let bucket_source_url = self.get_bucket_source_url(is_global)?;
         if bucket_name.is_empty() || bucket_source_url.is_empty() {
             bail!("buckets dir is not exist")
         }
@@ -343,7 +343,7 @@ impl Buckets {
         ))
     }
 
-    fn get_updated_time(bucket_source: &Vec<String>) -> anyhow::Result<Vec<String>> {
+    pub fn get_updated_time(bucket_source: &Vec<String>) -> anyhow::Result<Vec<String>> {
         let mut bucket_updated: Vec<String> = Vec::new();
         for source in bucket_source {
             let path = source.to_string() + "\\bucket";
@@ -364,7 +364,7 @@ impl Buckets {
         Ok(bucket_updated)
     }
 
-    fn get_manifest_version(path: &Vec<String>) -> anyhow::Result<Vec<String>> {
+    pub fn get_manifest_version(path: &Vec<String>) -> anyhow::Result<Vec<String>> {
         let mut bucket_manifest: Vec<String> = Vec::new();
         // 获取目录的子文件个数
         for source in path {
@@ -379,7 +379,7 @@ impl Buckets {
         Ok(bucket_manifest)
     }
 
-    fn get_bucket_source_url(is_global: bool) -> anyhow::Result<Vec<String>> {
+    pub fn get_bucket_source_url(&self, is_global: bool) -> anyhow::Result<Vec<String>> {
         let bucket_path = if is_global {
             get_global_all_buckets_dir()?
         } else {
@@ -401,6 +401,53 @@ impl Buckets {
             .collect::<Vec<_>>();
 
         Ok(buckets_path)
+    }
+    pub fn get_bucket_source_url_and_path(
+        &self,
+        is_global: bool,
+    ) -> anyhow::Result<(Vec<String>, Vec<String>)> {
+        let bucket_paths = if is_global {
+            get_global_all_buckets_dir()?
+        } else {
+            get_buckets_path()?
+        };
+        let result = bucket_paths.iter().try_for_each(|path| {
+            if !Path::new(path).exists() || !Path::new(path).is_dir() {
+                bail!("bucket dir not found")
+            } else {
+                Ok(())
+            }
+        });
+        if result.is_err() {
+            bail!(result.err().unwrap())
+        }
+        let buckets_path = bucket_paths
+            .iter()
+            .map(|path| get_git_repo_remote_url(path).unwrap())
+            .collect::<Vec<_>>();
+
+        Ok((buckets_path, bucket_paths))
+    }
+}
+
+pub fn get_hp_bucket_repo_path(bucket_name: &str) -> anyhow::Result<Option<String>> {
+    let bucket = Buckets::new()?;
+    let (urls, bucket_paths) = bucket.get_bucket_source_url_and_path(false)?;
+    if bucket_name.to_lowercase() == "hp" {
+        let result = urls
+            .into_iter()
+            .zip(bucket_paths.into_iter())
+            .find(|(url, _)| url.contains("hyperscoop_bucket"))
+            .ok_or_else(|| anyhow!("未找到 hyperscoop_bucket 仓库"))
+            as anyhow::Result<(String, String)>;
+
+        if result.is_err() {
+            bail!(result.err().unwrap())
+        }
+        let path = result?.1;
+        Ok(Some(path))
+    } else {
+        Ok(None)
     }
 }
 
@@ -459,10 +506,10 @@ impl Buckets {
             create_dir_all(&config_dir).unwrap();
         }
         let known = format!("{}\\known_bucket.json", config_dir);
-        let known_bucket = Path::new( &known);
+        let known_bucket = Path::new(&known);
         if !known_bucket.exists() {
-            let mut file = File::create(&known_bucket).unwrap();  // 截断写入
-           let  content = r#"{
+            let mut file = File::create(&known_bucket).unwrap(); // 截断写入
+            let content = r#"{
     "main": "https://github.com/ScoopInstaller/Main",
     "extras": "https://github.com/ScoopInstaller/Extras",
     "versions": "https://github.com/ScoopInstaller/Versions",
@@ -478,7 +525,7 @@ impl Buckets {
             file.write_all(content.as_bytes()).unwrap();
             file.flush().unwrap();
         }
-         known
+        known
     }
     pub fn get_bucket_known(
         &self,
@@ -534,4 +581,17 @@ impl Buckets {
         }
         Ok(())
     }
+}
+
+
+mod  tests_buckets  {
+
+  #[test]
+  fn  test_get_hp_bucket(){
+    use crate::buckets::get_hp_bucket_repo_path;
+    let path = get_hp_bucket_repo_path("hp").unwrap();
+    if path.is_some() {
+      println!("hp bucket path: {}", path.unwrap());
+    } 
+  }
 }

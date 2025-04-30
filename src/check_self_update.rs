@@ -5,10 +5,12 @@ use crate::crypto::decrypt_github;
 use crate::Cli;
 use anyhow::{anyhow, bail};
 use clap::CommandFactory;
+use command_util_lib::buckets::get_hp_bucket_repo_path;
 use command_util_lib::config::get_config_value_no_print;
 use command_util_lib::init_env::{get_app_dir_manifest_json, get_app_dir_manifest_json_global};
 use command_util_lib::install::UpdateOptions;
 use command_util_lib::list::VersionJSON;
+use command_util_lib::utils::git::pull_special_local_repo;
 use command_util_lib::utils::utility::is_valid_url;
 use crossterm::style::Stylize;
 use reqwest::{header, Client};
@@ -61,7 +63,14 @@ pub async fn auto_check_hp_update(old_version: Option<&str>) -> anyhow::Result<b
         latest_github_version
     };
     if version.to_string() < latest_version {
-        println!("{}", format!("发现hp新版本 {latest_version},`hp u hp` of `hp u -f -k hp`  \n请访问https://github.com/Super1Windcloud/hp/releases").dark_cyan().bold());
+        println!("{}", format!("发现hp新版本 {latest_version}, `hp u hp` or `hp u -f -k hp`  \n请访问https://github.com/Super1Windcloud/hp/releases").dark_cyan().bold());
+        let hp_repo = get_hp_bucket_repo_path("hp")?;
+        if hp_repo.is_none() {
+            bail!("hp bucket repository  is empty");
+        }
+        let hp_repo_path = hp_repo.unwrap();
+        pull_special_local_repo(hp_repo_path.as_str())?;
+
         Ok(true)
     } else {
         Ok(false)
@@ -233,10 +242,10 @@ mod test_auto_update {
         let tags: GithubRelease = response.json().await.unwrap();
         println!("{}", tags.tag_name);
     }
-  
-  #[test]
-   fn test_old_version() {
-      let old_version = get_app_old_version("hp", &vec![]).unwrap();
-      println!("{}", old_version);
-  } 
+
+    #[test]
+    fn test_old_version() {
+        let old_version = get_app_old_version("hp", &vec![]).unwrap();
+        println!("{}", old_version);
+    }
 }
