@@ -563,17 +563,19 @@ impl Buckets {
 
     pub fn display_known_buckets(&self, is_global: bool) -> Result<(), anyhow::Error> {
         let (known_name, known_source) = self.get_bucket_known(is_global)?;
-        let max_name_len = known_name.iter().map(|e| e.len()).max().unwrap_or(0);
+        let max_name_len = known_name.iter().map(|e| e.len()).max().unwrap_or(0) +10 ;
+        let  interval_len = max_name_len -10+1 ;
         println!(
-            "{}{}",
-            "BucketName\t\t\t".dark_green().bold(),
+            "{}{}{}",
+            "BucketName".dark_green().bold(),
+            " ".repeat(interval_len),
             "SourceUrl  ".dark_green().bold()
         );
         for (name, source) in known_name.iter().zip(known_source.iter()) {
             println!(
-                "{:<max_name_len$}\t\t\t{}",
+                "{:<max_name_len$} {:<max_name_len$}",
                 name.to_string(),
-                source.to_string().dark_green().bold(),
+                source.to_string(),
                 max_name_len = max_name_len
             );
         }

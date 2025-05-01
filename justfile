@@ -44,7 +44,6 @@ no_commit_update_hash:
 push:
     git add -A  && git commit -m ":panda_face:   update hash " && git push repo   master  && git push github  master:dev
 
-
 pull  :
     git pull repo master
 
