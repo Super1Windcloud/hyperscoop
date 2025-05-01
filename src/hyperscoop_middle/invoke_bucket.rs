@@ -45,7 +45,7 @@ pub   fn execute_bucket_command(args: &Option<BucketSubcommands>) -> Result<(), 
         }
 
         BucketSubcommands::List(_list_args) => {
-                buckets.display_all_buckets(_list_args.global )?;
+                buckets.display_all_buckets_extra(_list_args.global )?;
         }
         BucketSubcommands::Known(_known_args) => { 
               buckets.display_known_buckets(_known_args.global )?;

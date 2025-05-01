@@ -39,7 +39,6 @@ sha1 = { workspace = true }
 line-ending = {workspace = true}
 magic-crypt = "4.0.1"
 console = "0.15.11"
-semver = "1.0.26"
 
 
 [workspace.dependencies]

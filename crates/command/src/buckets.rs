@@ -5,6 +5,9 @@
 use crate::utils::request::{get_git_repo_remote_url, request_git_clone_by_git2_with_progress};
 use anyhow::{anyhow, bail};
 use chrono::{DateTime, Utc};
+use comfy_table::modifiers::UTF8_ROUND_CORNERS;
+use comfy_table::presets::{UTF8_BORDERS_ONLY};
+use comfy_table::{Attribute, Cell, CellAlignment, Color, ContentArrangement, Table};
 use crossterm::style::Stylize;
 use regex::Regex;
 use reqwest::get;
@@ -54,7 +57,6 @@ pub fn get_buckets_name() -> Result<Vec<String>, anyhow::Error> {
     Ok(buckets_name)
 }
 impl Buckets {
-    //参数传递尽量以借用为主，避免拷贝大量数据
     pub fn rm_buckets(&self, name: &String, is_global: bool) -> Result<(), anyhow::Error> {
         let (bucket_paths, buckets_names) = if is_global {
             self.get_global_bucket_self()?
@@ -177,7 +179,6 @@ impl Buckets {
         let content = response.bytes().await?;
         file.write_all(&content)?;
 
-        // 解压 ZIP 文件
         let file = File::open(&zip_path)?;
         let mut archive = ZipArchive::new(file)?;
         let repo_name = archive
@@ -186,11 +187,9 @@ impl Buckets {
             .to_string()
             .trim()
             .replace("/", r"\");
-        // 创建目标文件夹
         let dest = Path::new(bucket_path);
         create_dir_all(&dest)?;
 
-        // 解压文件到目标文件夹
         for i in 0..archive.len() {
             let mut file = archive.by_index(i)?;
             let outpath = dest.join(file.name());
@@ -235,9 +234,46 @@ fn check_name_is_valid(app_name: &String) -> anyhow::Result<()> {
 }
 
 impl Buckets {
+    pub fn display_all_buckets_extra(&self, is_global: bool) -> Result<(), anyhow::Error> {
+        let (bucket_name, bucket_source, bucket_updated, bucket_manifest) =
+            self.get_all_buckets(is_global)?;
+        let combined_buckets = bucket_name
+            .into_iter()
+            .zip(bucket_source.into_iter())
+            .zip(bucket_updated.into_iter())
+            .zip(bucket_manifest.into_iter())
+            .map(|(((name, source), updated), manifest)| vec![name, source, updated, manifest])
+            .collect::<Vec<_>>();
+
+        let mut table = Table::new();
+        table
+            .load_preset(UTF8_BORDERS_ONLY)
+            .apply_modifier(UTF8_ROUND_CORNERS)
+            .set_content_arrangement(ContentArrangement::Dynamic)
+            .set_header(vec![
+                Cell::new("BucketName")
+                    .add_attribute(Attribute::Bold)
+                    .fg(Color::Green),
+                Cell::new("SourceUrl")
+                    .add_attribute(Attribute::Bold)
+                    .fg(Color::Green),
+                Cell::new("UpdatedTime")
+                    .add_attribute(Attribute::Bold)
+                    .fg(Color::Green),
+                Cell::new("Manifests")
+                    .add_attribute(Attribute::Bold)
+                    .fg(Color::Green),
+            ])
+            .add_rows(combined_buckets.as_slice().di);
+
+        let column = table.column_mut(3).expect("Our table has three columns");
+        column.set_cell_alignment(CellAlignment::Center);
+        println!("{table}");
+        Ok(())
+    }
     pub fn display_all_buckets(&self, is_global: bool) -> Result<(), anyhow::Error> {
         let (bucket_name, bucket_source, bucket_updated, bucket_manifest) =
-            self.get_all_buckets(is_global)?; // 使用self 不需要显示传递&self
+            self.get_all_buckets(is_global)?;
 
         let combined_buckets: Vec<(String, String, String, String)> = bucket_name
             .into_iter()
@@ -311,7 +347,6 @@ impl Buckets {
                 max_manifest_len = max_manifest_len
             );
         }
-
         Ok(())
     }
     fn get_all_buckets(
@@ -563,8 +598,8 @@ impl Buckets {
 
     pub fn display_known_buckets(&self, is_global: bool) -> Result<(), anyhow::Error> {
         let (known_name, known_source) = self.get_bucket_known(is_global)?;
-        let max_name_len = known_name.iter().map(|e| e.len()).max().unwrap_or(0) +10 ;
-        let  interval_len = max_name_len -10+1 ;
+        let max_name_len = known_name.iter().map(|e| e.len()).max().unwrap_or(0) + 10;
+        let interval_len = max_name_len - 10 + 1;
         println!(
             "{}{}{}",
             "BucketName".dark_green().bold(),
@@ -583,15 +618,14 @@ impl Buckets {
     }
 }
 
+mod tests_buckets {
 
-mod  tests_buckets  {
-
-  #[test]
-  fn  test_get_hp_bucket(){
-    use crate::buckets::get_hp_bucket_repo_path;
-    let path = get_hp_bucket_repo_path("hp").unwrap();
-    if path.is_some() {
-      println!("hp bucket path: {}", path.unwrap());
+    #[test]
+    fn test_get_hp_bucket() {
+        use crate::buckets::get_hp_bucket_repo_path;
+        let path = get_hp_bucket_repo_path("hp").unwrap();
+        if path.is_some() {
+            println!("hp bucket path: {}", path.unwrap());
+        }
     }
-  }
 }
