@@ -39,19 +39,19 @@ impl<'a> SevenZipStruct<'a> {
     pub fn set_app_manifest_path(&mut self, app_manifest_path: &str) {
         self.app_manifest_path = app_manifest_path.to_string();
     }
-  
+
     pub fn get_apps_root_dir(&self) -> &str {
         &self.apps_root_dir
     }
-  
+
     pub fn set_apps_root_dir(&mut self, dir: String) {
         self.apps_root_dir = dir
     }
-  
+
     pub fn init(&mut self) {
         self.set_target_app_version_dir();
     }
-  
+
     pub fn new() -> Self {
         Self {
             archive_format: Box::new([]),
@@ -65,7 +65,7 @@ impl<'a> SevenZipStruct<'a> {
             target_alias_name: &[],
         }
     }
-  
+
     pub fn set_target_app_version_dir(&mut self) {
         let dir = self.get_apps_root_dir();
         let dir = format!(
@@ -76,86 +76,91 @@ impl<'a> SevenZipStruct<'a> {
         );
         self.target_dir = dir
     }
-  
+
     pub fn get_target_app_version_dir(&self) -> &str {
         &self.target_dir
     }
-  
+
     pub fn get_target_app_root_dir(&self) -> String {
         let dur = self.get_apps_root_dir();
         let dir = format!("{}\\{}", dur, self.get_app_name());
         dir
     }
-  
+
     pub fn get_target_app_current_dir(&self) -> String {
         let app_root = self.get_target_app_root_dir();
         format!("{}\\current", app_root)
     }
-  
+
     pub fn link_current_target_version_dir(&self) -> anyhow::Result<()> {
         let target = self.get_target_app_version_dir();
         let current = self.get_target_app_current_dir(); 
-        if !Path::new(&current).exists() {
-          fs::symlink_dir(target, &current).expect("Create dir symlink failed");
-          println!("{} {} => {}", "Linking".dark_blue().bold(),&current.dark_green().bold() , target.dark_green().bold());
-        }
+        if  Path::new(&current).exists() { 
+          std::fs::remove_dir(&current)?;
+        }; 
+        fs::symlink_dir(target, &current).expect("Create dir symlink failed");
+        println!(
+            "{} {} => {}",
+            "Linking".dark_blue().bold(),
+            &current.dark_green().bold(),
+            target.dark_green().bold()
+        );
         Ok(())
     }
-  
+
     pub fn get_app_name(&self) -> &'a str {
         self.app_name
     }
-  
+
     pub fn get_app_version(&self) -> &'a str {
         self.app_version
     }
-  
+
     pub fn set_app_name(&mut self, name: &'a str) {
         self.app_name = name;
     }
-  
+
     pub fn set_app_version(&mut self, version: &'a str) {
         self.app_version = version;
     }
-  
+
     pub fn get_archive_names(&self) -> Box<[String]> {
         self.archive_names.clone()
     }
-  
+
     pub fn set_archive_names(&mut self, name: &[String]) {
         self.archive_names = Box::from(name.to_vec());
     }
-  
+
     pub fn get_archive_format(&self) -> &[ArchiveFormat] {
         &self.archive_format
     }
-  
+
     pub fn get_archive_cache_files_path(&self) -> Cow<'a, [&'a str]> {
         self.archive_cache_files_path.clone()
     }
-  
+
     pub fn set_archive_cache_files_path(&mut self, path: &'a [&'a str]) {
         self.archive_cache_files_path = Cow::Borrowed(path);
     }
-  
+
     pub fn set_archive_format(&mut self, format: &[ArchiveFormat]) {
         self.archive_format = format.to_vec().into_boxed_slice();
     }
-  
 
     pub fn get_temp_7z_path(&self) -> String {
         let temp_dir = env::temp_dir();
         let exe_path = temp_dir.join("7z.exe");
         exe_path.to_str().unwrap().to_string()
     }
-  
+
     pub fn get_temp_7z_dll_path(&self) -> String {
         let temp_dir = env::temp_dir();
         let exe_path = temp_dir.join("7z.dll");
         let str = exe_path.to_str().unwrap();
         str.to_string()
     }
-  
+
     pub fn load_7z_to_temp_dir(&self) -> anyhow::Result<String> {
         const _7ZIP_EXE: &[u8] = include_bytes!("../../../../resources/7z.exe");
         const _7ZIP_DLL: &[u8] = include_bytes!("../../../../resources/7z.dll");
@@ -366,7 +371,7 @@ impl<'a> SevenZipStruct<'a> {
             let target_dir = self.get_target_app_version_dir();
             if !Path::new(target_dir).exists() {
                 std::fs::create_dir_all(target_dir).expect("Failed to create target directory");
-            }; 
+            };
             let result = archive_items
                 .iter()
                 .zip(archive_paths)
@@ -386,8 +391,8 @@ impl<'a> SevenZipStruct<'a> {
                             format!("{}\\{}", target_dir, archive_name)
                         } else {
                             format!("{}\\{}", target_dir, target_alias)
-                        }; 
-                        // println!("target alias dir {target_dir}"); 
+                        };
+                        // println!("target alias dir {target_dir}");
                         std::fs::copy(path, target_dir).expect("Failed to copy archive");
                         println!("✅");
                         Ok(())
@@ -465,7 +470,8 @@ impl<'a> SevenZipStruct<'a> {
         extract_to: Option<StringArrayOrString>,
     ) -> anyhow::Result<()> {
         if extract_dir.is_none() && extract_to.is_none() {
-            self.extract_archive_to_target_dir(None).expect("extract archive to target directory");
+            self.extract_archive_to_target_dir(None)
+                .expect("extract archive to target directory");
             Ok(())
         } else if extract_dir.is_none() && extract_to.is_some() {
             let target_dir = self.get_target_app_version_dir();
@@ -535,7 +541,7 @@ impl<'a> SevenZipStruct<'a> {
         let path = Path::new(&target_dir);
         let parent = path.parent().unwrap();
         let parent_name = parent.file_name().unwrap().to_str().unwrap().to_lowercase();
-        if  parent_name != "apps" {
+        if parent_name != "apps" {
             false
         } else {
             true

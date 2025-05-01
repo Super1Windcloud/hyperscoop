@@ -235,7 +235,8 @@ pub fn create_start_menu_shortcuts(
             if scoop_link_home.exists() {
                 let start_menu_link_path = scoop_link_home.join(&shortcut_name);
                 if !start_menu_link_path.exists() {
-                    let target_path = get_app_current_bin_path(app_name.as_str(), &bin_name_with_extension);
+                    let target_path =
+                        get_app_current_bin_path(app_name.as_str(), &bin_name_with_extension);
                     start_create_shortcut(
                         start_menu_link_path,
                         target_path,
@@ -354,7 +355,12 @@ pub fn create_alias_shim_name_file(
         if result != 0 {
             bail!("Origin 二进制名或者该二进制别名 '{exe_name}' 与scoop 内置脚本的shim 冲突, 禁止覆盖")
         }
-        create_cmd_or_bat_shim_scripts(target_path.as_str(), out_dir, Some(alias_name), program_args)?;
+        create_cmd_or_bat_shim_scripts(
+            target_path.as_str(),
+            out_dir,
+            Some(alias_name),
+            program_args,
+        )?;
     } else if suffix == "ps1" {
         let result = exclude_scoop_self_scripts(&exe_name, None)?;
         if result != 0 {
@@ -417,7 +423,7 @@ pub fn create_default_shim_name_file(
 }
 
 pub fn create_py_shim_scripts(
-    target_path: &str ,
+    target_path: &str,
     out_shim_dir: PathBuf,
     alias_name: Option<String>,
     program_args: Option<String>,
@@ -490,8 +496,8 @@ python.exe "{}"  "$@""#,
     Ok(())
 }
 
-pub  fn create_jar_shim_scripts(
-    target_path: &str ,
+pub fn create_jar_shim_scripts(
+    target_path: &str,
     out_shim_dir: PathBuf,
     alias_name: Option<String>,
     program_args: Option<String>,
@@ -585,7 +591,7 @@ java.exe -jar "{}" {} "$@""#,
 }
 
 pub fn create_ps1_shim_scripts(
-    target_path: &str ,
+    target_path: &str,
     out_shim_dir: PathBuf,
     alias_name: Option<String>,
     program_params: Option<String>,
@@ -682,7 +688,7 @@ fi
 }
 
 pub fn exclude_scoop_self_scripts(
-    script_name: &str ,
+    script_name: &str,
     alias_name: Option<&str>,
 ) -> anyhow::Result<u8> {
     let split = script_name.split(".").collect::<Vec<&str>>();
@@ -706,7 +712,7 @@ pub fn exclude_scoop_self_scripts(
 }
 
 pub fn create_cmd_or_bat_shim_scripts(
-    target_path: &str ,
+    target_path: &str,
     out_shim_dir: PathBuf,
     alias_name: Option<String>,
     program_args: Option<String>,
@@ -805,7 +811,9 @@ pub fn create_exe_type_shim_file_and_shim_bin<P1: AsRef<Path>, P2: AsRef<Path>>(
     let target_name = target_name.unwrap();
     // Determine the shim file name
     let shim_name = format!("{}.shim", target_name);
+    let shim_name2 = format!("{}.exe", target_name);
     let shim_path = output_dir.join(&shim_name);
+    let shim_path2 = output_dir.join(&shim_name2);
     if !shim_path.exists() {
         fs::create_dir_all(&output_dir)?;
     }
@@ -818,6 +826,11 @@ pub fn create_exe_type_shim_file_and_shim_bin<P1: AsRef<Path>, P2: AsRef<Path>>(
         "{} {}",
         "Creating  shim  file => ".to_string().dark_blue().bold(),
         &shim_path.to_str().unwrap().dark_green().bold()
+    );
+    println!(
+        "{} {}",
+        "Creating  shim  file => ".to_string().dark_blue().bold(),
+        shim_path2.to_str().unwrap().dark_green().bold()
     );
 
     if DRIVER_SHIM_BYTES.is_empty() {
@@ -889,8 +902,12 @@ mod test_shim {
         if Path::new(&target_path).exists() {
             println!("target {target_path}");
         }
-        let _ =
-            create_cmd_or_bat_shim_scripts(target_path.as_str(), output_dir, Some("sbtsbt".into()), None);
+        let _ = create_cmd_or_bat_shim_scripts(
+            target_path.as_str(),
+            output_dir,
+            Some("sbtsbt".into()),
+            None,
+        );
     }
 
     #[test]
@@ -906,7 +923,12 @@ mod test_shim {
         if Path::new(&target_path).exists() {
             println!("target {target_path}");
         }
-        let _ = create_ps1_shim_scripts(target_path.as_ref(), output_dir, Some("composer".into()), None);
+        let _ = create_ps1_shim_scripts(
+            target_path.as_ref(),
+            output_dir,
+            Some("composer".into()),
+            None,
+        );
     }
     #[test]
     fn find_cmd_bat_ps_scripts_alias() {

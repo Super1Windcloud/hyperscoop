@@ -25,6 +25,7 @@ use crossterm::style::Stylize;
 use indicatif::ProgressDrawTarget;
 use rayon::prelude::*;
 pub use update::*;
+use crate::install::InstallOptions::UpdateTransaction;
 
 const FINISH_MESSAGE: &str = "✅";
 
@@ -51,7 +52,8 @@ pub fn remove_old_version(app_name: &str, options: &[UpdateOptions]) -> anyhow::
     Ok(())
 }
 pub fn transform_update_options_to_install(update_options: &[UpdateOptions]) -> Vec<InstallOptions> {
-    let mut options = vec![];
+    let mut options = vec![]; 
+    options.push(UpdateTransaction); 
     if update_options.contains(&Global) {
         options.push(InstallOptions::Global);
     }
@@ -69,8 +71,8 @@ pub fn transform_update_options_to_install(update_options: &[UpdateOptions]) -> 
     }
    if update_options.contains(&ForceUpdateOverride) { 
        options.push(InstallOptions::ForceInstallOverride)
-   }
-    options
+   } 
+  options
 }
 
 pub async fn update_specific_app(
@@ -95,7 +97,7 @@ pub async fn update_specific_app(
         println!("{}", "当前App已是最新版本,无需更新".dark_cyan().bold());
         return Ok(());
     };
-    if origin_options.contains(&RemoveOldVersionApp) {
+    if origin_options.contains(&RemoveOldVersionApp) &&  app_name!= "hp"{
         remove_old_version(&app_name, &origin_options)?;
     }
     install_app(&app_name, options.as_ref()).await?;

@@ -230,7 +230,8 @@ impl<'a> DownloadManager<'a> {
         let a = new_alias.iter().map(|s| s.to_string()).collect::<Vec<_>>();
         if self.app_name == "hp" {
             log::debug!("start updating self process");
-            self.target_rename_alias = Box::from(vec!["hp_updater.exe".to_string()]);
+            // self.target_rename_alias = Box::from(vec!["hp_updater.exe".to_string()]); 
+           self.target_rename_alias = a.into_boxed_slice();
         } else {
             self.target_rename_alias = a.into_boxed_slice();
         }

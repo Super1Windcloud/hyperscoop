@@ -90,7 +90,8 @@ pub async fn install_app_from_local_manifest_file<P: AsRef<Path>>(
 
     let result = if !options.contains(&InstallOptions::ForceDownloadNoInstallOverrideCache)
         && !options.contains(&InstallOptions::OnlyDownloadNoInstall)
-        && !options.contains(&InstallOptions::ForceInstallOverride)
+        && !options.contains(&InstallOptions::ForceInstallOverride) 
+       &&  !options.contains(&InstallOptions::UpdateTransaction)
     {
         match check_before_install(&app_name, &version, &options) {
             Ok(result) => result,

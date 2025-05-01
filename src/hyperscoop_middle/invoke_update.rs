@@ -32,7 +32,6 @@ pub async fn execute_update_command(update_args: UpdateArgs) -> Result<(), anyho
         return Ok(());
     }
     let app_name = update_args.app_name.unwrap();
-    log::debug!("update app: {}", app_name);
     if app_name.to_lowercase() == "hp" {
         update_hp(&options).await?;
         return Ok(());
@@ -97,7 +96,7 @@ pub async fn update_hp(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
             let version = install_and_replace_hp(install_options.as_slice())
                 .await
                 .expect("hp update failed");
-            launch_update_script(global).expect("update hp script failed");
+            launch_update_script(global, "").expect("update hp script failed");
             println!(
                 "{}",
                 format!("Hp Latest Version('{version}') Update Successfully! ❤️‍🔥💝🐉🍾🎉")
@@ -109,13 +108,19 @@ pub async fn update_hp(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
         }
         get_app_old_version("hp", update_options).expect("get app old version failed")
     } else {
+        let old_version =
+            get_app_old_version("hp", update_options).expect("get app old version failed");
         let hp_exe = get_app_current_bin_path("hp", "hp.exe");
         let output = Command::new(hp_exe)
             .arg("--version")
             .output()
             .expect("failed to get hp version");
         let version = String::from_utf8(output.stdout).expect("failed to parse hp version");
-        version.trim().to_string()
+        if old_version.is_empty() {
+            version
+        } else {
+            old_version
+        }
     };
     let result = if !update_options.contains(&ForceUpdateOverride) {
         auto_check_hp_update(Some(old_version.as_str())).await?
@@ -133,13 +138,12 @@ pub async fn update_hp(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
         return Ok(());
     }
     let app_old_version_dir = get_app_version_dir("hp", old_version.as_str());
-    if Path::new(&app_old_version_dir).exists() {
-        std::fs::remove_dir_all(&app_old_version_dir).expect("Failed to remove old version app");
-    }
+
     let version = install_and_replace_hp(install_options.as_slice())
         .await
-        .expect("hp update failed");
-    launch_update_script(global).expect("update hp script failed");
+        .expect("install_and_replace_hp  failed");
+
+    launch_update_script(global, app_old_version_dir.as_str()).expect("update hp script failed");
     println!(
         "{}",
         format!("Hp Latest Version('{version}') Update Successfully! ❤️‍🔥💝🐉🍾🎉")
@@ -147,11 +151,10 @@ pub async fn update_hp(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
             .dark_green()
             .bold()
     );
-
     Ok(())
 }
 
-fn launch_update_script(global: bool) -> anyhow::Result<()> {
+fn launch_update_script(global: bool, old_version_dir: &str) -> anyhow::Result<()> {
     let hp_current = if global {
         get_app_current_dir_global("hp")
     } else {
@@ -170,20 +173,19 @@ if not errorlevel 1 (
     goto waitloop
 )
 
-:: 先删除 hp.exe（如果存在）
-if exist "{hp_current}\hp.exe" (
-    del /f /q "{hp_current}\hp.exe" > nul
-    if errorlevel 1 (
-        echo ERROR: Failed to delete hp.exe
+
+if "{old_version_dir}" == "" (
+    exit /b 0
+)
+
+if exist "{old_version_dir}" (
+    rmdir  /S /Q "{old_version_dir}" 
+    if exist "{old_version_dir}"  (
+        echo ERROR: Directory still exists after deletion.
         exit /b 1
     )
 )
 
-move /y "{hp_current}\hp_updater.exe" "{hp_current}\hp.exe" > nul
-if errorlevel 1 (
-    echo ERROR: Failed to move hp_updater.exe
-    exit /b 1
-)
 endlocal
 "#
     );
@@ -192,7 +194,6 @@ endlocal
     let mut file = File::create(&updater).expect("Failed to create updater.bat");
     let script_content = script_content.replace(LineEnding::LF.as_str(), LineEnding::CRLF.as_str());
     file.write_all(script_content.as_bytes())?;
-
     Command::new("cmd").args(&["/C", &updater]).spawn()?;
     Ok(())
 }

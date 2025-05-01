@@ -11,6 +11,7 @@ pub enum InstallOptions<'a> {
     CheckCurrentVersionIsLatest,
     Global,
     ForceInstallOverride,
+    UpdateTransaction,
 }
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -39,8 +40,8 @@ pub enum ArchiveFormat {
     EXE,
     INNO,
     MSI,
-    TAR, 
-    Other
+    TAR,
+    Other,
 }
 
 #[derive(Clone, Debug)]
@@ -67,6 +68,3 @@ pub enum ParserUrl {
     ExternalUrl(String),
     InternalUrl(String),
 }
-
-
-
