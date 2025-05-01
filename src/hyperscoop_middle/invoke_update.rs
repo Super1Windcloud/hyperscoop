@@ -96,7 +96,7 @@ pub async fn update_hp(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
             let version = install_and_replace_hp(install_options.as_slice())
                 .await
                 .expect("hp update failed");
-            launch_update_script(global, "").expect("update hp script failed");
+            launch_update_script(global, "", false ).expect("update hp script failed");
             println!(
                 "{}",
                 format!("Hp Latest Version('{version}') Update Successfully! ❤️‍🔥💝🐉🍾🎉")
@@ -110,14 +110,14 @@ pub async fn update_hp(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
     } else {
         let old_version =
             get_app_old_version("hp", update_options).expect("get app old version failed");
-        let hp_exe = get_app_current_bin_path("hp", "hp.exe");
-        let output = Command::new(hp_exe)
+        if old_version.is_empty() {
+          let hp_exe = get_app_current_bin_path("hp", "hp.exe");
+          let output = Command::new(hp_exe)
             .arg("--version")
             .output()
             .expect("failed to get hp version");
-        let version = String::from_utf8(output.stdout).expect("failed to parse hp version");
-        if old_version.is_empty() {
-            version
+          let version = String::from_utf8(output.stdout).expect("failed to parse hp version");
+          version.trim().to_string()
         } else {
             old_version
         }
@@ -142,8 +142,12 @@ pub async fn update_hp(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
     let version = install_and_replace_hp(install_options.as_slice())
         .await
         .expect("install_and_replace_hp  failed");
-
-    launch_update_script(global, app_old_version_dir.as_str()).expect("update hp script failed");
+    
+    if   update_options.contains(&ForceUpdateOverride) {
+         launch_update_script(global, "" , true).expect("update hp script failed");
+    } else {
+        launch_update_script(global, app_old_version_dir.as_str() ,  false ).expect("update hp script failed");
+    } 
     println!(
         "{}",
         format!("Hp Latest Version('{version}') Update Successfully! ❤️‍🔥💝🐉🍾🎉")
@@ -154,7 +158,7 @@ pub async fn update_hp(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-fn launch_update_script(global: bool, old_version_dir: &str) -> anyhow::Result<()> {
+fn launch_update_script(global: bool, old_version_dir: &str, replace_old_hp   : bool) -> anyhow::Result<()> {
     let hp_current = if global {
         get_app_current_dir_global("hp")
     } else {
@@ -186,10 +190,59 @@ if exist "{old_version_dir}" (
     )
 )
 
+rename  "{hp_current}\hp_updater.exe" "{hp_current}\hp.exe" > nul
+if not exist "{hp_current}\hp.exe" (
+    echo ERROR: Failed to rename hp.exe to hp.old.exe.
+    exit /b 1
+)
 endlocal
 "#
     );
 
+  let  force_override_script =  format!(r#"@echo off
+chcp 65001 > nul
+setlocal enabledelayedexpansion
+timeout /t 1 > nul
+:waitloop
+tasklist /fi "imagename eq hp.exe" | findstr /i "hp.exe" > nul
+if not errorlevel 1 (
+    timeout /t 1 > nul
+    goto waitloop
+)
+
+cd /d "{hp_current}"
+
+:: 删除旧的 hp.exe（如果存在）
+if exist "hp.exe" (
+    del /f /q "hp.exe" > nul
+    if exist "hp.exe" (
+        echo ERROR: Failed to delete hp.exe.
+        exit /b 1
+    )
+)
+
+:: 重命名 hp_updater.exe 为 hp.exe
+if exist "hp_updater.exe" (
+    rename "hp_updater.exe" "hp.exe"
+) else (
+    echo ERROR: hp_updater.exe 不存在！
+    exit /b 1
+)
+
+:: 检查是否重命名成功
+if not exist "hp.exe" (
+    echo ERROR: Failed to rename hp_updater.exe to hp.exe.
+    exit /b 1
+)
+
+endlocal
+"#);
+
+    let script_content = if  !replace_old_hp {
+        script_content
+    } else {
+        force_override_script
+    };  
     let updater = format!("{hp_current}\\updater.bat");
     let mut file = File::create(&updater).expect("Failed to create updater.bat");
     let script_content = script_content.replace(LineEnding::LF.as_str(), LineEnding::CRLF.as_str());
