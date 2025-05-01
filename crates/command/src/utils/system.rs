@@ -2,6 +2,7 @@ use crate::init_env::get_persist_dir_path_global;
 use anyhow::bail;
 use std::path::Path;
 use std::process::{Command, Stdio};
+use sysinfo::{ System};
 use windows::core::PCWSTR;
 use windows::Win32::Foundation::HWND;
 use windows::Win32::UI::Shell::{IsUserAnAdmin, ShellExecuteW};
@@ -29,19 +30,19 @@ pub fn delete_global_env_var(var_key: &str) -> Result<(), anyhow::Error> {
     bail!("Environment variable not  exists");
 }
 
-pub  fn  get_user_env_var(var_key: &str) -> Result<String , anyhow::Error> {
-  let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-  let environment = hkcu.open_subkey("Environment")?;
-  let value :String  = environment.get_value(var_key)?;
-   Ok(value)
+pub fn get_user_env_var(var_key: &str) -> Result<String, anyhow::Error> {
+    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+    let environment = hkcu.open_subkey("Environment")?;
+    let value: String = environment.get_value(var_key)?;
+    Ok(value)
 }
 
 pub fn get_system_env_var(var_key: &str) -> Result<String, anyhow::Error> {
-  let  hkcu = RegKey::predef(HKEY_LOCAL_MACHINE);
-  let key = r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment";
-  let environment_key = hkcu.open_subkey_with_flags(key, KEY_ALL_ACCESS)?;
-   let value :String  = environment_key.get_value(var_key)?; 
-   Ok(value)
+    let hkcu = RegKey::predef(HKEY_LOCAL_MACHINE);
+    let key = r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment";
+    let environment_key = hkcu.open_subkey_with_flags(key, KEY_ALL_ACCESS)?;
+    let value: String = environment_key.get_value(var_key)?;
+    Ok(value)
 }
 
 pub fn set_user_env_var(var_key: &str, var_value: &str) -> Result<(), anyhow::Error> {
@@ -218,6 +219,28 @@ pub fn ensure_persist_permission() -> anyhow::Result<()> {
     Ok(())
 }
 
+pub fn kill_processes_using_app(app_name: &str) {
+    let mut system = System::new_all();
+    system.refresh_all();
+    for process in system.processes() {
+        let process = process.1;
+        let pid = process.pid().as_u32();
+        let name = process.name().to_str().unwrap();
+        let exe = process.exe();
+        if exe.is_none() {
+            continue;
+        }
+        let exe = exe.unwrap().to_str().unwrap();
+        if  !exe.contains(app_name) {
+            continue;
+        }
+        dbg!(name , exe );
+        process.kill();
+        let exit_status = process.wait();
+        log::debug!("Pid {pid} exited with: {exit_status:?}");
+    }
+}
+
 mod test_system {
     #[allow(unused_imports)]
     use super::*;
@@ -234,5 +257,10 @@ mod test_system {
             compute_hash_by_powershell(r"A:\Scoop\cache\yazi#25.4.8#1319a47.zip", "sha256")
                 .unwrap()
         );
+    }
+
+    #[test]
+    fn test_kill_process() {
+        kill_processes_using_app("zig");
     }
 }

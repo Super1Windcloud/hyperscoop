@@ -9,6 +9,7 @@ pub(crate) mod update;
 use crate::init_env::{
     get_app_current_dir, get_app_current_dir_global, get_app_dir, get_app_dir_global,
 };
+use crate::install::InstallOptions::UpdateTransaction;
 use crate::install::UpdateOptions::{ForceUpdateOverride, Global, RemoveOldVersionApp};
 use crate::install::{install_app, InstallOptions, UpdateOptions};
 use crate::list::get_all_installed_apps_name;
@@ -25,7 +26,6 @@ use crossterm::style::Stylize;
 use indicatif::ProgressDrawTarget;
 use rayon::prelude::*;
 pub use update::*;
-use crate::install::InstallOptions::UpdateTransaction;
 
 const FINISH_MESSAGE: &str = "✅";
 
@@ -51,9 +51,11 @@ pub fn remove_old_version(app_name: &str, options: &[UpdateOptions]) -> anyhow::
     fs::remove_dir_all(target_version_path)?;
     Ok(())
 }
-pub fn transform_update_options_to_install(update_options: &[UpdateOptions]) -> Vec<InstallOptions> {
-    let mut options = vec![]; 
-    options.push(UpdateTransaction); 
+pub fn transform_update_options_to_install(
+    update_options: &[UpdateOptions],
+) -> Vec<InstallOptions> {
+    let mut options = vec![];
+    options.push(UpdateTransaction);
     if update_options.contains(&Global) {
         options.push(InstallOptions::Global);
     }
@@ -69,10 +71,10 @@ pub fn transform_update_options_to_install(update_options: &[UpdateOptions]) -> 
     if update_options.contains(&UpdateOptions::SkipDownloadHashCheck) {
         options.push(InstallOptions::SkipDownloadHashCheck)
     }
-   if update_options.contains(&ForceUpdateOverride) { 
-       options.push(InstallOptions::ForceInstallOverride)
-   } 
-  options
+    if update_options.contains(&ForceUpdateOverride) {
+        options.push(InstallOptions::ForceInstallOverride)
+    }
+    options
 }
 
 pub async fn update_specific_app(
@@ -97,11 +99,10 @@ pub async fn update_specific_app(
         println!("{}", "当前App已是最新版本,无需更新".dark_cyan().bold());
         return Ok(());
     };
-    if origin_options.contains(&RemoveOldVersionApp) &&  app_name!= "hp"{
+    if origin_options.contains(&RemoveOldVersionApp) && app_name != "hp" {
         remove_old_version(&app_name, &origin_options)?;
     }
     install_app(&app_name, options.as_ref()).await?;
-
     Ok(())
 }
 
@@ -129,10 +130,10 @@ pub fn update_scoop_bar() -> anyhow::Result<()> {
         .with_style(progress_style)
         .with_message("Checking for updates")
         .with_prefix(format!("🐧{:<longest_bucket_name$}", "Scoop "))
-        .with_finish(ProgressFinish::WithMessage(FINISH_MESSAGE.into())); 
-  
+        .with_finish(ProgressFinish::WithMessage(FINISH_MESSAGE.into()));
+
     pb.set_draw_target(ProgressDrawTarget::stdout());
-    
+
     let scoop_status = check_scoop_update()?;
 
     if !scoop_status {

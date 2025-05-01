@@ -28,19 +28,19 @@ struct GiteeRelease {
 }
 
 pub fn get_app_old_version(app_name: &str, options: &[UpdateOptions]) -> anyhow::Result<String> {
-    let hp_install_manifest = if options.contains(&UpdateOptions::Global) {
+    let  old_install_manifest = if options.contains(&UpdateOptions::Global) {
         get_app_dir_manifest_json_global(app_name)
     } else {
         get_app_dir_manifest_json(app_name)
     };
-    if !Path::new(&hp_install_manifest).exists() {
-        bail!("not found hp install manifest file, please run hp u -f hp")
+    if !Path::new(&old_install_manifest).exists() {
+        bail!("not found {} install manifest file", app_name)
     }
-    let content = std::fs::read_to_string(&hp_install_manifest)?;
+    let content = std::fs::read_to_string(&old_install_manifest)?;
     let version: VersionJSON = serde_json::from_str(content.as_str())?;
     let version = version.version;
     if version.is_none() {
-        bail!("not found version in hp install manifest file, please run hp u -f hp")
+        bail!("not found version in old install manifest file")
     }
     Ok(version.unwrap())
 }
@@ -62,6 +62,7 @@ pub async fn auto_check_hp_update(old_version: Option<&str>) -> anyhow::Result<b
     } else {
         latest_github_version
     };
+  
     if version.to_string() < latest_version {
         println!("{}", format!("发现hp新版本 {latest_version}, `hp u hp` or `hp u -f -k hp`  \n请访问https://github.com/Super1Windcloud/hp/releases").dark_cyan().bold());
         let hp_repo = get_hp_bucket_repo_path("hp")?;

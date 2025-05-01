@@ -94,10 +94,8 @@ impl<'a> SevenZipStruct<'a> {
 
     pub fn link_current_target_version_dir(&self) -> anyhow::Result<()> {
         let target = self.get_target_app_version_dir();
-        let current = self.get_target_app_current_dir(); 
-        if  Path::new(&current).exists() { 
-          std::fs::remove_dir(&current)?;
-        }; 
+        let current = self.get_target_app_current_dir();
+        std::fs::remove_dir(&current)?;
         fs::symlink_dir(target, &current).expect("Create dir symlink failed");
         println!(
             "{} {} => {}",

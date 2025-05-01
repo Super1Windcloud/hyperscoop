@@ -1,6 +1,6 @@
 use crate::config::get_config_value_no_print;
 use crate::utils::utility::is_valid_url;
-use anyhow::{ bail};
+use anyhow::bail;
 use crossterm::style::Stylize;
 use std::borrow::Cow;
 use std::fs::File;
@@ -24,9 +24,7 @@ impl<'a> Aria2C<'a> {
     pub fn get_final_download_path(&self) -> &Box<[String]> {
         &self.final_download_path
     }
-    pub fn set_final_download_path(&mut self) {
-
-    }
+    pub fn set_final_download_path(&mut self) {}
     pub fn get_scoop_cache_dir(&self) -> &'a str {
         self.scoop_cache_dir
     }
@@ -93,9 +91,12 @@ impl<'a> Aria2C<'a> {
             "--follow-metalink=true",              // 支持 Metalink 下载
             "--min-split-size=5M",                 // 最小分片大小
             "--continue=true",                     // 断点续传
-            "--file-allocation=none",              // 不预分配磁盘空间（SSD推荐）
+            "--file-allocation=trunc",             // windows下文件预分配磁盘空间（SSD推荐）
             "--summary-interval=0",                // 不频繁输出日志减少IO
             "--auto-save-interval=1",              //  自动保存间隔
+            "--disable-ipv6=true",                 // 禁用 IPv6（如果不需要）
+            "--no-file-allocation-limit=500M",     // 大文件不预分配（SSD 可启用）
+            "--async-dns=true",                    // 异步 DNS 解析
         ];
         self.aria2c_download_config = args;
     }
@@ -144,13 +145,13 @@ impl<'a> Aria2C<'a> {
             "Starting Aria2 Download Files......".dark_blue().bold()
         );
         let proxy = get_config_value_no_print("proxy");
-        let proxy = if !proxy.contains("http://") && !proxy.contains("https://")
-           &&  !proxy.is_empty() {
-            "http://".to_string() + &proxy
-        } else {
-            proxy
-        };
-        if !is_valid_url(&proxy) &&  !proxy.is_empty() {
+        let proxy =
+            if !proxy.contains("http://") && !proxy.contains("https://") && !proxy.is_empty() {
+                "http://".to_string() + &proxy
+            } else {
+                proxy
+            };
+        if !is_valid_url(&proxy) && !proxy.is_empty() {
             bail!("Proxy is not valid, url format error");
         };
         let input_file = self.get_input_file();
@@ -187,12 +188,12 @@ impl<'a> Aria2C<'a> {
             "Starting aria2 download file ......".dark_blue().bold()
         );
         let proxy = get_config_value_no_print("proxy");
-        let proxy = if !proxy.contains("http://") && !proxy.contains("https://")
-         && !proxy.is_empty() {
-            "http://".to_string() + &proxy
-        } else {
-            proxy
-        };
+        let proxy =
+            if !proxy.contains("http://") && !proxy.contains("https://") && !proxy.is_empty() {
+                "http://".to_string() + &proxy
+            } else {
+                proxy
+            };
         if !is_valid_url(&proxy) {
             bail!("Proxy is not valid, url format error");
         };
@@ -209,19 +210,19 @@ impl<'a> Aria2C<'a> {
             .stderr(Stdio::piped())
             .spawn()?; // 阻塞进程
 
-      if let Some(mut stdout) = child.stdout.take() {
-        let mut buffer = [0u8; 1024];
-        loop {
-          let n = stdout.read(&mut buffer)?;
-          if n == 0 {
-            break;
-          }
-          let output = String::from_utf8_lossy(&buffer[..n]);
-          for line in output.lines() {
-            println!("Download: {}", line);
-          }
+        if let Some(mut stdout) = child.stdout.take() {
+            let mut buffer = [0u8; 1024];
+            loop {
+                let n = stdout.read(&mut buffer)?;
+                if n == 0 {
+                    break;
+                }
+                let output = String::from_utf8_lossy(&buffer[..n]);
+                for line in output.lines() {
+                    println!("Download: {}", line);
+                }
+            }
         }
-      }
         if let Some(stderr) = child.stderr.take() {
             let reader = BufReader::new(stderr);
             for line in reader.lines() {
@@ -236,7 +237,10 @@ impl<'a> Aria2C<'a> {
                 .bold()
                 .to_string())
         } else {
-            bail!("Aria2c download failed, exit code: {}", status.code().unwrap()  )
+            bail!(
+                "Aria2c download failed, exit code: {}",
+                status.code().unwrap()
+            )
         };
         result
     }

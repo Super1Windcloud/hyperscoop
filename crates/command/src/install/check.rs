@@ -9,19 +9,19 @@ use std::os::windows::fs::symlink_dir;
 use std::path::Path;
 
 pub fn get_app_old_version(app_name: &str, options: &[InstallOptions]) -> anyhow::Result<String> {
-    let hp_install_manifest = if options.contains(&InstallOptions::Global) {
+    let  app_install_manifest = if options.contains(&InstallOptions::Global) {
         get_app_dir_manifest_json_global(app_name)
     } else {
         get_app_dir_manifest_json(app_name)
     };
-    if !Path::new(&hp_install_manifest).exists() {
-        bail!("not found hp install manifest file, please run hp u -f hp")
+    if !Path::new(&app_install_manifest).exists() {
+        bail!("Not found {app_name} install manifest file")
     }
-    let content = std::fs::read_to_string(&hp_install_manifest)?;
+    let content = std::fs::read_to_string(&app_install_manifest)?;
     let version: VersionJSON = serde_json::from_str(content.as_str())?;
     let version = version.version;
     if version.is_none() {
-        bail!("not found version in hp install manifest file, please run hp u -f hp")
+        bail!("Not found version in  install manifest file for app: {app_name}")
     }
     Ok(version.unwrap())
 }

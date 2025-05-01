@@ -230,8 +230,8 @@ impl<'a> DownloadManager<'a> {
         let a = new_alias.iter().map(|s| s.to_string()).collect::<Vec<_>>();
         if self.app_name == "hp" {
             log::debug!("start updating self process");
-            // self.target_rename_alias = Box::from(vec!["hp_updater.exe".to_string()]); 
-           self.target_rename_alias = a.into_boxed_slice();
+            // self.target_rename_alias = Box::from(vec!["hp_updater.exe".to_string()]);
+            self.target_rename_alias = a.into_boxed_slice();
         } else {
             self.target_rename_alias = a.into_boxed_slice();
         }
@@ -660,19 +660,19 @@ impl<'a> DownloadManager<'a> {
                 .iter()
                 .map(|name| format!("{}\\{}", self.get_scoop_cache_dir(), name))
                 .collect::<Vec<String>>();
-            let result =  cache_file_path.iter().try_for_each(|path| {
-               if !Path::new(path).exists() { 
-                  return  Ok(())
-               }
+            let result = cache_file_path.iter().try_for_each(|path| {
+                if !Path::new(path).exists() {
+                    return Ok(());
+                }
                 println!(
                     "{}",
                     format!("Override Cache File '{path}'").dark_grey().bold()
                 );
                 std::fs::remove_file(path)
             });
-           if result.is_err() {
-             bail!("this app cache file is not exist, you can directly install")
-           }
+            if result.is_err() {
+                bail!("this app cache file is not exist, you can directly install")
+            }
         }
         if self
             .options
@@ -881,7 +881,8 @@ impl<'a> DownloadManager<'a> {
         } else {
             extract_to
         };
-        _7z.invoke_7z_command(extract_dir, extract_to).expect("extract zip failed");
+        _7z.invoke_7z_command(extract_dir, extract_to)
+            .expect("extract zip failed");
         Ok(())
     }
 }
