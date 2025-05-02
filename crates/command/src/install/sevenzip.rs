@@ -1,26 +1,27 @@
 use crate::install::ArchiveFormat;
 use crate::manifest::manifest_deserialize::StringArrayOrString;
+use crate::utils::system::is_broken_symlink;
 use anyhow::bail;
 use crossterm::style::Stylize;
-use std::borrow::Cow;
 use std::env;
 use std::fs::File;
 use std::io::Write;
 use std::os::windows::fs;
 use std::path::Path;
 use std::process::{Command, Stdio};
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct SevenZipStruct<'a> {
     archive_format: Box<[ArchiveFormat]>,
-    archive_cache_files_path: Cow<'a, [&'a str]>,
+    archive_cache_files_path:Vec<String>,
     archive_names: Box<[String]>,
     app_name: &'a str,
     app_version: &'a str,
     target_dir: String,
     apps_root_dir: String,
     app_manifest_path: String,
-    target_alias_name: &'a [&'a str],
+    target_alias_name: Box<[String]>,
 }
 
 impl<'a> SevenZipStruct<'a> {
@@ -28,12 +29,12 @@ impl<'a> SevenZipStruct<'a> {
         &self.app_manifest_path
     }
 
-    pub fn get_target_alias_name(&self) -> &[&str] {
-        self.target_alias_name
+    pub fn get_target_alias_name(&self) -> &[String] {
+      self.target_alias_name.as_ref()
     }
 
-    pub fn set_target_alias_name(&mut self, target_alias_name: &'a [&'a str]) {
-        self.target_alias_name = target_alias_name;
+    pub fn set_target_alias_name(&mut self, target_alias_name: Vec<String>) {
+        self.target_alias_name = target_alias_name.into_boxed_slice(); 
     }
 
     pub fn set_app_manifest_path(&mut self, app_manifest_path: &str) {
@@ -55,14 +56,14 @@ impl<'a> SevenZipStruct<'a> {
     pub fn new() -> Self {
         Self {
             archive_format: Box::new([]),
-            archive_cache_files_path: Cow::from(&[]),
+            archive_cache_files_path:  Vec::new(),
             archive_names: Box::new([]),
             app_name: "",
             app_version: "",
             target_dir: String::new(),
             apps_root_dir: "".into(),
             app_manifest_path: "".to_string(),
-            target_alias_name: &[],
+            target_alias_name: Box::new([]),
         }
     }
 
@@ -95,7 +96,12 @@ impl<'a> SevenZipStruct<'a> {
     pub fn link_current_target_version_dir(&self) -> anyhow::Result<()> {
         let target = self.get_target_app_version_dir();
         let current = self.get_target_app_current_dir();
-        std::fs::remove_dir(&current)?;
+        if Path::new(&current).exists() {
+            std::fs::remove_dir(&current)?;
+        }
+        if is_broken_symlink(&current)? {
+            std::fs::remove_file(&current)?;
+        }
         fs::symlink_dir(target, &current).expect("Create dir symlink failed");
         println!(
             "{} {} => {}",
@@ -134,12 +140,12 @@ impl<'a> SevenZipStruct<'a> {
         &self.archive_format
     }
 
-    pub fn get_archive_cache_files_path(&self) -> Cow<'a, [&'a str]> {
+    pub fn get_archive_cache_files_path(&self) ->Vec<String> {
         self.archive_cache_files_path.clone()
     }
 
-    pub fn set_archive_cache_files_path(&mut self, path: &'a [&'a str]) {
-        self.archive_cache_files_path = Cow::Borrowed(path);
+    pub fn set_archive_cache_files_path(&mut self, path: Vec<String>) {
+        self.archive_cache_files_path =  path 
     }
 
     pub fn set_archive_format(&mut self, format: &[ArchiveFormat]) {
@@ -266,8 +272,12 @@ impl<'a> SevenZipStruct<'a> {
         if result.is_err() {
             bail!("Failed to extract archive: {}", result.unwrap_err());
         }
-        self.link_current_target_version_dir()?;
         Ok(())
+    }
+
+    pub fn link_current(&self) {
+        self.link_current_target_version_dir()
+            .expect("Failed to link current version");
     }
 
     pub fn extract_archive_child_to_target_dir(
@@ -346,7 +356,6 @@ impl<'a> SevenZipStruct<'a> {
         if result.is_err() {
             bail!("Failed to extract archive: {}", result.unwrap_err());
         }
-        self.link_current_target_version_dir()?;
 
         Ok(())
     }
@@ -360,7 +369,7 @@ impl<'a> SevenZipStruct<'a> {
         if archive_items.is_empty() || archive_paths.is_empty() {
             bail!("No archive files found.");
         }
-        let _7z: String = self.load_7z_to_temp_dir()?;
+        let _7z: String = self.load_7z_to_temp_dir().expect("Failed to load 7z.exe");
         if !self.target_is_valid() {
             bail!("Target directory is not in scoop child tree.")
         }
@@ -417,7 +426,6 @@ impl<'a> SevenZipStruct<'a> {
             if result.is_err() {
                 bail!("Failed to extract archive: {}", result.unwrap_err());
             }
-            self.link_current_target_version_dir()?;
         } else {
             let target_dirs = target_dir.unwrap();
             target_dirs.iter().for_each(|target_dir| {
@@ -455,7 +463,6 @@ impl<'a> SevenZipStruct<'a> {
             if result.is_err() {
                 bail!("Failed to extract archive: {}", result.unwrap_err());
             }
-            self.link_current_target_version_dir()?;
         };
 
         Ok(())

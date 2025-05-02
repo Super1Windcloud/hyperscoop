@@ -102,7 +102,7 @@ pub async fn update_specific_app(
     if origin_options.contains(&RemoveOldVersionApp) && app_name != "hp" {
         remove_old_version(&app_name, &origin_options)?;
     }
-    install_app(&app_name, options.as_ref()).await?;
+    install_app(&app_name, options.as_ref())?;
     Ok(())
 }
 

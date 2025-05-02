@@ -2,8 +2,8 @@ use crate::init_env::{
     get_app_current_dir, get_app_current_dir_global, get_old_scoop_dir, get_scoop_cfg_path,
     init_scoop_global, init_user_scoop,
 };
-use crate::install::InstallOptions;
 use crate::install::InstallOptions::ArchOptions;
+use crate::install::{install_app, InstallOptions};
 use crate::manifest::install_manifest::InstallManifest;
 use crate::manifest::manifest_deserialize::{InstallerUninstallerStruct, StringArrayOrString};
 use crate::utils::system::get_system_default_arch;
@@ -24,6 +24,22 @@ pub enum LifecycleScripts {
     Uninstaller,
     PreUninstall,
     PostUninstall,
+}
+
+pub fn check_7zip_installed() -> anyhow::Result<()> {
+    let output = Command::new("7z")
+        .arg("i")
+        .output()
+        .expect("Failed to execute 7z command");
+    if !output.status.success() {
+        bail!("7zip is not installed. Please install it and try again.")
+    } else {
+        let output_str = String::from_utf8_lossy(&output.stdout).into_owned();
+        if !output_str.contains("7z.dll") {
+            bail!("7zip is not installed correctly. Please install it and try again.")
+        }
+    }
+    Ok(())
 }
 
 pub fn parse_lifecycle_scripts(
@@ -500,6 +516,16 @@ fn invoke_ps_scripts(
     global: bool,
     manifest_str: &str,
 ) -> anyhow::Result<()> {
+    let result = check_7zip_installed();
+    let options = if global {
+        vec![InstallOptions::Global]
+    } else {
+        vec![]
+    };
+    if result.is_err() {
+        eprintln!("{}: {}", "Error".red().bold(), result.unwrap_err());
+        install_app("7zip" ,options.as_slice())?;
+    }
     print!(
         "{}",
         format!("Running {script_type} lifecycle script......")
@@ -650,5 +676,9 @@ mod test_parse_lifecycle_scripts {
             "manifest_str",
         )
         .unwrap()
+    }
+    #[test]
+    fn test_7z_check() {
+        check_7zip_installed().unwrap();
     }
 }

@@ -1,131 +1,171 @@
-use crate::init_env::{get_apps_path, get_apps_path_global};
+use crate::init_env::{get_app_dir, get_app_dir_global};
+use crate::install::{create_shims_file, InstallOptions};
+use crate::manifest::install_manifest::InstallManifest;
+use crate::utils::system::get_system_default_arch;
 use crate::utils::utility::compare_versions;
 use anyhow::bail;
 use crossterm::style::Stylize;
 use std::cmp::Ordering;
 use std::os::windows::fs::symlink_dir;
+use std::path::{Path, PathBuf};
 
-pub fn reset_latest_version(name: String, global: bool) -> Result<(), anyhow::Error> {
-    let app_root_dir = if global {
-        get_apps_path_global()
+pub fn reset_latest_version(
+    name: &str,
+    global: bool,
+    shim_reset: bool,
+) -> Result<(), anyhow::Error> {
+    let app_dir = if global {
+        get_app_dir_global(&name)
     } else {
-        get_apps_path()
+        get_app_dir(&name)
     };
-    for entry in std::fs::read_dir(app_root_dir)? {
-        let entry = entry?;
-        let path = entry.path();
-        if path.is_dir() {
-            let dir_name = path.file_name().unwrap().to_str().unwrap();
-            if dir_name != name {
-                continue;
-            }
-            log::info!("Resetting app: {}", dir_name);
-            let mut count = 0;
-            for _ in std::fs::read_dir(&path)? {
-                count += 1;
-            }
-            if count <= 1 {
-                bail!("app 文件目录格式不正确,不存在Current目录或者至少一个版本目录")
-            } else if count == 2 {
-                let current_path = path.join("current");
-                log::info!("Resetting app: {}", current_path.display());
-                if !current_path.exists() {
-                    bail!("Current directory is not exist");
-                }
-                std::fs::remove_dir_all(&current_path)?;
-                for entry in std::fs::read_dir(&path)? {
-                    let entry = entry?;
-                    let path = entry.path();
-                    if !path.is_dir() {
-                        continue;
-                    }
-                    symlink_dir(&path, current_path.as_path())
-                        .expect("Failed to create app symlink");
-                    println!(
-                        "Resetting app  successfully {}=>{}",
-                        current_path.display().to_string().dark_green().bold(),
-                        path.display().to_string().dark_green().bold()
-                    );
-                }
-                return Ok(());
+    let child_dirs = std::fs::read_dir(&app_dir)?
+        .filter_map(|entry| {
+            let file_type = entry.as_ref().unwrap().file_type().unwrap();
+            let path = entry.as_ref().unwrap().path();
+            if file_type.is_dir() {
+                Some(path)
             } else {
-                let current_path = path.join("current");
-                if !current_path.exists() {
-                    bail!("Current directory is not exist");
-                };
-                std::fs::remove_dir_all(&current_path).unwrap_or_else(|e| {
-                    eprintln!("Failed to remove current directory, error: {}", e);
-                });
-                let mut max_version = String::new();
-                for entry in std::fs::read_dir(&path)? {
-                    let entry = entry?;
-                    let path = entry.path();
-                    if !path.is_dir() {
-                        continue;
-                    }
-                    let version_name = path.file_name().unwrap().to_str().unwrap();
-                    log::info!("Resetting app: {}@{}", name, version_name);
-                    match compare_versions(version_name.into(), max_version.clone()) {
-                        Ordering::Less => {}
-                        Ordering::Equal => {}
-                        Ordering::Greater => max_version = version_name.to_string(),
-                    }
-                }
+                None
+            }
+        })
+        .collect::<Vec<_>>(); // 不包含 current
+    let count = child_dirs.len();
+    log::info!("Resetting app: {}", name);
+    let app_dir = Path::new(&app_dir);
+    let app_current_path = app_dir.join("current");
+    if count < 1 {
+        bail!("app 文件目录为空")
+    } else if count == 1 {
+        if app_current_path.exists() {
+            std::fs::remove_dir(&app_current_path)
+                .expect(&format!("remove old app dir {:?}", app_current_path));
+        };
+        let version_path = child_dirs.first().unwrap();
+        let result = symlink_dir(version_path, app_current_path.as_path());
+        if result.is_err() {
+            std::fs::remove_dir(&app_current_path)?;
+            symlink_dir(&version_path.as_path(), app_current_path.as_path())?;
+        }
+        println!(
+            "{} {} => {}",
+            format!("Resetting '{name}' successfully")
+                .dark_blue()
+                .bold(),
+            app_current_path.display().to_string().dark_green().bold(),
+            version_path.display().to_string().dark_green().bold()
+        );
+    } else {
+        if app_current_path.exists() {
+            std::fs::remove_dir(app_current_path.as_path())?;
+        }
+        let mut max_version = String::new();
+        let _ = child_dirs.iter().for_each(|version_path| {
+            let version_name = version_path.file_name().unwrap().to_str().unwrap();
+            match compare_versions(version_name.into(), max_version.clone()) {
+                Ordering::Less => {}
+                Ordering::Equal => {}
+                Ordering::Greater => max_version = version_name.to_string(),
+            }
+        });
+        let max_version_path = app_dir.join(&max_version);
+        log::info!("Resetting app: {}", max_version_path.display());
+        symlink_dir(max_version_path, app_current_path.as_path())
+            .expect("Failed to create app symlink");
+        println!(
+            "{}",
+            format!("Resetting {}@{} successfully!", name, &max_version)
+                .dark_green()
+                .bold()
+        );
+    }
+    if shim_reset {
+        reset_shim_file(name, app_current_path, global)?;
+    }
+    Ok(())
+}
 
-                let max_version_path = path.join(&max_version);
-                log::info!("Resetting app: {}", max_version_path.display());
-                symlink_dir(max_version_path, current_path.as_path())
-                    .expect("Failed to create app symlink");
-                println!("Reset {}@{} success", name, &max_version);
-                return Ok(());
+fn reset_shim_file(app_name: &str, app_current_path: PathBuf, global: bool) -> anyhow::Result<()> {
+    let manifest_path = app_current_path.join("manifest.json");
+    if !manifest_path.exists() {
+        bail!(format!(
+            "manifest.json not found in {} dir",
+            app_current_path.display()
+        ));
+    }
+    let manifest_json = std::fs::read_to_string(manifest_path)?;
+    let manifest: InstallManifest = serde_json::from_str(&manifest_json)?;
+    let bin = manifest.bin;
+    let architecture = manifest.architecture;
+    let arch = get_system_default_arch()?;
+    let options: Box<[InstallOptions]> = if global {
+        vec![InstallOptions::Global].into_boxed_slice()
+    } else {
+        vec![].into_boxed_slice()
+    };
+
+    if bin.is_some() {
+        create_shims_file(bin.unwrap(), app_name, &options)?;
+    } else if architecture.is_some() {
+        let architecture = architecture.unwrap();
+        let base_arch = architecture.get_specific_architecture(arch.as_str());
+        if base_arch.is_some() {
+            let bin = base_arch.unwrap().clone().bin;
+            if bin.is_some() {
+                create_shims_file(bin.unwrap(), app_name, &options)?;
             }
         }
     }
-    bail!("App not found: {}", name)
+    Ok(())
 }
 
 pub fn reset_specific_version(
     name: &str,
     version: &str,
     global: bool,
+    shim_reset: bool,
 ) -> Result<(), anyhow::Error> {
     log::info!("Resetting app: {}@{}", name, version);
-    let app_root_dir = if global {
-        get_apps_path_global()
+    let app_dir = if global {
+        get_app_dir_global(&name)
     } else {
-        get_apps_path()
+        get_app_dir(&name)
     };
-
-    for entry in std::fs::read_dir(app_root_dir)? {
-        let entry = entry?;
-        let path = entry.path();
-        if path.is_dir() {
-            let dir_name = path.file_name().unwrap().to_str().unwrap();
-            if dir_name != name {
-                continue;
-            }
-            log::info!("Resetting app: {}", dir_name);
-            let mut count = 0;
-            for _ in std::fs::read_dir(&path)? {
-                count += 1;
-            }
-            if count <= 1 {
-                bail!("app 文件目录格式不正确,不存在Current目录或者至少一个版本目录")
-            } else {
-                let current_path = path.join("current");
-
-                let version_path = path.join(&version);
-                if !version_path.exists() {
-                    bail!("Version dir {} is not exist ", version);
-                }
-                std::fs::remove_dir_all(&current_path).unwrap_or_else(|e| {
-                    eprintln!("Failed to remove current directory, error: {}", e);
-                });
-                symlink_dir(version_path, current_path.as_path()).expect("Create dir symlink failed");
-                println!("Reset {}@{} success", name, &version);
-                return Ok(());
-            }
-        }
+    let version_path = Path::new(&app_dir).join(version);
+    if !version_path.exists() {
+        bail!("special version not found in {app_dir} dir")
     }
-    bail!("App not found: {}", name);
+
+    let app_dir = Path::new(&app_dir);
+    let app_current_path = app_dir.join("current");
+
+    if app_current_path.exists() {
+        std::fs::remove_dir(&app_current_path)?;
+    };
+    let result = symlink_dir(&version_path, app_current_path.as_path());
+    if result.is_err() {
+        std::fs::remove_dir(&app_current_path)?;
+        symlink_dir(version_path.as_path(), app_current_path.as_path())?;
+    }
+    println!(
+        "{}",
+        format!("Resetting {}@{} successfully!", name, version)
+            .dark_green()
+            .bold()
+    );
+    if shim_reset {
+        reset_shim_file(name, app_current_path, global)?;
+    }
+    Ok(())
+}
+
+mod test_reset {
+    #[test]
+    fn test_reset_latest() {
+        use crate::reset::reset_latest_version;
+
+        let name = "7zip-zs";
+        let global = false;
+        reset_latest_version(name, global, false ).unwrap();
+    }
 }

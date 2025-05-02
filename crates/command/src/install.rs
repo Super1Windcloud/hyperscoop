@@ -35,7 +35,7 @@ use crate::utils::utility::{nightly_version, validate_version};
 pub use download::*;
 
 /// 下载, 解压, preinstall, create_shim_shortcut, postinstall
-pub async fn install_app_from_local_manifest_file<P: AsRef<Path>>(
+pub fn install_app_from_local_manifest_file<P: AsRef<Path>>(
     manifest_path: P,
     options: Vec<InstallOptions<'_>>,
     bucket_source: Option<&str>,
@@ -91,7 +91,7 @@ pub async fn install_app_from_local_manifest_file<P: AsRef<Path>>(
     let result = if !options.contains(&InstallOptions::ForceDownloadNoInstallOverrideCache)
         && !options.contains(&InstallOptions::OnlyDownloadNoInstall)
         && !options.contains(&InstallOptions::ForceInstallOverride)
-       &&  !options.contains(&InstallOptions::UpdateTransaction)
+        && !options.contains(&InstallOptions::UpdateTransaction)
     {
         match check_before_install(&app_name, &version, &options) {
             Ok(result) => result,
@@ -106,17 +106,17 @@ pub async fn install_app_from_local_manifest_file<P: AsRef<Path>>(
                     get_app_dir_global(&app_name)
                 } else {
                     get_app_dir(&app_name)
-                }; 
+                };
                 log::debug!("remove app dir: {}", special_app_dir);
                 if Path::new(&special_app_dir).exists() && app_name.to_lowercase() != "hp" {
-                    let  result  = std::fs::remove_dir_all(&special_app_dir); 
+                    let result = std::fs::remove_dir_all(&special_app_dir);
                     match result {
                         Ok(_) => {
                             log::debug!("remove app dir success!");
-                        },
-                        Err(_) => { 
-                            log::debug!("kill {app_name}  process"); 
-                            kill_processes_using_app(&app_name); 
+                        }
+                        Err(_) => {
+                            log::debug!("kill {app_name}  process");
+                            kill_processes_using_app(&app_name);
                             std::fs::remove_dir_all(&special_app_dir)?;
                         }
                     }
@@ -163,10 +163,10 @@ pub async fn install_app_from_local_manifest_file<P: AsRef<Path>>(
     // let post_install = serde_obj.post_install;
 
     if !depends.is_none() && !options.contains(&InstallOptions::NoAutoDownloadDepends) {
-        handle_depends(depends.unwrap().as_str(), &options).await?;
+        handle_depends(depends.unwrap().as_str(), &options)?;
     }
     //  invoke aria2  to  download  file to cache
-    let download_manager = DownloadManager::new(&options, &manifest_path, bucket_source);
+    let   download_manager = DownloadManager::new(&options, &manifest_path, bucket_source);
     download_manager.start_download()?;
     if !options.contains(&InstallOptions::SkipDownloadHashCheck) {
         download_manager.check_cache_file_hash()?
@@ -175,8 +175,7 @@ pub async fn install_app_from_local_manifest_file<P: AsRef<Path>>(
         return Ok(());
     }
     //  * 提取 cache 中的zip 到 app dir
-    //  *linking   app current dir to app version dir
-    download_manager.invoke_7z_extract(extract_dir, extract_to, architecture.clone())?;
+    let senvenzip  =  download_manager.invoke_7z_extract(extract_dir, extract_to, architecture.clone())?;
     // !  parse    pre_install
     parse_lifecycle_scripts(
         LifecycleScripts::PreInstall,
@@ -196,6 +195,8 @@ pub async fn install_app_from_local_manifest_file<P: AsRef<Path>>(
         None,
     )
     .expect("parse installer scripts failed");
+    //  *linking   app current dir to app version dir
+    senvenzip.link_current(); 
     //*create_shims
     //*create_startmenu_shortcuts
     create_shim_or_shortcuts(manifest_path, &app_name, &options)
@@ -267,7 +268,7 @@ pub async fn install_app_from_local_manifest_file<P: AsRef<Path>>(
     Ok(())
 }
 
-pub async fn install_from_specific_bucket(
+pub fn install_from_specific_bucket(
     bucket_name: &str,
     app_name: &str,
     options: &[InstallOptions<'_>],
@@ -297,16 +298,15 @@ pub async fn install_from_specific_bucket(
 
     log::debug!("manifest path: {}", manifest_path.display());
 
-    Box::pin(install_app_from_local_manifest_file(
+    install_app_from_local_manifest_file(
         manifest_path,
         options.to_vec(),
         Some(bucket_name),
-    ))
-    .await?;
+    )?;
     Ok(())
 }
 
-pub async fn install_app_specific_version(
+pub fn install_app_specific_version(
     app_name: &str,
     app_version: &str,
     options: &Vec<InstallOptions<'_>>,
@@ -404,16 +404,15 @@ pub async fn install_app_specific_version(
         parent.file_name().unwrap().to_str().unwrap()
     })();
     log::info!("manifest path: {}", special_version_manifest);
-    Box::pin(install_app_from_local_manifest_file(
+    install_app_from_local_manifest_file(
         special_version_manifest,
         options.to_vec(),
         Some(source_bucket),
-    ))
-    .await?;
+    )?;
     Ok(())
 }
 
-pub async fn install_app(app_name: &str, options: &[InstallOptions<'_>]) -> Result<()> {
+pub fn install_app(app_name: &str, options: &[InstallOptions<'_>]) -> Result<()> {
     log::info!("install from app {}", app_name);
     if app_name.to_lowercase() == "hp" {
         bail!("Update self please use `hp u hp` or `hp u -f -k hp`")
@@ -433,13 +432,11 @@ pub async fn install_app(app_name: &str, options: &[InstallOptions<'_>]) -> Resu
         parent.file_name().unwrap().to_str().unwrap()
     })();
 
-    // 使用 Box::pin 对递归调用的结果进行装箱, 防止栈溢出
-    Box::pin(install_app_from_local_manifest_file(
+    install_app_from_local_manifest_file(
         manifest_path,
         options.to_vec(),
         Some(source_bucket),
-    ))
-    .await?;
+    )?;
 
     Ok(())
 }
@@ -464,13 +461,12 @@ pub async fn install_and_replace_hp(options: &[InstallOptions<'_>]) -> Result<St
     })();
     let version: VersionJSON = serde_json::from_str(&std::fs::read_to_string(&manifest_path)?)
         .expect("JSON格式错误,检查hp.json");
-    // 使用 Box::pin 对递归调用的结果进行装箱, 防止栈溢出
-    Box::pin(install_app_from_local_manifest_file(
-        manifest_path,
+
+    install_app_from_local_manifest_file(
+        manifest_path.as_path(),
         options.to_vec(),
         Some(source_bucket),
-    ))
-    .await
+    )
     .expect("hp new version install failed");
     if version.version.is_none() {
         bail!("hp version is empty")

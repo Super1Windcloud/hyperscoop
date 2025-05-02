@@ -3,8 +3,10 @@
 > [!IMPORTANT]  
 > ##  Latest Release 请到 [Github](https://github.com/Super1Windcloud/hp/releases)
  
+>[!TIP]
+> ## 如果遇到启动延时, 请关闭杀毒软件
 ------ 
-# HYPERSCOOP  
+# HYPERSCOOP(hp)
 
 ## 🐼 一个更快,更强, 更精美的  windows 包管理器,By Rust( 继承自 scoop )
 
@@ -17,7 +19,7 @@
  
 
 ## 使用前提
->  `hp b k` 查看官方的bucket列表, 'hp b add' 建议添加所有bucket
+>  `hp b k` 查看官方的bucket列表, 'hp b add' 建议添加所有bucket ,hp  i  7zip 用于生命周期脚本
 
 ## Bucket Demo 
 

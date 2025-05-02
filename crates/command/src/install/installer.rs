@@ -74,7 +74,7 @@ pub fn show_notes(notes: StringArrayOrString) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub async fn handle_depends(depends: &str, options: &[InstallOptions<'_>]) -> anyhow::Result<()> {
+pub  fn handle_depends(depends: &str, options: &[InstallOptions<'_>]) -> anyhow::Result<()> {
     if depends.contains('/') {
         let arr = depends.split('/').collect::<Vec<&str>>();
         if arr.len() != 2 {
@@ -82,9 +82,9 @@ pub async fn handle_depends(depends: &str, options: &[InstallOptions<'_>]) -> an
         }
         let bucket = arr[0].to_string();
         let app_name = arr[1].to_string();
-        install_from_specific_bucket(&bucket, &app_name, options).await?;
+        install_from_specific_bucket(&bucket, &app_name, options)?;
     } else {
-        install_app(&depends, options).await?;
+        install_app(&depends, options)?;
     }
     Ok(())
 }

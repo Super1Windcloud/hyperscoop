@@ -1,8 +1,9 @@
 use crate::init_env::get_persist_dir_path_global;
-use anyhow::bail;
+use anyhow::{bail, Context};
+use std::fs;
 use std::path::Path;
 use std::process::{Command, Stdio};
-use sysinfo::{ System};
+use sysinfo::System;
 use windows::core::PCWSTR;
 use windows::Win32::Foundation::HWND;
 use windows::Win32::UI::Shell::{IsUserAnAdmin, ShellExecuteW};
@@ -231,13 +232,40 @@ pub fn kill_processes_using_app(app_name: &str) {
             continue;
         }
         let exe = exe.unwrap().to_str().unwrap();
-        if  !exe.contains(app_name) {
+        if !exe.contains(app_name) {
             continue;
         }
-        dbg!(name , exe );
+        dbg!(name, exe);
         process.kill();
         let exit_status = process.wait();
         log::debug!("Pid {pid} exited with: {exit_status:?}");
+    }
+}
+
+pub fn is_broken_symlink(path: &str) -> anyhow::Result<bool> {
+    let path = Path::new(path);
+    if !path.exists() && !fs::symlink_metadata(path).is_ok() {
+        return Ok(false);
+    }
+    let metadata = fs::symlink_metadata(path)
+        .with_context(|| format!("Failed to get metadata for: {:?}", path))?;
+
+    if metadata.file_type().is_symlink() {
+        let target_path =
+            fs::read_link(path).with_context(|| format!("Failed to read symlink: {:?}", path))?;
+
+        // 判断目标路径是否存在（是相对路径就相对于符号链接的父目录）
+        let absolute_target = if target_path.is_relative() {
+            path.parent()
+                .unwrap_or_else(|| Path::new("/"))
+                .join(target_path)
+        } else {
+            target_path
+        };
+
+        Ok(!absolute_target.exists())
+    } else {
+        Ok(false)
     }
 }
 

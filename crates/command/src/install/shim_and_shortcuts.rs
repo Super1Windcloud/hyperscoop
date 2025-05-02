@@ -5,7 +5,9 @@ use crate::manifest::manifest_deserialize::{
     ArrayOrDoubleDimensionArray, StringOrArrayOrDoubleDimensionArray,
 };
 use crate::utils::system::get_system_default_arch;
-use crate::utils::utility::write_utf8_file;
+use crate::utils::utility::{
+    assume_yes_to_cover_shim, assume_yes_to_cover_shortcuts, write_utf8_file,
+};
 use anyhow::bail;
 use crossterm::style::Stylize;
 use shortcuts_rs::ShellLink;
@@ -304,8 +306,17 @@ pub fn start_create_shortcut<P: AsRef<Path>>(
     } else {
         Some(start_parameters)
     };
-
+    let link_path = start_menu_path.as_ref().to_path_buf();
+    if link_path.exists() {
+        let result = assume_yes_to_cover_shortcuts(link_target_path.as_str())?;
+        if result {
+            fs::remove_file(start_menu_path.as_ref())?;
+        } else {
+            return Ok(());
+        }
+    }
     let link = start_menu_path.as_ref().to_str().unwrap();
+
     println!(
         "{} {} => {}",
         "Creating  Shortcuts for".to_string().dark_blue().bold(),
@@ -750,8 +761,14 @@ pub fn create_cmd_or_bat_shim_scripts(
         &shim_cmd_path.to_string().dark_green().bold()
     );
 
-    let mut cmd_file = File::create(shim_cmd_path)?;
     let crlf_content = cmd_content.replace(LineEnding::LF.as_str(), LineEnding::CRLF.as_str());
+
+    let result = assume_yes_to_cover_shim(&shim_cmd_path)?;
+    if !result {
+        return Ok(());
+    }
+    let mut cmd_file = File::create(&shim_cmd_path)?;
+
     cmd_file.write_all(crlf_content.as_bytes())?;
 
     let shim_shell_path = format!("{out_shim_dir}\\{target_name}");
@@ -773,8 +790,13 @@ pub fn create_cmd_or_bat_shim_scripts(
         )
     };
 
-    let mut sh_file = File::create(shim_shell_path)?;
     let crlf_content = sh_content.replace(LineEnding::LF.as_str(), LineEnding::CRLF.as_str());
+    let result = assume_yes_to_cover_shim(shim_shell_path.as_ref())?;
+    if !result {
+        return Ok(());
+    }
+    let mut sh_file = File::create(shim_shell_path.as_str())?;
+
     sh_file.write_all(crlf_content.as_bytes())?;
 
     Ok(())
@@ -818,7 +840,12 @@ pub fn create_exe_type_shim_file_and_shim_bin<P1: AsRef<Path>, P2: AsRef<Path>>(
         fs::create_dir_all(&output_dir)?;
     }
     // Write the shim file
-    let mut file = File::create(&shim_path)?;
+    let result = assume_yes_to_cover_shim(shim_path.as_path().to_str().unwrap())?;
+    if !result {
+        return Ok(());
+    }
+    let mut file = File::create(&shim_path)?; // truncate
+
     let crlf_content = content.replace(LineEnding::LF.as_str(), LineEnding::CRLF.as_str());
 
     file.write_all(crlf_content.as_bytes())?;

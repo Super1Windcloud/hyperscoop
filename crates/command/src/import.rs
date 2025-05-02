@@ -63,7 +63,7 @@ pub async fn install_apps(app_info: Vec<(&str, &str, &str)>, path: String) -> Re
 }
 
 async fn invoke_hp_install(app_name: &str, bucket: &str) -> Result<(), anyhow::Error> {
-    install_from_specific_bucket(bucket, app_name, &*vec![]).await?;
+    install_from_specific_bucket(bucket, app_name, &*vec![])?;
     Ok(())
 }
 

@@ -264,7 +264,7 @@ impl Buckets {
                     .add_attribute(Attribute::Bold)
                     .fg(Color::Green),
             ])
-            .add_rows(combined_buckets.as_slice().di);
+            .add_rows(combined_buckets.as_slice());
 
         let column = table.column_mut(3).expect("Our table has three columns");
         column.set_cell_alignment(CellAlignment::Center);

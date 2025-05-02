@@ -185,10 +185,35 @@ pub fn remove_bom_and_control_chars_from_utf8_file<P: AsRef<Path>>(
     Ok(content)
 }
 
-pub fn assume_yes_to_cover_shim(path: &String) -> anyhow::Result<bool> {
+pub fn assume_yes_to_cover_shim(path: &str ) -> anyhow::Result<bool> {
     use dialoguer::Confirm;
     let message = format!("文件{path}已存在,建议检查,是否进行覆盖?(y/n)")
-        .dark_red()
+        .dark_cyan()
+        .bold()
+        .to_string();
+
+    match Confirm::new()
+        .with_prompt(message)
+        .show_default(false)
+        .default(false)
+        .interact()
+    {
+        Ok(yes) => {
+            if yes {
+                Ok(true)
+            } else {
+                Ok(false)
+            }
+        }
+        Err(_) => Ok(false),
+    }
+}
+
+
+pub fn assume_yes_to_cover_shortcuts (path: &str ) -> anyhow::Result<bool> {
+    use dialoguer::Confirm;
+    let message = format!("快捷方式{path}已存在,建议检查,是否进行覆盖?(y/n)")
+        .dark_cyan()
         .bold()
         .to_string();
 

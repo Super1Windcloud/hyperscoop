@@ -48,9 +48,14 @@ pub struct DownloadManager<'a> {
     origin_cache_file_names: Box<[String]>,
     archive_files_format: Box<[ArchiveFormat]>,
     exe_setup: bool,
+    pub seven_zip: SevenZipStruct<'a>,
 }
 
 impl<'a> DownloadManager<'a> {
+    pub fn get_senven_zip_struct(&'a mut self) -> &'a mut SevenZipStruct<'a> {
+        &mut self.seven_zip
+    }
+
     pub fn save_install_info(&self) -> anyhow::Result<()> {
         let current_dir = self.get_app_current_dir();
         let arch = self.get_install_arch().as_ref();
@@ -91,8 +96,8 @@ impl<'a> DownloadManager<'a> {
         &self.install_arch
     }
 
-    pub fn get_final_cache_file_path(&self) -> &[String] {
-        &self.final_cache_file_path
+    pub fn get_final_cache_file_path(& self) ->  Box<[String]> {
+        self.final_cache_file_path.clone()
     }
 
     pub fn get_origin_cache_file_names(&self) -> &[String] {
@@ -222,8 +227,8 @@ impl<'a> DownloadManager<'a> {
         Ok(())
     }
 
-    pub fn get_target_rename_alias(&self) -> Vec<&str> {
-        self.target_rename_alias.iter().map(|s| &**s).collect()
+    pub fn get_target_rename_alias(&self) -> Vec<String> {
+        self.target_rename_alias.iter().map(|s | s.to_string()).collect()
     }
 
     pub fn set_target_rename_alias(&mut self, new_alias: Vec<&str>) {
@@ -511,6 +516,7 @@ impl<'a> DownloadManager<'a> {
             origin_cache_file_names: Box::new([]),
             archive_files_format: Box::new([]),
             exe_setup: false,
+            seven_zip: SevenZipStruct::new(),
         };
         match download.init(manifest_path) {
             Ok(_) => download,
@@ -823,10 +829,11 @@ impl<'a> DownloadManager<'a> {
         extract_dir: Option<StringArrayOrString>,
         extract_to: Option<StringArrayOrString>,
         architecture: Option<ArchitectureObject>,
-    ) -> anyhow::Result<()> {
-        let mut _7z = SevenZipStruct::new();
-        let cache_files = self.get_final_cache_file_path();
-        let str_slice: Vec<&str> = cache_files.iter().map(String::as_str).collect();
+    ) -> anyhow::Result<SevenZipStruct> {
+        let  mut _7z = SevenZipStruct::new();
+      
+        let cache_files = self.get_final_cache_file_path(); 
+        let cache_files =  cache_files.iter().cloned().collect::<Vec<String>>();
 
         if self.options.contains(&Global) {
             let apps = get_apps_path_global();
@@ -834,13 +841,13 @@ impl<'a> DownloadManager<'a> {
         } else {
             _7z.set_apps_root_dir(get_apps_path())
         }
-        _7z.set_archive_cache_files_path(str_slice.as_slice());
+        _7z.set_archive_cache_files_path(cache_files);
         _7z.set_app_name(self.app_name);
         _7z.set_archive_names(self.origin_cache_file_names.as_ref());
         _7z.set_app_version(self.app_version.as_str());
         _7z.set_app_manifest_path(self.manifest_path);
         let binding = self.get_target_rename_alias();
-        _7z.set_target_alias_name(binding.as_ref());
+        _7z.set_target_alias_name(binding);
         _7z.set_archive_format(self.get_archive_files_format());
         _7z.init();
         let extract_dir = if architecture.is_some() {
@@ -883,7 +890,12 @@ impl<'a> DownloadManager<'a> {
         };
         _7z.invoke_7z_command(extract_dir, extract_to)
             .expect("extract zip failed");
-        Ok(())
+
+        Ok(_7z.clone()) 
+    }
+  
+    pub fn link_current(&self) {
+       
     }
 }
 

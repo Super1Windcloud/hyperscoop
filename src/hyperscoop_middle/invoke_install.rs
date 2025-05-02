@@ -5,19 +5,19 @@ use anyhow::bail;
 use command_util_lib::install::*;
 use command_util_lib::utils::system::{get_system_default_arch, is_admin, request_admin};
 use crossterm::style::Stylize;
-use std::path::Path; 
+use std::path::Path;
 
 pub async fn execute_install_command(args: InstallArgs) -> Result<(), anyhow::Error> {
     let options = inject_user_options(&args)?;
     if options.contains(&InstallOptions::CheckCurrentVersionIsLatest) {
         auto_check_hp_update(None).await?;
     }
-  if options.contains(&InstallOptions::UpdateHpAndBuckets) {
-    println!("{}", "开始更新hp和buckets".dark_cyan().bold());
-    let update_option = create_update_options(&options)?;
-    update_buckets()?;
-    update_hp(&update_option).await?;
-  }
+    if options.contains(&InstallOptions::UpdateHpAndBuckets) {
+        println!("{}", "开始更新hp和buckets".dark_cyan().bold());
+        let update_option = create_update_options(&options)?;
+        update_buckets()?;
+        update_hp(&update_option).await?;
+    }
     if args.app_name.is_none() {
         return Ok(());
     }
@@ -33,7 +33,7 @@ pub async fn execute_install_command(args: InstallArgs) -> Result<(), anyhow::Er
     if Path::new(&app_name).exists() {
         log::debug!("manifest file {}", app_name);
         let manifest_path = app_name;
-        install_app_from_local_manifest_file(manifest_path, options, None).await?;
+        install_app_from_local_manifest_file(manifest_path, options, None)?;
         return Ok(());
     }
     if contains_special_char(app_name.as_str()) {
@@ -51,7 +51,7 @@ pub async fn execute_install_command(args: InstallArgs) -> Result<(), anyhow::Er
             if bucket.is_empty() || app_name.is_empty() {
                 bail!("指定的App格式不正确")
             }
-            install_from_specific_bucket( &bucket, &app_name, &options).await?;
+            install_from_specific_bucket(&bucket, &app_name, &options)?;
             return Ok(());
         } else if split_arg.iter().count() > 2 || split_arg.len() == 1 {
             bail!("指定的APP格式错误")
@@ -61,12 +61,12 @@ pub async fn execute_install_command(args: InstallArgs) -> Result<(), anyhow::Er
         let split_version = app_name.split('@').collect::<Vec<&str>>();
         if split_version.iter().count() == 2 {
             let app_name = split_version[0].trim().to_lowercase();
-             let app_version = split_version[1].trim().to_lowercase();
-            log::info!("install   {} specific version {}", app_name , app_version);
-           if app_name.is_empty() || app_version.is_empty() {
+            let app_version = split_version[1].trim().to_lowercase();
+            log::info!("install   {} specific version {}", app_name, app_version);
+            if app_name.is_empty() || app_version.is_empty() {
                 bail!("指定的APP格式错误")
             }
-            install_app_specific_version(&app_name, &app_version, &options).await?;
+            install_app_specific_version(&app_name, &app_version, &options)?;
             return Ok(());
         } else if split_version.len() == 1 || split_version.len() > 2 {
             bail!("指定的APP格式错误")
@@ -75,7 +75,7 @@ pub async fn execute_install_command(args: InstallArgs) -> Result<(), anyhow::Er
     if contains_special_char(app_name.as_str()) {
         bail!("指定的APP格式错误")
     }
-    install_app(app_name.as_str(), &options).await?;
+    install_app(app_name.as_str(), &options)?;
     Ok(())
 }
 
