@@ -165,7 +165,7 @@ pub fn install_app_from_local_manifest_file<P: AsRef<Path>>(
     if !depends.is_none() && !options.contains(&InstallOptions::NoAutoDownloadDepends) {
         handle_depends(depends.unwrap().as_str(), &options)?;
     }
-    //  invoke aria2  to  download  file to cache
+    //   **invoke aria2  to  download  file to cache
     let   download_manager = DownloadManager::new(&options, &manifest_path, bucket_source);
     download_manager.start_download()?;
     if !options.contains(&InstallOptions::SkipDownloadHashCheck) {

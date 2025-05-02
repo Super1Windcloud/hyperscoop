@@ -5,6 +5,9 @@ use crate::init_hyperscoop;
 use crate::manifest::manifest_deserialize::ArchitectureObject;
 use crate::utils::get_file_or_dir_metadata::get_dir_updated_time;
 use crate::utils::safe_check::is_directory_empty;
+use comfy_table::modifiers::UTF8_ROUND_CORNERS;
+use comfy_table::presets::UTF8_BORDERS_ONLY;
+use comfy_table::{Attribute, Cell, Color, ContentArrangement, Table};
 use crossterm::style::Stylize;
 use rayon::prelude::*;
 use regex::Regex;
@@ -123,6 +126,64 @@ pub fn get_install_json_bucket(install_json: &String) -> anyhow::Result<String> 
     }
     Ok(bucket.unwrap())
 }
+
+pub fn list_specific_installed_apps_extra(
+    query: Vec<String>,
+    is_global: bool,
+) -> anyhow::Result<()> {
+    let package = list_all_installed_apps_refactor(is_global)?;
+    let mut filtered_apps = package
+        .into_iter()
+        .filter(|app| {
+            query
+                .iter()
+                .any(|q| app.name.to_lowercase() == q.to_lowercase() || app.name.contains(q))
+        })
+        .collect::<Vec<_>>();
+    filtered_apps.sort_by(|a, b| a.name.cmp(&b.name));
+
+    let count = filtered_apps.len();
+    if count == 0 {
+        println!("{}", "No app To Found !".to_string().dark_cyan().bold());
+        return Ok(());
+    }
+
+    let installed_apps = filtered_apps
+        .iter()
+        .map(|app| {
+            vec![
+                app.name.clone(),
+                app.version.clone(),
+                app.bucket.clone(),
+                app.update_date.clone(),
+            ]
+        })
+        .collect::<Vec<_>>();
+    let mut table = Table::new();
+    table
+        .load_preset(UTF8_BORDERS_ONLY)
+        .apply_modifier(UTF8_ROUND_CORNERS)
+        .set_content_arrangement(ContentArrangement::Dynamic)
+        .set_header(vec![
+            Cell::new("AppName")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::Green),
+            Cell::new("AppVersion")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::Green),
+            Cell::new("SourceBucket")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::Green),
+            Cell::new("UpdatedTime")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::Green),
+        ])
+        .add_rows(installed_apps.as_slice());
+
+    println!("{table}");
+
+    Ok(())
+}
 pub fn list_specific_installed_apps(query: Vec<String>, is_global: bool) -> anyhow::Result<()> {
     let mut package = list_all_installed_apps_refactor(is_global)?;
     let apps_name_list = package
@@ -232,8 +293,53 @@ pub fn get_max_field_widths(apps: &[AppInfo]) -> (usize, usize, usize, usize) {
     )
 }
 
-pub fn display_app_info( is_global : bool) -> anyhow::Result<()> {
-    let mut package = list_all_installed_apps_refactor(is_global)? ; 
+pub fn display_apps_info_extra(is_global: bool) -> anyhow::Result<()> {
+    let mut package = list_all_installed_apps_refactor(is_global)?;
+    package.sort_by(|a, b| a.name.cmp(&b.name));
+    let installed_apps = package
+        .iter()
+        .map(|app| {
+            vec![
+                app.name.clone(),
+                app.version.clone(),
+                app.bucket.clone(),
+                app.update_date.clone(),
+            ]
+        })
+        .collect::<Vec<_>>();
+    let counts = package.len();
+    println!(
+        "{} :{} \n",
+        "Installed Apps Count".dark_cyan().bold(),
+        counts.to_string().dark_cyan().bold()
+    );
+
+    let mut table = Table::new();
+    table
+        .load_preset(UTF8_BORDERS_ONLY)
+        .apply_modifier(UTF8_ROUND_CORNERS)
+        .set_content_arrangement(ContentArrangement::Dynamic)
+        .set_header(vec![
+            Cell::new("AppName")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::Green),
+            Cell::new("AppVersion")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::Green),
+            Cell::new("SourceBucket")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::Green),
+            Cell::new("UpdatedTime")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::Green),
+        ])
+        .add_rows(installed_apps.as_slice());
+
+    println!("{table}");
+    Ok(())
+}
+pub fn display_app_info(is_global: bool) -> anyhow::Result<()> {
+    let mut package = list_all_installed_apps_refactor(is_global)?;
     package.sort_by(|a, b| a.name.cmp(&b.name));
 
     let counts = package.len();
@@ -298,7 +404,7 @@ pub fn display_app_info( is_global : bool) -> anyhow::Result<()> {
         "{}",
         "-".to_string().repeat(all_widths + 8).dark_green().bold()
     );
-   Ok(())
+    Ok(())
 }
 fn get_apps_update_date(apps_path: &String) -> Vec<String> {
     let mut app_update_date = vec![];
@@ -413,6 +519,6 @@ mod test_list {
     use super::*;
     #[test]
     fn test_filter_apps_path() {
-        list_all_installed_apps_refactor(false ).unwrap();
+        list_all_installed_apps_refactor(false).unwrap();
     }
 }
