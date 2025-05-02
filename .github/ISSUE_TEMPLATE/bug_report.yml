@@ -9,6 +9,16 @@ body:
         ## 在提交问题之前，请确认以下事项：
         3. 请 **务必** 给issue填写一个简洁明了的标题，以便他人快速检索
 
+  - type: input
+    id: version
+    attributes:
+      label: "当前使用的软件版本 / Current Software Version"
+      description: |
+        请填写你当前使用的软件版本号， ⚠️ 请优先确保你使用的是最新版本，以避免已修复的问题。
+      placeholder: "例如：1.2.3"
+    validations:
+      required: true
+
   - type: textarea
     id: description
     attributes:
@@ -45,12 +55,3 @@ body:
     validations:
       required: true
 
-  - type: input
-    id: version
-    attributes:
-      label: "当前使用的软件版本 / Current Software Version"
-      description: |
-        请填写你当前使用的软件版本号， ⚠️ 请优先确保你使用的是最新版本，以避免已修复的问题。
-      placeholder: "例如：1.2.3"
-    validations:
-      required: true
