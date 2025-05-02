@@ -2308,6 +2308,7 @@ dependencies = [
  "clap",
  "clap-verbosity-flag",
  "color-eyre",
+ "comfy-table",
  "command_util_lib",
  "console",
  "core-foundation 0.10.0",

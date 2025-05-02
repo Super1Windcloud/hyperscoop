@@ -1,12 +1,15 @@
 use crate::command_args::status::StatusArgs;
+use comfy_table::modifiers::UTF8_ROUND_CORNERS;
+use comfy_table::presets::UTF8_BORDERS_ONLY;
+use comfy_table::{Attribute, Cell, CellAlignment, Color, ContentArrangement, Table};
 use command_util_lib::init_env::{
     get_apps_path, get_apps_path_global, get_buckets_root_dir_path,
     get_buckets_root_dir_path_global,
 };
 use command_util_lib::list::VersionJSON;
-use crossterm::style::Stylize;
 use rayon::prelude::*;
 use std::collections::HashMap;
+
 pub fn execute_status_command(status_args: StatusArgs) -> Result<(), anyhow::Error> {
     let apps_path = if status_args.global {
         get_apps_path_global()
@@ -54,56 +57,56 @@ pub fn execute_status_command(status_args: StatusArgs) -> Result<(), anyhow::Err
                 .unwrap_or_else(|| "Not Found".to_string())
         })
         .collect();
-    let max_installed_len = current_versions.iter().map(|s| s.len()).max().unwrap_or(0) + 4;
-    let max_latest_len = latest_versions.iter().map(|s| s.len()).max().unwrap_or(0) + 4;
-    let max_name_len = install_apps.iter().map(|s| s.len()).max().unwrap_or(0) + 4;
-
-    let mut executed = false;
-    let name_interval = max_name_len - 4;
-    let installed_interval = max_installed_len - 9;
-    let latest_interval = max_latest_len - 6;
+    // let max_installed_len = current_versions.iter().map(|s| s.len()).max().unwrap_or(0) + 4;
+    // let max_latest_len = latest_versions.iter().map(|s| s.len()).max().unwrap_or(0) + 4;
+    // let max_name_len = install_apps.iter().map(|s| s.len()).max().unwrap_or(0) + 4;
+    //
+    // let name_interval = max_name_len - 4;
+    // let installed_interval = max_installed_len - 9;
+    // let latest_interval = max_latest_len - 6;
+    let mut final_installed_apps = Vec::new();
     for (app_name, (current_version, latest_version)) in install_apps
         .iter()
         .zip(current_versions.iter().zip(latest_versions.iter()))
     {
-        if executed == false {
-            println!(
-                "{}{}{}{}{}{}{}",
-                "Name".dark_green().bold(),
-                " ".repeat(name_interval),
-                "Installed".dark_green().bold(),
-                " ".repeat(installed_interval),
-                "Latest".dark_green().bold(),
-                " ".repeat(latest_interval),
-                "NeedUpdate".dark_green().bold(),
-            );
-
-            println!(
-                "{}{}{}{}{}{}{}",
-                "____".dark_green().bold(),
-                " ".repeat(name_interval),
-                "_________".dark_green().bold(),
-                " ".repeat(installed_interval),
-                "______".dark_green().bold(),
-                " ".repeat(latest_interval),
-                "__________".dark_green().bold(),
-            );
-        }
-        executed = true;
         if latest_version > current_version {
-            println!(
-                "{:<width1$}{:<width2$}{:<width3$}{:<width1$}",
-                app_name,
-                current_version,
-                latest_version,
-                "YES",
-                width1 = max_name_len,
-                width2 = max_installed_len,
-                width3 = max_latest_len,
-            );
+            final_installed_apps.push(vec![
+                app_name.to_string(),
+                current_version.to_string(),
+                latest_version.to_string(),
+                "Yes".to_string(),
+            ]);
         }
     }
+    display_status_information(final_installed_apps.as_slice());
+
     Ok(())
+}
+
+fn display_status_information(install_apps: &[Vec<String>]) {
+    let mut table = Table::new();
+    table
+        .load_preset(UTF8_BORDERS_ONLY)
+        .apply_modifier(UTF8_ROUND_CORNERS)
+        .set_content_arrangement(ContentArrangement::Dynamic)
+        .set_header(vec![
+            Cell::new("AppName")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::DarkCyan),
+            Cell::new("InstalledVersion")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::DarkCyan),
+            Cell::new("LatestVersion")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::DarkCyan),
+            Cell::new("NeedUpdate")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::DarkCyan),
+        ])
+        .add_rows(install_apps.as_ref());
+    let column = table.column_mut(3).expect("Our table has three columns");
+    column.set_cell_alignment(CellAlignment::Center);
+    println!("{}", table);
 }
 
 fn build_version_map(
@@ -160,8 +163,6 @@ fn build_version_map(
         .collect();
     Ok(version_map)
 }
-
-
 
 mod test_version_map {
 
