@@ -45,12 +45,12 @@ body:
     validations:
       required: true
 
-  - type: dropdown
+  - type: input
+    id: version
     attributes:
-      label: "操作系统 / OS"
-      options:
-        - "Windows"
-        - "Linux"
-        - "MacOS"
+      label: "当前使用的软件版本 / Current Software Version"
+      description: |
+        请填写你当前使用的软件版本号， ⚠️ 请优先确保你使用的是最新版本，以避免已修复的问题。
+      placeholder: "例如：1.2.3"
     validations:
       required: true
