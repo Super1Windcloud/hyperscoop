@@ -2,14 +2,14 @@
 set shell := ["pwsh.exe", "-NoProfile", "-c"]
 
 release:
-    cargo build  --release
+    cargo  br
     just  update_hash
     just  upload
 
 
-release_build:
-    cargo br
-    just update_hash
+publish_release:
+    just  update_hash
+    just  upload
 
 
 publish:
