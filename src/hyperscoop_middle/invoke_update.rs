@@ -190,11 +190,28 @@ if exist "{old_version_dir}" (
     )
 )
 
-rename  "{hp_current}\hp_updater.exe" "{hp_current}\hp.exe" > nul
-if not exist "{hp_current}\hp.exe" (
-    echo ERROR: Failed to rename hp.exe to hp.old.exe.
+cd /d "{hp_current}"
+
+
+if exist "hp.exe" (
+    del /f /q "hp.exe" > nul
+    if exist "hp.exe" (
+        echo ERROR: Failed to delete hp.exe.
+        exit /b 1
+    )
+)
+
+if exist "hp_updater.exe" (
+    rename "hp_updater.exe" "hp.exe"
+) else (
+    echo ERROR: hp_updater.exe 不存在！
     exit /b 1
 )
+if not exist "hp.exe" (
+    echo ERROR: Failed to rename hp_updater.exe to hp.exe.
+    exit /b 1
+)
+
 endlocal
 "#
     );
