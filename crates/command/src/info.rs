@@ -542,8 +542,7 @@ fn print_pretty_info(info: DashSet<Vec<(String, String)>>) {
                     }
 
                     "Description" => {
-                          i+=1;
-                        format_key_value!(&key, &value, max_key_length, terminal_max_width)
+                         format_key_value!(&key, &value, max_key_length, terminal_max_width)
                     }
                     _ => println!(
                         "{}\t{:<width2$}",
