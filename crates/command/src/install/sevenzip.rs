@@ -495,8 +495,8 @@ Expand-InnoArchive "{inno_file}" "{target_dir}"  -Removal
                             let child_dir = format!("{}\\{}", target_dir, child_dir);
                             self.move_child_dir_to_root(&child_dir, target_dir)
                                 .expect("Failed to move child dir to root");
-                           println!("✅");
-                           
+                            println!("✅");
+
                             Ok(())
                         }
                     }
