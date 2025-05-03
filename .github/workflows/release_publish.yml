@@ -1,7 +1,7 @@
 name: Hp  Release Pipeline
 on:
   pull_request:
-#  push:
+  push:
     branches: ["main"]
 permissions:
   contents: write
@@ -25,17 +25,6 @@ jobs:
         with:
           cache-on-failure: true
       - uses: dtolnay/rust-toolchain@stable
-
-      # 完整Rust缓存
-      - uses: Swatinem/rust-cache@v2
-        with:
-          key: ${{ runner.os }}-rust-${{ matrix.arch }}-${{ hashFiles('**/Cargo.lock') }}
-          workspaces: |
-            ~/.cargo/bin
-            ~/.cargo/registry
-            ~/.cargo/git
-            ~/.rustup
-            target
 
 
       - name: Cache cargo registry
