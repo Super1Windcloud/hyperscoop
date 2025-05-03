@@ -108,7 +108,9 @@ pub fn output_current_exe(path: PathBuf, shim_root_dir: &str) -> anyhow::Result<
     let parent = path.parent().unwrap();
     if parent.to_str().unwrap() != shim_root_dir {
         println!("{}", path.display().to_string().dark_green().bold());
+        return Ok(());
     }
+  
     let path = path.to_str().unwrap();
 
     let splits = path.split(".").collect::<Vec<&str>>();
