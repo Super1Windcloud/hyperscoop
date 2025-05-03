@@ -15,6 +15,7 @@ use std::io::Write;
 use std::path::Path;
 use std::process::Command;
 
+
 pub async fn execute_update_command(update_args: UpdateArgs) -> Result<(), anyhow::Error> {
     let options = inject_update_user_options(&update_args)?;
     if update_args.update_self_and_buckets {
@@ -80,7 +81,7 @@ pub(crate) fn update_buckets() -> Result<(), anyhow::Error> {
     // if !status {
     //     return Ok(());
     // }
-    update_all_buckets_bar().expect("update all buckets bar failed");
+    update_all_buckets_bar_parallel().expect("update all buckets bar failed");
     update_scoop_config_last_update_time();
     Ok(())
 }

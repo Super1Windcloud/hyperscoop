@@ -3,6 +3,7 @@ use crate::utils::git::{
     git_pull_update_repo, git_pull_update_repo_with_scoop, local_scoop_latest_commit,
     remote_latest_scoop_commit,
 };
+use rayon::prelude::*;
 use std::fs;
 use std::path::Path;
 pub(crate) mod update;
@@ -24,7 +25,6 @@ use crate::utils::utility::get_official_bucket_path;
 use anyhow::bail;
 use crossterm::style::Stylize;
 use indicatif::ProgressDrawTarget;
-use rayon::prelude::*;
 pub use update::*;
 
 const FINISH_MESSAGE: &str = "✅";
@@ -74,9 +74,9 @@ pub fn transform_update_options_to_install(
     if update_options.contains(&ForceUpdateOverride) {
         options.push(InstallOptions::ForceInstallOverride)
     }
-   if update_options.contains(&UpdateOptions::InteractiveInstall)  {
-       options.push(InstallOptions::InteractiveInstall)
-   }
+    if update_options.contains(&UpdateOptions::InteractiveInstall) {
+        options.push(InstallOptions::InteractiveInstall)
+    }
     options
 }
 
@@ -149,7 +149,7 @@ pub fn update_scoop_bar() -> anyhow::Result<()> {
     Ok(())
 }
 
-pub fn update_all_buckets_bar() -> anyhow::Result<()> {
+pub fn update_all_buckets_bar_serial() -> anyhow::Result<()> {
     let progress_style = style(Some(ProgressOptions::Hide), Some(Message::suffix()));
     let official_buckets = get_include_buckets_name()?;
     let longest_bucket_name = official_buckets
@@ -170,37 +170,71 @@ pub fn update_all_buckets_bar() -> anyhow::Result<()> {
                     .with_prefix(format!("🐼 {:<longest_bucket_name$}", bucket))
                     .with_finish(ProgressFinish::WithMessage(FINISH_MESSAGE.into())),
             );
+
             pb.set_position(0);
             pb.set_draw_target(ProgressDrawTarget::stdout());
             (pb, bucket_path)
         })
         .collect::<Vec<_>>();
-    let  _  = outdated_buckets
+
+    let _ = outdated_buckets.iter().try_for_each(|(pb, bucket_path)| {
+        let callback = gen_stats_callback(pb);
+        let result = git_pull_update_repo(bucket_path, &callback);
+        if let Err(e) = result {
+            pb.finish_with_message(format!("❌ {}", e.to_string()));
+        }
+        pb.finish_with_message(FINISH_MESSAGE);
+        Ok(())
+    }) as anyhow::Result<()>;
+    Ok(())
+}
+
+pub fn update_all_buckets_bar_parallel() -> anyhow::Result<()> {
+    let progress_style = style(Some(ProgressOptions::Hide), Some(Message::suffix()));
+    let official_buckets = get_include_buckets_name()?;
+    let longest_bucket_name = official_buckets
+        .iter()
+        .map(|item| item.len())
+        .max()
+        .unwrap_or(0);
+
+    let mp = MultiProgress::new();
+    mp.set_draw_target(ProgressDrawTarget::stdout());
+    mp.set_move_cursor(true);
+    let outdated_buckets = official_buckets
+        .into_iter()
+        .map(|bucket| {
+            let bucket_path = get_official_bucket_path(bucket.clone());
+
+            let pb = mp.add(
+                ProgressBar::new(1)
+                    .with_style(progress_style.clone())
+                    .with_message("Checking updates")
+                    .with_prefix(format!("🐼 {:<longest_bucket_name$}", bucket))
+                    .with_finish(ProgressFinish::WithMessage(FINISH_MESSAGE.into())),
+            );
+
+            pb.set_position(0);
+            pb.set_draw_target(ProgressDrawTarget::stdout());
+            (pb, bucket_path)
+        })
+        .collect::<Vec<_>>();
+
+    let _ = outdated_buckets
         .par_iter()
         .try_for_each(|(pb, bucket_path)| {
             let callback = gen_stats_callback(pb);
             let result = git_pull_update_repo(bucket_path, &callback);
             if let Err(e) = result {
                 pb.finish_with_message(format!("❌ {}", e.to_string()));
+                return Err(e);
             }
-            pb.finish_with_message(FINISH_MESSAGE);  
+            pb.finish_with_message(FINISH_MESSAGE);
             Ok(())
-        }) as anyhow::Result<()> ; 
-    #[allow(unused_doc_comments)]
-    /// replace rayon  iterator  running  with foreach  for  map  method
-    /// outdated_buckets.par_iter() // 来自 rayon
-    ///  .for_each(|(pb, bucket_path)| {
-    ///     let callback = gen_stats_callback(pb);
-    ///     let result = git_pull_update_repo(bucket_path, &callback);
-    ///    if let Err(e) = result {
-    ///        pb.finish_with_message(format!("❌ {}", e));
-    ///    } else {
-    ///       pb.finish_with_message(FINISH_MESSAGE);
-    ///   }
-    ///    });
+        });
+
     Ok(())
 }
-
 pub fn get_include_buckets_name() -> anyhow::Result<Vec<String>> {
     let bucket_path = get_buckets_path()?;
     let mut finial_bucket_path: Vec<String> = Vec::new();

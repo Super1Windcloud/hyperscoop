@@ -1,7 +1,7 @@
 use crate::init_env::*;
 use crate::install::{create_shim_or_shortcuts, InstallOptions};
 use crate::list::VersionJSON;
-use crate::update::{check_bucket_update_status, update_all_buckets_bar};
+use crate::update::{check_bucket_update_status, update_all_buckets_bar_parallel};
 use crate::utils::utility::update_scoop_config_last_update_time;
 use anyhow::bail;
 use crossterm::style::Stylize;
@@ -35,7 +35,7 @@ pub fn check_before_install(
         // update_scoop_bar()?;
         let status = check_bucket_update_status()?;
         if status {
-            update_all_buckets_bar()?;
+            update_all_buckets_bar_parallel()?;
             update_scoop_config_last_update_time();
         }
     }
@@ -132,7 +132,7 @@ pub fn check_before_install(
             std::fs::remove_dir_all(app_dir_path)?;
             Ok(0)
         }
-    } 
+    }
     else if app_version_path.exists() && std::fs::symlink_metadata(&app_current_dir).is_err() {
         let manifest_json = if options.contains(&InstallOptions::Global) {
             get_app_dir_version_dir_manifest_global(name, version)
@@ -229,7 +229,7 @@ pub fn check_before_install(
             );
             Ok(0)
         }
-    } 
+    }
     else if std::fs::symlink_metadata(&app_current_dir).is_ok() && !app_current_path.exists()
     //exists默认会解析符号链接
     {

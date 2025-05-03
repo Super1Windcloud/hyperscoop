@@ -11,7 +11,7 @@ use std::{
     Arc,
   },
 };
-
+use std::sync::Mutex;
 use gix::progress::Unit;
 use indicatif::ProgressStyle;
 
@@ -243,7 +243,7 @@ impl Default for MultiProgressHandler {
 
 pub  fn gen_stats_callback(
   pb: &indicatif::ProgressBar,
-) -> impl Fn(git2::Progress<'_>, bool) -> bool + '_ {
+) -> impl Fn(git2::Progress, bool) -> bool + '_ {
   |stats, thin| {
     if thin {
       pb.set_position(stats.indexed_objects() as u64);
@@ -261,5 +261,25 @@ pub  fn gen_stats_callback(
   }
 }
 
+pub fn gen_stats_callback_extra<'a>(
+  pb: Arc<Mutex<indicatif::ProgressBar>>,
+) -> impl Fn(git2::Progress, bool) -> bool + Send + Sync + 'a {
+  move |stats, thin| {
+    let   pb = pb.lock().unwrap();
+    if thin { 
+      pb.set_position(stats.indexed_objects() as u64);
+      pb.set_length(stats.total_objects() as u64);
+    } else if stats.received_objects() == stats.total_objects() {
+      pb.set_position(stats.indexed_deltas() as u64);
+      pb.set_length(stats.total_deltas() as u64);
+      pb.set_message("Resolving deltas");
+    } else if stats.total_objects() > 0 {
+      pb.set_position(stats.received_objects() as u64);
+      pb.set_length(stats.total_objects() as u64);
+      pb.set_message("Receiving objects");
+    }
+    true
+  }
+}
 
 

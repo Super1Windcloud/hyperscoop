@@ -40,7 +40,10 @@ line-ending = {workspace = true}
 magic-crypt = "4.0.1"
 console = "0.15.11"
 comfy-table = {workspace = true}
-colored = "3.0.0"
+indicatif ={workspace = true}
+
+
+
 
 [workspace.dependencies]
 human-panic = "2.0.2"
