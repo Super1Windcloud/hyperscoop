@@ -1,19 +1,16 @@
 use crate::init_env::{get_app_current_bin_path, get_shims_root_dir, get_shims_root_dir_global};
 use crate::install::InstallOptions;
+use crate::install::InstallOptions::InteractiveInstall;
 use crate::manifest::install_manifest::InstallManifest;
 use crate::manifest::manifest_deserialize::{
     ArrayOrDoubleDimensionArray, StringOrArrayOrDoubleDimensionArray,
 };
 use crate::utils::system::get_system_default_arch;
-use crate::utils::utility::{
-    assume_yes_to_cover_shim, assume_yes_to_cover_shortcuts, write_utf8_file,
-};
+use crate::utils::utility::{assume_yes_to_cover_shortcuts, write_utf8_file};
 use anyhow::bail;
 use crossterm::style::Stylize;
 use shortcuts_rs::ShellLink;
 use std::fs;
-use std::fs::File;
-use std::io::Write;
 use std::path::{Path, PathBuf};
 use textwrap::LineEnding;
 
@@ -29,16 +26,12 @@ pub fn create_shim_or_shortcuts(
     let bin = serde_obj.bin;
     let architecture = serde_obj.architecture;
     let shortcuts = serde_obj.shortcuts;
-    let global = if options.contains(&InstallOptions::Global) {
-        true
-    } else {
-        false
-    };
+
     if bin.is_some() {
         create_shims_file(bin.unwrap(), app_name, options)?;
     }
     if shortcuts.is_some() {
-        create_start_menu_shortcuts(shortcuts.unwrap(), app_name.into(), global)?;
+        create_start_menu_shortcuts(shortcuts.unwrap(), app_name.into(), options)?;
     }
     if architecture.is_some() {
         let architecture = architecture.unwrap();
@@ -60,7 +53,7 @@ pub fn create_shim_or_shortcuts(
                 return Ok(());
             }
             let shortcuts = shortcuts.unwrap();
-            create_start_menu_shortcuts(shortcuts, app_name.into(), global)?;
+            create_start_menu_shortcuts(shortcuts, app_name.into(), options)?;
         } else if system_arch == "32bit" {
             let x86 = architecture.x86bit;
             if x86.is_none() {
@@ -78,7 +71,7 @@ pub fn create_shim_or_shortcuts(
                 return Ok(());
             }
             let shortcuts = shortcuts.unwrap();
-            create_start_menu_shortcuts(shortcuts, app_name.into(), global)?;
+            create_start_menu_shortcuts(shortcuts, app_name.into(), options)?;
         } else if system_arch == "arm64" {
             let arm64 = architecture.arm64;
             if arm64.is_none() {
@@ -96,7 +89,7 @@ pub fn create_shim_or_shortcuts(
                 return Ok(());
             }
             let shortcuts = shortcuts.unwrap();
-            create_start_menu_shortcuts(shortcuts, app_name.into(), global)?;
+            create_start_menu_shortcuts(shortcuts, app_name.into(), options)?;
         }
     }
     Ok(())
@@ -117,23 +110,30 @@ pub fn create_shims_file(
     }
     match bin {
         StringOrArrayOrDoubleDimensionArray::String(s) => {
-            create_default_shim_name_file(s, &shim_path, app_name)?;
+            create_default_shim_name_file(s, &shim_path, app_name, options)?;
         }
         StringOrArrayOrDoubleDimensionArray::StringArray(a) => {
             for item in a {
-                create_default_shim_name_file(item, &shim_path, app_name)?;
+                create_default_shim_name_file(item, &shim_path, app_name, options)?;
             }
         }
         StringOrArrayOrDoubleDimensionArray::DoubleDimensionArray(a) => {
             for item in a {
                 let len = item.len();
                 if len == 1 {
-                    create_default_shim_name_file((&item[0]).to_string(), &shim_path, app_name)?;
+                    create_default_shim_name_file(
+                        (&item[0]).to_string(),
+                        &shim_path,
+                        app_name,
+                        options,
+                    )?;
                 }
                 if len == 2 {
                     let exe_name = item[0].clone();
                     let alias_name = item[1].clone();
-                    create_alias_shim_name_file(exe_name, alias_name, &shim_path, app_name, None)?;
+                    create_alias_shim_name_file(
+                        exe_name, alias_name, &shim_path, app_name, None, options,
+                    )?;
                 }
                 if len == 3 {
                     let exe_name = item[0].clone();
@@ -145,6 +145,7 @@ pub fn create_shims_file(
                         &shim_path,
                         app_name,
                         Some(params),
+                        options,
                     )?;
                 }
             }
@@ -153,7 +154,7 @@ pub fn create_shims_file(
             for item in a {
                 match item {
                     StringOrArrayOrDoubleDimensionArray::String(s) => {
-                        create_default_shim_name_file(s, &shim_path, app_name)?;
+                        create_default_shim_name_file(s, &shim_path, app_name, options)?;
                     }
                     StringOrArrayOrDoubleDimensionArray::StringArray(item) => {
                         let len = item.len();
@@ -162,13 +163,14 @@ pub fn create_shims_file(
                                 (&item[0]).to_string(),
                                 &shim_path,
                                 app_name,
+                                options,
                             )?;
                         }
                         if len == 2 {
                             let exe_name = item[0].clone();
                             let alias_name = item[1].clone();
                             create_alias_shim_name_file(
-                                exe_name, alias_name, &shim_path, app_name, None,
+                                exe_name, alias_name, &shim_path, app_name, None, options,
                             )?;
                         }
                         if len == 3 {
@@ -181,6 +183,7 @@ pub fn create_shims_file(
                                 &shim_path,
                                 app_name,
                                 Some(params),
+                                options,
                             )?;
                         }
                     }
@@ -200,8 +203,13 @@ pub fn create_shims_file(
 pub fn create_start_menu_shortcuts(
     shortcuts: ArrayOrDoubleDimensionArray,
     app_name: String,
-    global: bool,
+    options: &[InstallOptions],
 ) -> anyhow::Result<()> {
+    let global = if options.contains(&InstallOptions::Global) {
+        true
+    } else {
+        false
+    };
     let user_name = std::env::var("USERNAME").unwrap_or_else(|_| "Default".to_string());
     let scoop_link_home = if global {
         r"C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Scoop Apps".into()
@@ -243,6 +251,7 @@ pub fn create_start_menu_shortcuts(
                     target_path,
                     &bin_name_with_extension,
                     start_parameters,
+                    options,
                 )?;
             }
         }
@@ -282,6 +291,7 @@ pub fn create_start_menu_shortcuts(
                         target_path,
                         &bin_name_with_extension,
                         start_parameters,
+                        options,
                     )?;
                 }
             }
@@ -296,6 +306,7 @@ pub fn start_create_shortcut<P: AsRef<Path>>(
     link_target_path: String,
     app_name: &String,
     start_parameters: String,
+    options: &[InstallOptions],
 ) -> anyhow::Result<()> {
     let args = if start_parameters.is_empty() {
         None
@@ -304,7 +315,7 @@ pub fn start_create_shortcut<P: AsRef<Path>>(
     };
     let link_path = start_menu_path.as_ref().to_path_buf();
     let link_alias_name = link_path.file_stem().unwrap().to_str().unwrap();
-    if link_path.exists() {
+    if link_path.exists() && options.contains(&InteractiveInstall) {
         let result = assume_yes_to_cover_shortcuts(link_alias_name)?;
         if result {
             fs::remove_file(start_menu_path.as_ref())?;
@@ -319,6 +330,9 @@ pub fn start_create_shortcut<P: AsRef<Path>>(
         app_name.to_string().dark_cyan().bold(),
         link_alias_name.to_string().dark_green().bold()
     );
+    if link_path.exists() {
+        return Ok(());
+    }
     let shell_link = ShellLink::new(link_target_path, args, None, None)?;
     let parent = start_menu_path.as_ref().parent().unwrap();
     if !parent.exists() {
@@ -337,6 +351,7 @@ pub fn create_alias_shim_name_file(
     shim_dir: &str,
     app_name: &str,
     program_args: Option<String>,
+    options: &[InstallOptions],
 ) -> anyhow::Result<()> {
     let out_dir = PathBuf::from(shim_dir);
     let temp = exe_name.clone();
@@ -356,6 +371,7 @@ pub fn create_alias_shim_name_file(
             out_dir,
             Some(alias_name),
             program_args,
+            options,
         )?;
     } else if suffix == "cmd" || "bat" == suffix {
         let result = exclude_scoop_self_scripts(&exe_name, None)?;
@@ -367,17 +383,36 @@ pub fn create_alias_shim_name_file(
             out_dir,
             Some(alias_name),
             program_args,
+            options,
         )?;
     } else if suffix == "ps1" {
         let result = exclude_scoop_self_scripts(&exe_name, None)?;
         if result != 0 {
             bail!("Origin 二进制名或者该二进制别名 '{exe_name}' 与scoop 内置脚本的shim 冲突, 禁止覆盖")
         }
-        create_ps1_shim_scripts(&target_path, out_dir, Some(alias_name), program_args)?;
+        create_ps1_shim_scripts(
+            &target_path,
+            out_dir,
+            Some(alias_name),
+            program_args,
+            options,
+        )?;
     } else if suffix == "jar" {
-        create_jar_shim_scripts(&target_path, out_dir, Some(alias_name), program_args)?;
+        create_jar_shim_scripts(
+            &target_path,
+            out_dir,
+            Some(alias_name),
+            program_args,
+            options,
+        )?;
     } else if suffix == "py" {
-        create_py_shim_scripts(&target_path, out_dir, Some(alias_name), program_args)?;
+        create_py_shim_scripts(
+            &target_path,
+            out_dir,
+            Some(alias_name),
+            program_args,
+            options,
+        )?;
     } else {
         bail!(format!(" 后缀{suffix}类型文件不支持, WTF?"))
     }
@@ -390,6 +425,7 @@ pub fn create_default_shim_name_file(
     exe_name: String,
     shim_dir: &str,
     app_name: &str,
+    options: &[InstallOptions],
 ) -> anyhow::Result<()> {
     let out_dir = PathBuf::from(shim_dir);
     let temp = exe_name.clone();
@@ -406,23 +442,23 @@ pub fn create_default_shim_name_file(
         bail!(format!("链接目标文件 {target_path} 不存在"))
     };
     if suffix == "exe" || suffix == "com" {
-        create_exe_type_shim_file_and_shim_bin(target_path, out_dir, None, None)?;
+        create_exe_type_shim_file_and_shim_bin(target_path, out_dir, None, None, options)?;
     } else if suffix == "cmd" || "bat" == suffix {
         let result = exclude_scoop_self_scripts(&exe_name, None)?;
         if result != 0 {
             bail!("Origin 二进制名或者该二进制别名 '{exe_name}' 与scoop 内置脚本的shim 冲突, 禁止覆盖")
         }
-        create_cmd_or_bat_shim_scripts(target_path.as_str(), out_dir, None, None)?;
+        create_cmd_or_bat_shim_scripts(target_path.as_str(), out_dir, None, None, options)?;
     } else if suffix == "ps1" {
         let result = exclude_scoop_self_scripts(&exe_name, None)?;
         if result != 0 {
             bail!("Origin 二进制名或者该二进制别名 '{exe_name}' 与scoop 内置脚本的shim 冲突, 禁止覆盖")
         }
-        create_ps1_shim_scripts(&target_path, out_dir, None, None)?;
+        create_ps1_shim_scripts(&target_path, out_dir, None, None, options)?;
     } else if suffix == "jar" {
-        create_jar_shim_scripts(&target_path, out_dir, None, None)?;
+        create_jar_shim_scripts(&target_path, out_dir, None, None, options)?;
     } else if suffix == "py" {
-        create_py_shim_scripts(&target_path, out_dir, None, None)?;
+        create_py_shim_scripts(&target_path, out_dir, None, None, options)?;
     } else {
         bail!(format!(" 后缀{suffix}类型文件不支持, WTF?"))
     }
@@ -434,6 +470,7 @@ pub fn create_py_shim_scripts(
     out_shim_dir: PathBuf,
     alias_name: Option<String>,
     program_args: Option<String>,
+    options: &[InstallOptions],
 ) -> anyhow::Result<()> {
     let target_name = if alias_name.is_none() {
         Path::new(&target_path)
@@ -481,7 +518,7 @@ pub fn create_py_shim_scripts(
             target_path, target_path, arg
         )
     };
-    write_utf8_file(&shim_cmd_script, &cmd_content)?;
+    write_utf8_file(&shim_cmd_script, &cmd_content, options)?;
 
     let sh_content = if program_args.is_some() {
         let arg = program_args.unwrap();
@@ -499,7 +536,7 @@ python.exe "{}"  "$@""#,
             target_path, target_path
         )
     };
-    write_utf8_file(&shim_shell_script, &sh_content)?;
+    write_utf8_file(&shim_shell_script, &sh_content, options)?;
     Ok(())
 }
 
@@ -508,6 +545,7 @@ pub fn create_jar_shim_scripts(
     out_shim_dir: PathBuf,
     alias_name: Option<String>,
     program_args: Option<String>,
+    options: &[InstallOptions],
 ) -> anyhow::Result<()> {
     let target_name = if alias_name.is_none() {
         Path::new(&target_path)
@@ -554,7 +592,7 @@ pub fn create_jar_shim_scripts(
             target_path, parent_dir, target_path, arg
         )
     };
-    write_utf8_file(&shim_cmd_script, &cmd_content)?;
+    write_utf8_file(&shim_cmd_script, &cmd_content, options)?;
 
     let shim_shell_script = format!("{out_shim_dir}\\{target_name}");
     println!(
@@ -592,7 +630,7 @@ java.exe -jar "{}" {} "$@""#,
             target_path, parent_dir, parent_dir, target_path, arg
         )
     };
-    write_utf8_file(&shim_shell_script, &sh_content)?;
+    write_utf8_file(&shim_shell_script, &sh_content, options)?;
 
     Ok(())
 }
@@ -602,6 +640,7 @@ pub fn create_ps1_shim_scripts(
     out_shim_dir: PathBuf,
     alias_name: Option<String>,
     program_params: Option<String>,
+    options: &[InstallOptions],
 ) -> anyhow::Result<()> {
     let target_name = if alias_name.is_none() {
         Path::new(&target_path)
@@ -649,7 +688,7 @@ exit $LASTEXITCODE
 "#
         )
     };
-    write_utf8_file(&shim_ps1_path, &ps1_content)?;
+    write_utf8_file(&shim_ps1_path, &ps1_content, options)?;
     // 生成 .cmd 脚本
     let shim_cmd_path = format!("{out_shim_dir}\\{target_name}.cmd");
     println!(
@@ -670,7 +709,7 @@ if %errorlevel% equ 0 (
 "#,
         resolved_path = resolved_path
     );
-    write_utf8_file(&shim_cmd_path, &cmd_content)?;
+    write_utf8_file(&shim_cmd_path, &cmd_content, options)?;
 
     // 生成 .sh 脚本
     let shim_shell_path = format!("{out_shim_dir}\\{target_name}");
@@ -690,7 +729,7 @@ fi
 "#,
         resolved_path = resolved_path
     );
-    write_utf8_file(&shim_shell_path, &sh_content)?;
+    write_utf8_file(&shim_shell_path, &sh_content, options)?;
     Ok(())
 }
 
@@ -723,6 +762,7 @@ pub fn create_cmd_or_bat_shim_scripts(
     out_shim_dir: PathBuf,
     alias_name: Option<String>,
     program_args: Option<String>,
+    options: &[InstallOptions],
 ) -> anyhow::Result<()> {
     let target_name = if alias_name.is_none() {
         Path::new(&target_path)
@@ -759,13 +799,7 @@ pub fn create_cmd_or_bat_shim_scripts(
 
     let crlf_content = cmd_content.replace(LineEnding::LF.as_str(), LineEnding::CRLF.as_str());
 
-    let result = assume_yes_to_cover_shim(&shim_cmd_path)?;
-    if !result {
-        return Ok(());
-    }
-    let mut cmd_file = File::create(&shim_cmd_path)?;
-
-    cmd_file.write_all(crlf_content.as_bytes())?;
+    write_utf8_file(&shim_cmd_path, &crlf_content, &options)?;
 
     let shim_shell_path = format!("{out_shim_dir}\\{target_name}");
     println!(
@@ -787,14 +821,8 @@ pub fn create_cmd_or_bat_shim_scripts(
     };
 
     let crlf_content = sh_content.replace(LineEnding::LF.as_str(), LineEnding::CRLF.as_str());
-    let result = assume_yes_to_cover_shim(shim_shell_path.as_ref())?;
-    if !result {
-        return Ok(());
-    }
-    let mut sh_file = File::create(shim_shell_path.as_str())?;
 
-    sh_file.write_all(crlf_content.as_bytes())?;
-
+    write_utf8_file(&shim_shell_path, &crlf_content, &options)?;
     Ok(())
 }
 
@@ -803,6 +831,7 @@ pub fn create_exe_type_shim_file_and_shim_bin<P1: AsRef<Path>, P2: AsRef<Path>>(
     output_dir: P2,
     alias_name: Option<String>,
     program_params: Option<String>,
+    options: &[InstallOptions],
 ) -> anyhow::Result<()> {
     let target_path = target_path.as_ref().to_str().unwrap();
     let output_dir = output_dir.as_ref().to_path_buf();
@@ -835,16 +864,13 @@ pub fn create_exe_type_shim_file_and_shim_bin<P1: AsRef<Path>, P2: AsRef<Path>>(
     if !shim_path.exists() {
         fs::create_dir_all(&output_dir)?;
     }
-    // Write the shim file
-    let result = assume_yes_to_cover_shim(shim_path.as_path().to_str().unwrap())?;
-    if !result {
-        return Ok(());
-    }
-    let mut file = File::create(&shim_path)?; // truncate
 
     let crlf_content = content.replace(LineEnding::LF.as_str(), LineEnding::CRLF.as_str());
-
-    file.write_all(crlf_content.as_bytes())?;
+    write_utf8_file(
+        shim_path.as_path().to_str().unwrap(),
+        &crlf_content,
+        options,
+    )?;
     println!(
         "{} {}",
         "Creating  shim  file => ".to_string().dark_blue().bold(),
@@ -897,7 +923,8 @@ mod test_shim {
         let manifest: InstallManifest = serde_json::from_str(&content).unwrap();
         let shortcuts = manifest.shortcuts.unwrap();
         let app_name = "zigmod".to_string();
-        create_start_menu_shortcuts(shortcuts, app_name, false).unwrap();
+        let options = vec![];
+        create_start_menu_shortcuts(shortcuts, app_name, &options).unwrap();
     }
 
     #[test]
@@ -911,8 +938,15 @@ mod test_shim {
         }
         let target_path = r#"A:\Scoop\apps\zig\current\zig.exe"#;
         let args = "run -h";
-        create_exe_type_shim_file_and_shim_bin(target_path, output_dir, None, Some(args.into()))
-            .unwrap();
+        let options = vec![];
+        create_exe_type_shim_file_and_shim_bin(
+            target_path,
+            output_dir,
+            None,
+            Some(args.into()),
+            &options,
+        )
+        .unwrap();
     }
 
     #[test]
@@ -925,11 +959,13 @@ mod test_shim {
         if Path::new(&target_path).exists() {
             println!("target {target_path}");
         }
+        let options = vec![];
         let _ = create_cmd_or_bat_shim_scripts(
             target_path.as_str(),
             output_dir,
             Some("sbtsbt".into()),
             None,
+            &options,
         );
     }
 
@@ -946,11 +982,13 @@ mod test_shim {
         if Path::new(&target_path).exists() {
             println!("target {target_path}");
         }
+        let options = vec![];
         let _ = create_ps1_shim_scripts(
             target_path.as_ref(),
             output_dir,
             Some("composer".into()),
             None,
+            &options,
         );
     }
     #[test]

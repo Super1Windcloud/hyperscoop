@@ -13,6 +13,8 @@ use chrono::Local;
 use regex::Regex;
 use textwrap::LineEnding;
 use url::Url;
+use crate::install::InstallOptions;
+use crate::install::InstallOptions::InteractiveInstall;
 
 pub fn compare_versions(ver1: String, ver2: String) -> Ordering {
     // 分割版本号并转换为数字数组
@@ -234,14 +236,14 @@ pub fn assume_yes_to_cover_shortcuts (path: &str ) -> anyhow::Result<bool> {
     }
 }
 
-pub fn write_utf8_file(path: &String, content: &str) -> anyhow::Result<()> {
+pub fn write_utf8_file(path: &str, content: &str, option: &[InstallOptions]) -> anyhow::Result<()> {
     // 文件存在, 进行覆盖警告
-    if Path::new(&path).exists() {
+    if Path::new(&path).exists()  && option.contains(&InteractiveInstall){
         let result = assume_yes_to_cover_shim(path)?;
         if !result {
             return Ok(());
         } else {
-            println!("{}", "覆盖写入".dark_yellow().bold());
+            log::warn!("{}", "覆盖写入".dark_yellow().bold());
         }
     }
     let mut file = File::create(path)?;

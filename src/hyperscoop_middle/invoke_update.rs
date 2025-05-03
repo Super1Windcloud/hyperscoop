@@ -66,6 +66,10 @@ fn inject_update_user_options(args: &UpdateArgs) -> anyhow::Result<Vec<UpdateOpt
     }
     if args.force_update_override {
         options.push(ForceUpdateOverride);
+    } 
+  
+    if  args.interactive { 
+        options.push(UpdateOptions::InteractiveInstall);
     }
     Ok(options)
 }

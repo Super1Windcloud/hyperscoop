@@ -1,5 +1,5 @@
-use command_util_lib::utils::utility::clap_args_to_lowercase;
 use clap::Args;
+use command_util_lib::utils::utility::clap_args_to_lowercase;
 
 #[derive(Args, Debug)]
 #[command(
@@ -37,19 +37,18 @@ pub struct UpdateArgs {
     )]
     pub no_auto_download_dependencies: bool,
 
-    #[arg(
-        short = 'r',
-        long,
-        help = "删除旧的App的安装目录,默认会保留旧版本目录"
-    )]
+    #[arg(short = 'r', long, help = "删除旧的App的安装目录,默认会保留旧版本目录")]
     pub remove_old_app: bool,
 
     #[arg(
         short = 'f',
         long,
-        help = "当前App版本安装错误,开启强制更新,删除错误安装\n"
+        help = "当前App版本安装错误,开启强制更新,删除错误安装"
     )]
     pub force_update_override: bool,
+
+    #[arg(short = 'I', long, help = "交互式安装,默认不开启\n", required = false)]
+    pub interactive: bool,
 
     #[arg(from_global)]
     pub global: bool,

@@ -38,7 +38,10 @@ pub struct InstallArgs {
     pub update_hp_and_buckets: bool,
     #[arg(short='c' , long, help = "安装前检查hp版本是否最新,默认不检查", required = false , action = ArgAction::SetTrue,help_heading = "Install Options" )]
     pub check_version_up_to_date: bool,
-
+  
+    #[arg(short='I' , long , help = "交互式安装,默认不开启" , required = false, action = ArgAction::SetTrue,help_heading = "Install Options"  )]
+    pub interactive: bool,
+  
     #[arg(
         short,
         long,

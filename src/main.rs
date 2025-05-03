@@ -2,12 +2,12 @@
 
 mod command_args;
 
-use std::io::stdout;
 use clap::builder::styling::{AnsiColor, Effects};
 use clap::builder::Styles;
 use clap::{command, Parser};
 use clap_verbosity_flag;
 use crossterm::execute;
+use std::io::stdout;
 
 mod command;
 mod hyperscoop_middle;
@@ -19,9 +19,9 @@ mod check_self_update;
 mod crypto;
 use crate::command::{execute_credits_command, execute_hold_command};
 use crate::command_args::alias::execute_alias_command;
+use crate::logger_err::init_color_output;
 use check_self_update::*;
 use crossterm::style::{Print, Stylize};
-use crate::logger_err::init_color_output;
 
 const WONDERFUL_STYLES: Styles = Styles::styled()
     .header(AnsiColor::Green.on_default().effects(Effects::BOLD))
@@ -69,7 +69,7 @@ struct Cli {
     verbose: clap_verbosity_flag::Verbosity,
 
     #[arg(
-        short ='N' ,
+        short = 'N',
         long,
         required = false,
         global = true,
@@ -77,20 +77,18 @@ struct Cli {
         help_heading = "Global Options"
     )]
     pub no_color: bool,
-} 
-
+}
 
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> anyhow::Result<()> {
-    let cli = Cli::parse();
-  
-    init_color_output(cli.no_color);
     println!(
         "{ } \n ",
         "🦀 次世代更快更强更精美的Windows包管理器!"
             .dark_magenta()
             .bold()
     );
+    let cli = Cli::parse();
+    init_color_output(cli.no_color);
     init_logger(&cli);
     color_eyre::install().unwrap();
 

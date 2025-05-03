@@ -151,7 +151,11 @@ pub fn inject_user_options(install_args: &InstallArgs) -> anyhow::Result<Vec<Ins
 
     if install_args.force_install_override {
         install_options.push(InstallOptions::ForceInstallOverride)
+    } 
+    if  install_args.interactive{ 
+        install_options.push(InstallOptions::InteractiveInstall)
     }
+  
     Ok(install_options)
 }
 

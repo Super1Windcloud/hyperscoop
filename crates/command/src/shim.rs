@@ -185,21 +185,32 @@ pub fn execute_add_shim(
     if args.is_none() {
         create_shims(shim_name.as_str(), &shim_path, &target_path, "")?;
     } else {
-        create_shims(shim_name.as_str(), &shim_path, &target_path, args.unwrap().as_str())?;
-    } 
-    println!("{}", format!("Shim '{}' has been created successfully!", shim_name).dark_green().bold().to_owned());
+        create_shims(
+            shim_name.as_str(),
+            &shim_path,
+            &target_path,
+            args.unwrap().as_str(),
+        )?;
+    }
+    println!(
+        "{}",
+        format!("Shim '{}' has been created successfully!", shim_name)
+            .dark_green()
+            .bold()
+            .to_owned()
+    );
     Ok(())
 }
 
 pub fn create_shims<'a>(
-    shim_name: &str ,
+    shim_name: &str,
     shim_dir: &str,
     target_path: &str,
     args: impl Into<Option<&'a str>>,
 ) -> anyhow::Result<()> {
     let out_dir = PathBuf::from(shim_dir);
     let args = args.into().unwrap_or_default();
-
+    let options = vec![];
     let suffix = target_path.split('.').last().unwrap();
     // log::debug!("Origin file type {}", suffix);
     if suffix.is_empty() {
@@ -221,9 +232,16 @@ pub fn create_shims<'a>(
                 out_dir,
                 Some(shim_name.into()),
                 Some(args.to_owned()),
+                options.as_slice(),
             )?;
         } else {
-            create_exe_type_shim_file_and_shim_bin(target_path, out_dir, Some(shim_name.into()), None)?;
+            create_exe_type_shim_file_and_shim_bin(
+                target_path,
+                out_dir,
+                Some(shim_name.into()),
+                None,
+                options.as_slice(),
+            )?;
         }
     } else if suffix == "cmd" || "bat" == suffix {
         let result = exclude_scoop_self_scripts(target_path, Some(shim_name))?;
@@ -236,9 +254,16 @@ pub fn create_shims<'a>(
                 out_dir,
                 Some(shim_name.into()),
                 Some(args.to_owned()),
+                options.as_slice(),
             )?;
         } else {
-            create_cmd_or_bat_shim_scripts(target_path, out_dir, Some(shim_name.into()), None)?;
+            create_cmd_or_bat_shim_scripts(
+                target_path,
+                out_dir,
+                Some(shim_name.into()),
+                None,
+                options.as_slice(),
+            )?;
         }
     } else if suffix == "ps1" {
         let result = exclude_scoop_self_scripts(target_path, Some(shim_name))?;
@@ -246,21 +271,57 @@ pub fn create_shims<'a>(
             bail!("Origin 二进制名或者该二进制别名 '{shim_name}' 与scoop 内置脚本的shim 冲突, 禁止覆盖")
         }
         if !args.is_empty() {
-            create_ps1_shim_scripts(target_path, out_dir, Some(shim_name.into()), Some(args.to_owned()))?
+            create_ps1_shim_scripts(
+                target_path,
+                out_dir,
+                Some(shim_name.into()),
+                Some(args.to_owned()),
+                options.as_slice(),
+            )?
         } else {
-            create_ps1_shim_scripts(target_path, out_dir, Some(shim_name .into()), None)?
+            create_ps1_shim_scripts(
+                target_path,
+                out_dir,
+                Some(shim_name.into()),
+                None,
+                options.as_slice(),
+            )?;
         };
     } else if suffix == "jar" {
         if !args.is_empty() {
-            create_jar_shim_scripts(target_path, out_dir, Some(shim_name.into()), Some(args.to_owned()))?
+            create_jar_shim_scripts(
+                target_path,
+                out_dir,
+                Some(shim_name.into()),
+                Some(args.to_owned()),
+                options.as_slice(),
+            )?;
         } else {
-            create_jar_shim_scripts(target_path, out_dir, Some(shim_name.into()), None)?;
+            create_jar_shim_scripts(
+                target_path,
+                out_dir,
+                Some(shim_name.into()),
+                None,
+                options.as_slice(),
+            )?;
         }
     } else if suffix == "py" {
         if !args.is_empty() {
-            create_py_shim_scripts(target_path, out_dir, Some(shim_name.into()), Some(args.to_owned()))?
+            create_py_shim_scripts(
+                target_path,
+                out_dir,
+                Some(shim_name.into()),
+                Some(args.to_owned()),
+                options.as_slice(),
+            )?
         } else {
-            create_py_shim_scripts(target_path, out_dir, Some(shim_name.into()), None)?;
+            create_py_shim_scripts(
+                target_path,
+                out_dir,
+                Some(shim_name.into()),
+                None,
+                options.as_slice(),
+            )?;
         }
     } else {
         bail!(format!(" 后缀{suffix}类型文件不支持, WTF?"))

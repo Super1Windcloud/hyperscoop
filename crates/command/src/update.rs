@@ -73,7 +73,10 @@ pub fn transform_update_options_to_install(
     }
     if update_options.contains(&ForceUpdateOverride) {
         options.push(InstallOptions::ForceInstallOverride)
-    }
+    } 
+   if update_options.contains(&UpdateOptions::InteractiveInstall)  {
+       options.push(InstallOptions::InteractiveInstall)
+   }
     options
 }
 

@@ -12,6 +12,7 @@ pub enum InstallOptions<'a> {
     Global,
     ForceInstallOverride,
     UpdateTransaction,
+  InteractiveInstall
 }
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -24,7 +25,8 @@ pub enum UpdateOptions {
     Global,
     UpdateAllAPP,
     RemoveOldVersionApp,
-    ForceUpdateOverride,
+    ForceUpdateOverride, 
+    InteractiveInstall,
 }
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
