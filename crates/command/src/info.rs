@@ -20,7 +20,7 @@ macro_rules! format_key_value {
     };
 }
 
- 
+
 pub fn display_app_info(app_name: String, bucket_paths: Vec<String>) -> anyhow::Result<()> {
     validate_app_name(&app_name)?;
     if let Some((bucket, name)) = app_name.split_once('/') {
@@ -399,7 +399,7 @@ fn process_manifest_file(
     } else {
         short_str
     };
-  
+
     let notes = serde_obj["notes"]
         .as_array()
         .map(|arr| {
@@ -467,8 +467,8 @@ fn print_pretty_info(info: DashSet<Vec<(String, String)>>) {
     let all_width = max_value_length + max_key_length + 6;
     for vec in info {
         for (key, value) in vec {
-            if !value.is_empty() { 
-              
+            if !value.is_empty() {
+
                 match key.as_str().trim()  {
                     "Notes" => {
                         let lines: Vec<&str> = value.split('\n').collect(); /* 包含的\n 会产生空字符串 */
@@ -535,11 +535,12 @@ fn print_pretty_info(info: DashSet<Vec<(String, String)>>) {
                     }
                     "Binary" =>
                       {format_key_value!(&key, &value, max_key_length, terminal_max_width);
-                        
+
                       },
                     "Shortcuts" => {
                         format_key_value!(&key, &value, max_key_length, terminal_max_width)
                     }
+
                     "Description" => {
                           i+=1;
                         format_key_value!(&key, &value, max_key_length, terminal_max_width)
@@ -562,15 +563,15 @@ fn print_pretty_info(info: DashSet<Vec<(String, String)>>) {
 }
 
 
- 
+
 
 fn format_and_print(
     key: &str,
     value: &str,
     max_key_length: usize,
     terminal_max_width: usize,
-) -> anyhow::Result<() > { 
-  
+) -> anyhow::Result<() > {
+
     let lines: Vec<&str> = value.split('\n').collect();
     let lines: Vec<&str> = lines.iter().map(|line| line.trim()).collect();
 
