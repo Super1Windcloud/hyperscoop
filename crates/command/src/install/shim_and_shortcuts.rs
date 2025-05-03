@@ -236,16 +236,14 @@ pub fn create_start_menu_shortcuts(
             let scoop_link_home = PathBuf::from(scoop_link_home);
             if scoop_link_home.exists() {
                 let start_menu_link_path = scoop_link_home.join(&shortcut_name);
-                if !start_menu_link_path.exists() {
-                    let target_path =
-                        get_app_current_bin_path(app_name.as_str(), &bin_name_with_extension);
-                    start_create_shortcut(
-                        start_menu_link_path,
-                        target_path,
-                        &bin_name_with_extension,
-                        start_parameters,
-                    )?;
-                }
+                let target_path =
+                    get_app_current_bin_path(app_name.as_str(), &bin_name_with_extension);
+                start_create_shortcut(
+                    start_menu_link_path,
+                    target_path,
+                    &bin_name_with_extension,
+                    start_parameters,
+                )?;
             }
         }
         ArrayOrDoubleDimensionArray::DoubleDimensionArray(shortcut) => {
@@ -274,19 +272,17 @@ pub fn create_start_menu_shortcuts(
                 let scoop_link_home = PathBuf::from(&scoop_link_home);
                 if scoop_link_home.exists() {
                     let start_menu_link_path = scoop_link_home.join(&shortcut_name);
-                    if !start_menu_link_path.exists() {
-                        let target_path =
-                            get_app_current_bin_path(app_name.as_str(), &bin_name_with_extension);
-                        if !Path::new(&target_path).exists() {
-                            bail!(format!("链接目标文件 {target_path} 不存在"))
-                        };
-                        start_create_shortcut(
-                            start_menu_link_path,
-                            target_path,
-                            &bin_name_with_extension,
-                            start_parameters,
-                        )?;
-                    }
+                    let target_path =
+                        get_app_current_bin_path(app_name.as_str(), &bin_name_with_extension);
+                    if !Path::new(&target_path).exists() {
+                        bail!(format!("链接目标文件 {target_path} 不存在"))
+                    };
+                    start_create_shortcut(
+                        start_menu_link_path,
+                        target_path,
+                        &bin_name_with_extension,
+                        start_parameters,
+                    )?;
                 }
             }
         }
@@ -307,21 +303,21 @@ pub fn start_create_shortcut<P: AsRef<Path>>(
         Some(start_parameters)
     };
     let link_path = start_menu_path.as_ref().to_path_buf();
+    let link_alias_name = link_path.file_stem().unwrap().to_str().unwrap();
     if link_path.exists() {
-        let result = assume_yes_to_cover_shortcuts(link_target_path.as_str())?;
+        let result = assume_yes_to_cover_shortcuts(link_alias_name)?;
         if result {
             fs::remove_file(start_menu_path.as_ref())?;
         } else {
             return Ok(());
         }
     }
-    let link = start_menu_path.as_ref().to_str().unwrap();
 
     println!(
-        "{} {} => {}",
+        "{} '{}' => '{}'",
         "Creating  Shortcuts for".to_string().dark_blue().bold(),
         app_name.to_string().dark_cyan().bold(),
-        link.to_string().dark_green().bold()
+        link_alias_name.to_string().dark_green().bold()
     );
     let shell_link = ShellLink::new(link_target_path, args, None, None)?;
     let parent = start_menu_path.as_ref().parent().unwrap();

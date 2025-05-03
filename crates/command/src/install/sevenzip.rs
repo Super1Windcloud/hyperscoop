@@ -1,4 +1,4 @@
-use crate::install::ArchiveFormat;
+use crate::install::{install_app, ArchiveFormat};
 use crate::manifest::manifest_deserialize::StringArrayOrString;
 use crate::utils::system::is_broken_symlink;
 use anyhow::bail;
@@ -14,7 +14,7 @@ use std::process::{Command, Stdio};
 #[non_exhaustive]
 pub struct SevenZipStruct<'a> {
     archive_format: Box<[ArchiveFormat]>,
-    archive_cache_files_path:Vec<String>,
+    archive_cache_files_path: Vec<String>,
     archive_names: Box<[String]>,
     app_name: &'a str,
     app_version: &'a str,
@@ -30,11 +30,11 @@ impl<'a> SevenZipStruct<'a> {
     }
 
     pub fn get_target_alias_name(&self) -> &[String] {
-      self.target_alias_name.as_ref()
+        self.target_alias_name.as_ref()
     }
 
     pub fn set_target_alias_name(&mut self, target_alias_name: Vec<String>) {
-        self.target_alias_name = target_alias_name.into_boxed_slice(); 
+        self.target_alias_name = target_alias_name.into_boxed_slice();
     }
 
     pub fn set_app_manifest_path(&mut self, app_manifest_path: &str) {
@@ -56,7 +56,7 @@ impl<'a> SevenZipStruct<'a> {
     pub fn new() -> Self {
         Self {
             archive_format: Box::new([]),
-            archive_cache_files_path:  Vec::new(),
+            archive_cache_files_path: Vec::new(),
             archive_names: Box::new([]),
             app_name: "",
             app_version: "",
@@ -140,12 +140,12 @@ impl<'a> SevenZipStruct<'a> {
         &self.archive_format
     }
 
-    pub fn get_archive_cache_files_path(&self) ->Vec<String> {
+    pub fn get_archive_cache_files_path(&self) -> Vec<String> {
         self.archive_cache_files_path.clone()
     }
 
     pub fn set_archive_cache_files_path(&mut self, path: Vec<String>) {
-        self.archive_cache_files_path =  path 
+        self.archive_cache_files_path = path
     }
 
     pub fn set_archive_format(&mut self, format: &[ArchiveFormat]) {
@@ -239,6 +239,49 @@ impl<'a> SevenZipStruct<'a> {
                         std::fs::copy(path, target_dir).expect("Failed to copy archive");
                         println!("✅");
                         Ok(())
+                    } else if *archive_format == ArchiveFormat::INNO {
+                        println!("✅");
+
+                        let output = Command::new("innounp").output();
+                        if output.is_err() {
+                            install_app("innounp", vec![].as_ref())
+                                .expect("Failed to install innounp");
+                        } else {
+                            let output = output.unwrap();
+                            if !output.status.success() {
+                                install_app("innounp", vec![].as_ref())
+                                    .expect("Failed to install innounp");
+                            }
+                        }
+                        self.invoke_innounp_extract(extract_to.as_str(), path.as_str())
+                            .expect("Failed to extract inno archive");
+                        let child_dir = format!("{}\\{}", extract_to, extract_dir);
+
+                        self.move_child_dir_to_root(&child_dir, target_dir)
+                            .expect("Failed to move child dir to root");
+                        Ok(())
+                    } else if *archive_format == ArchiveFormat::MSI {
+                        println!("✅");
+
+                        let output = Command::new("lessmsi").arg("h").output();
+                        if output.is_err() {
+                            install_app("lessmsi", vec![].as_ref())
+                                .expect("Failed to install lessmsi");
+                        } else {
+                            let output = output.unwrap();
+                            if !output.status.success() {
+                                install_app("lessmsi", vec![].as_ref())
+                                    .expect("Failed to install lessmsi");
+                            }
+                        }
+
+                        self.invoke_lessmsi_extract(extract_to.as_str(), path.as_str())
+                            .expect("Failed to extract msi archive");
+                        let child_dir = format!("{}\\{}", extract_to, extract_dir);
+
+                        self.move_child_dir_to_root(&child_dir, target_dir)
+                            .expect("Failed to move child dir to root");
+                        Ok(())
                     } else {
                         let target = format!("-o{}", extract_to);
                         let output = Command::new(&_7z)
@@ -272,6 +315,76 @@ impl<'a> SevenZipStruct<'a> {
         if result.is_err() {
             bail!("Failed to extract archive: {}", result.unwrap_err());
         }
+        Ok(())
+    }
+
+    pub fn invoke_lessmsi_extract(&self, target_dir: &str, msi_file: &str) -> anyhow::Result<()> {
+        let core_script = include_str!("../../../../asset_scripts/core.ps1");
+        let decompress_script = include_str!("../../../../asset_scripts/decompress.ps1");
+        let temp = env::temp_dir();
+        let core_path = temp.join("core.ps1");
+        let decompress_path = temp.join("decompress.ps1");
+        let temp_str = temp.to_str().unwrap();
+        if !core_path.exists() {
+            std::fs::write(&core_path, core_script)?;
+        }
+        if !decompress_path.exists() {
+            std::fs::write(&decompress_path, decompress_script)?;
+        }
+        let include_header = format!(
+            r#". "{temp_str}core.ps1";
+. "{temp_str}decompress.ps1";
+
+Expand-MsiArchive  "{msi_file}" "{target_dir}"  -Removal
+ "#
+        );
+        let output = Command::new("PowerShell")
+            .arg("-NoProfile")
+            .arg("-Command")
+            .arg(include_header)
+            .output()
+            .expect("Failed to execute PowerShell MSI Extract");
+
+        if !output.status.success() {
+            let error = String::from_utf8_lossy(&output.stderr).to_string();
+            bail!("PowerShell MSI Extract failed: {}", error)
+        }
+
+        Ok(())
+    }
+
+    pub fn invoke_innounp_extract(&self, target_dir: &str, inno_file: &str) -> anyhow::Result<()> {
+        let core_script = include_str!("../../../../asset_scripts/core.ps1");
+        let decompress_script = include_str!("../../../../asset_scripts/decompress.ps1");
+        let temp = env::temp_dir();
+        let core_path = temp.join("core.ps1");
+        let decompress_path = temp.join("decompress.ps1");
+        let temp_str = temp.to_str().unwrap();
+        if !core_path.exists() {
+            std::fs::write(&core_path, core_script)?;
+        }
+        if !decompress_path.exists() {
+            std::fs::write(&decompress_path, decompress_script)?;
+        }
+        let include_header = format!(
+            r#". "{temp_str}core.ps1";
+. "{temp_str}decompress.ps1";
+
+Expand-InnoArchive "{inno_file}" "{target_dir}"  -Removal
+ "#
+        );
+        let output = Command::new("PowerShell")
+            .arg("-NoProfile")
+            .arg("-Command")
+            .arg(include_header)
+            .output()
+            .expect("Failed to execute PowerShell Inno Extract");
+
+        if !output.status.success() {
+            let error = String::from_utf8_lossy(&output.stderr).to_string();
+            bail!("PowerShell Inno Extract failed: {}", error)
+        }
+
         Ok(())
     }
 
@@ -322,9 +435,49 @@ impl<'a> SevenZipStruct<'a> {
                         std::fs::copy(path, target_dir).expect("Failed to copy archive");
                         println!("✅");
                         Ok(())
+                    } else if *archive_format == ArchiveFormat::INNO {
+                        println!("✅");
+                        let output = Command::new("innounp").output();
+                        if output.is_err() {
+                            install_app("innounp", vec![].as_ref())
+                                .expect("Failed to install innounp");
+                        } else {
+                            let output = output.unwrap();
+                            if !output.status.success() {
+                                install_app("innounp", vec![].as_ref())
+                                    .expect("Failed to install innounp");
+                            }
+                        }
+
+                        self.invoke_innounp_extract(target_dir, path.as_str())
+                            .expect("Failed to extract inno archive");
+                        let child_dir = format!("{}\\{}", target_dir, child_dir);
+                        self.move_child_dir_to_root(&child_dir, target_dir)
+                            .expect("Failed to move child dir to root");
+                        Ok(())
+                    } else if *archive_format == ArchiveFormat::MSI {
+                        println!("✅");
+
+                        let output = Command::new("lessmsi").arg("h").output();
+                        if output.is_err() {
+                            install_app("lessmsi", vec![].as_ref())
+                                .expect("Failed to install lessmsi");
+                        } else {
+                            let output = output.unwrap();
+                            if !output.status.success() {
+                                install_app("lessmsi", vec![].as_ref())
+                                    .expect("Failed to install lessmsi");
+                            }
+                        }
+
+                        self.invoke_lessmsi_extract(target_dir, path.as_str())
+                            .expect("Failed to extract msi archive");
+                        let child_dir = format!("{}\\{}", target_dir, child_dir);
+                        self.move_child_dir_to_root(&child_dir, target_dir)
+                            .expect("Failed to move child dir to root");
+                        Ok(())
                     } else {
                         let target = format!("-o{}", target_dir);
-                        let child_dir = format!("{}\\{}", target_dir, child_dir);
                         let output = Command::new(&_7z)
                             .arg("x")
                             .arg(path)
@@ -334,19 +487,16 @@ impl<'a> SevenZipStruct<'a> {
                             .stderr(Stdio::piped())
                             .output()
                             .expect("Failed to extract archive");
+
                         if !output.status.success() {
                             let error = String::from_utf8_lossy(&output.stderr);
                             bail!("7z command failed: {}", error)
                         } else {
-                            for entry in std::fs::read_dir(&child_dir)? {
-                                let entry = entry?;
-                                let from = entry.path();
-                                let file_name = entry.file_name();
-                                let to = Path::new(&target_dir).join(file_name);
-                                std::fs::rename(from, to)?;
-                            }
-                            std::fs::remove_dir_all(&child_dir)?; // 清理原来的空目录
-                            println!("✅");
+                            let child_dir = format!("{}\\{}", target_dir, child_dir);
+                            self.move_child_dir_to_root(&child_dir, target_dir)
+                                .expect("Failed to move child dir to root");
+                           println!("✅");
+                           
                             Ok(())
                         }
                     }
@@ -360,6 +510,17 @@ impl<'a> SevenZipStruct<'a> {
         Ok(())
     }
 
+    pub fn move_child_dir_to_root(&self, child_dir: &str, target_dir: &str) -> anyhow::Result<()> {
+        for entry in std::fs::read_dir(&child_dir)? {
+            let entry = entry?;
+            let from = entry.path();
+            let file_name = entry.file_name();
+            let to = Path::new(&target_dir).join(file_name);
+            std::fs::rename(from, to)?;
+        }
+        std::fs::remove_dir_all(&child_dir)?; // 清理原来的空目录
+        Ok(())
+    }
     pub fn extract_archive_to_target_dir(
         &self,
         target_dir: Option<Vec<String>>,
@@ -402,6 +563,42 @@ impl<'a> SevenZipStruct<'a> {
                         // println!("target alias dir {target_dir}");
                         std::fs::copy(path, target_dir).expect("Failed to copy archive");
                         println!("✅");
+                        Ok(())
+                    } else if *archive_format == ArchiveFormat::INNO {
+                        println!("✅");
+
+                        let output = Command::new("innounp").output();
+                        if output.is_err() {
+                            install_app("innounp", vec![].as_ref())
+                                .expect("Failed to install innounp");
+                        } else {
+                            let output = output.unwrap();
+                            if !output.status.success() {
+                                install_app("innounp", vec![].as_ref())
+                                    .expect("Failed to install innounp");
+                            }
+                        }
+                        self.invoke_innounp_extract(target_dir, path.as_str())
+                            .expect("Failed to extract inno archive");
+
+                        Ok(())
+                    } else if *archive_format == ArchiveFormat::MSI {
+                        println!("✅");
+
+                        let output = Command::new("lessmsi").arg("h").output();
+                        if output.is_err() {
+                            install_app("lessmsi", vec![].as_ref())
+                                .expect("Failed to lessmsi innonounp");
+                        } else {
+                            let output = output.unwrap();
+                            if !output.status.success() {
+                                install_app("lessmsi", vec![].as_ref())
+                                    .expect("Failed to install lessmsi");
+                            }
+                        }
+                        self.invoke_lessmsi_extract(target_dir, path.as_str())
+                            .expect("Failed to extract msi archive");
+
                         Ok(())
                     } else {
                         let target = format!("-o{}", target_dir);
@@ -484,8 +681,8 @@ impl<'a> SevenZipStruct<'a> {
 
             let target = match extract_to {
                 StringArrayOrString::Null => None,
-                StringArrayOrString::StringArray(extract_dir) => Some(extract_dir),
-                StringArrayOrString::String(extract_dir) => Some(Vec::from([extract_dir])),
+                StringArrayOrString::StringArray(extract_to) => Some(extract_to),
+                StringArrayOrString::String(extract_to) => Some(Vec::from([extract_to])),
             };
             if target.is_some() {
                 let target = target.unwrap();
@@ -525,8 +722,8 @@ impl<'a> SevenZipStruct<'a> {
             let extract_to = extract_to.unwrap();
             let extract_to = match extract_to {
                 StringArrayOrString::Null => vec![],
-                StringArrayOrString::StringArray(extract_dir) => extract_dir,
-                StringArrayOrString::String(extract_dir) => Vec::from([extract_dir]),
+                StringArrayOrString::StringArray(extract_to) => extract_to,
+                StringArrayOrString::String(extract_to) => Vec::from([extract_to]),
             };
 
             if extract_dir.is_empty() || extract_to.is_empty() {
@@ -558,7 +755,7 @@ mod test_7z {
     #[allow(unused_imports)]
     use super::*;
     #[test]
-    fn test_invoke_7z() {
+    fn test_extract_7z() {
         let _zip = SevenZipStruct::new();
     }
 }

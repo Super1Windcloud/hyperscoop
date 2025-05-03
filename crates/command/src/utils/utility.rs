@@ -212,7 +212,7 @@ pub fn assume_yes_to_cover_shim(path: &str ) -> anyhow::Result<bool> {
 
 pub fn assume_yes_to_cover_shortcuts (path: &str ) -> anyhow::Result<bool> {
     use dialoguer::Confirm;
-    let message = format!("快捷方式{path}已存在,建议检查,是否进行覆盖?(y/n)")
+    let message = format!("快捷方式'{path}'已存在,建议检查,是否进行覆盖?(y/n)")
         .dark_cyan()
         .bold()
         .to_string();

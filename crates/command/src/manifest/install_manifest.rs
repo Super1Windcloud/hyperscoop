@@ -276,9 +276,29 @@ mod test_manifest_deserialize {
                 return;
             };*/
             // if  find_persist(_manifest, &path, &_count ) { return; };
-            if find_install_and_uninstall(_manifest, path, &_count) {
+            // if find_install_and_uninstall(_manifest, path, &_count) {
+            //     return;
+            // };
+
+            if find_innosetup_exe(_manifest, path, &_count) {
                 return;
             };
+        }
+        pub fn find_innosetup_exe(
+            _manifest: InstallManifest,
+            path: PathBuf,
+            _count: &Arc<Mutex<i32>>,
+        ) -> bool {
+            let innosetup = _manifest.innosetup;
+            if innosetup.is_some() {
+                println!("innosetup is {}", innosetup.unwrap());
+                println!("path  {}", path.display());
+                *_count.lock().unwrap() += 1;
+                if *_count.lock().unwrap() >= 2 {
+                    return true;
+                }
+            }
+            false
         }
         pub fn find_install_and_uninstall(
             _manifest: InstallManifest,
