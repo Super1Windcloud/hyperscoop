@@ -2,7 +2,6 @@
     get_app_dir_install_json, get_app_dir_manifest_json, get_apps_path, get_apps_path_global,
 };
 use crate::init_hyperscoop;
-use crate::manifest::manifest_deserialize::ArchitectureObject;
 use crate::utils::get_file_or_dir_metadata::get_dir_updated_time;
 use crate::utils::safe_check::is_directory_empty;
 use comfy_table::modifiers::UTF8_ROUND_CORNERS;
@@ -16,13 +15,32 @@ use std::fs::{read_dir, remove_dir_all};
 use std::io::read_to_string;
 use std::path::Path;
 
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ArchType {
+  #[serde(rename = "32bit")]
+  X86,
+  #[serde(rename = "64bit")]
+  X64,
+  #[serde(rename = "arm64")]
+  Arm64,
+}
+
+impl Default for ArchType {
+  fn default() -> Self {
+    ArchType::X64
+  }
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 pub struct VersionJSON {
     pub bucket: Option<String>,
-    pub version: Option<String>,
+    pub version: Option<String>, 
     #[serde(skip)]
-    pub architecture: Option<ArchitectureObject>,
+    pub architecture: Option<ArchType>,
 }
+
 pub struct AppInfo {
     pub name: String,
     pub version: String,

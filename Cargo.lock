@@ -596,7 +596,7 @@ dependencies = [
 
 [[package]]
 name = "command_util_lib"
-version = "4.0.4"
+version = "4.0.5"
 dependencies = [
  "anyhow",
  "bat",
@@ -2308,7 +2308,7 @@ dependencies = [
 
 [[package]]
 name = "hp"
-version = "4.0.4"
+version = "4.0.5"
 dependencies = [
  "anyhow",
  "clap",
@@ -2345,7 +2345,7 @@ dependencies = [
 
 [[package]]
 name = "hscoop_macro"
-version = "4.0.4"
+version = "4.0.5"
 dependencies = [
  "quote",
  "syn",
@@ -3887,7 +3887,7 @@ checksum = "24188a676b6ae68c3b2cb3a01be17fbf7240ce009799bb56d5b1409051e78fde"
 
 [[package]]
 name = "shim"
-version = "4.0.4"
+version = "4.0.5"
 dependencies = [
  "color-eyre",
  "windows 0.61.1",
