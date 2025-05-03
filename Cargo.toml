@@ -31,16 +31,22 @@ regex = "1.11.1"
 rayon = "1.10.0"
 color-eyre = "0.6.3"
 reqwest = { workspace = true }
-tokio ={workspace = true }
-url={workspace = true }
-sha2 = {workspace = true }
-rand  = { workspace = true }
+tokio = { workspace = true }
+url = { workspace = true }
+sha2 = { workspace = true }
+rand = { workspace = true }
 sha1 = { workspace = true }
-line-ending = {workspace = true}
+line-ending = { workspace = true }
 magic-crypt = "4.0.1"
 console = "0.15.11"
-comfy-table = {workspace = true}
-indicatif ={workspace = true}
+comfy-table = { workspace = true }
+indicatif = { workspace = true }
+windows = { version = "0.56.0", features = ["Win32_Foundation",
+  "Win32_System_Services", "Win32_System_SystemServices", "Win32_System_Registry",
+  "Win32_Security", "Win32_Storage_FileSystem"] }
+winreg = "0.55.0"
+thiserror = "1.0.66"
+which = "7.0.3"
 
 
 
@@ -61,11 +67,11 @@ dashmap = "6.1.0"
 quote = "1.0.37"
 syn = "2.0.91"
 color-eyre = "0.6.3"
-bat = { version = "0.25.0", features = ["regex-onig","regex-fancy"], default-features = false }
+bat = { version = "0.25.0", features = ["regex-onig", "regex-fancy"], default-features = false }
 git2 = "0.20.1"
 flate2 = "1.1.1"
 url = "2.5.4"
-sha2 = { version = "0.10.8" , features =  [  "compress"]  }
+sha2 = { version = "0.10.8", features = ["compress"] }
 rand = "0.8.5"
 sha1 = "0.10.6"
 line-ending = "1.5.1"
@@ -106,7 +112,7 @@ unreachable_pub = "warn"
 
 [dev-dependencies] # 依赖项仅在开发和测试过程中使用，
 # 例如 `cargo test` 或 `cargo bench` , 'cargo build --tests` ,`cargo build --examples` |
-criterion = { version = "0.5.1"   }
+criterion = { version = "0.5.1" }
 
 [profile.release]
 debug = false
@@ -176,7 +182,7 @@ unexpected_cfgs = { level = "allow" }
 
 
 [[bench]]
-name ="hash"
+name = "hash"
 path = "benches/hash_benchmark.rs"
 harness = false # 必须设置为 false 才能使用 criterion 进行基准测试
 

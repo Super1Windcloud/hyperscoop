@@ -460,7 +460,7 @@ fn print_pretty_info(info: DashSet<Vec<(String, String)>>) {
         })
         .max()
         .unwrap_or(0);
-    let mut i = 0;
+    let   i = 0;
     let terminal_max_width = terminal::size()
         .map(|(width, _)| width as usize)
         .unwrap_or(80);

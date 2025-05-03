@@ -1,182 +1,382 @@
+use color_eyre::owo_colors::OwoColorize;
+use command_util_lib::init_env::{init_scoop_global, init_user_scoop};
+use crossterm::style::Stylize;
+use std::{env, path::Path};
+use which::which;
+use windows::core::PCWSTR;
+use windows::Wdk::System::SystemServices::RtlGetVersion;
+use windows::Win32::Storage::FileSystem::GetVolumeInformationW;
+use windows::Win32::System::Diagnostics::Debug::VER_PLATFORM_WIN32_NT;
+use windows::Win32::System::SystemInformation::OSVERSIONINFOW;
+use winreg::{enums::HKEY_LOCAL_MACHINE, RegKey};
 
 
-pub fn execute_checkup_command(is_global : bool) -> Result<(), anyhow::Error>{
-  let results = run_checkup(is_global); 
-  log::info!("Checkup results: {:#?}", results);
-  print_results(&results); 
-  Ok(()) 
-}
-use std::{
-  env,
-  fs::{self, File},
-  io::{ Write},
-  net::TcpStream,
-  path::PathBuf,
-  process::Command,
-};
-
-// 检查结果结构体
-#[derive(Debug)]
-struct CheckResult {
-  name: String,
-  status: &'static str,
-  message: String,
-  suggestion: String,
+#[allow(dead_code)]
+#[derive(Debug, thiserror::Error)]
+enum CheckupError {
+    #[error("Windows API error")]
+    WindowsError,
+    #[error("Registry error")]
+    RegistryError,
+    #[error("Service error")]
+    ServiceError,
 }
 
-impl CheckResult {
-  fn new(
-    name: String,
-    status: &'static str,
+struct CheckupResult {
+    passed: bool,
     message: String,
-    suggestion: String,
-  ) -> Self {
-    Self {
-      name,
-      status,
-      message,
-      suggestion,
+    fix_hint: Option<String>,
+}
+
+pub fn execute_checkup_command(global: bool) -> anyhow::Result<()> {
+    let mut total_issues = 0;
+    let  defender_issues = 0;
+
+    let main_bucket_result = check_main_bucket(global)?;
+    if !main_bucket_result.passed {
+        total_issues += 1;
+        print_result(&main_bucket_result);
+    } 
+    let lessmsi_result = check_lessmsi()?;
+    if !lessmsi_result.passed {
+        total_issues += 1;
+        print_result(&lessmsi_result);
     }
-  }
-}
-
-// 主检查函数
-fn run_checkup(_is_global: bool) -> Vec<CheckResult> {
-  let mut results = Vec::new();
-
-  // 检查环境变量
-  results.push(check_env_vars());
-
-  // 检查依赖项
-  results.push(check_dependency("git"));
-  results.push(check_dependency("7z"));
-
-  // 检查Scoop目录权限
-  results.push(check_scoop_permissions());
-
-  // 网络检查
-  results.push(check_network());
-
-  results
-}
-
-// 环境变量检查
-fn check_env_vars() -> CheckResult {
-  let mut message = String::new();
-  let mut suggestion = String::new();
-  let mut status = "OK";
-
-  // 检查SCOOP环境变量
-  if let Ok(scoop_path) = env::var("SCOOP") {
-    message.push_str(&format!("SCOOP路径: {}\n", scoop_path));
-  } else {
-    status = "FAIL";
-    message.push_str("未找到SCOOP环境变量\n");
-    suggestion.push_str("请通过`scoop config SCOOP $HOME/scoop`设置\n");
-  }
-
-  // 检查PATH是否包含shims目录
-  let shims_path = PathBuf::from(env::var("SCOOP").unwrap_or_default()).join("shims");
-  if let Ok(path) = env::var("PATH") {
-    if !path.contains(&shims_path.to_string_lossy().to_string())  {
-      status = "FAIL";
-      message.push_str("PATH未包含Scoop的shims目录\n");
-      suggestion.push_str("请将以下路径添加到PATH:\n");
-      suggestion.push_str(&format!("{}\n", shims_path.display()));
+    let innounp_result = check_innounp()?;
+    if !innounp_result.passed {
+        total_issues += 1;
+        print_result(&innounp_result);
     }
-  }
-
-  CheckResult::new("环境变量".parse().unwrap(), status, message, suggestion)
-}
-
-// 依赖检查
-fn check_dependency(tool: &str) -> CheckResult {
-  let output = Command::new(tool).arg("--version").output();
-
-  if output.is_ok() {
-    CheckResult::new(
-      format!("{} 依赖", tool),
-      "OK",
-      format!("{} 已安装", tool),
-      String::new(),
-    )
-  } else { 
-    CheckResult::new(
-      format!("{} 依赖", tool), 
-      "FAIL",
-      format!("未找到 {}", tool),
-      format!("请执行 `scoop install {tool}`"),
-    )
-  }
-}
-
-// 目录权限检查
-fn check_scoop_permissions() -> CheckResult {
-  let scoop_path = match env::var("SCOOP") {
-    Ok(p) => PathBuf::from(p),
-    Err(_) => return CheckResult::new(
-      "目录权限".to_string(),
-      "FAIL",
-      "无法确定Scoop目录".into(),
-      "请先设置SCOOP环境变量".into(),
-    ),
-  };
-
-  // 尝试创建测试文件
-  let test_file = scoop_path.join("permission_test.tmp");
-  match File::create(&test_file).and_then(|mut f| f.write_all(b"test")) {
-    Ok(_) => {
-      fs::remove_file(test_file).ok();
-      CheckResult::new("目录权限".to_string(), "OK", "写入权限正常".into(), String::new())
+    let github_result = check_github()?;
+    if !github_result.passed {
+        total_issues += 1;
+        print_result(&github_result);
     }
-    Err(e) => CheckResult::new(
-      "目录权限".to_string(),
-      "FAIL",
-      format!("无法写入文件: {}", e),
-      "请以管理员权限运行或修改目录权限".into(),
-    ),
-  }
+    let dark_result = check_dark()?;
+    if !dark_result.passed {
+        total_issues += 1;
+        print_result(&dark_result);
+    }
+
+    let long_paths_result = check_long_paths()?;
+    if !long_paths_result.passed {
+        total_issues += 1;
+        print_result(&long_paths_result);
+    }
+
+    let dev_mode_result = check_developer_mode()?;
+    if !dev_mode_result.passed {
+        total_issues += 1;
+        print_result(&dev_mode_result);
+    }
+
+    let seven_zip_result = check_7zip()?;
+    if !seven_zip_result.passed {
+        total_issues += 1;
+        print_result(&seven_zip_result);
+    }
+
+    let ntfs_result = check_ntfs_volumes()?;
+    if !ntfs_result.passed {
+        total_issues += 1;
+        print_result(&ntfs_result);
+    }
+
+    if total_issues > 0 {
+        println!(
+            "{}",
+            format!("Found {} potential issues.", total_issues).yellow()
+        );
+    } else if defender_issues > 0 {
+        println!(
+            "{}",
+            format!("Found {} performance issues.", defender_issues).blue()
+        );
+        println!(
+            "{}",
+            "Security is more important than performance, in most cases.".yellow()
+        );
+    } else {
+        println!("{}", "No problems identified!".green());
+    }
+
+    Ok(())
 }
 
-// 网络检查
-fn check_network() -> CheckResult {
-  match TcpStream::connect(("github.com", 80)) {
-    Ok(_) => CheckResult::new(
-      "网络连接".to_string(),
-      "OK",
-      "可以访问 GitHub".into(),
-      String::new(),
-    ),
-    Err(e) => CheckResult::new(
-      "网络连接".to_string(),
-      "FAIL",
-      format!("无法连接 GitHub: {}", e),
-      "请检查网络或代理设置".into(),
-    ),
-  }
+
+
+fn print_result(result: &CheckupResult) {
+    if result.passed {
+        println!("{} {}", "[✓]".green(), result.message.clone().green());
+    } else {
+        println!("{} {}", "[!]".yellow(), result.message.clone().yellow());
+        if let Some(fix) = &result.fix_hint {
+            println!("  {}", fix.cyan());
+        }
+    }
 }
 
-// 输出格式化
-fn print_results(results: &[CheckResult]) {
-  println!("{:-<40}", "");
-  println!("{:20} | {:5} | {}", "检查项", "状态", "详细信息");
-  println!("{:-<40}", "");
+fn check_main_bucket(global: bool) -> anyhow::Result<CheckupResult> {
+    let scoop_home = if global {
+        init_scoop_global()
+    } else {
+        init_user_scoop()
+    };
+    let main_bucket_path = format!("{}\\buckets\\main", scoop_home);
 
-  for result in results {
-    let status = match result.status {
-      "OK" => "\x1b[32mOK\x1b[0m",
-      _ => "\x1b[31mFAIL\x1b[0m",
+    if !Path::new(&main_bucket_path).exists() {
+        Ok(CheckupResult {
+            passed: false,
+            message: "Main bucket is not added".to_string(),
+            fix_hint: Some("Run: hp bucket add main".to_string()),
+        })
+    } else {
+        Ok(CheckupResult {
+            passed: true,
+            message: "Main bucket is installed".to_string(),
+            fix_hint: None,
+        })
+    }
+}
+
+fn check_long_paths() -> anyhow::Result<CheckupResult> {
+    let mut os_info = OSVERSIONINFOW {
+        dwOSVersionInfoSize: size_of::<OSVERSIONINFOW>() as u32,
+        ..Default::default()
     };
 
-    println!(
-      "{:20} | {:5} | {}",
-      result.name, status, result.message
-    );
-
-    if !result.suggestion.is_empty() {
-      println!("{:>20}   {}", "建议：", result.suggestion);
+    unsafe {
+        let status = RtlGetVersion(&mut os_info);
+        if status.0 != 0 {
+            // NTSTATUS 成功时为0
+            return Err(CheckupError::WindowsError.into());
+        }
     }
+
+    if os_info.dwPlatformId != VER_PLATFORM_WIN32_NT.0
+        || os_info.dwMajorVersion < 10
+        || (os_info.dwMajorVersion == 10 && os_info.dwBuildNumber < 1607)
+    {
+        return Ok(CheckupResult {
+            passed: false,
+            message: "This version of Windows does not support configuration of LongPaths"
+                .to_string(),
+            fix_hint: None,
+        });
+    }
+    let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
+    let fs_key = hklm.open_subkey("SYSTEM\\CurrentControlSet\\Control\\FileSystem")?;
+    let long_paths_enabled: u32 = fs_key.get_value("LongPathsEnabled").unwrap_or(0);
+
+    if long_paths_enabled == 0 {
+        Ok(CheckupResult {
+      passed: false,
+      message: "LongPaths support is not enabled".to_string(),
+      fix_hint: Some(
+        "Run: Set-ItemProperty 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\FileSystem' -Name 'LongPathsEnabled' -Value 1".to_string(),
+      ),
+    })
+    } else {
+        Ok(CheckupResult {
+            passed: true,
+            message: "LongPaths support is enabled".to_string(),
+            fix_hint: None,
+        })
+    }
+}
+
+fn check_developer_mode() -> anyhow::Result<CheckupResult> {
+    let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
+    let dev_key =
+        hklm.open_subkey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\AppModelUnlock")?;
+    let dev_mode_enabled: u32 = dev_key
+        .get_value("AllowDevelopmentWithoutDevLicense")
+        .unwrap_or(0);
+
+    if dev_mode_enabled == 0 {
+        Ok(CheckupResult {
+            passed: false,
+            message: "Windows Developer Mode is not enabled".to_string(),
+            fix_hint: Some(
+                "Enable Developer Mode in Settings > Update & Security > For developers"
+                    .to_string(),
+            ),
+        })
+    } else {
+        Ok(CheckupResult {
+            passed: true,
+            message: "Windows Developer Mode is enabled".to_string(),
+            fix_hint: None,
+        })
+    }
+}
+
+fn check_7zip() -> anyhow::Result<CheckupResult> {
+    if which("7z").is_err() {
+        Ok(CheckupResult {
+            passed: false,
+            message: "'7-Zip' is not installed! It's required for unpacking most programs"
+                .to_string(),
+            fix_hint: Some("Run: hp install 7zip".to_string()),
+        })
+    } else {
+        Ok(CheckupResult {
+            passed: true,
+            message: "7-Zip is installed".to_string(),
+            fix_hint: None,
+        })
+    }
+}
+
+
+fn check_lessmsi() -> anyhow::Result<CheckupResult> {
+  if which("lessmsi").is_err() {  
+      Ok(CheckupResult {
+          passed: false,
+          message: "'lessmsi' is not installed! It's required for unpacking some programs"
+             .to_string(),
+          fix_hint: Some("Run: hp install lessmsi".to_string()),
+      })
+  } else {
+      Ok(CheckupResult {
+          passed: true,
+          message: "lessmsi is installed".to_string(),
+          fix_hint: None,
+      })  
   }
 }
 
+fn  check_innounp() -> anyhow::Result<CheckupResult> {
+  if which("innounp").is_err() {  
+      Ok(CheckupResult {
+          passed: false,
+          message: "'innounp' is not installed! It's required for unpacking some programs"
+             .to_string(),
+          fix_hint: Some("Run: hp install innounp".to_string()),
+      })
+  } else {
+      Ok(CheckupResult {
+          passed: true,
+          message: "innounp is installed".to_string(),
+          fix_hint: None,
+      })  
+  }
+}
+
+fn  check_github() -> anyhow::Result<CheckupResult> {
+  if which("git").is_err() {  
+      Ok(CheckupResult {
+          passed: false,
+          message: "'git' is not installed! It's required for installing some programs"
+             .to_string(),
+          fix_hint: Some("Download and install git from https://git-scm.com/download/win".to_string()),
+      })
+  } else {
+      Ok(CheckupResult {
+          passed: true,
+          message: "git is installed".to_string(),
+          fix_hint: None,
+      })  
+  } 
+}
+
+fn check_dark() -> anyhow::Result<CheckupResult> {
+  if which("dark").is_err() {  
+      Ok(CheckupResult {
+          passed: false,
+          message: "'dark' is not installed! It's required for some programs"
+             .to_string(),
+          fix_hint: Some("Run: hp install dark".to_string()),
+      })
+  } else {
+      Ok(CheckupResult {
+          passed: true,
+          message: "dark is installed".to_string(),
+          fix_hint: None,
+      })  
+  } 
+}
  
+
+fn check_ntfs_volumes() -> anyhow::Result<CheckupResult> {
+    let scoop_path = env::var("SCOOP").unwrap_or_else(|_| {
+        let user_profile = env::var("USERPROFILE").unwrap_or_else(|_| "C:\\Users".to_string());
+        format!("{}\\scoop", user_profile)
+    });
+    let global_path = env::var("SCOOP_GLOBAL").unwrap_or_else(|_| {
+        let app_data = env::var("ProgramData").unwrap_or_else(|_| "C:\\ProgramData".to_string());
+        format!("{}\\scoop", app_data)
+    });
+
+    let scoop_drive = Path::new(&scoop_path)
+        .components()
+        .next()
+        .and_then(|c| c.as_os_str().to_str())
+        .unwrap_or("");
+    let global_drive = Path::new(&global_path)
+        .components()
+        .next()
+        .and_then(|c| c.as_os_str().to_str())
+        .unwrap_or("");
+
+    let mut issues = Vec::new();
+
+    if !is_ntfs(scoop_drive) {
+        issues.push(format!(
+            "hp requires an NTFS volume to work! Current path: {}",
+            scoop_path
+        ));
+    }
+
+    if !is_ntfs(global_drive) {
+        issues.push(format!(
+            "hp global requires an NTFS volume to work! Current path: {}",
+            global_path
+        ));
+    }
+
+    if !issues.is_empty() {
+        Ok(CheckupResult {
+            passed: false,
+            message: issues.join("\n"),
+            fix_hint: Some("Move hp installation to an NTFS formatted drive".to_string()),
+        })
+    } else {
+        Ok(CheckupResult {
+            passed: true,
+            message: "hp directories are on NTFS volumes".to_string(),
+            fix_hint: None,
+        })
+    }
+}
+
+fn is_ntfs(drive: &str) -> bool {
+    if drive.is_empty() {
+        return false;
+    }
+
+    let root = format!(r"{}:\\", drive.chars().next().unwrap());
+    let wide_path: Vec<u16> = root.encode_utf16().chain(std::iter::once(0)).collect();
+
+    unsafe {
+        let mut fs_name_buffer = [0u16; 32];
+        let success = GetVolumeInformationW(
+            PCWSTR(wide_path.as_ptr()), // lpRootPathName
+            None,                       // lpVolumeNameBuffer
+            None,                       // lpVolumeSerialNumber
+            None,                       // lpMaximumComponentLength
+            None,                       // lpFileSystemFlags
+            Some(&mut fs_name_buffer),  // lpFileSystemNameBuffer
+        );
+
+        if success.is_err() {
+            let fs_name = String::from_utf16_lossy(
+                &fs_name_buffer[..fs_name_buffer.iter().position(|&x| x == 0).unwrap_or(0)],
+            )
+            .to_ascii_uppercase();
+            fs_name == "NTFS"
+        } else {
+            false
+        }
+    }
+}
