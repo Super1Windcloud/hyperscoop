@@ -73,7 +73,7 @@ pub fn transform_update_options_to_install(
     }
     if update_options.contains(&ForceUpdateOverride) {
         options.push(InstallOptions::ForceInstallOverride)
-    } 
+    }
    if update_options.contains(&UpdateOptions::InteractiveInstall)  {
        options.push(InstallOptions::InteractiveInstall)
    }
@@ -175,19 +175,17 @@ pub fn update_all_buckets_bar() -> anyhow::Result<()> {
             (pb, bucket_path)
         })
         .collect::<Vec<_>>();
-    let _ = outdated_buckets
+    let  _  = outdated_buckets
         .par_iter()
-        .map(|(pb, bucket_path)| {
+        .try_for_each(|(pb, bucket_path)| {
             let callback = gen_stats_callback(pb);
             let result = git_pull_update_repo(bucket_path, &callback);
             if let Err(e) = result {
                 pb.finish_with_message(format!("❌ {}", e.to_string()));
-                return Err(e);
             }
-            pb.finish_with_message(FINISH_MESSAGE);
+            pb.finish_with_message(FINISH_MESSAGE);  
             Ok(())
-        })
-        .collect::<Vec<anyhow::Result<()>>>();
+        }) as anyhow::Result<()> ; 
     #[allow(unused_doc_comments)]
     /// replace rayon  iterator  running  with foreach  for  map  method
     /// outdated_buckets.par_iter() // 来自 rayon
