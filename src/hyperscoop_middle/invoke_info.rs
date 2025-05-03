@@ -12,8 +12,7 @@ pub fn execute_info_command(
         } else {
             get_all_buckets_dir_path()?
         };
-        display_app_info(app_name.clone(), bucket_paths);
-        return Ok(());
+        display_app_info(app_name.clone(), bucket_paths)? ;
     }
     Ok(())
 }
