@@ -196,7 +196,7 @@ pub fn install_app_from_local_manifest_file<P: AsRef<Path>>(
     )
     .expect("parse installer scripts failed");
     //  *linking   app current dir to app version dir
-    senvenzip.link_current(); 
+    senvenzip.link_current();
     //*create_shims
     //*create_startmenu_shortcuts
     create_shim_or_shortcuts(manifest_path, &app_name, &options)

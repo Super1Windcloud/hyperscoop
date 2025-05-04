@@ -4,7 +4,7 @@
 > ##  Latest Release 请到 [Github](https://github.com/Super1Windcloud/hp/releases)
  
 >[!TIP]
-> ## 如果遇到启动延时, 请关闭杀毒软件
+> ##  运行前请关闭国产杀毒软件 ,卡巴斯基,兰顿什么的除外
 ------ 
 # HYPERSCOOP(hp)
 
