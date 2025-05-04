@@ -1,6 +1,7 @@
 use color_eyre::owo_colors::OwoColorize;
 use command_util_lib::init_env::{init_scoop_global, init_user_scoop};
 use crossterm::style::Stylize;
+use std::process::Command;
 use std::{env, path::Path};
 use which::which;
 use windows::core::PCWSTR;
@@ -9,7 +10,6 @@ use windows::Win32::Storage::FileSystem::GetVolumeInformationW;
 use windows::Win32::System::Diagnostics::Debug::VER_PLATFORM_WIN32_NT;
 use windows::Win32::System::SystemInformation::OSVERSIONINFOW;
 use winreg::{enums::HKEY_LOCAL_MACHINE, RegKey};
-
 
 #[allow(dead_code)]
 #[derive(Debug, thiserror::Error)]
@@ -28,29 +28,42 @@ struct CheckupResult {
     fix_hint: Option<String>,
 }
 
-pub fn execute_checkup_command(global: bool) -> anyhow::Result<()> {
+pub async fn execute_checkup_command(global: bool) -> anyhow::Result<()> {
     let mut total_issues = 0;
-    let  defender_issues = 0;
+    let defender_issues = 0;
 
     let main_bucket_result = check_main_bucket(global)?;
     if !main_bucket_result.passed {
         total_issues += 1;
         print_result(&main_bucket_result);
-    } 
+    }
     let lessmsi_result = check_lessmsi()?;
     if !lessmsi_result.passed {
         total_issues += 1;
         print_result(&lessmsi_result);
     }
+
+    let av_result = check_common_antivirus()?;
+    if !av_result.passed {
+        total_issues += 1;
+        print_result(&av_result);
+    }
+  
+  
     let innounp_result = check_innounp()?;
     if !innounp_result.passed {
         total_issues += 1;
         print_result(&innounp_result);
     }
-    let github_result = check_github()?;
+    let github_result = check_github().await?;
+    let git_result = check_git()?;
     if !github_result.passed {
         total_issues += 1;
         print_result(&github_result);
+    }
+    if !git_result.passed {
+        total_issues += 1;
+        print_result(&git_result);
     }
     let dark_result = check_dark()?;
     if !dark_result.passed {
@@ -82,6 +95,11 @@ pub fn execute_checkup_command(global: bool) -> anyhow::Result<()> {
         print_result(&ntfs_result);
     }
 
+    let virus_result = check_antivirus()?;
+    if !virus_result.passed {
+        total_issues += 1;
+        print_result(&virus_result);
+    }
     if total_issues > 0 {
         println!(
             "{}",
@@ -102,8 +120,6 @@ pub fn execute_checkup_command(global: bool) -> anyhow::Result<()> {
 
     Ok(())
 }
-
-
 
 fn print_result(result: &CheckupResult) {
     if result.passed {
@@ -228,76 +244,165 @@ fn check_7zip() -> anyhow::Result<CheckupResult> {
     }
 }
 
-
 fn check_lessmsi() -> anyhow::Result<CheckupResult> {
-  if which("lessmsi").is_err() {  
-      Ok(CheckupResult {
-          passed: false,
-          message: "'lessmsi' is not installed! It's required for unpacking some programs"
-             .to_string(),
-          fix_hint: Some("Run: hp install lessmsi".to_string()),
-      })
-  } else {
-      Ok(CheckupResult {
-          passed: true,
-          message: "lessmsi is installed".to_string(),
-          fix_hint: None,
-      })  
-  }
+    if which("lessmsi").is_err() {
+        Ok(CheckupResult {
+            passed: false,
+            message: "'lessmsi' is not installed! It's required for unpacking some programs"
+                .to_string(),
+            fix_hint: Some("Run: hp install lessmsi".to_string()),
+        })
+    } else {
+        Ok(CheckupResult {
+            passed: true,
+            message: "lessmsi is installed".to_string(),
+            fix_hint: None,
+        })
+    }
 }
 
-fn  check_innounp() -> anyhow::Result<CheckupResult> {
-  if which("innounp").is_err() {  
-      Ok(CheckupResult {
-          passed: false,
-          message: "'innounp' is not installed! It's required for unpacking some programs"
-             .to_string(),
-          fix_hint: Some("Run: hp install innounp".to_string()),
-      })
-  } else {
-      Ok(CheckupResult {
-          passed: true,
-          message: "innounp is installed".to_string(),
-          fix_hint: None,
-      })  
-  }
+fn check_innounp() -> anyhow::Result<CheckupResult> {
+    if which("innounp").is_err() {
+        Ok(CheckupResult {
+            passed: false,
+            message: "'innounp' is not installed! It's required for unpacking some programs"
+                .to_string(),
+            fix_hint: Some("Run: hp install innounp".to_string()),
+        })
+    } else {
+        Ok(CheckupResult {
+            passed: true,
+            message: "innounp is installed".to_string(),
+            fix_hint: None,
+        })
+    }
 }
 
-fn  check_github() -> anyhow::Result<CheckupResult> {
-  if which("git").is_err() {  
-      Ok(CheckupResult {
-          passed: false,
-          message: "'git' is not installed! It's required for installing some programs"
-             .to_string(),
-          fix_hint: Some("Download and install git from https://git-scm.com/download/win".to_string()),
-      })
-  } else {
-      Ok(CheckupResult {
-          passed: true,
-          message: "git is installed".to_string(),
-          fix_hint: None,
-      })  
-  } 
+async fn check_github() -> anyhow::Result<CheckupResult> {
+    let client = reqwest::Client::new();
+    let response = client.head("https://github.com").send().await?;
+
+    if response.status().is_success() {
+        Ok(CheckupResult {
+            passed: true,
+            message: "GitHub is accessible".to_string(),
+            fix_hint: None,
+        })
+    } else {
+        Ok(CheckupResult {
+            passed: false,
+            message: "GitHub is not accessible".to_string(),
+            fix_hint: Some("Check your internet connection".to_string()),
+        })
+    }
+}
+
+fn check_git() -> anyhow::Result<CheckupResult> {
+    if which("git").is_err() {
+        Ok(CheckupResult {
+            passed: false,
+            message: "'git' is not installed! It's required for installing some programs"
+                .to_string(),
+            fix_hint: Some(
+                "Download and install git from https://git-scm.com/download/win".to_string(),
+            ),
+        })
+    } else {
+        Ok(CheckupResult {
+            passed: true,
+            message: "git is installed".to_string(),
+            fix_hint: None,
+        })
+    }
 }
 
 fn check_dark() -> anyhow::Result<CheckupResult> {
-  if which("dark").is_err() {  
-      Ok(CheckupResult {
-          passed: false,
-          message: "'dark' is not installed! It's required for some programs"
-             .to_string(),
-          fix_hint: Some("Run: hp install dark".to_string()),
-      })
-  } else {
-      Ok(CheckupResult {
-          passed: true,
-          message: "dark is installed".to_string(),
-          fix_hint: None,
-      })  
-  } 
+    if which("dark").is_err() {
+        Ok(CheckupResult {
+            passed: false,
+            message: "'dark' is not installed! It's required for some programs".to_string(),
+            fix_hint: Some("Run: hp install dark".to_string()),
+        })
+    } else {
+        Ok(CheckupResult {
+            passed: true,
+            message: "dark is installed".to_string(),
+            fix_hint: None,
+        })
+    }
 }
- 
 
+use windows::Win32::System::SecurityCenter::{
+    WscGetSecurityProviderHealth, WSC_SECURITY_PROVIDER_ANTIVIRUS, WSC_SECURITY_PROVIDER_HEALTH,
+};
+
+fn check_antivirus() -> anyhow::Result<CheckupResult> {
+    let health = unsafe {
+        let mut health = WSC_SECURITY_PROVIDER_HEALTH::default();
+        WscGetSecurityProviderHealth(WSC_SECURITY_PROVIDER_ANTIVIRUS.0 as u32, &mut health)
+    };
+
+    match health {
+        Ok(_) => Ok(CheckupResult {
+            passed: true,
+            message: "Antivirus is healthy".to_string(),
+            fix_hint: None,
+        }),
+        Err(e) => {
+            eprintln!("Error: {}", e.to_string());
+            Err(CheckupError::ServiceError.into())
+        }
+    }
+}
+
+fn check_common_antivirus() -> anyhow::Result<CheckupResult> {
+    let output = Command::new("tasklist")
+        .output()
+        .expect("Failed to execute tasklist");
+
+    let tasklist = String::from_utf8_lossy(&output.stdout);
+
+    // 常见杀毒软件进程列表
+    let av_processes = [
+        "bdagent.exe",    // Bitdefender
+        "avguard.exe",    // Avira
+        "egui.exe",       // ESET
+        "mcshield.exe",   // McAfee
+        "hipsdaemon.exe", // Trend Micro
+        "360sd.exe",      // 360杀毒
+        "360Safe.exe",    // 360安全卫士
+        "MsMpEng.exe",    // Windows Defender
+        "avp.exe",        // 卡巴斯基
+        "QQPCTray.exe",   // 腾讯电脑管家
+        "McAfee.exe",     // McAfee
+        "AvastUI.exe",    // Avast
+        "wsctrlsvc.exe"  , // huorong
+        "HipsDaemon.exe" ,  // huorong
+        "HipsTray.exe",   // huorong
+    ];
+
+    let mut issues = Vec::new();
+
+    for process in av_processes {
+        if tasklist.contains(process) {
+            issues.push(format!("{} is running", process));
+        }
+    }
+
+    if !issues.is_empty() {
+        Ok(CheckupResult {
+            passed: false,
+            message: issues.join("\n"),
+            fix_hint: Some("Please stop the antivirus and try again".to_string()),
+        })
+    } else {
+        Ok(CheckupResult {
+            passed: true,
+            message: "Antivirus is not running".to_string(),
+            fix_hint: None,
+        })
+    }
+}
 fn check_ntfs_volumes() -> anyhow::Result<CheckupResult> {
     let scoop_path = env::var("SCOOP").unwrap_or_else(|_| {
         let user_profile = env::var("USERPROFILE").unwrap_or_else(|_| "C:\\Users".to_string());

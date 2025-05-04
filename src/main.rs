@@ -11,13 +11,12 @@ use std::io::stdout;
 
 mod command;
 mod hyperscoop_middle;
-use command::Commands;
 use hyperscoop_middle::*;
 mod logger_err;
 use logger_err::init_logger;
 mod check_self_update;
 mod crypto;
-use crate::command::{execute_credits_command, execute_hold_command};
+use crate::command::{execute_credits_command, execute_hold_command, Commands};
 use crate::command_args::alias::execute_alias_command;
 use crate::logger_err::init_color_output;
 use check_self_update::*;
@@ -103,7 +102,7 @@ async fn main() -> anyhow::Result<()> {
             Commands::Bucket(bucket) => execute_bucket_command(&bucket.command),
             Commands::Cat(cat) => execute_cat_command(cat),
             Commands::Cache(cache_args) => execute_cache_command(cache_args),
-            Commands::Checkup(args) => execute_checkup_command(args.global),
+            Commands::Checkup(args) => execute_checkup_command(args.global).await,
             Commands::Cleanup(args) => execute_cleanup_command(args),
             Commands::Config(args) => execute_config_command(args),
             Commands::Export(file) => execute_export_command(file),

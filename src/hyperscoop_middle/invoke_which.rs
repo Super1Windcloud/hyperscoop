@@ -110,7 +110,7 @@ pub fn output_current_exe(path: PathBuf, shim_root_dir: &str) -> anyhow::Result<
         println!("{}", path.display().to_string().dark_green().bold());
         return Ok(());
     }
-  
+
     let path = path.to_str().unwrap();
 
     let splits = path.split(".").collect::<Vec<&str>>();
@@ -125,7 +125,11 @@ pub fn output_current_exe(path: PathBuf, shim_root_dir: &str) -> anyhow::Result<
             bail!("{shim_file} is not exists")
         }
         let content = std::fs::read_to_string(shim_file)?;
+        let first_line = content.lines().next().unwrap();
+        let content = first_line.replace("path = ", "").replace("\"", "");
         println!("{}", content.to_string().dark_green().bold());
+      
+      
     } else if suffix == "cmd" || suffix == "bat" || suffix == "ps1" {
         let cmd_file = format!("{}.cmd", prefix);
         if !Path::new(&cmd_file).exists() {
@@ -221,6 +225,3 @@ fn extract_rem_comments(file_path: &str) -> String {
         .collect::<Vec<String>>()
         .join(" ")
 }
-
-
-

@@ -43,10 +43,11 @@ comfy-table = { workspace = true }
 indicatif = { workspace = true }
 windows = { version = "0.56.0", features = ["Win32_Foundation",
   "Win32_System_Services", "Win32_System_SystemServices", "Win32_System_Registry",
-  "Win32_Security", "Win32_Storage_FileSystem"] }
+  "Win32_Security", "Win32_Storage_FileSystem" ,"Win32_System_SecurityCenter"] }
 winreg = "0.55.0"
 thiserror = "1.0.66"
 which = "7.0.3"
+qrcode = "0.14.1"
 
 
 

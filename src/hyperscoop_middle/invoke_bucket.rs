@@ -2,6 +2,7 @@
 use anyhow::anyhow;
 use command_util_lib::buckets::Buckets;
 use crossterm::style::Stylize;
+use crate::hyperscoop_middle::invoke_update::update_buckets_parallel;
 
 pub   fn execute_bucket_command(args: &Option<BucketSubcommands>) -> Result<(), anyhow::Error> {
     let buckets = Buckets::new()?;
@@ -60,7 +61,7 @@ pub   fn execute_bucket_command(args: &Option<BucketSubcommands>) -> Result<(), 
             buckets.rm_buckets(&rm_args.name ,rm_args.global)?;
         }
         BucketSubcommands::Update(_) => {
-            crate::hyperscoop_middle::invoke_update::update_buckets()?;
+             update_buckets_parallel()?;
         }
     }
     Ok(())

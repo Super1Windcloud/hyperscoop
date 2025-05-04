@@ -1,4 +1,6 @@
-﻿use crate::command_args::cat::CatArgs;
+﻿use crate::check_self_update::auto_check_hp_update;
+use crate::command_args::alias::AliasArgs;
+use crate::command_args::cat::CatArgs;
 use crate::command_args::checkup::CheckupArgs;
 use crate::command_args::cleanup::CleanupArgs;
 use crate::command_args::config::ConfigArgs;
@@ -17,18 +19,14 @@ use crate::command_args::status::StatusArgs;
 use crate::command_args::uninstall::UninstallArgs;
 use crate::command_args::update::UpdateArgs;
 use crate::command_args::which::WhichArgs;
-use crate::command_args::alias::AliasArgs;
 pub(crate) use crate::command_args::{bucket_args::BucketArgs, cache::CacheArgs};
 use anyhow::bail;
 use clap::{Args, Subcommand};
 use command_util_lib::init_env::get_app_dir_install_json;
-use crossterm::style::Stylize;
-use serde_json::{Value};
-use std::path::Path;
-use crate::check_self_update::auto_check_hp_update;
-
 use command_util_lib::utils::utility::clap_args_to_lowercase;
-
+use crossterm::style::Stylize;
+use serde_json::Value;
+use std::path::Path;
 
 #[derive(Debug, Subcommand)]
 #[command(propagate_version = true)] // 自动传递版本信息
@@ -74,9 +72,14 @@ pub(crate) enum Commands {
 #[command(no_binary_name = true)]
 pub struct CreditsArgs {}
 
-pub async   fn execute_credits_command() -> anyhow::Result<()> {
+pub async fn execute_credits_command() -> anyhow::Result<()> {
     if !auto_check_hp_update(None).await? {
-      println!("{}", "💖\tNow hp's  version is latest! Please enjoy it!".dark_cyan().bold());
+        println!(
+            "{}",
+            "💖\tNow hp's  version is latest! Please enjoy it!"
+                .dark_cyan()
+                .bold()
+        );
     };
 
     let str = "Hp  is created by superwindcloud(https://gitee.com/superwindcloud)(https://github.com/super1windcloud)"
@@ -84,6 +87,8 @@ pub async   fn execute_credits_command() -> anyhow::Result<()> {
         .dark_blue()
         .bold();
     println!("💖\t{str}");
+
+    show_reward_img();
     Ok(())
 }
 
@@ -98,8 +103,6 @@ pub struct HoldArgs {
     #[arg(short = 'u', long, required = false, help = "取消锁定, 支持多参数")]
     pub cancel_hold: bool,
 }
-
-
 
 pub fn add_key_value_to_json(
     file_path: &str,
@@ -144,19 +147,19 @@ pub fn execute_hold_command(hold_args: HoldArgs) -> anyhow::Result<()> {
                 None
             } else {
                 if hold_args.cancel_hold {
-                    let  result = unhold_locked_apps(&name ,&install_json);
-                   if result.is_err() {
-                    Some(result)
-                  } else {
-                    None
-                  }
-                }else {
-                  let result = add_key_value_to_json(&install_json, "hold".as_ref(), true, name);
-                  if result.is_err() {
-                    Some(result)
-                  } else {
-                    None
-                  }
+                    let result = unhold_locked_apps(&name, &install_json);
+                    if result.is_err() {
+                        Some(result)
+                    } else {
+                        None
+                    }
+                } else {
+                    let result = add_key_value_to_json(&install_json, "hold".as_ref(), true, name);
+                    if result.is_err() {
+                        Some(result)
+                    } else {
+                        None
+                    }
                 }
             }
         })
@@ -174,25 +177,45 @@ pub fn execute_hold_command(hold_args: HoldArgs) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub fn unhold_locked_apps(app_name: &str , install_json_file : &str ) -> anyhow::Result<()> {
-  let data = std::fs::read_to_string(install_json_file)?;
+pub fn unhold_locked_apps(app_name: &str, install_json_file: &str) -> anyhow::Result<()> {
+    let data = std::fs::read_to_string(install_json_file)?;
 
-  let mut json_data: Value = serde_json::from_str(&data)?;
+    let mut json_data: Value = serde_json::from_str(&data)?;
 
-  if let Value::Object(ref mut map) = json_data {
-    if map.get("hold").is_none()  {
-      bail!("'{app_name}' is not  held.");
+    if let Value::Object(ref mut map) = json_data {
+        if map.get("hold").is_none() {
+            bail!("'{app_name}' is not  held.");
+        }
+        map.remove("hold");
+        println!(
+            "{}",
+            (app_name.to_string() + " is no longer held and can be updated again.")
+                .dark_green()
+                .bold()
+        );
+    } else {
+        bail!("Invalid JSON: Expected an object");
     }
-    map.remove("hold");
-    println!(
-      "{}",
-      (app_name.to_string() + " is no longer held and can be updated again.")
-        .dark_green()
-        .bold()
-    );
-  } else {
-    bail!("Invalid JSON: Expected an object");
-  }
-  std::fs::write(install_json_file , serde_json::to_string_pretty(&json_data)?)?;
+    std::fs::write(install_json_file, serde_json::to_string_pretty(&json_data)?)?;
     Ok(())
+}
+
+
+
+pub fn show_reward_img() {
+
+  use qrcode::{QrCode};
+  use qrcode::render::unicode;
+
+  let url = "https://img.picui.cn/free/2025/05/04/68170e249fdcd.png"; 
+  
+   let code = QrCode::new(url).unwrap();
+  let image = code.render::<unicode::Dense1x2>() 
+    .dark_color(unicode::Dense1x2::Light)
+    .light_color(unicode::Dense1x2::Dark)
+    .build();
+  
+  println!("{}", image);
+  println!("{}", "您的支持是我调试人生的 print!   │───┘".dark_cyan().bold());
+
 }

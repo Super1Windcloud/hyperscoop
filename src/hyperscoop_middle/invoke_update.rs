@@ -15,12 +15,16 @@ use std::io::Write;
 use std::path::Path;
 use std::process::Command;
 
-
 pub async fn execute_update_command(update_args: UpdateArgs) -> Result<(), anyhow::Error> {
     let options = inject_update_user_options(&update_args)?;
     if update_args.update_self_and_buckets {
         println!("{}", "开始更新hp和buckets".dark_cyan().bold());
-        update_buckets()?;
+
+        if update_args.serial_update {
+            update_buckets_serial()?;
+        } else {
+            update_buckets_parallel()?
+        };
         update_hp(&options).await?;
         return Ok(());
     }
@@ -67,21 +71,22 @@ fn inject_update_user_options(args: &UpdateArgs) -> anyhow::Result<Vec<UpdateOpt
     }
     if args.force_update_override {
         options.push(ForceUpdateOverride);
-    } 
-  
-    if  args.interactive { 
+    }
+
+    if args.interactive {
         options.push(UpdateOptions::InteractiveInstall);
     }
     Ok(options)
 }
 
-pub(crate) fn update_buckets() -> Result<(), anyhow::Error> {
-    // update_scoop_bar().expect("update scoop bar failed");
-    // let status = check_bucket_update_status()?;
-    // if !status {
-    //     return Ok(());
-    // }
+pub(crate) fn update_buckets_parallel() -> Result<(), anyhow::Error> {
     update_all_buckets_bar_parallel().expect("update all buckets bar failed");
+    update_scoop_config_last_update_time();
+    Ok(())
+}
+
+pub(crate) fn update_buckets_serial() -> Result<(), anyhow::Error> {
+    update_all_buckets_bar_serial().expect("update all buckets bar failed");
     update_scoop_config_last_update_time();
     Ok(())
 }
@@ -101,7 +106,7 @@ pub async fn update_hp(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
             let version = install_and_replace_hp(install_options.as_slice())
                 .await
                 .expect("hp update failed");
-            launch_update_script(global, "", false ).expect("update hp script failed");
+            launch_update_script(global, "", false).expect("update hp script failed");
             println!(
                 "{}",
                 format!("Hp Latest Version('{version}') Update Successfully! ❤️‍🔥💝🐉🍾🎉")
@@ -116,13 +121,13 @@ pub async fn update_hp(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
         let old_version =
             get_app_old_version("hp", update_options).expect("get app old version failed");
         if old_version.is_empty() {
-          let hp_exe = get_app_current_bin_path("hp", "hp.exe");
-          let output = Command::new(hp_exe)
-            .arg("--version")
-            .output()
-            .expect("failed to get hp version");
-          let version = String::from_utf8(output.stdout).expect("failed to parse hp version");
-          version.trim().to_string()
+            let hp_exe = get_app_current_bin_path("hp", "hp.exe");
+            let output = Command::new(hp_exe)
+                .arg("--version")
+                .output()
+                .expect("failed to get hp version");
+            let version = String::from_utf8(output.stdout).expect("failed to parse hp version");
+            version.trim().to_string()
         } else {
             old_version
         }
@@ -147,12 +152,13 @@ pub async fn update_hp(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
     let version = install_and_replace_hp(install_options.as_slice())
         .await
         .expect("install_and_replace_hp  failed");
-    
-    if   update_options.contains(&ForceUpdateOverride) {
-         launch_update_script(global, "" , true).expect("update hp script failed");
+
+    if update_options.contains(&ForceUpdateOverride) {
+        launch_update_script(global, "", true).expect("update hp script failed");
     } else {
-        launch_update_script(global, app_old_version_dir.as_str() ,  false ).expect("update hp script failed");
-    } 
+        launch_update_script(global, app_old_version_dir.as_str(), false)
+            .expect("update hp script failed");
+    }
     println!(
         "{}",
         format!("Hp Latest Version('{version}') Update Successfully! ❤️‍🔥💝🐉🍾🎉")
@@ -163,7 +169,11 @@ pub async fn update_hp(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-fn launch_update_script(global: bool, old_version_dir: &str, replace_old_hp   : bool) -> anyhow::Result<()> {
+fn launch_update_script(
+    global: bool,
+    old_version_dir: &str,
+    replace_old_hp: bool,
+) -> anyhow::Result<()> {
     let hp_current = if global {
         get_app_current_dir_global("hp")
     } else {
@@ -221,7 +231,8 @@ endlocal
 "#
     );
 
-  let  force_override_script =  format!(r#"@echo off
+    let force_override_script = format!(
+        r#"@echo off
 chcp 65001 > nul
 setlocal enabledelayedexpansion
 timeout /t 1 > nul
@@ -258,13 +269,14 @@ if not exist "hp.exe" (
 )
 
 endlocal
-"#);
+"#
+    );
 
-    let script_content = if  !replace_old_hp {
+    let script_content = if !replace_old_hp {
         script_content
     } else {
         force_override_script
-    };  
+    };
     let updater = format!("{hp_current}\\updater.bat");
     let mut file = File::create(&updater).expect("Failed to create updater.bat");
     let script_content = script_content.replace(LineEnding::LF.as_str(), LineEnding::CRLF.as_str());
