@@ -1,4 +1,5 @@
 ﻿use crate::buckets::{get_buckets_path, get_global_all_buckets_dir};
+use crate::info::validate_app_name;
 use crate::list::get_all_installed_apps_name;
 use crate::utils::detect_encoding::transform_to_only_version_manifest;
 use anyhow::bail;
@@ -8,13 +9,14 @@ use std::fs::DirEntry;
 use std::path::{Path, PathBuf};
 
 pub fn fuzzy_search(query: String, global: bool) -> anyhow::Result<()> {
-    let query = query.trim().to_string().to_lowercase();
+    validate_app_name(query.as_str())?;
 
     let buckets_path = if global {
         get_global_all_buckets_dir()?
     } else {
         get_buckets_path()?
     };
+
     if query.contains("/") {
         let query_args = query
             .clone()
@@ -22,9 +24,10 @@ pub fn fuzzy_search(query: String, global: bool) -> anyhow::Result<()> {
             .map(|s| s.trim().to_string())
             .collect::<Vec<String>>();
         if query_args.len() == 2 {
-            search_app_in_specific_bucket(buckets_path, &query_args[0], &query_args[1]);
+            search_app_in_specific_bucket(buckets_path, &query_args[0], &query_args[1])?;
         }
     } else {
+      
         let all_manifests_path = get_all_manifest_package_name(buckets_path);
         if all_manifests_path.is_err() {
             eprintln!("Error: All manifests path is invalid");
@@ -75,13 +78,13 @@ fn get_match_name_path(
     Ok(result)
 }
 
-pub fn exact_search(query: String  , global : bool) -> anyhow::Result<()> {
+pub fn exact_search(query: String, global: bool) -> anyhow::Result<()> {
     let query = query.trim().to_string().to_lowercase();
-  let buckets_path = if global {
-    get_global_all_buckets_dir()?
-  } else {
-    get_buckets_path()?
-  };
+    let buckets_path = if global {
+        get_global_all_buckets_dir()?
+    } else {
+        get_buckets_path()?
+    };
     let all_result: Vec<Vec<(String, PathBuf)>> = buckets_path
         .par_iter()
         .filter_map(|entry| {
@@ -133,6 +136,7 @@ fn get_result_source_and_version(
                 .unwrap()
                 .to_string_lossy()
                 .to_string();
+
             let version = transform_to_only_version_manifest(path.as_ref());
 
             if version.is_err() {
@@ -156,7 +160,11 @@ fn get_result_source_and_version(
     Ok(result_info)
 }
 
-fn search_app_in_specific_bucket(buckets_path: Vec<String>, bucket: &String, app_name: &String) {
+fn search_app_in_specific_bucket(
+    buckets_path: Vec<String>,
+    bucket: &String,
+    app_name: &String,
+) -> anyhow::Result<()> {
     let path: PathBuf = buckets_path
         .iter()
         .filter_map(|item| {
@@ -168,16 +176,20 @@ fn search_app_in_specific_bucket(buckets_path: Vec<String>, bucket: &String, app
             }
         })
         .collect();
+    if !path.exists() {
+        bail!("Bucket '{}' dir is not exist", bucket)
+    };
+
     if path.is_dir() {
-        let result_name = get_apps_names(&path, app_name).unwrap();
-        let result_info = get_result_source_and_version(result_name).unwrap();
+        let result_name = get_apps_names(&path, app_name)?;
+        let result_info = get_result_source_and_version(result_name)?;
         let count = result_info.len();
         if count == 0 {
             println!(
                 "\t{}",
                 "No results found...\n".to_string().dark_green().bold()
             );
-            return;
+            return Ok(());
         }
 
         println!(
@@ -188,28 +200,27 @@ fn search_app_in_specific_bucket(buckets_path: Vec<String>, bucket: &String, app
 
         sort_result_by_bucket_name(result_info);
     }
+    Ok(())
 }
 
 fn sort_result_by_bucket_name(mut result: Vec<(String, String, String)>) {
     //  ( name  version source )
-    // 将官方维护的bucket靠前
-    let official_bucket = ["main", "extras", "versions"];
+    let official_bucket = ["main", "extras"];
+   result.sort_by(|a, b| a.0.cmp(&b.0));
 
-    for i in 0..result.len() {
-        for name in official_bucket {
-            if result[i].2 == name {
-                result.insert(0, result[i].clone());
-                result.remove(i + 1);
-                break;
-            }
-        }
-    }
-
-    display_result(&mut result)
+   result.sort_by(|a, b| {
+    let a_in_official = official_bucket.contains(&a.2.to_lowercase().as_str());
+    let b_in_official = official_bucket.contains(&b.2.to_lowercase().as_str());
+     // 如果 a 在 official_bucket 而 b 不在，a 应该排在后面（升序时）
+     a_in_official.cmp(&b_in_official)
+   });
+  
+    display_result(&result)
 }
 
-fn get_apps_names(path: &PathBuf, query: &String) -> Result<Vec<(String, PathBuf)>, anyhow::Error> {
+fn get_apps_names(path: &Path, query: &str) -> Result<Vec<(String, PathBuf)>, anyhow::Error> {
     let query = query.trim().to_string().to_lowercase();
+  
     let app_names = path
         .read_dir()?
         .into_iter()
@@ -220,10 +231,10 @@ fn get_apps_names(path: &PathBuf, query: &String) -> Result<Vec<(String, PathBuf
             let file_type = entry.file_type().unwrap();
             if file_type.is_file() && path.extension().unwrap_or_default() == "json" {
                 let app_name = path.file_stem().unwrap().to_str().unwrap();
-                let app_name = app_name.to_string().to_lowercase();
+                let app_name = app_name.to_lowercase();
                 if app_name == query || app_name.contains(&query) {
                     let app_path = path.clone();
-                    Some((app_name.to_string(), app_path))
+                    Some((app_name, app_path))
                 } else {
                     None
                 }
@@ -273,7 +284,7 @@ pub fn get_all_manifest_package_name_slow(
     let all_json_manifests: Vec<PathBuf> = all_manifests_path
         .into_par_iter()
         .filter_map(|file_path| {
-            // !  千万不要使用 is_file 方法,  path.is_file() 是一个系统调用,系统开销巨大,严重影响性能
+            // ! path.is_file() 是一个系统调用,系统开销巨大,严重影响性能
             if file_path.is_file() && file_path.extension().unwrap_or_default() == "json" {
                 Some(file_path)
             } else {
@@ -331,8 +342,10 @@ fn get_exact_search_apps_names(
             if file_type.is_file() && path.extension().and_then(|ext| ext.to_str()) == Some("json")
             {
                 let app_name = path.file_stem().and_then(|stem| stem.to_str())?;
-                if app_name.to_lowercase() == query_lower {
-                    Some((app_name.to_string(), path))
+
+                let app_name = app_name.trim().to_lowercase();
+                if app_name == query_lower {
+                    Some((app_name, path))
                 } else {
                     None
                 }
@@ -344,8 +357,7 @@ fn get_exact_search_apps_names(
     Ok(app_names)
 }
 
-fn display_result(result: &mut Vec<(String, String, String)>) {
-    result.sort_by(|a, b| a.0.cmp(&b.0));
+fn display_result(result: &Vec<(String, String, String)>) {
     let name_width = result
         .iter()
         .map(|(name, _, _)| name.len())
@@ -408,8 +420,8 @@ fn display_result(result: &mut Vec<(String, String, String)>) {
     }
     println!(" {}", "-".repeat(total_width).dark_magenta().bold());
 }
-#[allow(unused)]
-fn is_installed(app_name: &str) -> bool {
+
+pub fn is_installed(app_name: &str) -> bool {
     let apps_list = get_all_installed_apps_name();
     for item in apps_list {
         if item == app_name {
@@ -417,4 +429,13 @@ fn is_installed(app_name: &str) -> bool {
         }
     }
     false
+}
+
+ 
+pub  fn remove_bom(content: &str) -> String {
+    if content.starts_with("\u{feff}") {
+        content[3..].to_string()
+    } else {
+        content.to_string()
+    }
 }

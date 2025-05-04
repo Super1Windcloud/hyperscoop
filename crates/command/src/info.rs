@@ -76,7 +76,7 @@ pub fn display_app_info(app_name: String, bucket_paths: Vec<String>) -> anyhow::
     Ok(())
 }
 
-fn validate_app_name(app_name: &str) -> anyhow::Result<()> {
+pub  fn validate_app_name(app_name: &str) -> anyhow::Result<()> {
     let re = Regex::new(r"^[a-zA-Z0-9]+([_\-/][a-zA-Z0-9]+)*$")?;
     if !re.is_match(app_name) {
         bail!("Invalid app name: {}", app_name);

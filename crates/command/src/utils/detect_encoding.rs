@@ -25,7 +25,7 @@ pub fn transform_to_only_version_manifest(path: &Path) -> Result<SearchManifest,
         .chars()
         .filter(|c| !c.is_control())
         .collect::<String>();
-    let result = serde_json::from_str(&cleaned);
+    let result = from_str(&cleaned);
 
     match result {
         Ok(manifest) => Ok(manifest),
@@ -50,7 +50,7 @@ pub fn judge_is_valid_utf8_exclude_bom(path: &Path) -> bool {
         error!("路径{}解码失败 ", &path.to_string_lossy());
         return false;
     }
-    return true;
+    true
 }
 
 pub fn judge_is_gbk(path: &Path) -> bool {
@@ -73,20 +73,20 @@ pub fn judge_is_gbk(path: &Path) -> bool {
             }
         }
     }
-    match best_guess {
-        None => {
-            return false;
-        }
-        Some(encoding_mode) => {
-            // println!(" current encoding mode is {}", encoding_mode);
-            if encoding_mode == "GBK" {
-                // println!("{} {}", "GBK detected in path.".dark_green().bold(), path.display().to_string().dark_green().bold());
-                return true;
-            } else {
-                return false;
-            }
-        }
+  match best_guess {
+    None => {
+      false
     }
+    Some(encoding_mode) => {
+      // println!(" current encoding mode is {}", encoding_mode);
+      if encoding_mode == "GBK" {
+        // println!("{} {}", "GBK detected in path.".dark_green().bold(), path.display().to_string().dark_green().bold());
+        true
+      } else {
+        false
+      }
+    }
+  }
 }
 
 pub fn judge_utf8_is_having_bom(path: &Path) -> bool {
@@ -100,10 +100,10 @@ pub fn judge_utf8_is_having_bom(path: &Path) -> bool {
             "UTF-8 with BOM detected in path.".dark_green().bold(),
             path.display().to_string().dark_green().bold()
         );
-        return true;
+        true
     } else {
         //  println!("UTF-8 is not having BOM ");
-        return false;
+        false
     }
 }
 
