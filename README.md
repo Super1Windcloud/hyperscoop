@@ -2,7 +2,8 @@
 
 > [!IMPORTANT]  
 > ##  Latest Release 请到 [Github](https://github.com/Super1Windcloud/hp/releases)
- 
+> [!Note] 
+> ##  已提供upx压缩加壳的exe, 大幅度减少二进制的体积,见[hp_upx.exe](https://github.com/Super1Windcloud/hp/releases/download/4.0.5/hp_upx.exe)
 >[!TIP]
 > ##  运行前请关闭国产杀毒软件 ,卡巴斯基,兰顿什么的除外
 ------ 
