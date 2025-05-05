@@ -59,6 +59,9 @@ digest = "0.10.7"
 shortcuts-rs = "1.1.1"
 sysinfo =  { version = "0.34.2" , features = ["system", "windows"] }
 comfy-table =  {workspace = true}
+which = {workspace = true}
+
+
 
 
 [lib]

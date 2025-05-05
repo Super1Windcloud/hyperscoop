@@ -8,6 +8,7 @@ use std::io::{BufRead, BufReader, Read, Write};
 use std::path::Path;
 use std::process::{Command, Stdio};
 use std::{env, fs};
+use which::which;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
@@ -34,7 +35,8 @@ impl<'a> Aria2C<'a> {
     fn init(&mut self) -> anyhow::Result<()> {
         self.init_aria2c_config();
         let aria2_path = self.extract_aria2()?;
-        self.set_aria2c_path(Cow::Owned(aria2_path));
+       log::debug!("aria2c.exe : {}", aria2_path.as_str() );
+       self.set_aria2c_path(Cow::Owned(aria2_path));
         Ok(())
     }
     pub fn get_input_file(&self) -> String {
@@ -260,7 +262,13 @@ impl<'a> Aria2C<'a> {
     }
 
     fn extract_aria2(&self) -> anyhow::Result<String> {
-        let aria2_exe = self.get_temp_aria2_path();
+        let aria2 = which("aria2c");
+
+        let aria2_exe = if aria2.is_ok() {
+          aria2?.to_str().unwrap().to_string()
+        } else {
+            self.get_temp_aria2_path()
+        };
         if !Path::new(&aria2_exe).exists() {
             self.write_aria2_to_temp(&aria2_exe)?;
         }

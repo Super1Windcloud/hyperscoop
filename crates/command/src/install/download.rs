@@ -30,7 +30,6 @@ pub struct DownloadManager<'a> {
     app_name: &'a str,
     manifest_path: &'a str,
     app_version: String,
-    pub aria2c: Aria2C<'a>,
     scoop_cache_dir: String,
     cache_file_name: Vec<String>,
     app_version_dir: String,
@@ -499,7 +498,6 @@ impl<'a> DownloadManager<'a> {
             manifest_path,
             app_version: "".into(),
             bucket_source,
-            aria2c: Aria2C::new(),
             scoop_cache_dir: "".into(),
             cache_file_name: vec![],
             app_version_dir: "".into(),
@@ -834,13 +832,14 @@ impl<'a> DownloadManager<'a> {
       
         let cache_files = self.get_final_cache_file_path(); 
         let cache_files =  cache_files.iter().cloned().collect::<Vec<String>>();
-
+        
         if self.options.contains(&Global) {
             let apps = get_apps_path_global();
             _7z.set_apps_root_dir(apps)
         } else {
             _7z.set_apps_root_dir(get_apps_path())
         }
+        _7z.set_options(self.get_options());  
         _7z.set_archive_cache_files_path(cache_files);
         _7z.set_app_name(self.app_name);
         _7z.set_archive_names(self.origin_cache_file_names.as_ref());

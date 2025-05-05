@@ -225,3 +225,4 @@ fn extract_rem_comments(file_path: &str) -> String {
         .collect::<Vec<String>>()
         .join(" ")
 }
+

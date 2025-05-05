@@ -68,8 +68,18 @@ pub fn install_app_from_local_manifest_file<P: AsRef<Path>>(
         };
 
         if Path::new(&special_app_dir).exists() && app_name.to_lowercase() != "hp" {
-            std::fs::remove_dir_all(special_app_dir)
-                .expect("remove  app dir failed, process is running");
+            let  result = std::fs::remove_dir_all(&special_app_dir); 
+            match result {
+                Ok(_) => {
+                    log::debug!("remove app dir success!");
+                }
+                Err(_) => {
+                    log::debug!("kill {app_name}  process");
+                    kill_processes_using_app(&app_name);
+                    std::fs::remove_dir_all(&special_app_dir)?;
+                }
+            }
+                 
         }
     }
     validate_version(version)?;

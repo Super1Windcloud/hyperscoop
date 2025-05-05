@@ -49,6 +49,12 @@ pub async fn execute_checkup_command(global: bool) -> anyhow::Result<()> {
         print_result(&av_result);
     }
   
+   let aria2c_result = check_aria2c_path()?;
+    if !aria2c_result.passed {
+        total_issues += 1;
+        print_result(&aria2c_result);
+    }
+  
   
     let innounp_result = check_innounp()?;
     if !innounp_result.passed {
@@ -239,6 +245,23 @@ fn check_7zip() -> anyhow::Result<CheckupResult> {
         Ok(CheckupResult {
             passed: true,
             message: "7-Zip is installed".to_string(),
+            fix_hint: None,
+        })
+    }
+}
+
+fn check_aria2c_path() -> anyhow::Result<CheckupResult> {
+    if which("aria2c").is_err() {
+        Ok(CheckupResult {
+            passed: false,
+            message: "'aria2c' is not installed! It's required for downloading some programs"
+                .to_string(),
+            fix_hint: Some("Run: hp install aria2".to_string()),
+        })
+    } else {
+        Ok(CheckupResult {
+            passed: true,
+            message: "aria2c is installed".to_string(),
             fix_hint: None,
         })
     }

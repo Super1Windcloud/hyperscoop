@@ -641,6 +641,7 @@ dependencies = [
  "tokio",
  "url",
  "webbrowser",
+ "which",
  "windows 0.61.1",
  "windows-sys 0.59.0",
  "winreg",

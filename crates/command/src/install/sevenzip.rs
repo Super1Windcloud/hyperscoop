@@ -1,4 +1,5 @@
-use crate::install::{install_app, ArchiveFormat};
+use crate::init_env::{get_shims_root_dir, get_shims_root_dir_global};
+use crate::install::{install_app, ArchiveFormat, InstallOptions};
 use crate::manifest::manifest_deserialize::StringArrayOrString;
 use crate::utils::system::is_broken_symlink;
 use anyhow::bail;
@@ -7,8 +8,9 @@ use std::env;
 use std::fs::File;
 use std::io::Write;
 use std::os::windows::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
+use which::which;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
@@ -22,6 +24,7 @@ pub struct SevenZipStruct<'a> {
     apps_root_dir: String,
     app_manifest_path: String,
     target_alias_name: Box<[String]>,
+    options: &'a [InstallOptions<'a>],
 }
 
 impl<'a> SevenZipStruct<'a> {
@@ -29,6 +32,13 @@ impl<'a> SevenZipStruct<'a> {
         &self.app_manifest_path
     }
 
+    pub fn get_options(&self) -> &[InstallOptions<'a>] {
+        self.options
+    }
+
+    pub fn set_options(&mut self, options: &'a [InstallOptions<'a>]) {
+        self.options = options;
+    }
     pub fn get_target_alias_name(&self) -> &[String] {
         self.target_alias_name.as_ref()
     }
@@ -64,6 +74,7 @@ impl<'a> SevenZipStruct<'a> {
             apps_root_dir: "".into(),
             app_manifest_path: "".to_string(),
             target_alias_name: Box::new([]),
+            options: &[],
         }
     }
 
@@ -165,12 +176,88 @@ impl<'a> SevenZipStruct<'a> {
         str.to_string()
     }
 
+    pub fn output_current_exe(&self, path: PathBuf, shim_root_dir: &str) -> anyhow::Result<String> {
+        let parent = path.parent().unwrap();
+        if parent.to_str().unwrap() != shim_root_dir {
+            return Ok(path.to_str().unwrap().trim().to_string());
+        }
+
+        let path = path.to_str().unwrap();
+
+        let splits = path.split(".").collect::<Vec<&str>>();
+        if splits.len() != 2 {
+            bail!("{path} is not a valid path")
+        }
+        let prefix = splits[0];
+        let suffix = splits[1];
+        if suffix == "exe" || suffix == "com" {
+            let shim_file = format!("{}.shim", prefix);
+            if !Path::new(&shim_file).exists() {
+                bail!("{shim_file} is not exists")
+            }
+            let content = std::fs::read_to_string(shim_file)?;
+            let first_line = content.lines().next().unwrap();
+            let content = first_line.replace("path = ", "").replace("\"", "");
+            Ok(content.trim().to_string())
+        } else if suffix == "cmd" || suffix == "bat" || suffix == "ps1" {
+            let cmd_file = format!("{}.cmd", prefix);
+            if !Path::new(&cmd_file).exists() {
+                bail!("{cmd_file} is not exists")
+            }
+            let content = self.extract_rem_comments(cmd_file.as_str());
+            Ok(content.trim().to_string())
+        } else {
+            eprintln!("Unknown suffix: {}", suffix);
+            bail!("{path} is not a valid path")
+        }
+    }
+
+    fn extract_rem_comments(&self, file_path: &str) -> String {
+        let content = std::fs::read_to_string(file_path).expect("Failed to read file");
+        content
+            .lines()
+            .filter_map(|line| {
+                let trimmed = line.trim();
+                if trimmed.starts_with("@rem") {
+                    Some(trimmed[4..].trim_start().to_string()) // 提取 "@rem" 后的内容
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<String>>()
+            .join(" ")
+    }
+
     pub fn load_7z_to_temp_dir(&self) -> anyhow::Result<String> {
         const _7ZIP_EXE: &[u8] = include_bytes!("../../../../resources/7z.exe");
         const _7ZIP_DLL: &[u8] = include_bytes!("../../../../resources/7z.dll");
-        let exe_path = self.get_temp_7z_path();
-        let dll_path = self.get_temp_7z_dll_path();
+        let seven_zip = which("7z").ok();
+        let exe_path = if seven_zip.is_some() {
+            seven_zip.clone().unwrap().to_str().unwrap().to_string()
+        } else {
+            self.get_temp_7z_path()
+        };
+        let dll_path = if seven_zip.is_some() {
+            let seven_zip_dir = seven_zip.unwrap();
+            let shim_root_dir = if self.get_options().contains(&InstallOptions::Global) {
+                get_shims_root_dir_global()
+            } else {
+                get_shims_root_dir()
+            };
+            let exe_current =  self.output_current_exe(seven_zip_dir.clone(), shim_root_dir.as_str())?;
+            let parent= Path::new(&exe_current).parent().unwrap();  
+          
+            let dll_path = format!("{}\\7z.dll", parent.to_str().unwrap());
+          
+            if !Path::new(&dll_path).exists() {
+                bail!("7z.dll not found in 7zip dir , please install 7zip and try again.")
+            }
+            dll_path
+        } else {
+            self.get_temp_7z_dll_path()
+        };
         if Path::new(&exe_path).exists() && Path::new(&dll_path).exists() {
+            log::debug!("7z.exe {} ,7z.dll {}", &exe_path, &dll_path);
             return Ok(exe_path);
         }
         let mut exe_file = File::create(&exe_path)?;
