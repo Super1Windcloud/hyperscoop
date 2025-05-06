@@ -10,7 +10,7 @@ use crate::install::{ArchiveFormat, Aria2C, HashFormat, InstallOptions, SevenZip
 use crate::manifest::install_manifest::InstallManifest;
 use crate::manifest::manifest_deserialize::{ArchitectureObject, StringArrayOrString};
 use crate::utils::system::{compute_hash_by_powershell, get_system_default_arch};
-use crate::utils::utility::get_parse_url_query;
+use crate::utils::utility::{assume_yes_to_cover_folder, get_parse_url_query, is_valid_url};
 use anyhow::bail;
 use crossterm::style::Stylize;
 use digest::Digest;
@@ -95,7 +95,7 @@ impl<'a> DownloadManager<'a> {
         &self.install_arch
     }
 
-    pub fn get_final_cache_file_path(& self) ->  Box<[String]> {
+    pub fn get_final_cache_file_path(&self) -> Box<[String]> {
         self.final_cache_file_path.clone()
     }
 
@@ -227,7 +227,10 @@ impl<'a> DownloadManager<'a> {
     }
 
     pub fn get_target_rename_alias(&self) -> Vec<String> {
-        self.target_rename_alias.iter().map(|s | s.to_string()).collect()
+        self.target_rename_alias
+            .iter()
+            .map(|s| s.to_string())
+            .collect()
     }
 
     pub fn set_target_rename_alias(&mut self, new_alias: Vec<&str>) {
@@ -304,7 +307,14 @@ impl<'a> DownloadManager<'a> {
     }
 
     pub fn create_input_file(&self) -> anyhow::Result<()> {
+        let final_caches = self.final_cache_file_path.as_ref();
+        log::debug!("final caches file : {:?}", final_caches);
+        let exist_cache = final_caches.iter().all(|path| Path::new(path).exists());
+        if exist_cache {
+            return Ok(());
+        }
         let mut file = std::fs::File::create(self.get_input_file())?;
+        log::debug!("create input file {}", self.get_input_file());
         let urls = self.get_download_urls();
         let result =
             urls.iter()
@@ -364,7 +374,6 @@ impl<'a> DownloadManager<'a> {
         } else {
             path.to_path_buf()
         };
-        // 规范化路径（移除多余的 ./ 或 ../）
         let canonical_path = std::fs::canonicalize(absolute_path)?;
         Ok(canonical_path)
     }
@@ -430,10 +439,22 @@ impl<'a> DownloadManager<'a> {
             .unwrap()
             .to_str()
             .unwrap();
+
         self.set_download_app_name(app_name);
+        if is_valid_url(manifest_path) {
+            self.set_scoop_cache_dir(download_cache_dir.as_str());
+            self.set_input_file();
 
-        self.ensure_version_dir_exist()?;
-
+            self.set_app_version("remote_url");
+            self.set_app_current_dir();
+            self.set_app_version_dir();
+            let url: StringArrayOrString = StringArrayOrString::String(manifest_path.to_string());
+            self.set_cache_file_name(app_name, "remote_url", &url)?;
+            log::debug!("input file is {}", self.get_input_file());
+            self.set_final_cache_file_path()?;
+            self.create_input_file()?;
+            return Ok(());
+        }
         let content = std::fs::read_to_string(manifest_path)?;
         let serde_obj = serde_json::from_str::<InstallManifest>(&content)?;
         let version = serde_obj.version.expect("version 不能为空");
@@ -482,9 +503,12 @@ impl<'a> DownloadManager<'a> {
         }
         self.set_app_current_dir();
         self.set_app_version_dir();
+        self.ensure_version_dir_exist()?;
+
         self.set_input_file();
-        self.create_input_file()?;
         self.set_final_cache_file_path()?;
+
+        self.create_input_file()?;
         Ok(())
     }
 
@@ -653,6 +677,7 @@ impl<'a> DownloadManager<'a> {
         let scoop_cache_dir = self.get_scoop_cache_dir();
         let input_file = self.get_input_file();
         let mut aria2c = self.create_aria2c_instance();
+        log::info!("input  file: {}", input_file);
         aria2c.set_input_file(input_file);
         aria2c.set_scoop_cache_dir(scoop_cache_dir); // 设置aria2c的缓存目录
 
@@ -708,8 +733,8 @@ impl<'a> DownloadManager<'a> {
                     "from cache".blue().bold()
                 )
             });
-            if Path::new(&input_file).exists() {
-                // log::debug!("start remove aria2 input file");
+            if Path::new(input_file).exists() && !is_valid_url(self.manifest_path) {
+                log::debug!("start remove aria2 input file {}", input_file);
                 std::fs::remove_file(input_file)?;
             }
             return Ok(());
@@ -828,18 +853,18 @@ impl<'a> DownloadManager<'a> {
         extract_to: Option<StringArrayOrString>,
         architecture: Option<ArchitectureObject>,
     ) -> anyhow::Result<SevenZipStruct> {
-        let  mut _7z = SevenZipStruct::new();
-      
-        let cache_files = self.get_final_cache_file_path(); 
-        let cache_files =  cache_files.iter().cloned().collect::<Vec<String>>();
-        
+        let mut _7z = SevenZipStruct::new();
+
+        let cache_files = self.get_final_cache_file_path();
+        let cache_files = cache_files.iter().cloned().collect::<Vec<String>>();
+
         if self.options.contains(&Global) {
             let apps = get_apps_path_global();
             _7z.set_apps_root_dir(apps)
         } else {
             _7z.set_apps_root_dir(get_apps_path())
         }
-        _7z.set_options(self.get_options());  
+        _7z.set_options(self.get_options());
         _7z.set_archive_cache_files_path(cache_files);
         _7z.set_app_name(self.app_name);
         _7z.set_archive_names(self.origin_cache_file_names.as_ref());
@@ -890,11 +915,84 @@ impl<'a> DownloadManager<'a> {
         _7z.invoke_7z_command(extract_dir, extract_to)
             .expect("extract zip failed");
 
-        Ok(_7z.clone()) 
+        Ok(_7z.clone())
     }
-  
-    pub fn link_current(&self) {
-       
+
+    pub fn copy_file_to_app_dir_from_remote_url(
+        &self,
+        app_alias: Option<String>,
+        suffix: &str,
+    ) -> anyhow::Result<String> {
+        let app_name = if app_alias.is_some() {
+            let splits = app_alias.clone().unwrap();
+            let splits = splits.split(".").collect::<Vec<&str>>();
+            if splits.len() == 0 {
+                bail!("别名为空，请检查")
+            } else if splits.len() == 1 {
+                 let    temp = format!("{}.{}", splits[0], suffix);
+                 log::debug!("temp: {}", temp);
+                 temp
+            } else if splits.len() == 2 {
+                 let  temp = app_alias.unwrap().to_string();
+                  log::debug!("temp: {}", temp);
+                  temp
+            } else {
+                bail!("app_alias 格式错误，请使用 app_name.exe 或者 app_name 格式")
+            }
+        } else {
+            self.get_download_app_name().to_string()+"."+suffix
+        };
+        let target = format!("{}\\{}", self.get_app_version_dir(), app_name); // with_extension
+        if !Path::new(&target).exists() {
+            std::fs::create_dir_all(self.get_app_version_dir())?;
+        } else {
+            let result = assume_yes_to_cover_folder(&target)?;
+            if result {
+                std::fs::remove_file(&target)?;
+            } else {
+                bail!("取消删除")
+            }
+        }
+        let cache_files = self.get_final_cache_file_path();
+        if cache_files.len() != 1 {
+            bail!("缓存文件数量不正确")
+        }
+        let cache_path  =  cache_files.first().unwrap();
+        if !Path::new(&cache_path).exists() {
+            bail!("缓存文件不存在 {}", cache_path)
+        }
+       let cache_file= Path::new(&cache_path).file_name().unwrap().to_str().unwrap();
+        print!(
+        "{}  {}......",
+        "Extracting archive".dark_blue().bold(),
+        cache_file.dark_cyan().bold()
+       );
+        std::fs::copy(cache_path.as_str(), target)?;
+        println!("✅");
+        Ok(app_name)
+    }
+
+    pub fn link_current_from_remote_url(&self)  ->  anyhow::Result<()> {
+      let version_dir = self.get_app_version_dir();
+       if  ! Path::new(&version_dir).exists() {
+            bail!("版本目录不存在 {}", version_dir)
+       }
+      let current_dir = self.get_app_current_dir();
+      if  Path::new(&current_dir).is_file() {
+         std::fs::remove_file(&current_dir)?;
+      }
+      let result = std::os::windows::fs::symlink_dir(version_dir, current_dir);
+      if result.is_err() {
+         std::fs::remove_dir_all(current_dir)?;
+         std::os::windows::fs::symlink_dir(version_dir, current_dir)?;
+      }
+      println!(
+        "{}  {} => {}",
+        "Linking".dark_blue().bold(),
+        current_dir.dark_green().bold(),
+        version_dir.dark_green().bold()
+      );
+      Ok(())
     }
 }
 

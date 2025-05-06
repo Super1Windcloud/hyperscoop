@@ -53,6 +53,8 @@ impl<'a> Aria2C<'a> {
         let _ = fs::read_to_string(&input_file)?;
         Ok(())
     }
+  
+  
     pub fn new() -> Self {
         let mut aria = Self {
             aria2c_path: Cow::from(""),

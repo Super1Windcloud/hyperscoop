@@ -68,7 +68,7 @@ pub fn install_app_from_local_manifest_file<P: AsRef<Path>>(
         };
 
         if Path::new(&special_app_dir).exists() && app_name.to_lowercase() != "hp" {
-            let  result = std::fs::remove_dir_all(&special_app_dir); 
+            let  result = std::fs::remove_dir_all(&special_app_dir);
             match result {
                 Ok(_) => {
                     log::debug!("remove app dir success!");
@@ -79,7 +79,7 @@ pub fn install_app_from_local_manifest_file<P: AsRef<Path>>(
                     std::fs::remove_dir_all(&special_app_dir)?;
                 }
             }
-                 
+
         }
     }
     validate_version(version)?;

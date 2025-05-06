@@ -1,7 +1,7 @@
 name: Hp  Release Pipeline
 on:
   pull_request:
-#  push:
+  push:
     branches: ["main"]
 permissions:
   contents: write
@@ -105,7 +105,7 @@ jobs:
         with:
           name:  "Here We Go!"
           tag_name:   ${{ steps.version.outputs.new_tag }}
-          body:  "Hp  '${{ steps.version.outputs.new_tag }}'  is published, refact checkup and which"
+          body:  "Hp  '${{ steps.version.outputs.new_tag }}'  is published, 已支持URL直链安装。见hp i -h"
           files: | #yaml 配置会把\ 当做转义字符
              hp-x64-${{ steps.version.outputs.new_tag }}.exe
              hp-x86-${{ steps.version.outputs.new_tag }}.exe

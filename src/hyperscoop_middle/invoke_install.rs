@@ -4,6 +4,7 @@ use crate::hyperscoop_middle::invoke_update::{update_buckets_parallel, update_hp
 use anyhow::bail;
 use command_util_lib::install::*;
 use command_util_lib::utils::system::{get_system_default_arch, is_admin, request_admin};
+use command_util_lib::utils::utility::is_valid_url;
 use crossterm::style::Stylize;
 use std::path::Path;
 
@@ -30,12 +31,32 @@ pub async fn execute_install_command(args: InstallArgs) -> Result<(), anyhow::Er
     let app_name = args.app_name.clone().unwrap();
     let app_name = convert_path(app_name.trim()).to_lowercase();
     let app_path = Path::new(&app_name);
-    if app_path.is_file()  && app_path.extension().unwrap_or_default() == "json" {
-        log::debug!("manifest file {}", app_name); 
-        let manifest_path = app_name;
-        install_app_from_local_manifest_file(manifest_path, options, None)?;
-        return Ok(());
+    if app_path.exists() {
+        if app_path.is_file() {
+            log::debug!("manifest file {}", app_name);
+            let manifest_path = app_name.as_str();
+            if app_path.extension().unwrap_or_default() == "json" {
+                install_app_from_local_manifest_file(manifest_path, options, None)?;
+                return Ok(());
+            } else {
+                bail!("{} is not a json file", app_path.display());
+            }
+        } else {
+            if app_path.is_dir() {
+                bail!("{} is not a json file", app_path.display());
+            } else {
+                bail!("{} is incorrect file", app_path.display());
+            }
+        }
     }
+
+
+  if is_valid_url(app_name.as_str()) {
+    install_app_from_url(app_path, &options  , args.app_alias_from_url_install.clone())?; 
+    
+    return Ok(());
+  }
+  
     if contains_special_char(app_name.as_str()) {
         bail!("指定的APP格式错误 error char")
     }
@@ -151,11 +172,11 @@ pub fn inject_user_options(install_args: &InstallArgs) -> anyhow::Result<Vec<Ins
 
     if install_args.force_install_override {
         install_options.push(InstallOptions::ForceInstallOverride)
-    } 
-    if  install_args.interactive{ 
+    }
+    if install_args.interactive {
         install_options.push(InstallOptions::InteractiveInstall)
     }
-  
+
     Ok(install_options)
 }
 

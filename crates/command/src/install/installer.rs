@@ -5,7 +5,10 @@ use crate::init_env::{
     get_scoop_cfg_path, get_shims_root_dir, get_shims_root_dir_global, init_scoop_global,
     init_user_scoop,
 };
-use crate::install::{install_app, install_from_specific_bucket, InstallOptions};
+use crate::install::{
+    create_default_shim_name_file, install_app, install_from_specific_bucket, DownloadManager,
+    InstallOptions,
+};
 use crate::manifest::install_manifest::{InstallManifest, SuggestObj, SuggestObjValue};
 use crate::manifest::manifest_deserialize::{
     ManifestObj, PSModuleStruct, StringArrayOrString, StringOrArrayOrDoubleDimensionArray,
@@ -19,6 +22,7 @@ use crossterm::style::Stylize;
 use regex::Regex;
 use std::os::windows::fs;
 use std::path::Path;
+use which::which;
 use windows_sys::Win32::System::Registry::HKEY_CURRENT_USER;
 use winreg::RegKey;
 pub fn show_suggest(suggest: &SuggestObj) -> anyhow::Result<()> {
@@ -38,8 +42,7 @@ pub fn show_suggest(suggest: &SuggestObj) -> anyhow::Result<()> {
                     format!("{} : {}", name, value)
                         .dark_grey()
                         .bold()
-                      .to_string()
-                    
+                        .to_string()
                 );
             }
             SuggestObjValue::StringArray(arr) => {
@@ -48,8 +51,7 @@ pub fn show_suggest(suggest: &SuggestObj) -> anyhow::Result<()> {
                     format!("{} : {:?}", name, arr)
                         .dark_grey()
                         .bold()
-                      .to_string()
-                     
+                        .to_string()
                 );
             }
         }
@@ -74,7 +76,7 @@ pub fn show_notes(notes: StringArrayOrString) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub  fn handle_depends(depends: &str, options: &[InstallOptions<'_>]) -> anyhow::Result<()> {
+pub fn handle_depends(depends: &str, options: &[InstallOptions<'_>]) -> anyhow::Result<()> {
     if depends.contains('/') {
         let arr = depends.split('/').collect::<Vec<&str>>();
         if arr.len() != 2 {
@@ -297,7 +299,8 @@ pub fn install_psmodule(
             "{}",
             format!("{link_dir} is already exists. It will be replaced.")
                 .dark_grey()
-                .bold().to_string()
+                .bold()
+                .to_string()
         );
         std::fs::remove_dir_all(&link_dir)?;
     }
@@ -401,10 +404,10 @@ pub fn create_persist_data_link(
                             let [persist, source] =
                                 [arr.get(0).unwrap().trim(), arr.get(0).unwrap().trim()];
                             start_create_file_and_dir_link(global, persist, app_name, source)?;
-                        } else if len == 2 { 
-                           let [source, persist] = 
+                        } else if len == 2 {
+                            let [source, persist] =
                                 [arr.get(0).unwrap().trim(), arr.get(1).unwrap().trim()];
-                           start_create_file_and_dir_link(global, persist, app_name, source)?;
+                            start_create_file_and_dir_link(global, persist, app_name, source)?;
                         }
                     }
                     StringOrArrayOrDoubleDimensionArray::String(persist) => {
@@ -478,6 +481,76 @@ pub fn start_create_file_and_dir_link(
         std::fs::hard_link(target_persist_dir, &source_dir)?;
     }
 
+    Ok(())
+}
+
+pub fn install_app_from_url(
+    download_url: &Path,
+    options: &[InstallOptions],
+    app_alias: Option<String>,
+) -> anyhow::Result<()> {
+    log::info!("Installing app from url: {}", download_url.display());
+    let shim_root = if options.contains(&InstallOptions::Global) {
+        get_shims_root_dir_global()
+    } else {
+        get_shims_root_dir()
+    };
+
+    let suffix = download_url
+        .extension()
+        .unwrap_or_default()
+        .to_str() 
+        .unwrap();
+    log::debug!("suffix is : {}", suffix);
+    if suffix.is_empty() {
+        bail!("url suffix is empty");
+    } else if suffix == "exe" {
+        let aria2 = which("aria2c").ok();
+        if aria2.is_none() {
+            install_app("aria2", options)?;
+        } else {
+            let download_manager = DownloadManager::new(
+                options,
+                download_url.to_str().unwrap(),
+                Some(download_url.to_str().unwrap()),
+            );
+            download_manager.start_download()?;
+            let exe_name =
+                download_manager.copy_file_to_app_dir_from_remote_url(app_alias.clone(), "exe")?;
+            download_manager.link_current_from_remote_url()?;
+            let app_name = download_manager.get_download_app_name();
+            create_default_shim_name_file(exe_name, shim_root.as_str(), app_name, options)?;
+        }
+    } else if suffix == "bat" || suffix == "cmd" {
+        let download_manager = DownloadManager::new(
+            options,
+            download_url.to_str().unwrap(),
+            Some(download_url.to_str().unwrap()),
+        );
+        download_manager.start_download()?;
+        let bat_name = if suffix == "bat" {
+            download_manager.copy_file_to_app_dir_from_remote_url(app_alias.clone(), "bat")?
+        } else {
+            download_manager.copy_file_to_app_dir_from_remote_url(app_alias.clone(), "cmd")?
+        };
+        download_manager.link_current_from_remote_url()?;
+        let app_name = download_manager.get_download_app_name();
+        create_default_shim_name_file(bat_name, shim_root.as_str(), app_name, options)?;
+    } else if suffix == "ps1" {
+        let download_manager = DownloadManager::new(
+            options,
+            download_url.to_str().unwrap(),
+            Some(download_url.to_str().unwrap()),
+        );
+        download_manager.start_download()?;
+        let ps1_name =
+            download_manager.copy_file_to_app_dir_from_remote_url(app_alias.clone(), "ps1")?;
+         download_manager.link_current_from_remote_url()?;
+        let app_name = download_manager.get_download_app_name();
+        create_default_shim_name_file(ps1_name, shim_root.as_str(), app_name, options)?;
+    } else {
+        bail!("Unsupported file type: {}", suffix);
+    }
     Ok(())
 }
 mod test_installer {

@@ -8,15 +8,13 @@ use command_util_lib::utils::utility::clap_args_to_lowercase;
 #[command(arg_required_else_help = true)]
 #[command(after_help = r#"
 e.g. 安装应用程序的通常方法（使用您的本地buckets）： hp install git
-
 指定特定buckets的清单中安装:   hp install  main/genact
-
 安装应用程序的不同版本,如果存在多版本清单 :  hp install gh@2.7.0
-
 从计算机上的指定路径清单中安装应用程序 :   hp install \path\to\app.json
+从远程URL安装应用程序 :   hp install https://example.com/app.exe ( 支持.cmd,.bat,.ps1,.exe) [exe如果是安装包无效]
      "#)]
 pub struct InstallArgs {
-    #[arg(help = "安装APP的名称,精准匹配,仅单个安装", required = false, 
+    #[arg(help = "安装APP的名称,精准匹配,仅单个安装", required = false,
     value_parser = clap_args_to_lowercase)]
     pub app_name: Option<String>,
 
@@ -38,10 +36,10 @@ pub struct InstallArgs {
     pub update_hp_and_buckets: bool,
     #[arg(short='c' , long, help = "安装前检查hp版本是否最新,默认不检查", required = false , action = ArgAction::SetTrue,help_heading = "Install Options" )]
     pub check_version_up_to_date: bool,
-  
+
     #[arg(short='I' , long , help = "交互式安装,默认不开启" , required = false, action = ArgAction::SetTrue,help_heading = "Install Options"  )]
     pub interactive: bool,
-  
+
     #[arg(
         short,
         long,
@@ -61,6 +59,10 @@ pub struct InstallArgs {
        value_parser = clap_args_to_lowercase
     )]
     pub arch: Option<String>,
+
+    #[arg(short='A' , long , help="从URL安装的app的别名, 仅适用于安装远程URL的app" ,help_heading = "Install Options", 
+     required = false,  value_parser = clap_args_to_lowercase)]
+    pub app_alias_from_url_install: Option<String>,
 
     #[arg(from_global)]
     pub global: bool,

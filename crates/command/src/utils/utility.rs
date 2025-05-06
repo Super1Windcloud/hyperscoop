@@ -236,6 +236,32 @@ pub fn assume_yes_to_cover_shortcuts (path: &str ) -> anyhow::Result<bool> {
     }
 }
 
+
+#[must_use]
+pub fn assume_yes_to_cover_folder (path: &str ) -> anyhow::Result<bool> {
+    use dialoguer::Confirm;
+    let message = format!("该目录'{path}'已存在,建议检查,是否进行删除?(y/n)")
+        .dark_cyan()
+        .bold()
+        .to_string();
+
+    match Confirm::new()
+        .with_prompt(message)
+        .show_default(false)
+        .default(false)
+        .interact()
+    {
+        Ok(yes) => {
+            if yes {
+                Ok(true)
+            } else {
+                Ok(false)
+            }
+        }
+        Err(_) => Ok(false),
+    }
+}
+
 pub fn write_utf8_file(path: &str, content: &str, option: &[InstallOptions]) -> anyhow::Result<()> {
     // 文件存在, 进行覆盖警告
     if Path::new(&path).exists()  && option.contains(&InteractiveInstall){
@@ -258,7 +284,11 @@ pub fn write_utf8_file(path: &str, content: &str, option: &[InstallOptions]) -> 
 }
 
 pub fn is_valid_url(url_str: &str) -> bool {
-    Url::parse(url_str).is_ok()
+  if let Ok(url) = Url::parse(url_str) {
+    matches!(url.scheme(), "http" | "https")
+  } else {
+    false
+  }
 }
 
 pub fn validate_version(version: &str) -> anyhow::Result<()> {
