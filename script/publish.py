@@ -10,7 +10,7 @@ from  get_latest_version import get_version_from_cargo
 tag_name =  get_version_from_cargo()
 release_title = "here we go"
 github_owner = "Super1Windcloud"
-github_repo = "hp"
+github_repo = "hyperscoop"
 
 def join_paths(base_path, *paths):
     path_obj = Path(base_path)

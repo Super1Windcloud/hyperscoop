@@ -28,7 +28,7 @@ def get_version_from_cargo():
 tag_name =  get_version_from_cargo()
 release_title = "here we go"
 owner = "Super1Windcloud"
-repo = "hp"
+repo = "hyperscoop"
 asset_name_to_update="hp.exe"
 new_asset_path=  r"A:\Rust_Project\hyperscoop\target\release\hp.exe"
 

@@ -5,7 +5,7 @@ import http.client
 import json
 from  publish import  get_access_token
 github_owner = "Super1Windcloud"
-github_repo = "hp"
+github_repo = "hyperscoop"
 def get_latest_release ():
   access_token = get_access_token()
   conn = http.client.HTTPSConnection("api.github.com")
