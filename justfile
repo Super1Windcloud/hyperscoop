@@ -65,3 +65,7 @@ progress_bar:
 count :
     pwsh script/file_count.ps1
 
+
+compress:
+    upx target/release/hp.exe  -o target/release/hp_upx.exe
+

@@ -4,7 +4,7 @@
 
 > [!NOTE] 
 > ##  已提供upx压缩加壳的exe, 大幅度减少二进制的体积, upx加载存根到内存,绝大部分国产杀软报毒, 见Release 或
-`hp i https://github.com/Super1Windcloud/hp/releases/download/4.0.6/hp_upx.exe` 
+`hp i https://github.com/Super1Windcloud/hp/releases/download/4.0.6/hp_upx.exe -A hpu` 
 
 >[!TIP]
 > ##  运行前请关闭国产杀毒软件 ,欧美的卡巴斯基,兰顿什么的除外
