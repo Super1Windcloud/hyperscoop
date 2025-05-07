@@ -35,8 +35,8 @@ impl<'a> Aria2C<'a> {
     fn init(&mut self) -> anyhow::Result<()> {
         self.init_aria2c_config();
         let aria2_path = self.extract_aria2()?;
-       log::debug!("aria2c.exe : {}", aria2_path.as_str() );
-       self.set_aria2c_path(Cow::Owned(aria2_path));
+        log::debug!("aria2c.exe : {}", aria2_path.as_str());
+        self.set_aria2c_path(Cow::Owned(aria2_path));
         Ok(())
     }
     pub fn get_input_file(&self) -> String {
@@ -53,8 +53,7 @@ impl<'a> Aria2C<'a> {
         let _ = fs::read_to_string(&input_file)?;
         Ok(())
     }
-  
-  
+
     pub fn new() -> Self {
         let mut aria = Self {
             aria2c_path: Cow::from(""),
@@ -155,9 +154,21 @@ impl<'a> Aria2C<'a> {
             } else {
                 proxy
             };
+      let proxy = if proxy.is_empty() {
+        env::var_os("HTTPS_PROXY")
+          .ok_or(env::var_os("HTTP_PROXY"))
+          .unwrap_or_default()
+          .to_str()
+          .unwrap()
+          .to_string()
+      } else {
+        proxy
+      };
+      
         if !is_valid_url(&proxy) && !proxy.is_empty() {
             bail!("Proxy is not valid, url format error");
         };
+        log::info!("aria2 download proxy : {}", proxy);
         let input_file = self.get_input_file();
         let user_agent = self.get_scoop_user_agent();
         let cache_dir = self.get_scoop_cache_dir();
@@ -198,6 +209,16 @@ impl<'a> Aria2C<'a> {
             } else {
                 proxy
             };
+        let proxy = if proxy.is_empty() {
+            env::var_os("HTTPS_PROXY")
+                .ok_or(env::var_os("HTTP_PROXY"))
+                .unwrap_or_default()
+                .to_str()
+                .unwrap()
+                .to_string()
+        } else {
+            proxy
+        };
         if !is_valid_url(&proxy) {
             bail!("Proxy is not valid, url format error");
         };
@@ -244,7 +265,6 @@ impl<'a> Aria2C<'a> {
             bail!(
                 "Aria2c download failed, exit code: {}",
                 status.code().unwrap()
-              
             )
         };
         result
@@ -268,7 +288,7 @@ impl<'a> Aria2C<'a> {
         let aria2 = which("aria2c");
 
         let aria2_exe = if aria2.is_ok() {
-          aria2?.to_str().unwrap().to_string()
+            aria2?.to_str().unwrap().to_string()
         } else {
             self.get_temp_aria2_path()
         };

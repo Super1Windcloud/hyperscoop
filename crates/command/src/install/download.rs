@@ -11,7 +11,7 @@ use crate::manifest::install_manifest::InstallManifest;
 use crate::manifest::manifest_deserialize::{ArchitectureObject, StringArrayOrString};
 use crate::utils::system::{compute_hash_by_powershell, get_system_default_arch};
 use crate::utils::utility::{assume_yes_to_cover_folder, get_parse_url_query, is_valid_url};
-use anyhow::bail;
+use anyhow::{bail, Context};
 use crossterm::style::Stylize;
 use digest::Digest;
 use hex;
@@ -731,7 +731,8 @@ impl<'a> DownloadManager<'a> {
             });
             if Path::new(input_file).exists() && !is_valid_url(self.manifest_path) {
                 log::debug!("start remove aria2 input file {}", input_file);
-                std::fs::remove_file(input_file)?;
+                std::fs::remove_file(input_file)
+                  .context("failed to remove aria2 input file at line 735")?;
             }
             return Ok(());
         }

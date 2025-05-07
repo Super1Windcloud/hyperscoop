@@ -1,3 +1,4 @@
+use std::env;
 #[allow(unused_imports)]
 use crate::crypto::decrypt_gitee;
 #[allow(unused_imports)]
@@ -113,7 +114,19 @@ async fn get_latest_version_from_github() -> anyhow::Result<String> {
         } else {
             format!("http://{}", proxy_url)
         };
-        is_valid_url(&proxy_url);
+      let proxy_url = if proxy_url.is_empty() {
+        env::var_os("HTTPS_PROXY")
+          .ok_or(env::var_os("HTTP_PROXY"))
+          .unwrap_or_default()
+          .to_str()
+          .unwrap()
+          .to_string()
+      } else {
+        proxy_url
+      };
+       if  !is_valid_url(&proxy_url){ 
+           bail!("invalid proxy url: {}", proxy_url); 
+       };
         let proxy = reqwest::Proxy::https(proxy_url)?;
         Client::builder().proxy(proxy).build()?
     } else {
