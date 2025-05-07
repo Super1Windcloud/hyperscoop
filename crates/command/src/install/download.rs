@@ -308,11 +308,8 @@ impl<'a> DownloadManager<'a> {
 
     pub fn create_input_file(&self) -> anyhow::Result<()> {
         let final_caches = self.final_cache_file_path.as_ref();
-        log::debug!("final caches file : {:?}", final_caches);
-        let exist_cache = final_caches.iter().all(|path| Path::new(path).exists());
-        if exist_cache {
-            return Ok(());
-        }
+        log::debug!("final caches file : {:?}", final_caches); 
+      
         let mut file = std::fs::File::create(self.get_input_file())?;
         log::debug!("create input file {}", self.get_input_file());
         let urls = self.get_download_urls();
@@ -450,7 +447,6 @@ impl<'a> DownloadManager<'a> {
             self.set_app_version_dir();
             let url: StringArrayOrString = StringArrayOrString::String(manifest_path.to_string());
             self.set_cache_file_name(app_name, "remote_url", &url)?;
-            log::debug!("input file is {}", self.get_input_file());
             self.set_final_cache_file_path()?;
             self.create_input_file()?;
             return Ok(());
@@ -507,7 +503,6 @@ impl<'a> DownloadManager<'a> {
 
         self.set_input_file();
         self.set_final_cache_file_path()?;
-
         self.create_input_file()?;
         Ok(())
     }
@@ -723,8 +718,9 @@ impl<'a> DownloadManager<'a> {
             );
         }
         let final_caches = self.final_cache_file_path.as_ref();
-        let result = final_caches.iter().all(|path| Path::new(path).exists());
+        let result = final_caches.iter().all(|path| Path::new(path).exists()); 
         if result {
+           log::info!("cache file already exist, skip download");
             self.origin_cache_file_names.iter().for_each(|name| {
                 println!(
                     "{} {} {}",
