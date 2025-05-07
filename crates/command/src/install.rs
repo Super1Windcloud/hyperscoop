@@ -25,7 +25,8 @@ pub use sevenzip::*;
 pub mod download;
 pub mod parse_lifecycle_scripts;
 pub use parse_lifecycle_scripts::*;
-
+pub mod  env_operate; 
+pub use env_operate::*;
 use crate::list::VersionJSON;
 use crate::manifest::manifest::{
     get_latest_manifest_from_local_bucket, get_latest_manifest_from_local_bucket_global,

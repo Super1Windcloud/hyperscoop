@@ -1,9 +1,10 @@
 use crate::config::get_all_config;
-use crate::init_env::{
-    get_old_scoop_dir, get_scoop_cfg_path, init_user_scoop, init_scoop_global,
-};
+use crate::init_env::{get_old_scoop_dir, get_scoop_cfg_path, init_scoop_global, init_user_scoop};
+use crate::manifest::manifest_deserialize::StringArrayOrString;
 use crate::manifest::uninstall_manifest::UninstallManifest;
+use crate::utils::system::set_user_env_var;
 use anyhow::bail;
+use std::path::PathBuf;
 use winreg::enums::*;
 use winreg::RegKey;
 
@@ -94,15 +95,97 @@ pub fn env_var_rm(manifest: &UninstallManifest) -> Result<(), anyhow::Error> {
     Ok(())
 }
 
+pub fn env_path_var_rm(
+    current: &PathBuf,
+    manifest: &UninstallManifest,
+    is_global: bool,
+) -> Result<(), anyhow::Error> {
+    use winreg::enums::*;
+    use winreg::RegKey;
+    if let Some(StringArrayOrString::String(env_add_path_str)) = manifest.env_add_path.clone() {
+        let path_var = if env_add_path_str == "." {
+            current.clone()
+        } else {
+            current.join(env_add_path_str)
+        };
+        let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+        let environment_key = hkcu.open_subkey("Environment")?;
+        let user_path: String = environment_key.get_value("PATH")?;
+        log::debug!("\n 当前用户的 PATH: {}", user_path);
+        let mut paths: Vec<PathBuf> = std::env::split_paths(&user_path).collect();
+        paths.retain(|p| p != &path_var);
+        let user_path = paths
+            .iter()
+            .map(|p| p.to_string_lossy().into_owned())
+            .collect::<Vec<String>>()
+            .join(";");
+        log::debug!("\n 更新后的用户的 PATH: {}", user_path);
 
+        // environment_key.set_value("PATH", &user_path)?;
+        let script = if is_global {
+            format!(
+                r#"[System.Environment]::SetEnvironmentVariable("PATH","{user_path}", "Machine")"#
+            )
+        } else {
+            format!(r#"[System.Environment]::SetEnvironmentVariable("PATH","{user_path}", "User")"#)
+        };
+        let output = std::process::Command::new("powershell")
+            .arg("-ExecutionPolicy")
+            .arg("Bypass")
+            .arg("-Command")
+            .arg(script)
+            .output()?;
+        if !output.status.success() {
+            bail!("Failed to remove path var");
+        }
+    } else if let Some(StringArrayOrString::StringArray(env_add_path_arr)) =
+        manifest.env_add_path.clone()
+    {
+        let env_add_path_arr = env_add_path_arr
+            .iter()
+            .map(|env_add_path_str| {
+                if env_add_path_str == "." {
+                    current.clone()
+                } else {
+                    current.join(env_add_path_str)
+                }
+            })
+            .collect::<Vec<PathBuf>>();
+
+        let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+        let environment_key = hkcu.open_subkey("Environment")?;
+
+        let user_path: String = environment_key.get_value("PATH")?;
+        let origin = user_path.clone();
+        log::debug!("\n 当前用户的 PATH: {}", user_path);
+        let mut paths: Vec<PathBuf> = std::env::split_paths(&user_path).collect();
+
+        for path_var in env_add_path_arr {
+            paths.retain(|p| p != &path_var);
+        }
+
+        let user_path = paths
+            .iter()
+            .map(|p| p.to_string_lossy().into_owned())
+            .collect::<Vec<String>>()
+            .join(";");
+        log::debug!("\n 更新后的用户的 PATH: {}", user_path);
+        if user_path == origin {
+            log::debug!("\n 没有需要移除的路径变量");
+            return Ok(());
+        }
+        set_user_env_var("Path", user_path.as_str())?;
+    }
+    Ok(())
+}
 
 mod test {
-  #[allow(unused_imports )]
+    #[allow(unused_imports)]
     use super::*;
     #[test]
     fn test_rm_env() {
         let mut manifest = UninstallManifest::new(r"A:\Scoop\buckets\DoveBoyApps\bucket\nvm.json");
-         manifest  = manifest.set_name(&"nvm".to_string()).to_owned();
+        manifest = manifest.set_name(&"nvm".to_string()).to_owned();
         env_var_rm(&manifest).unwrap();
     }
 }

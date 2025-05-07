@@ -1,17 +1,16 @@
 use crate::init_env::{
     get_app_current_dir, get_app_current_dir_global, get_app_version_dir,
-    get_app_version_dir_global, get_old_scoop_dir, get_persist_dir_path,
-    get_persist_dir_path_global, get_psmodules_root_dir, get_psmodules_root_global_dir,
-    get_scoop_cfg_path, get_shims_root_dir, get_shims_root_dir_global, init_scoop_global,
-    init_user_scoop,
+    get_app_version_dir_global, get_persist_dir_path, get_persist_dir_path_global,
+    get_psmodules_root_dir, get_psmodules_root_global_dir, get_shims_root_dir,
+    get_shims_root_dir_global,
 };
 use crate::install::{
     create_default_shim_name_file, install_app, install_from_specific_bucket, DownloadManager,
     InstallOptions,
 };
-use crate::manifest::install_manifest::{InstallManifest, SuggestObj, SuggestObjValue};
+use crate::manifest::install_manifest::{SuggestObj, SuggestObjValue};
 use crate::manifest::manifest_deserialize::{
-    ManifestObj, PSModuleStruct, StringArrayOrString, StringOrArrayOrDoubleDimensionArray,
+    PSModuleStruct, StringArrayOrString, StringOrArrayOrDoubleDimensionArray,
 };
 use crate::utils::system::{
     get_system_default_arch, get_system_env_str, get_system_env_var, get_user_env_str,
@@ -23,8 +22,8 @@ use regex::Regex;
 use std::os::windows::fs;
 use std::path::Path;
 use which::which;
-use windows_sys::Win32::System::Registry::HKEY_CURRENT_USER;
-use winreg::RegKey;
+
+
 pub fn show_suggest(suggest: &SuggestObj) -> anyhow::Result<()> {
     println!(
         "{}",
@@ -116,134 +115,7 @@ pub fn handle_arch(arch: &[InstallOptions]) -> anyhow::Result<String> {
     }
 }
 
-pub fn handle_env_set(
-    env_set: ManifestObj,
-    manifest: InstallManifest,
-    options: &Box<[InstallOptions]>,
-) -> anyhow::Result<()> {
-    let app_name = manifest.name.unwrap_or(String::new());
-    let app_version = manifest.version.unwrap_or(String::new());
-    let scoop_home = if options.contains(&InstallOptions::Global) {
-        init_scoop_global()
-    } else {
-        init_user_scoop()
-    };
-    let global_scoop_home = init_scoop_global();
 
-    let app_dir = format!(
-        r#"function app_dir($other_app) {{
-      return  "{scoop_home}\apps\$other_app\current" ;
-  }}"#
-    );
-    let old_scoop_dir = get_old_scoop_dir();
-    let cfg_path = get_scoop_cfg_path();
-    let injects_var = format!(
-        r#"
-      $app = "{app_name}" ;
-      $version = "{app_version}" ;
-      $cmd ="uninstall" ;
-      $global = $false  ;
-      $scoopdir ="{scoop_home}" ;
-      $dir = "{scoop_home}\apps\$app\current" ;
-      $globaldir  ="{global_scoop_home}";
-      $oldscoopdir  = "{old_scoop_dir}" ;
-      $original_dir = "{scoop_home}\apps\$app\$version";
-      $modulesdir  = "{scoop_home}\modules";
-      $cachedir  =  "{scoop_home}\cache";
-      $bucketsdir  = "{scoop_home}\buckets";
-      $persist_dir  = "{scoop_home}\persist\$app";
-      $cfgpath   ="{cfg_path}" ;
-  "#
-    );
-
-    if let serde_json::Value::Object(env_set) = env_set {
-        for (key, env_value) in env_set {
-            let mut env_value = env_value.to_string().trim().to_string();
-            if env_value.is_empty() {
-                continue;
-            }
-            if env_value.contains('/') {
-                env_value = env_value.replace('/', r"\");
-            }
-            if env_value.contains(r"\\") {
-                env_value = env_value.replace(r"\\", r"\");
-            }
-            let cmd = format!(
-                r#"Set-ItemProperty -Path "HKCU:\Environment" -Name "{key}" -Value {env_value}"#
-            );
-
-            let output = std::process::Command::new("powershell")
-                .arg("-Command")
-                .arg(&app_dir)
-                .arg(&injects_var)
-                .arg(cmd)
-                .output()?;
-            if !output.status.success() {
-                let error_output = String::from_utf8_lossy(&output.stderr);
-                bail!(
-                    "powershell failed to remove environment variable: {}",
-                    error_output
-                );
-            }
-
-            println!(
-                "{} {}",
-                "Env set successfully for".to_string().dark_green().bold(),
-                key.to_string().dark_cyan().bold(),
-            );
-        }
-    }
-    Ok(())
-}
-
-pub fn handle_env_add_path(
-    env_add_path: StringArrayOrString,
-    app_current_dir: String,
-    options: &Box<[InstallOptions]>,
-) -> anyhow::Result<()> {
-    let app_current_dir = app_current_dir.replace('/', r"\");
-    if let StringArrayOrString::StringArray(paths) = env_add_path {
-        for path in paths {
-            add_bin_to_path(path.as_ref(), &app_current_dir, options)?;
-        }
-    } else if let StringArrayOrString::String(path) = env_add_path {
-        add_bin_to_path(path.as_ref(), &app_current_dir, options)?;
-    }
-
-    Ok(())
-}
-
-pub fn add_bin_to_path(
-    path: &str,
-    app_current_dir: &String,
-    options: &Box<[InstallOptions]>,
-) -> anyhow::Result<()> {
-    let path = path.replace('/', r"\");
-    let path = path.replace('\\', r"\");
-    let path = format!(r"{app_current_dir}\{path}");
-    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-    let environment_key = hkcu.open_subkey("Environment")?;
-    let user_path: String = environment_key.get_value("PATH")?;
-
-    let user_path = format!("{user_path};{path}");
-    log::debug!("\n 更新后的用户的 PATH: {}", user_path);
-
-    let script =
-        format!(r#"[System.Environment]::SetEnvironmentVariable("PATH","{user_path}", "Machine")"#);
-    if options.contains(&InstallOptions::Global) {
-        let output = std::process::Command::new("powershell")
-            .arg("-Command")
-            .arg(script)
-            .output()?;
-        if !output.status.success() {
-            bail!("Failed to remove path var");
-        }
-        Ok(())
-    } else {
-        set_user_env_var("Path", &user_path)?;
-        Ok(())
-    }
-}
 
 pub fn add_scoop_shim_root_dir_to_env_path(options: &Box<[InstallOptions]>) -> anyhow::Result<()> {
     let origin = if options.contains(&InstallOptions::Global) {
@@ -499,7 +371,7 @@ pub fn install_app_from_url(
     let suffix = download_url
         .extension()
         .unwrap_or_default()
-        .to_str() 
+        .to_str()
         .unwrap();
     log::debug!("suffix is : {}", suffix);
     if suffix.is_empty() {
@@ -545,7 +417,7 @@ pub fn install_app_from_url(
         download_manager.start_download()?;
         let ps1_name =
             download_manager.copy_file_to_app_dir_from_remote_url(app_alias.clone(), "ps1")?;
-         download_manager.link_current_from_remote_url()?;
+        download_manager.link_current_from_remote_url()?;
         let app_name = download_manager.get_download_app_name();
         create_default_shim_name_file(ps1_name, shim_root.as_str(), app_name, options)?;
     } else {
@@ -568,4 +440,11 @@ mod test_installer {
         let info = std::fs::read_link(r"A:\Scoop\apps\motrix\current").unwrap();
         println!("{:?}", info.display());
     }
+  
+  #[test]
+   fn test_path_format(){ 
+     let  path = r"A:\Scoop\apps\nodejs\current\."; 
+     let  path = Path::new(path).canonicalize().unwrap();
+      println!("{:?}", path.display());
+  }
 }
