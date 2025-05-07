@@ -1,5 +1,5 @@
 use crate::manifest::install_manifest::InstallManifest;
-use anyhow::{bail, Result};
+use anyhow::{bail, Context, Result};
 use crossterm::style::Stylize;
 use rayon::prelude::*;
 use std::path::Path;
@@ -47,8 +47,10 @@ pub fn install_app_from_local_manifest_file<P: AsRef<Path>>(
     let manifest_path = manifest_path.as_ref().to_str().unwrap();
     let install_arch = handle_arch(&options)?;
     log::info!("install arch: {}", install_arch);
-    let content = std::fs::read_to_string(&manifest_path)?;
-    let mut serde_obj: InstallManifest = serde_json::from_str(&content)?;
+    let content = std::fs::read_to_string(&manifest_path)
+      .context(format!("read manifest file '{}' failed at line 51", manifest_path))?;
+    let mut serde_obj: InstallManifest = serde_json::from_str(&content)
+      .context(format!("deserialize manifest file '{}' failed at line 53", manifest_path))?;
     let app_name = serde_obj
         .set_name(&manifest_path)
         .get_name()
@@ -77,7 +79,8 @@ pub fn install_app_from_local_manifest_file<P: AsRef<Path>>(
                 Err(_) => {
                     log::debug!("kill {app_name}  process");
                     kill_processes_using_app(&app_name);
-                    std::fs::remove_dir_all(&special_app_dir)?;
+                    std::fs::remove_dir_all(&special_app_dir)
+                      .context(format!("remove app dir '{}' failed at line 83", special_app_dir))?;
                 }
             }
 

@@ -1,5 +1,5 @@
 use crate::command_args::cleanup::CleanupArgs;
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use anyhow::bail;
 use command_util_lib::init_env::{
     get_app_dir, get_app_dir_global, get_app_version_dir, get_app_version_dir_global,
@@ -42,7 +42,9 @@ fn clean_specific_old_version(app_name: Vec<String>, is_global: bool) -> anyhow:
     let result = app_dirs.iter().try_for_each(|dir| {
         let dir = Path::new(dir);
         let child_dirs = dir
-            .read_dir()?
+            .read_dir().context(
+                format!("Failed to read directory: {}", dir.display()),
+        )?
             .filter_map(|dir| {
                 let dir = dir.unwrap();
                 let binding = dir.file_name();
@@ -61,14 +63,14 @@ fn clean_specific_old_version(app_name: Vec<String>, is_global: bool) -> anyhow:
                 let file_name2 = dir2.file_name().unwrap().to_str().unwrap();
                 compare_versions(file_name.to_string(), file_name2.to_string())
             })
-            .ok_or(anyhow!("No version directory found"))?;
+            .ok_or(anyhow!("No version directory found at line 64"))?;
 
         let retain_dir = highest_version_dir;
         let flag = Arc::new(Mutex::new(false));
         let result = child_dirs.par_iter().try_for_each(|dir| {
             if dir != retain_dir {
                 log::info!("Removing old version: {}", dir.display());
-                std::fs::remove_dir_all(dir)?;
+                std::fs::remove_dir_all(dir).context("Failed to remove old version")?;
                 *flag.lock().unwrap() = true;
             }
             Ok(())
@@ -92,7 +94,8 @@ fn clean_all_old_versions(is_global: bool) -> anyhow::Result<()> {
         get_apps_path()
     };
 
-    let apps_dir = std::fs::read_dir(apps_dir)?;
+    let apps_dir = std::fs::read_dir(apps_dir)
+      .context("Failed to read apps  root directory at line 96")?;
     let mut versions_with_name = HashMap::new();
 
     for app_dir in apps_dir {

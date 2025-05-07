@@ -1,5 +1,5 @@
 use crate::command_args::uninstall::UninstallArgs;
-use anyhow::bail;
+use anyhow::{bail, Context};
 use command_util_lib::init_env::{get_app_dir, get_app_dir_global};
 use command_util_lib::uninstall::*;
 use crossterm::style::Stylize;
@@ -54,7 +54,8 @@ pub fn execute_uninstall_command(args: UninstallArgs) -> Result<(), anyhow::Erro
                                 app_name.dark_cyan().bold(),
                                 "has been uninstalled successfully".dark_green().bold()
                             ); 
-                            std::fs::remove_dir_all(app_dir)?; 
+                            std::fs::remove_dir_all(app_dir)
+                              .context(format!("Failed to remove app directory {}", app_dir.display()))?; 
                             return Ok(());
                         }else {
                           bail!("'{app_name}' 并没有安装")

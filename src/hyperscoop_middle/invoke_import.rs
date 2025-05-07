@@ -1,3 +1,4 @@
+use anyhow::Context;
 use crate::command_args::import::ImportArgs;
 use command_util_lib::import::*;
 use serde_json::{Map, Value};
@@ -14,7 +15,9 @@ pub async fn execute_import_command(args: ImportArgs) -> Result<(), anyhow::Erro
         let buckets = config_obj["buckets"].as_array().unwrap_or(&default_arr);
         let apps = config_obj["apps"].as_array().unwrap_or(&default_arr);
         if !config.is_empty() {
-            let config_str = serde_json::to_string_pretty(config)?;
+            let config_str = serde_json::to_string_pretty(config).context(
+                "Failed to convert config object to string",
+            )?;
             write_into_scoop_config(config_str);
         }
         if !buckets.is_empty() {

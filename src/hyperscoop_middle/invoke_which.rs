@@ -1,5 +1,5 @@
 use crate::command_args::which::WhichArgs;
-use anyhow::bail;
+use anyhow::{bail, Context};
 use command_util_lib::init_env::{
     get_app_current_dir, get_app_current_dir_global, get_shims_root_dir, get_shims_root_dir_global,
 };
@@ -42,15 +42,19 @@ pub fn execute_which_command(command: WhichArgs) -> Result<(), anyhow::Error> {
                 if !Path::new(&manifest_json).exists() {
                     bail!("{manifest_json} is not exists")
                 } else {
-                    let manifest_json_content = std::fs::read_to_string(&manifest_json)?;
-                    let manifest: InstallManifest = serde_json::from_str(&manifest_json_content)?;
+                    let manifest_json_content = std::fs::read_to_string(&manifest_json)
+                       .context(format!("Failed to read manifest.json file {} at line 46", &manifest_json))?;
+                    let manifest: InstallManifest = serde_json::from_str(&manifest_json_content)
+                      .context(format!("Failed to parse manifest.json file {} at line 48", &manifest_json))?;
 
                     let install_json = format!("{}\\install.json", current_dir);
                     if !Path::new(&install_json).exists() {
                         bail!("{install_json} is not exists")
                     }
-                    let install_json_content = std::fs::read_to_string(&install_json)?;
-                    let install_json: InstallJSON = serde_json::from_str(&install_json_content)?;
+                    let install_json_content = std::fs::read_to_string(&install_json)
+                      .context(format!("Failed to read install.json file {}", &install_json))?;
+                    let install_json: InstallJSON = serde_json::from_str(&install_json_content)
+                       .context(format!("Failed to parse install.json file {}", &install_json))?;
                     let arch = install_json.architecture.unwrap();
 
                     let bin = manifest.bin;
@@ -124,7 +128,9 @@ pub fn output_current_exe(path: PathBuf, shim_root_dir: &str) -> anyhow::Result<
         if !Path::new(&shim_file).exists() {
             bail!("{shim_file} is not exists")
         }
-        let content = std::fs::read_to_string(shim_file)?;
+        let content = std::fs::read_to_string(&shim_file).context(
+            format!("Failed to read shim file {}", &shim_file),
+        )?;
         let first_line = content.lines().next().unwrap();
         let content = first_line.replace("path = ", "").replace("\"", "");
         println!("{}", content.to_string().dark_green().bold());

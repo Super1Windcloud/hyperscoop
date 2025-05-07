@@ -23,6 +23,7 @@ use crate::utils::request::get_git_repo_remote_url;
 use crate::utils::utility::get_official_bucket_path;
 #[allow(unused_imports)]
 use anyhow::bail;
+use anyhow::Context;
 use crossterm::style::Stylize;
 use indicatif::ProgressDrawTarget;
 pub use update::*;
@@ -46,9 +47,11 @@ pub fn remove_old_version(app_name: &str, options: &[UpdateOptions]) -> anyhow::
     } else {
         get_app_current_dir(app_name)
     };
-    let target_version_path = fs::read_link(app_current_dir)?;
+    let target_version_path = fs::read_link(app_current_dir)
+      .context(format!("failed to read link of {} at line 51", app_name))?;
     log::debug!("target_version_path: {:?}", target_version_path);
-    fs::remove_dir_all(target_version_path)?;
+    fs::remove_dir_all(target_version_path)
+      .context(format!("failed to remove target version of {} at line 54", app_name))?;
     Ok(())
 }
 pub fn transform_update_options_to_install(
@@ -95,7 +98,8 @@ pub async fn update_specific_app(
             get_app_dir(&app_name)
         };
         if Path::new(&special_app_dir).exists() {
-            fs::remove_dir_all(special_app_dir)?;
+            fs::remove_dir_all(special_app_dir)
+              .context("Failed to remove old version of app at 102")?;
         }
     };
     if check_app_version_latest(&app_name, &origin_options)? {

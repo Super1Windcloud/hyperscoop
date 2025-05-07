@@ -1,5 +1,5 @@
 use crate::utils::system::get_system_default_arch;
-use anyhow::bail;
+use anyhow::{bail, Context};
 use chrono::{DateTime, Local};
 use crossterm::style::Stylize;
 use crossterm::terminal;
@@ -203,8 +203,10 @@ fn process_manifest_file(
     bucket_root_dir: &str,
     app_name: &str,
 ) -> anyhow::Result<Vec<(String, String)>> {
-    let content = fs::read_to_string(file_path)?;
-    let serde_obj: Value = serde_json::from_str(&content)?;
+    let content = fs::read_to_string(file_path)
+      .context(format!("Failed to read file {} at line 207", file_path.display() ))?;
+    let serde_obj: Value = serde_json::from_str(&content)
+      .context(format!("Failed to parse file {} at line 209", file_path.display() ))?;
 
     let description = serde_obj["description"].as_str().unwrap_or_default();
     let version = serde_obj["version"].as_str().unwrap_or_default();

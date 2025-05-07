@@ -1,5 +1,5 @@
 use crate::init_env::{get_cache_dir_path, get_cache_dir_path_global};
-use anyhow::bail;
+use anyhow::{bail, Context};
 use crossterm::style::Stylize;
 use std::path::Path;
 
@@ -12,11 +12,12 @@ pub fn display_all_cache_info(is_global: bool) -> anyhow::Result<()> {
     if !Path::new(&cache_dir).exists() {
         bail!("cache dir does not exist: {:?}", &cache_dir);
     }
-    let cache_files = std::fs::read_dir(cache_dir)?;
+    let cache_files = std::fs::read_dir(cache_dir)
+      .context("Failed to read cache root directory at line 16 ")?;
     let mut infos = Vec::new();
     let mut count = 0;
     for file in cache_files {
-        let path = file?;
+        let path = file.context("Failed to read cache file at line 21")?;
         let path1 = path
             .path()
             .clone()
@@ -27,7 +28,8 @@ pub fn display_all_cache_info(is_global: bool) -> anyhow::Result<()> {
             .to_string();
         let path2 = path.path().clone().to_string_lossy().to_string();
         let app_name = path1.split("#").collect::<Vec<&str>>()[0].to_string();
-        let zip_size = (std::fs::metadata(&path2)?.len() as f64) / 1024f64 / 1024f64;
+        let zip_size = (std::fs::metadata(&path2)
+          .context("Failed to read cache file metadata at line 26")?.len() as f64) / 1024f64 / 1024f64;
         log::info!("cache file : {}", &app_name);
         log::info!("cache file : {}", &path2);
         log::info!("cache size : {} MB", &zip_size);
@@ -95,11 +97,12 @@ pub fn display_specified_cache_info(app_name: &str, is_global: bool) -> anyhow::
         return Ok(());
     }
     log::info!("display_specified_cache_info : {}", app_name);
-    let cache_files = std::fs::read_dir(cache_dir)?;
+    let cache_files = std::fs::read_dir(cache_dir)
+      .context("Failed to read cache root directory at line 101")?;
     let mut size = 0f64;
     let mut flag = false;
     for file in cache_files {
-        let path = file?;
+        let path = file .context("Failed to read cache file at line 106")?;
         let t = path.path().clone().to_string_lossy().to_string();
         let path_name = path
             .path()
@@ -111,9 +114,10 @@ pub fn display_specified_cache_info(app_name: &str, is_global: bool) -> anyhow::
         let app = path_name.split("#").collect::<Vec<&str>>()[0].to_string();
         if app.trim().to_lowercase() == app_name {
             size =
-                size + (std::fs::metadata(path.path().clone())?.len() as f64) / 1024f64 / 1024f64;
+                size + (std::fs::metadata(path.path().clone())
+                  .context("Failed to read cache file metadata at line 118")?.len() as f64) / 1024f64 / 1024f64;
             println!("Removing cache file : {}", path_name.green().bold());
-            std::fs::remove_file(t)?;
+            std::fs::remove_file(t).context("Failed to remove cache file at line 120")?;
             flag = true;
         }
     }

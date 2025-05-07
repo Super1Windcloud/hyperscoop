@@ -1,4 +1,4 @@
-use anyhow::bail;
+use anyhow::{bail, Context};
 use clap::ArgAction;
 use clap::{Args, Subcommand};
 use command_util_lib::init_env::{get_shims_root_dir, get_shims_root_dir_global};
@@ -100,9 +100,10 @@ fn rm_alias(alias_name: Option<String>, shim_root_dir: &str, all: bool) -> anyho
         return Ok(());
     }
     if all {
-        let dirs = std::fs::read_dir(shim_root_dir)?;
+        let dirs = std::fs::read_dir(shim_root_dir)
+          .context("Failed to read shim root directory at line 104")?;
         for dir in dirs {
-            let dir = dir?;
+            let dir = dir.context("Failed to read directory at line 106")?;
             let child_type = dir.file_type()?;
             if child_type.is_dir() {
                 continue;
@@ -111,7 +112,7 @@ fn rm_alias(alias_name: Option<String>, shim_root_dir: &str, all: bool) -> anyho
             let file_name = path.file_name().unwrap().to_str().unwrap();
             if file_name.starts_with("hp-") && file_name.ends_with(".ps1") {
                 println!("{}", format!("remove file: {}", path.display()).dark_grey());
-                std::fs::remove_file(path)?;
+                std::fs::remove_file(path).context("Failed to remove ps1 script at line 115")?;
             }
         }
         return Ok(());
@@ -127,13 +128,14 @@ fn rm_alias(alias_name: Option<String>, shim_root_dir: &str, all: bool) -> anyho
                 .dark_green()
                 .bold()
         );
-        std::fs::remove_file(&shim_ps_script)?;
+        std::fs::remove_file(&shim_ps_script).context("Failed to remove ps1 script at line 131")?;
     }
     Ok(())
 }
 
 fn list_alias(shim_root_dir: &str) -> anyhow::Result<()> {
-    let dirs = std::fs::read_dir(shim_root_dir)?;
+    let dirs = std::fs::read_dir(shim_root_dir)
+      .context("Failed to read shim root directory at line 138")?;
 
     let result = dirs
         .par_bridge()
@@ -288,7 +290,7 @@ fn add_alias(
     {target_command}
     "#
     );
-    std::fs::write(&alias_ps_path, alias_ps_content)?;
+    std::fs::write(&alias_ps_path, alias_ps_content).context("Failed to write ps1 script")?;
     println!(
         "{}",
         format!("Alias command(hp-{alias_name})  created successfully!")

@@ -3,7 +3,7 @@ use crate::install::{create_shims_file, InstallOptions};
 use crate::manifest::install_manifest::InstallManifest;
 use crate::utils::system::get_system_default_arch;
 use crate::utils::utility::compare_versions;
-use anyhow::bail;
+use anyhow::{bail, Context};
 use crossterm::style::Stylize;
 use std::cmp::Ordering;
 use std::os::windows::fs::symlink_dir;
@@ -19,7 +19,8 @@ pub fn reset_latest_version(
     } else {
         get_app_dir(&name)
     };
-    let child_dirs = std::fs::read_dir(&app_dir)?
+    let child_dirs = std::fs::read_dir(&app_dir)
+      .context("Failed to read app root dir at line 23")?
         .filter_map(|entry| {
             let file_type = entry.as_ref().unwrap().file_type().unwrap();
             let path = entry.as_ref().unwrap().path();
@@ -44,8 +45,10 @@ pub fn reset_latest_version(
         let version_path = child_dirs.first().unwrap();
         let result = symlink_dir(version_path, app_current_path.as_path());
         if result.is_err() {
-            std::fs::remove_dir(&app_current_path)?;
-            symlink_dir(&version_path.as_path(), app_current_path.as_path())?;
+            std::fs::remove_dir(&app_current_path)
+              .context("failed remove current dir at line 49")?;
+            symlink_dir(&version_path.as_path(), app_current_path.as_path())
+              .context("failed to create app symlink at line 51")?;
         }
         println!(
             "{} {} => {}",
@@ -57,7 +60,8 @@ pub fn reset_latest_version(
         );
     } else {
         if app_current_path.exists() {
-            std::fs::remove_dir(app_current_path.as_path())?;
+            std::fs::remove_dir(app_current_path.as_path())
+              .context("failed remove app current dir at line 64")?;
         }
         let mut max_version = String::new();
         let _ = child_dirs.iter().for_each(|version_path| {
@@ -93,8 +97,10 @@ fn reset_shim_file(app_name: &str, app_current_path: PathBuf, global: bool) -> a
             app_current_path.display()
         ));
     }
-    let manifest_json = std::fs::read_to_string(manifest_path)?;
-    let manifest: InstallManifest = serde_json::from_str(&manifest_json)?;
+    let manifest_json = std::fs::read_to_string(manifest_path)
+      .context("Failed to read manifest.json at line 101")?;
+    let manifest: InstallManifest = serde_json::from_str(&manifest_json)
+      .context("Failed to parse manifest.json at line 103")?;
     let bin = manifest.bin;
     let architecture = manifest.architecture;
     let arch = get_system_default_arch()?;

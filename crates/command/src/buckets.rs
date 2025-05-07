@@ -3,7 +3,7 @@
     get_buckets_root_dir_path_global,
 };
 use crate::utils::request::{get_git_repo_remote_url, request_git_clone_by_git2_with_progress};
-use anyhow::{anyhow, bail};
+use anyhow::{anyhow, bail, Context};
 use chrono::{DateTime, Utc};
 use comfy_table::modifiers::UTF8_ROUND_CORNERS;
 use comfy_table::presets::{UTF8_BORDERS_ONLY};
@@ -87,7 +87,8 @@ impl Buckets {
             "正在删除目录 : ".to_string().dark_blue().bold(),
             &bucket_path.display().to_string().dark_green().bold()
         );
-        remove_dir_all(bucket_path)?;
+        remove_dir_all(bucket_path)
+          .context(format!("Failed to remove directory: {} at line 91", bucket_path.display()))?;
         Ok(())
     }
 }

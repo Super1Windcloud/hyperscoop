@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 use std::fs::{read_dir, remove_dir_all};
 use std::io::read_to_string;
 use std::path::Path;
-
+use anyhow::Context;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -73,7 +73,8 @@ pub fn list_all_installed_apps_refactor(is_global: bool) -> anyhow::Result<Vec<A
     } else {
         get_apps_path()
     };
-    let all_apps_path = read_dir(&apps_dir)?
+    let all_apps_path = read_dir(&apps_dir)
+      .context("Failed to read apps root directory at line 77")?
         .par_bridge() // 将标准迭代器转换为并行迭代器
         .filter_map(|entry| {
             let entry = entry.ok()?;
@@ -122,8 +123,10 @@ pub fn get_install_json_version(manifest_json: &String) -> anyhow::Result<String
     if !path.exists() {
         return Ok("unknown".to_string());
     }
-    let content = std::fs::read_to_string(manifest_json)?;
-    let obj: VersionJSON = serde_json::from_str(&content)?;
+    let content = std::fs::read_to_string(manifest_json)
+      .context(format!("Failed to read manifest json file: {} at line 127", manifest_json))?;
+    let obj: VersionJSON = serde_json::from_str(&content)
+      .context(format!("Failed to parse manifest json file: {} at line 129", manifest_json))?;
     let version = obj.version;
     if version.is_none() {
         return Ok("unknown".to_string());

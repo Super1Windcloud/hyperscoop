@@ -5,7 +5,7 @@ use command_util_lib::init_env::{get_app_current_dir, get_app_current_dir_global
 use crate::command_args::prefix::PrefixArgs;
 
 pub  fn  execute_prefix_command(prefix : PrefixArgs ) -> Result<(), anyhow::Error> {
-   if let Some(name) = prefix.name 
+   if let Some(name) = prefix.name
    {
 
      let app_path = if prefix.global {
@@ -17,6 +17,7 @@ pub  fn  execute_prefix_command(prefix : PrefixArgs ) -> Result<(), anyhow::Erro
        bail!("{} 不存在", app_path.red().bold());
      }
      println!("{}", app_path.dark_green().bold());
-   } 
-  Ok(()) 
+   }
+  Ok(())
 }
+

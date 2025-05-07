@@ -1,6 +1,6 @@
 use crate::init_hyperscoop;
 use crate::manifest::uninstall_manifest::UninstallManifest;
-use anyhow::bail;
+use anyhow::{bail, Context};
 use crossterm::style::Stylize;
 use std::path::{Path};
 mod env_set;
@@ -37,7 +37,8 @@ pub fn uninstall_app_with_purge(app_name: &str, global: bool) -> Result<(), anyh
         );
         return Ok(());
     }
-    std::fs::remove_dir_all(app_persist_path)?;
+    std::fs::remove_dir_all(app_persist_path)
+      .context("Failed to remove app persisted data at line 41")?;
     Ok(())
 }
 
@@ -130,7 +131,8 @@ fn uninstall_matched_app(
     shim_path: &str,
     is_global: bool,
 ) -> Result<(), anyhow::Error> {
-    for entry in std::fs::read_dir(app_path)? {
+    for entry in std::fs::read_dir(app_path)
+      .context("Failed to read app path at line  135")? {
         let entry = entry?;
         let path = entry.path();
         if let Some(file_name) = path.file_name() {

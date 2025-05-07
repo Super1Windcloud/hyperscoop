@@ -244,6 +244,7 @@ impl<'a> Aria2C<'a> {
             bail!(
                 "Aria2c download failed, exit code: {}",
                 status.code().unwrap()
+              
             )
         };
         result

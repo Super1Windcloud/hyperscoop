@@ -157,7 +157,7 @@ pub async fn update_hp(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
         launch_update_script(global, "", true).expect("update hp script failed");
     } else {
         launch_update_script(global, app_old_version_dir.as_str(), false)
-            .expect("update hp script failed");
+            .map_err( |e| anyhow::anyhow!("launch_update_script failed: \n{}", e))?;
     }
     println!(
         "{}",

@@ -1,5 +1,5 @@
-use webbrowser;
 use crate::utils::utility::is_valid_url;
+use webbrowser;
 
 pub fn _open_home_page(bucket_paths: Vec<String>, name: String) {
     for bucket_path in bucket_paths.iter() {
@@ -26,8 +26,8 @@ pub fn _open_home_page(bucket_paths: Vec<String>, name: String) {
     }
 }
 
-pub fn open_home_page(bucket_paths: Vec<String>, name: String)->anyhow::Result<()> {
-    let  found =  bucket_paths.iter().find_map(|bucket_path| {
+pub fn open_home_page(bucket_paths: Vec<String>, name: String) -> anyhow::Result<()> {
+    let found = bucket_paths.iter().find_map(|bucket_path| {
         let manifest_path = format!("{}\\bucket", bucket_path);
         log::info!("manifest_path: {}", manifest_path);
 
@@ -47,16 +47,16 @@ pub fn open_home_page(bucket_paths: Vec<String>, name: String)->anyhow::Result<(
                 let content = std::fs::read_to_string(&file).ok()?;
                 let serde_obj = serde_json::from_str::<serde_json::Value>(&content).ok()?;
                 let url = serde_obj["homepage"].as_str().unwrap_or_default();
- 
-                if  !url.is_empty() && is_valid_url(&url) {
-                  webbrowser::open(url).ok()?;
+
+                if !url.is_empty() && is_valid_url(&url) {
+                    webbrowser::open(url).ok()?;
                 }
                 Some(())
             })
             .next()
     });
-   if found.is_some() {
-    std::process::exit(0);
-   } 
-   Ok(())
+    if found.is_some() {
+        std::process::exit(0);
+    }
+    Ok(())
 }

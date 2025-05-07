@@ -20,7 +20,7 @@ use crate::command_args::uninstall::UninstallArgs;
 use crate::command_args::update::UpdateArgs;
 use crate::command_args::which::WhichArgs;
 pub(crate) use crate::command_args::{bucket_args::BucketArgs, cache::CacheArgs};
-use anyhow::bail;
+use anyhow::{bail, Context};
 use clap::{Args, Subcommand};
 use command_util_lib::init_env::get_app_dir_install_json;
 use command_util_lib::utils::utility::clap_args_to_lowercase;
@@ -110,9 +110,10 @@ pub fn add_key_value_to_json(
     new_value: bool,
     name: &str,
 ) -> anyhow::Result<()> {
-    let data = std::fs::read_to_string(file_path)?;
+    let data = std::fs::read_to_string(file_path)
+        .context(format!("Failed to read file: {} at line 114", file_path))?;
 
-    let mut json_data: Value = serde_json::from_str(&data)?;
+    let mut json_data: Value = serde_json::from_str(&data).context("Failed to parse JSON data at line 116")?;
 
     if let Value::Object(ref mut map) = json_data {
         if map.get(new_key).is_some() {
@@ -128,7 +129,9 @@ pub fn add_key_value_to_json(
     } else {
         bail!("Invalid JSON: Expected an object");
     }
-    std::fs::write(file_path, serde_json::to_string_pretty(&json_data)?)?;
+    std::fs::write(file_path, serde_json::to_string_pretty(&json_data)?).context(
+      format!("Failed to write file: {}", file_path),
+    )?;
     Ok(())
 }
 
@@ -178,9 +181,11 @@ pub fn execute_hold_command(hold_args: HoldArgs) -> anyhow::Result<()> {
 }
 
 pub fn unhold_locked_apps(app_name: &str, install_json_file: &str) -> anyhow::Result<()> {
-    let data = std::fs::read_to_string(install_json_file)?;
+    let data = std::fs::read_to_string(install_json_file).
+      context(format!("Failed to read file: {}", install_json_file))?;
 
-    let mut json_data: Value = serde_json::from_str(&data)?;
+    let mut json_data: Value = serde_json::from_str(&data)
+      .context("Failed to parse JSON data in unhold_locked_apps")?;
 
     if let Value::Object(ref mut map) = json_data {
         if map.get("hold").is_none() {
@@ -196,26 +201,27 @@ pub fn unhold_locked_apps(app_name: &str, install_json_file: &str) -> anyhow::Re
     } else {
         bail!("Invalid JSON: Expected an object");
     }
-    std::fs::write(install_json_file, serde_json::to_string_pretty(&json_data)?)?;
+    std::fs::write(install_json_file, serde_json::to_string_pretty(&json_data)?) 
+      .context(format!("Failed to write file: {}", install_json_file))?;
     Ok(())
 }
 
-
-
 pub fn show_reward_img() {
+    use qrcode::render::unicode;
+    use qrcode::QrCode;
 
-  use qrcode::{QrCode};
-  use qrcode::render::unicode;
+    let url = "https://img.picui.cn/free/2025/05/04/68170e249fdcd.png";
 
-  let url = "https://img.picui.cn/free/2025/05/04/68170e249fdcd.png"; 
-  
-   let code = QrCode::new(url).unwrap();
-  let image = code.render::<unicode::Dense1x2>() 
-    .dark_color(unicode::Dense1x2::Light)
-    .light_color(unicode::Dense1x2::Dark)
-    .build();
-  
-  println!("{}", image);
-  println!("{}", "您的支持是我调试人生的 print!   │───┘".dark_cyan().bold());
+    let code = QrCode::new(url).unwrap();
+    let image = code
+        .render::<unicode::Dense1x2>()
+        .dark_color(unicode::Dense1x2::Light)
+        .light_color(unicode::Dense1x2::Dark)
+        .build();
 
+    println!("{}", image);
+    println!(
+        "{}",
+        "您的支持是我调试人生的 print!   │───┘".dark_cyan().bold()
+    );
 }
