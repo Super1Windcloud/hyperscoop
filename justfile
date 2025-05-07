@@ -67,5 +67,5 @@ count :
 
 
 compress:
-    upx target/release/hp.exe  -o target/release/hp_upx.exe
+    rm target/release/hp_upx.exe  &&  upx target/release/hp.exe  -o target/release/hp_upx.exe
 
