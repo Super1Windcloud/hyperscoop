@@ -1,6 +1,6 @@
 <a href='https://postimg.cc/HVXTGZq6' target='_blank'><img src='https://i.postimg.cc/HVXTGZq6/mmexport1677398873855.jpg' border='0' alt='mmexport1677398873855'/></a>
 > [!IMPORTANT]  
-> ##  Latest Release 请到 [Github](https://github.com/Super1Windcloud/hyperscoop/releases)
+> ##  Latest Release 请到 [Github](https://github.com/Super1Windcloud/hyperscoop/releases), [English Readme](./README.en.md)
 
 > [!NOTE] 
 > ##  已提供upx压缩加壳的exe, 大幅度减少二进制的体积, upx加载存根到内存,绝大部分国产杀软报毒, 见Release 或
