@@ -25,15 +25,16 @@ pub use sevenzip::*;
 pub mod download;
 pub mod parse_lifecycle_scripts;
 pub use parse_lifecycle_scripts::*;
-pub mod  env_operate; 
-pub use env_operate::*;
+pub mod env_operate;
 use crate::list::VersionJSON;
 use crate::manifest::manifest::{
+    get_best_manifest_from_local_bucket, get_best_manifest_from_local_bucket_global,
     get_latest_manifest_from_local_bucket, get_latest_manifest_from_local_bucket_global,
 };
 use crate::utils::system::{ensure_persist_permission, kill_processes_using_app};
 use crate::utils::utility::{nightly_version, validate_version};
 pub use download::*;
+pub use env_operate::*;
 
 /// 下载, 解压, preinstall, create_shim_shortcut, postinstall
 pub fn install_app_from_local_manifest_file<P: AsRef<Path>>(
@@ -47,10 +48,14 @@ pub fn install_app_from_local_manifest_file<P: AsRef<Path>>(
     let manifest_path = manifest_path.as_ref().to_str().unwrap();
     let install_arch = handle_arch(&options)?;
     log::info!("install arch: {}", install_arch);
-    let content = std::fs::read_to_string(&manifest_path)
-      .context(format!("read manifest file '{}' failed at line 51", manifest_path))?;
-    let mut serde_obj: InstallManifest = serde_json::from_str(&content)
-      .context(format!("deserialize manifest file '{}' failed at line 53", manifest_path))?;
+    let content = std::fs::read_to_string(&manifest_path).context(format!(
+        "read manifest file '{}' failed at line 51",
+        manifest_path
+    ))?;
+    let mut serde_obj: InstallManifest = serde_json::from_str(&content).context(format!(
+        "deserialize manifest file '{}' failed at line 53",
+        manifest_path
+    ))?;
     let app_name = serde_obj
         .set_name(&manifest_path)
         .get_name()
@@ -71,7 +76,7 @@ pub fn install_app_from_local_manifest_file<P: AsRef<Path>>(
         };
 
         if Path::new(&special_app_dir).exists() && app_name.to_lowercase() != "hp" {
-            let  result = std::fs::remove_dir_all(&special_app_dir);
+            let result = std::fs::remove_dir_all(&special_app_dir);
             match result {
                 Ok(_) => {
                     log::debug!("remove app dir success!");
@@ -79,11 +84,12 @@ pub fn install_app_from_local_manifest_file<P: AsRef<Path>>(
                 Err(_) => {
                     log::debug!("kill {app_name}  process");
                     kill_processes_using_app(&app_name);
-                    std::fs::remove_dir_all(&special_app_dir)
-                      .context(format!("remove app dir '{}' failed at line 83", special_app_dir))?;
+                    std::fs::remove_dir_all(&special_app_dir).context(format!(
+                        "remove app dir '{}' failed at line 83",
+                        special_app_dir
+                    ))?;
                 }
             }
-
         }
     }
     validate_version(version)?;
@@ -106,6 +112,7 @@ pub fn install_app_from_local_manifest_file<P: AsRef<Path>>(
         && !options.contains(&InstallOptions::OnlyDownloadNoInstall)
         && !options.contains(&InstallOptions::ForceInstallOverride)
         && !options.contains(&InstallOptions::UpdateTransaction)
+        && !options.contains(&InstallOptions::InstallSpecialVersionApp)
     {
         match check_before_install(&app_name, &version, &options) {
             Ok(result) => result,
@@ -180,7 +187,7 @@ pub fn install_app_from_local_manifest_file<P: AsRef<Path>>(
         handle_depends(depends.unwrap().as_str(), &options)?;
     }
     //   **invoke aria2  to  download  file to cache
-    let   download_manager = DownloadManager::new(&options, &manifest_path, bucket_source);
+    let download_manager = DownloadManager::new(&options, &manifest_path, bucket_source);
     download_manager.start_download()?;
     if !options.contains(&InstallOptions::SkipDownloadHashCheck) {
         download_manager.check_cache_file_hash()?
@@ -189,7 +196,8 @@ pub fn install_app_from_local_manifest_file<P: AsRef<Path>>(
         return Ok(());
     }
     //  * 提取 cache 中的zip 到 app dir
-    let senvenzip  =  download_manager.invoke_7z_extract(extract_dir, extract_to, architecture.clone())?;
+    let senvenzip =
+        download_manager.invoke_7z_extract(extract_dir, extract_to, architecture.clone())?;
     // !  parse    pre_install
     parse_lifecycle_scripts(
         LifecycleScripts::PreInstall,
@@ -209,7 +217,8 @@ pub fn install_app_from_local_manifest_file<P: AsRef<Path>>(
         None,
     )
     .expect("parse installer scripts failed");
-    //  *linking   app current dir to app version dir
+
+    //  ? linking   app current dir to app version dir
     senvenzip.link_current();
     //*create_shims
     //*create_startmenu_shortcuts
@@ -311,12 +320,13 @@ pub fn install_from_specific_bucket(
     let manifest_path = manifest_path.unwrap();
 
     log::debug!("manifest path: {}", manifest_path.display());
+    let options = options
+        .to_vec()
+        .into_iter()
+        .chain([InstallOptions::InstallSpecialBucketApp])
+        .collect();
 
-    install_app_from_local_manifest_file(
-        manifest_path,
-        options.to_vec(),
-        Some(bucket_name),
-    )?;
+    install_app_from_local_manifest_file(manifest_path, options, Some(bucket_name))?;
     Ok(())
 }
 
@@ -418,11 +428,13 @@ pub fn install_app_specific_version(
         parent.file_name().unwrap().to_str().unwrap()
     })();
     log::info!("manifest path: {}", special_version_manifest);
-    install_app_from_local_manifest_file(
-        special_version_manifest,
-        options.to_vec(),
-        Some(source_bucket),
-    )?;
+
+    let options = options
+        .to_vec()
+        .into_iter()
+        .chain([InstallOptions::InstallSpecialVersionApp])
+        .collect();
+    install_app_from_local_manifest_file(special_version_manifest, options, Some(source_bucket))?;
     Ok(())
 }
 
@@ -432,10 +444,17 @@ pub fn install_app(app_name: &str, options: &[InstallOptions<'_>]) -> Result<()>
         bail!("Update self please use `hp u hp` or `hp u -f -k hp`")
     }
     let manifest_path = if options.contains(&InstallOptions::Global) {
-        get_latest_manifest_from_local_bucket_global(app_name)?
-    } else {
+        if options.contains(&InstallOptions::UpdateTransaction) {
+            get_latest_manifest_from_local_bucket_global(app_name)?
+        } else {
+            get_best_manifest_from_local_bucket_global(app_name)?
+        }
+    } else if options.contains(&InstallOptions::UpdateTransaction) {
         get_latest_manifest_from_local_bucket(app_name)?
+    } else {
+        get_best_manifest_from_local_bucket(app_name)?
     };
+
     let duplicate = manifest_path.clone();
     if !duplicate.exists() {
         bail!("No app manifest found for '{app_name}', please check it!")
@@ -446,11 +465,7 @@ pub fn install_app(app_name: &str, options: &[InstallOptions<'_>]) -> Result<()>
         parent.file_name().unwrap().to_str().unwrap()
     })();
 
-    install_app_from_local_manifest_file(
-        manifest_path,
-        options.to_vec(),
-        Some(source_bucket),
-    )?;
+    install_app_from_local_manifest_file(manifest_path, options.to_vec(), Some(source_bucket))?;
 
     Ok(())
 }
@@ -459,9 +474,9 @@ pub async fn install_and_replace_hp(options: &[InstallOptions<'_>]) -> Result<St
     let app_name = "hp";
 
     let manifest_path = if options.contains(&InstallOptions::Global) {
-        get_latest_manifest_from_local_bucket_global(app_name)?
+        get_best_manifest_from_local_bucket_global(app_name)?
     } else {
-        get_latest_manifest_from_local_bucket(app_name)?
+        get_best_manifest_from_local_bucket(app_name)?
     };
 
     let duplicate = manifest_path.clone();

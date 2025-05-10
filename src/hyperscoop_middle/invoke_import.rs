@@ -1,10 +1,9 @@
-use anyhow::Context;
 use crate::command_args::import::ImportArgs;
+use anyhow::Context;
 use command_util_lib::import::*;
 use serde_json::{Map, Value};
 
-
-pub async fn execute_import_command(args: ImportArgs) -> Result<(), anyhow::Error> {
+pub fn execute_import_command(args: ImportArgs) -> Result<(), anyhow::Error> {
     if let Some(path) = args.path {
         log::info!("{:?}", &path);
         let contents = std::fs::read_to_string(&path).expect("文件编码格式错误或路径错误");
@@ -15,9 +14,8 @@ pub async fn execute_import_command(args: ImportArgs) -> Result<(), anyhow::Erro
         let buckets = config_obj["buckets"].as_array().unwrap_or(&default_arr);
         let apps = config_obj["apps"].as_array().unwrap_or(&default_arr);
         if !config.is_empty() {
-            let config_str = serde_json::to_string_pretty(config).context(
-                "Failed to convert config object to string",
-            )?;
+            let config_str = serde_json::to_string_pretty(config)
+                .context("Failed to convert config object to string")?;
             write_into_scoop_config(config_str);
         }
         if !buckets.is_empty() {
@@ -39,7 +37,7 @@ pub async fn execute_import_command(args: ImportArgs) -> Result<(), anyhow::Erro
                 let version = app["Version"].as_str().unwrap_or_default();
                 app_info.push((app_name, bucket, version));
             }
-            install_apps(app_info, path).await?;
+            install_apps(app_info, path)?;
         }
     }
     Ok(())

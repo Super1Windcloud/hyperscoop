@@ -12,7 +12,9 @@ pub enum InstallOptions<'a> {
     Global,
     ForceInstallOverride,
     UpdateTransaction,
-    InteractiveInstall,
+    InteractiveInstall, 
+    InstallSpecialVersionApp , 
+    InstallSpecialBucketApp 
 }
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]

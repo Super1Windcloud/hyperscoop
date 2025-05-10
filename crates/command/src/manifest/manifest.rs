@@ -2,12 +2,12 @@ use crate::init_env::{
     get_all_buckets_dir_child_bucket_path, get_all_global_buckets_dir_child_bucket_path,
 };
 use crate::list::VersionJSON;
-use anyhow::bail;
+use crate::manifest::manifest_deserialize::ObjectOrString;
+use anyhow::{bail, Context};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use crate::manifest::manifest_deserialize::ObjectOrString;
 
 #[allow(clippy::unsafe_derive_deserialize)]
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
@@ -45,15 +45,18 @@ pub struct Manifest {
     pub bin: Option<String>,      //可执行文件所在的目录。
     pub checksum: Option<String>, //文件的校验和
     /**
-    要下载的一个或多个文件的 URL。如果有多个 URL，可以使用 JSON 数组，例如 "url": [ "http://example.org/program.zip", "http://example.org/dependencies.zip" ] 。 URL 可以是 HTTP、HTTPS 或 FTP。
-
+    要下载的一个或多个文件的 URL。如果有多个 URL，可以使用 JSON 数组，例如 "url": [ "http://example.org/program.zip", "http://example.org/dependencies.zip" ] 。
+      URL 可以是 HTTP、HTTPS 或 FTP。
       To change the filename of the downloaded URL, you can append a URL fragment (starting with #) to URLs. For examples,
       要更改下载的 URL 的文件名，您可以将 URL 片段（以#开头）附加到 URL。例如，
       "http://example.org/program.exe" -> "http://example.org/program.exe#/dl.7z"
       Note the fragment must start with #/ for this to work.
       请注意，片段必须以#/开头才能正常工作。
-      In the above examples, Scoop will download program.exe but save it as dl.7z, which will then be extracted automatically with 7-Zip. This technique is commonly used in Scoop manifests to bypass executable installers which might have undesirable side-effects like registry changes, files placed outside the install directory, or an admin elevation prompt.
-      在上面的示例中，Scoop 将下载program.exe ，但将其另存为dl.7z ，然后使用 7-Zip 自动解压。此技术通常在 Scoop 清单中使用，以绕过可执行安装程序，这些安装程序可能会产生不良副作用，例如注册表更改、放置在安装目录之外的文件或管理员提升提示。
+      In the above examples, Scoop will download program.exe but save it as dl.7z, which will then be extracted automatically with 7-Zip.
+     This technique is commonly used in Scoop manifests to bypass executable installers which might have undesirable side-effects like registry changes,
+      files placed outside the install directory, or an admin elevation prompt.
+      在上面的示例中，Scoop 将下载program.exe ，但将其另存为dl.7z ，然后使用 7-Zip 自动解压。此技术通常在 Scoop 清单中使用，以绕过可执行安装程序，
+    这些安装程序可能会产生不良副作用，例如注册表更改、放置在安装目录之外的文件或管理员提升提示。
     */
     pub url: Option<String>,
 
@@ -100,25 +103,69 @@ pub enum MainBucket {
     Other,
 }
 
-pub fn get_latest_app_version_from_local_bucket(app_name: &str) -> anyhow::Result<String> {
-    let better_manifest = get_latest_manifest_from_local_bucket(app_name)?;
+pub fn get_best_app_version_from_local_bucket(app_name: &str) -> anyhow::Result<String> {
+    let better_manifest = get_best_manifest_from_local_bucket(app_name)?;
+
     if !Path::new(&better_manifest).exists() {
         bail!("Manifest {}does not exist", better_manifest.display());
     }
-    let content = std::fs::read_to_string(&better_manifest)?;
-    let version: VersionJSON = serde_json::from_str(&content)?;
+    let content = std::fs::read_to_string(&better_manifest).context(format!(
+        "Failed to read manifest file: {} at line 109",
+        better_manifest.display()
+    ))?;
+    let version: VersionJSON = serde_json::from_str(&content).context(format!(
+        "Failed to parse manifest file: {} at line 111",
+        better_manifest.display()
+    ))?;
     if version.version.is_none() {
         bail!("该App没有找到版本信息,manifest.json格式错误")
     }
     Ok(version.version.unwrap())
 }
+pub fn get_latest_app_version_from_local_bucket(app_name: &str) -> anyhow::Result<String> {
+    let better_manifest = get_latest_manifest_from_local_bucket(app_name)?;
+
+    if !Path::new(&better_manifest).exists() {
+        bail!("Manifest {}does not exist", better_manifest.display());
+    }
+    let content = std::fs::read_to_string(&better_manifest).context(format!(
+        "Failed to read manifest file: {} at line 132",
+        better_manifest.display()
+    ))?;
+    let version: VersionJSON = serde_json::from_str(&content).context(format!(
+        "Failed to parse manifest file: {} at line 136",
+        better_manifest.display()
+    ))?;
+    if version.version.is_none() {
+        bail!("该App没有找到版本信息,manifest.json格式错误")
+    }
+    Ok(version.version.unwrap())
+}
+
+pub fn get_best_app_version_from_local_bucket_global(app_name: &str) -> anyhow::Result<String> {
+    let better_manifest = get_best_manifest_from_local_bucket_global(app_name)?;
+    if !Path::new(&better_manifest).exists() {
+        bail!("Manifest {}does not exist", better_manifest.display());
+    }
+    let content = std::fs::read_to_string(&better_manifest)
+      .context(format!("Failed to read global manifest file: {} at line 151", better_manifest.display()))?;
+    let version: VersionJSON = serde_json::from_str(&content)
+      .context(format!("Failed to parse global manifest file: {} at line 153", better_manifest.display()))?;
+    if version.version.is_none() {
+        bail!("该App没有找到版本信息,manifest.json格式错误")
+    }
+    Ok(version.version.unwrap())
+}
+
 pub fn get_latest_app_version_from_local_bucket_global(app_name: &str) -> anyhow::Result<String> {
     let better_manifest = get_latest_manifest_from_local_bucket_global(app_name)?;
     if !Path::new(&better_manifest).exists() {
         bail!("Manifest {}does not exist", better_manifest.display());
     }
-    let content = std::fs::read_to_string(&better_manifest)?;
-    let version: VersionJSON = serde_json::from_str(&content)?;
+    let content = std::fs::read_to_string(&better_manifest)
+      .context(format!("Failed to read global manifest file: {} at line 166", better_manifest.display()))?;
+    let version: VersionJSON = serde_json::from_str(&content)
+      .context(format!("Failed to parse global manifest file: {} at line 168", better_manifest.display()))?;
     if version.version.is_none() {
         bail!("该App没有找到版本信息,manifest.json格式错误")
     }
@@ -167,7 +214,7 @@ pub fn get_all_manifest_files_from_bucket<'a>(
     manifest_path
 }
 
-pub fn get_latest_manifest_from_local_bucket(app_name: &str) -> anyhow::Result<PathBuf> {
+pub fn get_best_manifest_from_local_bucket(app_name: &str) -> anyhow::Result<PathBuf> {
     let all_buckets_root = get_all_buckets_dir_child_bucket_path()?;
     let result = get_all_manifest_files_from_bucket(all_buckets_root.as_slice(), app_name);
     if result.is_empty() {
@@ -177,6 +224,45 @@ pub fn get_latest_manifest_from_local_bucket(app_name: &str) -> anyhow::Result<P
 
     Ok(app_manifest_path)
 }
+
+pub fn get_latest_manifest_from_local_bucket(app_name: &str) -> anyhow::Result<PathBuf> {
+    let all_buckets_root = get_all_buckets_dir_child_bucket_path()?;
+    let result = get_all_manifest_files_from_bucket(all_buckets_root.as_slice(), app_name);
+    if result.is_empty() {
+        bail!("No app manifest found for '{app_name}'");
+    }
+    let result_with_version = result
+        .into_iter()
+        .filter_map(|(path, _)| {
+            let content = std::fs::read_to_string(&path)
+                .context(format!(
+                    "Failed to read manifest file: {} at line 196",
+                    path.display()
+                ))
+                .unwrap();
+            let version: VersionJSON = serde_json::from_str(&content)
+                .context(format!(
+                    "Failed to parse manifest file: {} at line 198",
+                    path.display()
+                ))
+                .unwrap();
+            let version = version.version;
+            if version.is_none() {
+                None
+            } else {
+                Some((path, version.unwrap()))
+            }
+        })
+        .collect::<Vec<_>>();
+    let max_result = result_with_version.iter().max_by(|a, b| a.1.cmp(&b.1));
+
+    if let Some((path, _)) = max_result {
+        Ok(path.to_owned())
+    } else {
+        bail!("No app manifest found for '{app_name}'")
+    }
+}
+
 fn find_better_bucket(result: Vec<(PathBuf, MainBucket)>) -> PathBuf {
     let final_path = if result.iter().any(|(_, bucket)| *bucket == MainBucket::Main) {
         result
@@ -211,7 +297,7 @@ fn find_better_bucket(result: Vec<(PathBuf, MainBucket)>) -> PathBuf {
     final_path
 }
 
-pub fn get_latest_manifest_from_local_bucket_global(app_name: &str) -> anyhow::Result<PathBuf> {
+pub fn get_best_manifest_from_local_bucket_global(app_name: &str) -> anyhow::Result<PathBuf> {
     let all_buckets_root = get_all_global_buckets_dir_child_bucket_path()?;
     let result = get_all_manifest_files_from_bucket(all_buckets_root.as_slice(), app_name);
 
@@ -223,11 +309,47 @@ pub fn get_latest_manifest_from_local_bucket_global(app_name: &str) -> anyhow::R
     Ok(app_manifest_path)
 }
 
+pub fn get_latest_manifest_from_local_bucket_global(app_name: &str) -> anyhow::Result<PathBuf> {
+    let all_buckets_root = get_all_global_buckets_dir_child_bucket_path()?;
+    let result = get_all_manifest_files_from_bucket(all_buckets_root.as_slice(), app_name);
+    if result.is_empty() {
+        bail!("No manifest found for '{app_name}'");
+    }
+    let result_with_version = result
+        .into_iter()
+        .filter_map(|(path, _)| {
+            let content = std::fs::read_to_string(&path)
+                .context(format!(
+                    "Failed to read manifest file: {} at line 196",
+                    path.display()
+                ))
+                .unwrap();
+            let version: VersionJSON = serde_json::from_str(&content)
+                .context(format!(
+                    "Failed to parse manifest file: {} at line 198",
+                    path.display()
+                ))
+                .unwrap();
+            let version = version.version;
+            if version.is_none() {
+                None
+            } else {
+                Some((path, version.unwrap()))
+            }
+        })
+        .collect::<Vec<_>>();
+    let max_result = result_with_version.iter().max_by(|a, b| a.1.cmp(&b.1));
+
+    if let Some((path, _)) = max_result {
+        Ok(path.to_owned())
+    } else {
+        bail!("No app manifest found for '{app_name}'")
+    }
+}
 mod test_manifest {
     #[test]
     fn test_output() {
         use super::*;
         get_latest_manifest_from_local_bucket("zigmod").unwrap();
     }
- 
 }

@@ -1,5 +1,6 @@
+set shell :=   ["pwsh.exe", "-NoProfile", "-c"]
 
-set shell := ["pwsh.exe", "-NoProfile", "-c"]
+
 
 release:
     cargo  br

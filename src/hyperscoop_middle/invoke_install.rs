@@ -52,11 +52,11 @@ pub async fn execute_install_command(args: InstallArgs) -> Result<(), anyhow::Er
 
 
   if is_valid_url(app_name.as_str()) {
-    install_app_from_url(app_path, &options  , args.app_alias_from_url_install.clone())?; 
-    
+    install_app_from_url(app_path, &options  , args.app_alias_from_url_install.clone())?;
+
     return Ok(());
   }
-  
+
     if contains_special_char(app_name.as_str()) {
         bail!("指定的APP格式错误 error char")
     }

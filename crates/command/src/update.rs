@@ -106,7 +106,8 @@ pub async fn update_specific_app(
         println!("{}", "当前App已是最新版本,无需更新".dark_cyan().bold());
         return Ok(());
     };
-    if origin_options.contains(&RemoveOldVersionApp) && app_name != "hp" {
+    if origin_options.contains(&RemoveOldVersionApp) && app_name != "hp" 
+      && !origin_options.contains(&ForceUpdateOverride){
         remove_old_version(&app_name, &origin_options)?;
     }
     install_app(&app_name, options.as_ref())?;

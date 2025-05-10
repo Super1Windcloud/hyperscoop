@@ -48,7 +48,7 @@ fn invoke_hp_bucket_add(name: &str, url: &str) {
     }
 }
 
-pub async fn install_apps(app_info: Vec<(&str, &str, &str)>, path: String) -> Result<(), anyhow::Error> {
+pub   fn install_apps(app_info: Vec<(&str, &str, &str)>, path: String) -> Result<(), anyhow::Error> {
     for (app_name, bucket, version) in app_info {
         if app_name.is_empty() || bucket.is_empty() || version.is_empty() {
             bail!(
@@ -56,13 +56,13 @@ pub async fn install_apps(app_info: Vec<(&str, &str, &str)>, path: String) -> Re
                 path.red().bold()
             )
         }
-        invoke_hp_install(app_name, bucket).await?;
+        invoke_hp_install(app_name, bucket)?;
     }
 
     Ok(())
 }
 
-async fn invoke_hp_install(app_name: &str, bucket: &str) -> Result<(), anyhow::Error> {
+fn invoke_hp_install(app_name: &str, bucket: &str) -> Result<(), anyhow::Error> {
     install_from_specific_bucket(bucket, app_name, &*vec![])?;
     Ok(())
 }

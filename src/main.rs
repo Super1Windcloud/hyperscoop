@@ -107,7 +107,7 @@ async fn main() -> anyhow::Result<()> {
             Commands::Config(args) => execute_config_command(args),
             Commands::Export(file) => execute_export_command(file),
             Commands::Home(home) => execute_home_command(home),
-            Commands::Import(args) => execute_import_command(args).await,
+            Commands::Import(args) => execute_import_command(args),
             Commands::Info(info) => execute_info_command(info) , 
             Commands::Install(args) => execute_install_command(args).await,
             Commands::List(query_app) => execute_list_installed_apps(query_app),

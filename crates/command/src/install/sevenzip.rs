@@ -2,7 +2,7 @@ use crate::init_env::{get_shims_root_dir, get_shims_root_dir_global};
 use crate::install::{install_app, ArchiveFormat, InstallOptions};
 use crate::manifest::manifest_deserialize::StringArrayOrString;
 use crate::utils::system::is_broken_symlink;
-use anyhow::bail;
+use anyhow::{bail, Context};
 use crossterm::style::Stylize;
 use std::env;
 use std::fs::File;
@@ -108,12 +108,16 @@ impl<'a> SevenZipStruct<'a> {
         let target = self.get_target_app_version_dir();
         let current = self.get_target_app_current_dir();
         if Path::new(&current).exists() {
-            std::fs::remove_dir(&current)?;
+            std::fs::remove_dir(&current)
+              .context("remove current dir failed at line 112")?;
         }
         if is_broken_symlink(&current)? {
-            std::fs::remove_file(&current)?;
+            std::fs::remove_dir(&current)    // can't use remove_file here
+              .context("remove current dir failed at line 116")?; 
         }
-        fs::symlink_dir(target, &current).expect("Create dir symlink failed");
+        fs::symlink_dir(target, &current)
+          .context("create current dir symlink failed at line 120")?; 
+      
         println!(
             "{} {} => {}",
             "Linking".dark_blue().bold(),
