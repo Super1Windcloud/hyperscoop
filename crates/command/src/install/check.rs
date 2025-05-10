@@ -28,11 +28,10 @@ pub fn get_app_old_version(app_name: &str, options: &[InstallOptions]) -> anyhow
 
 pub fn check_before_install(
     name: &str,
-    version: &String,
+    version: &str ,
     options: &Box<[InstallOptions<'_>]>,
 ) -> anyhow::Result<u8> {
     if options.contains(&InstallOptions::UpdateHpAndBuckets) {
-        // update_scoop_bar()?;
         let status = check_bucket_update_status()?;
         if status {
             update_all_buckets_bar_parallel()?;
@@ -76,11 +75,10 @@ pub fn check_before_install(
 
         if Path::new(&install_json).exists()
             && Path::new(&manifest_json).exists()
-            && &old_version == version
         {
             println!(
                 "{}",
-                format!("WARN  '{name }' ({version}) is already installed")
+                format!("WARN  '{name }' ({old_version}) is already installed")
                     .to_string()
                     .dark_yellow()
                     .bold(),
@@ -102,6 +100,7 @@ pub fn check_before_install(
                         .bold()
                 );
             }
+          
             if !Path::new(&manifest_json).exists() {
                 eprintln!(
                     "{}",
