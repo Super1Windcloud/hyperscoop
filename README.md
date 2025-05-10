@@ -42,10 +42,10 @@
 
 
 --- 
-## ☑️ TODO (主要功能全部完成, 如果遇到BUG,请截图反馈Issue)
+## ☑️ TODO (功能全部完成, 尽情使用)
 - [x]  Alias
 - [x] Bucket
-- [x]  cat 
+- [x] cat 
 - [x] cache 
 - [x]  checkup 
 - [x]  cleanup  
