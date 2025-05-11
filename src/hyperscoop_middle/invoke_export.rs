@@ -6,14 +6,14 @@ pub fn execute_export_command(file: ExportArgs) -> Result<(), anyhow::Error> {
         log::info!("Exporting to {}", file_name);
         if file_name.contains('\\') || file_name.contains('/') {
             if file.config {
-                log::info!("Exporting Scoop config");
+                log::info!("Exporting Scoop config to {}", file_name); 
                 export_config_to_path_width_config(file_name.clone())?;
             } else {
                 export_config_to_path(file_name.clone())?;
             }
         } else {
             if file.config {
-                log::info!("Exporting Scoop config");
+                log::info!("Exporting Scoop config to current directory");
                 export_config_to_current_dir_with_config(file_name.clone())?;
             } else {
                 export_config_to_current_dir(file_name.clone())?;

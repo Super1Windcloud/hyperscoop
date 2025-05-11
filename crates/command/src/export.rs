@@ -1,8 +1,9 @@
 use crate::buckets::get_buckets_path;
 use crate::init_env::{get_apps_path, get_scoop_cfg_path};
-use anyhow::Context;
+use anyhow::{bail, Context};
 use chrono::{DateTime, Utc};
 use git2::Repository;
+use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::fs::{metadata, read_dir};
@@ -14,7 +15,6 @@ pub fn export_config_to_path(file_name: String) -> anyhow::Result<()> {
     let mut file = std::fs::File::create(path)
         .with_context(|| format!("Failed to create file {} at line 15", file_name))?;
 
-    log::info!("导出配置文件到 {}", file_name);
     let bucket_config = get_all_buckets_info()?;
     let apps = get_all_installed_apps()?;
     let json_data = json!({
@@ -25,6 +25,7 @@ pub fn export_config_to_path(file_name: String) -> anyhow::Result<()> {
         .context("Failed to serialize JSON data into JSON at lin 25")?;
     file.write_all(pretty_json.as_bytes())
         .context("Failed to write to JSON file a line 27")?;
+    println!("成功导出配置文件到 {}", path.display());
 
     Ok(())
 }
@@ -70,7 +71,6 @@ pub fn export_config_to_current_dir(file_name: String) -> anyhow::Result<()> {
     let mut file = std::fs::File::create(path).expect("路径错误无法创建文件");
     let current_dir = std::env::current_dir()?;
     let path = current_dir.join(path);
-    log::info!("导出配置文件到 {}", path.display());
     let bucket_config = get_all_buckets_info()?;
     let apps = get_all_installed_apps()?;
     let json_data = json!({
@@ -82,12 +82,15 @@ pub fn export_config_to_current_dir(file_name: String) -> anyhow::Result<()> {
     file.write_all(pretty_json.as_bytes())
         .context("Failed to write to JSON file a line 27")?;
 
+    println!("成功导出配置文件到 {}", path.display());
+  
     Ok(())
 }
 
 fn get_all_installed_apps() -> anyhow::Result<Vec<InstalledApp>> {
     let apps_root_dir = get_apps_path();
     let mut installed_apps: Vec<InstalledApp> = Vec::new();
+
     for entry in read_dir(&apps_root_dir)
         .with_context(|| format!("Failed to read directory :{} at line 94", apps_root_dir))?
     {
@@ -133,6 +136,7 @@ fn get_all_installed_apps() -> anyhow::Result<Vec<InstalledApp>> {
 
 fn get_all_buckets_info() -> anyhow::Result<Vec<BucketInfo>> {
     let bucket_path = get_buckets_path()?;
+
     let mut bucket_info_list: Vec<BucketInfo> = Vec::new();
     for bucket_dir in bucket_path {
         let path = Path::new(&bucket_dir);
@@ -141,10 +145,6 @@ fn get_all_buckets_info() -> anyhow::Result<Vec<BucketInfo>> {
         let bucket_updated = get_repo_updated(path)?;
         let manfiests_count = get_manifests_count(path)?;
 
-        log::info!("bucket_name: {}", bucket_name);
-        log::info!("bucket_source: {}", bucket_source);
-        log::info!("bucket_updated: {}", bucket_updated);
-        log::info!("manifests_count: {}", manfiests_count);
         let bucket_info = BucketInfo::new(
             bucket_name.to_string(),
             bucket_source,
@@ -157,29 +157,20 @@ fn get_all_buckets_info() -> anyhow::Result<Vec<BucketInfo>> {
 }
 
 fn get_manifests_count(path: &Path) -> anyhow::Result<u32> {
-    let mut count = 0;
     let path = path.join("bucket");
     if path.is_dir() {
-        for entry in read_dir(path).context("Failed to read bucket directory at line 169")? {
-            let entry = entry.context("Failed to read entry at line 171")?;
-            let path = entry.path();
-            if path.is_dir() {
-                continue;
-            }
-            if path.is_file() {
-                let extension = path.extension();
-                if extension.is_none() {
-                    log::warn!("文件 {} 没有扩展名", path.display());
-                    continue;
-                }
-                let extension = extension.unwrap().to_str().unwrap();
-                if extension == "json" {
-                    count += 1;
-                }
-            }
-        }
+        // read_dir can't use into_iter
+        let files = path
+            .read_dir()
+            .context("Failed to read bucket directory at line 163")?
+            .par_bridge()
+            .collect::<Vec<_>>();
+
+        let count = files.iter().count();
+        Ok(count as u32)
+    } else {
+        bail!("Failed to read bucket directory at line 168")
     }
-    Ok(count)
 }
 
 fn get_repo_updated(path: &Path) -> anyhow::Result<String> {
@@ -204,7 +195,6 @@ fn get_repo_url(path: &Path) -> anyhow::Result<String> {
 pub fn export_config_to_path_width_config(file_name: String) -> anyhow::Result<()> {
     let path = Path::new(&file_name);
     let mut file = std::fs::File::create(path).expect("路径错误无法创建文件");
-    log::info!("导出配置文件到 {}", path.display());
     let bucket_config = get_all_buckets_info()?;
     let apps = get_all_installed_apps()?;
     let config = get_scoop_config_info()?;
@@ -219,6 +209,7 @@ pub fn export_config_to_path_width_config(file_name: String) -> anyhow::Result<(
         .context("Failed to  convert JSON data to pretty JSON at lin 219")?;
     file.write_all(pretty_json.as_bytes())
         .context("Failed to write to JSON file a line 221")?;
+    println!("成功导出配置文件到 {}", path.display());
 
     Ok(())
 }
@@ -236,7 +227,6 @@ pub fn export_config_to_current_dir_with_config(file_name: String) -> anyhow::Re
     let mut file = std::fs::File::create(path).expect("路径错误无法创建文件");
     let current_dir = std::env::current_dir()?;
     let path = current_dir.join(path);
-    log::info!("导出配置文件到 {}", path.display());
     let bucket_config = get_all_buckets_info()?;
     let apps = get_all_installed_apps()?;
     let config = get_scoop_config_info()?;
@@ -252,6 +242,8 @@ pub fn export_config_to_current_dir_with_config(file_name: String) -> anyhow::Re
     file.write_all(pretty_json.as_bytes())
         .context("Failed to write to JSON file a line 254")?;
 
+     println!("成功导出配置文件到 {}", path.display());
+  
     Ok(())
 }
 
