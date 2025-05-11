@@ -1,17 +1,20 @@
-﻿use crate::command_args::bucket_args::BucketSubcommands;
+﻿ 
+use crate::command_args::bucket_args::BucketSubcommands;
 use anyhow::anyhow;
 use command_util_lib::buckets::Buckets;
 use crossterm::style::Stylize;
+ 
 use crate::hyperscoop_middle::invoke_update::update_buckets_parallel;
 
 pub   fn execute_bucket_command(args: &Option<BucketSubcommands>) -> Result<(), anyhow::Error> {
     let buckets = Buckets::new()?;
-   
-    let bucket_args = args.as_ref().expect("bucket_args cannot be none");
+    
+  let bucket_args = args.as_ref().expect("bucket_args cannot be none");
     match bucket_args {
         BucketSubcommands::Add(add_args) => {
             match (add_args.name.is_some(), add_args.repo_url.is_some()) {
-                (true, true) => {
+                (true, true) => { 
+                  
                     if add_args.global {
                         buckets
                             .add_buckets(&add_args.name, &add_args.repo_url, true)?

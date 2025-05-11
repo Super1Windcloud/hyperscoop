@@ -8,7 +8,6 @@ use command_util_lib::init_env::{
 use command_util_lib::install::UpdateOptions::ForceUpdateOverride;
 use command_util_lib::install::{install_and_replace_hp, InstallOptions, UpdateOptions};
 use command_util_lib::update::*;
-use command_util_lib::utils::system::{is_admin, request_admin};
 use command_util_lib::utils::utility::update_scoop_config_last_update_time;
 use crossterm::style::Stylize;
 use line_ending::LineEnding;
@@ -18,11 +17,7 @@ use std::path::Path;
 use std::process::Command;
 
 pub async fn execute_update_command(update_args: UpdateArgs) -> Result<(), anyhow::Error> {
-    if update_args.global {
-        if !is_admin()? {
-            request_admin()
-        }
-    }
+    
     let options = inject_update_user_options(&update_args)?;
     if update_args.update_self_and_buckets {
         println!("{}", "开始更新hp和buckets".dark_cyan().bold());
@@ -295,3 +290,5 @@ endlocal
         .context("Failed to run updater")?;
     Ok(())
 }
+
+

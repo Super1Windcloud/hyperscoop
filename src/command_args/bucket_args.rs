@@ -25,7 +25,8 @@ pub enum BucketSubcommands {
     List(ListArgs),
     Known(KnownArgs),
     Rm(RmArgs),
-    Update(UpdateArgs),
+    Update(UpdateArgs), 
+ 
 }
 
 #[derive(Args, Debug, Clone)]

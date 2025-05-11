@@ -1,12 +1,16 @@
 use crate::init_env::get_persist_dir_path_global;
 use anyhow::{bail, Context};
+use std::ffi::OsStr;
 use std::fs;
+use std::iter::once;
+use std::os::windows::ffi::OsStrExt;
 use std::path::Path;
 use std::process::{Command, Stdio};
 use sysinfo::System;
 use windows::core::PCWSTR;
-use windows::Win32::Foundation::HWND;
-use windows::Win32::UI::Shell::{IsUserAnAdmin, ShellExecuteW};
+use windows::Win32::Foundation::HANDLE;
+use windows::Win32::UI::Shell::{IsUserAnAdmin, ShellExecuteExW, ShellExecuteW, SEE_MASK_NOCLOSEPROCESS, SHELLEXECUTEINFOW};
+use windows::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;
 use winreg::enums::*;
 use winreg::RegKey;
 
@@ -60,14 +64,13 @@ pub fn set_global_env_var(var_key: &str, var_value: &str) -> Result<(), anyhow::
     if var_key.is_empty() || var_value.is_empty() {
         bail!("Environment variable  can't be empty ");
     }
-    if !is_admin()? {
-        request_admin();
-    }
+
     let powershell_command = format!(
         "[System.Environment]::SetEnvironmentVariable(\"{}\", \"{}\", \"Machine\")",
         var_key, var_value
     );
     let output = Command::new("powershell")
+        .arg("-NoProfile")
         .arg("-Command")
         .arg(powershell_command)
         .stdin(Stdio::null()) // 防止出现输入提示
@@ -154,30 +157,73 @@ pub fn get_user_env_str() -> String {
 }
 
 #[cfg(windows)]
-pub fn request_admin() {
+pub fn request_admin(cli_args: &str) -> anyhow::Result<()> {
     let exe_path = std::env::current_exe().expect("无法获取程序路径");
-    let exe_path_wide: Vec<u16> = exe_path
-        .to_string_lossy()
-        .encode_utf16()
-        .chain([0])
-        .collect();
+
+    let exe_path_wide: Vec<u16> = exe_path.as_os_str().encode_wide().chain(once(0)).collect();
+
+    let args_wide: Vec<u16> = cli_args.encode_utf16().chain(once(0)).collect();
+
+    log::info!("admin process command : {}", exe_path.display());
+    // std::process::exit(0);
+
+    let operation = OsStr::new("runas")
+        .encode_wide()
+        .chain(once(0))
+        .collect::<Vec<u16>>();
 
     unsafe {
-        ShellExecuteW(
-            Some(HWND(std::ptr::null_mut())),
-            PCWSTR("runas\0".encode_utf16().collect::<Vec<_>>().as_ptr()),
+        let result = ShellExecuteW(
+            // Some(HWND(std::ptr::null_mut())),
+            None,
+            PCWSTR(operation.as_ptr()),
             PCWSTR(exe_path_wide.as_ptr()),
+            PCWSTR(args_wide.as_ptr()),
             PCWSTR(std::ptr::null()),
-            PCWSTR(std::ptr::null()),
-            windows::Win32::UI::WindowsAndMessaging::SHOW_WINDOW_CMD(1),
+            SW_SHOWNORMAL,
         );
-    }
+        if result.0 as u32 <= 32 {
+            bail!("提权失败，ShellExecuteW 返回值: {}", result.0 as u32);
+        } 
+      else {
+        Ok(())
+      }
+    } 
 }
 
 #[cfg(windows)]
 pub fn is_admin() -> anyhow::Result<bool> {
     unsafe { Ok(IsUserAnAdmin().as_bool()) }
 }
+
+
+pub fn request_admin_and_wait(args: &str) {
+  let exe_path = std::env::current_exe().expect("无法获取程序路径");
+
+  let exe_wide: Vec<u16> = exe_path.as_os_str().encode_wide().chain(once(0)).collect();
+  let args_wide: Vec<u16> = OsStr::new(args).encode_wide().chain(once(0)).collect();
+
+  let mut info = SHELLEXECUTEINFOW {
+    cbSize: size_of::<SHELLEXECUTEINFOW>() as u32,
+    lpVerb: PCWSTR(OsStr::new("runas").encode_wide().chain(once(0)).collect::<Vec<u16>>().as_ptr()),
+    lpFile: PCWSTR(exe_wide.as_ptr()), 
+    lpParameters: PCWSTR(args_wide.as_ptr()),
+    nShow: SW_SHOWNORMAL.0,
+    fMask: SEE_MASK_NOCLOSEPROCESS,
+    ..Default::default()
+  };
+
+  let success = unsafe { ShellExecuteExW(&mut info) };  
+  if  success.is_err()  {
+    panic!("提权失败 {}" ,success.unwrap_err());
+  }
+
+  let handle: HANDLE = info.hProcess;
+  unsafe {
+    windows::Win32::System::Threading::WaitForSingleObject(handle, u32::MAX);
+  }
+}
+
 
 pub fn compute_hash_by_powershell(file_path: &str, algorithm: &str) -> anyhow::Result<String> {
     let cmd = format!(

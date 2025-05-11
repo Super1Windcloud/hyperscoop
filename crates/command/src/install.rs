@@ -448,9 +448,20 @@ pub fn install_app(app_name: &str, options: &[InstallOptions<'_>]) -> Result<()>
     }
     let manifest_path = if options.contains(&InstallOptions::Global) {
         if options.contains(&InstallOptions::UpdateTransaction) {
-            get_latest_manifest_from_local_bucket_global(app_name)?
-        } else {
-            get_best_manifest_from_local_bucket_global(app_name)?
+            let result = get_latest_manifest_from_local_bucket_global(app_name);
+            if result.is_err() {
+                let result = get_latest_manifest_from_local_bucket(app_name)?;
+                result
+            } else {
+                result?
+            }
+        } else { 
+            let result = get_best_manifest_from_local_bucket_global(app_name); 
+          if result.is_err() {
+             get_best_manifest_from_local_bucket(app_name)?
+          }else{ 
+            result?
+          }
         }
     } else if options.contains(&InstallOptions::UpdateTransaction) {
         get_latest_manifest_from_local_bucket(app_name)?

@@ -87,6 +87,7 @@ pub fn env_var_rm(manifest: &UninstallManifest, is_global: bool) -> Result<(), a
             );
 
             let output = std::process::Command::new("powershell")
+              .arg("-NoProfile")
                 .arg("-Command")
                 .arg(&cfg_obj)
                 .arg(&manifest_obj)
@@ -95,7 +96,7 @@ pub fn env_var_rm(manifest: &UninstallManifest, is_global: bool) -> Result<(), a
                 .arg(cmd)
                 .arg(rm_env_var_pointer_path)
                 .output()?;
-          
+
             if !output.status.success() {
                 bail!("powershell failed to set environment variable");
             }
@@ -146,6 +147,7 @@ pub fn env_path_var_rm(
             format!(r#"[System.Environment]::SetEnvironmentVariable("PATH","{user_path}", "User")"#)
         };
         let output = std::process::Command::new("powershell")
+            .arg("-NoProfile")
             .arg("-ExecutionPolicy")
             .arg("Bypass")
             .arg("-Command")

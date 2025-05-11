@@ -6,6 +6,7 @@ use crate::utils::system::set_user_env_var;
 use anyhow::bail;
 use crossterm::style::Stylize;
 use std::path::Path;
+use std::process::Command;
 use windows_sys::Win32::System::Registry::HKEY_CURRENT_USER;
 use winreg::RegKey;
 
@@ -71,7 +72,8 @@ pub fn handle_env_set(
                 )
             };
 
-            let output = std::process::Command::new("powershell")
+            let output = Command::new("powershell")
+                .arg("-NoProfile")
                 .arg("-Command")
                 .arg(&app_dir)
                 .arg(&injects_var)
@@ -159,7 +161,8 @@ pub fn add_bin_to_path(
         format!(r#"[System.Environment]::SetEnvironmentVariable("PATH","{user_path}", "Machine")"#);
 
     if options.contains(&InstallOptions::Global) {
-        let output = std::process::Command::new("powershell")
+        let output = Command::new("powershell")
+            .arg("-NoProfile")
             .arg("-Command")
             .arg(script)
             .output()?;
@@ -175,21 +178,16 @@ pub fn add_bin_to_path(
 
 mod test_env_operate {
 
-    #[test]  // 默认要执行很多次, 千万不用用于提权类的测试  
+    #[test] // 默认要执行很多次
     fn test_env_set() {
-        use crate::utils::system::request_admin;
         use crate::install::{handle_env_set, InstallOptions};
         use crate::manifest::install_manifest::InstallManifest;
-        // "AAAHOME": "$dir\\AAAHOME",
-        // "AAAYAZI":  "$persist_dir//AAAYAZI",
-        // "AAASUPER" :"$dir/AAASUPER",
-        let global = true  ;
+        let global = true;
         let path = r"A:\Scoop\buckets\main\bucket\yazi.json";
 
         let content = std::fs::read_to_string(path).unwrap();
         let mut manifest: InstallManifest = serde_json::from_str(&content).unwrap();
-        let options = if global { 
-            request_admin();
+        let options = if global {
             vec![InstallOptions::Global]
         } else {
             vec![]

@@ -13,7 +13,6 @@ use crate::init_env::{
 };
 use crate::install::LifecycleScripts::{PostUninstall, PreUninstall, Uninstaller};
 use crate::install::{parse_lifecycle_scripts, InstallOptions};
-use crate::utils::system::{is_admin, request_admin};
 use shim_and_shortcuts::*;
 
 pub fn uninstall_app_with_purge(app_name: &str, global: bool) -> Result<(), anyhow::Error> {
@@ -44,9 +43,7 @@ pub fn uninstall_app_with_purge(app_name: &str, global: bool) -> Result<(), anyh
 }
 
 pub fn uninstall_app(app_name: &str, is_global: bool) -> Result<(), anyhow::Error> {
-    if is_global && !is_admin()? {
-        request_admin();
-    }
+   
     let app_path = if is_global {
         get_apps_path_global()
     } else {
@@ -87,6 +84,7 @@ pub fn uninstall_app(app_name: &str, is_global: bool) -> Result<(), anyhow::Erro
             uninstall_script.display()
         );
         let output = std::process::Command::new("powershell")
+            .arg("-NoProfile")
             .arg("-ExecutionPolicy")
             .arg("Bypass")
             .arg("-File")

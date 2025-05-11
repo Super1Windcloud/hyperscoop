@@ -154,7 +154,8 @@ pub fn invoke_hook_script(
         log::info!("{}", script);
         io::stdout().flush()?;
 
-        let output = Command::new("powershell")
+        let output = Command::new("powershell") 
+           .arg("-NoProfile")
             .arg("-Command")
             .arg(cfg_obj)
             .arg(manifest_obj)

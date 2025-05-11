@@ -18,7 +18,8 @@ mod check_self_update;
 mod crypto;
 use crate::command::{execute_credits_command, execute_hold_command, Commands};
 use crate::command_args::alias::execute_alias_command;
-use crate::logger_err::init_color_output;
+#[allow(unused_imports)]
+use crate::logger_err::{init_color_output, invoke_admin_process};
 use check_self_update::*;
 use crossterm::style::{Print, Stylize};
 
@@ -90,7 +91,11 @@ async fn main() -> anyhow::Result<()> {
     init_color_output(cli.no_color);
     init_logger(&cli);
     color_eyre::install().unwrap();
-
+    // if cli.command.is_some() && cli.global {
+    //     invoke_admin_process()?;
+    //     return Ok(());
+    // }
+  
     let result = match cli.command {
         None => {
             auto_check_hp_update(None).await?;
@@ -108,10 +113,10 @@ async fn main() -> anyhow::Result<()> {
             Commands::Export(file) => execute_export_command(file),
             Commands::Home(home) => execute_home_command(home),
             Commands::Import(args) => execute_import_command(args),
-            Commands::Info(info) => execute_info_command(info) , 
+            Commands::Info(info) => execute_info_command(info),
             Commands::Install(args) => execute_install_command(args).await,
             Commands::List(query_app) => execute_list_installed_apps(query_app),
-            Commands::Prefix(prefix) => execute_prefix_command(prefix), 
+            Commands::Prefix(prefix) => execute_prefix_command(prefix),
             Commands::Reset(args) => execute_reset_command(args),
             Commands::Search(search_app) => execute_search_command(search_app),
             Commands::Shim(args) => execute_shim_command(args),

@@ -201,7 +201,7 @@ pub fn unhold_locked_apps(app_name: &str, install_json_file: &str) -> anyhow::Re
     } else {
         bail!("Invalid JSON: Expected an object");
     }
-    std::fs::write(install_json_file, serde_json::to_string_pretty(&json_data)?) 
+    std::fs::write(install_json_file, serde_json::to_string_pretty(&json_data)?)
       .context(format!("Failed to write file: {}", install_json_file))?;
     Ok(())
 }

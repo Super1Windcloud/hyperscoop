@@ -1,3 +1,4 @@
+use std::env;
 use crate::check_self_update::auto_check_hp_update;
 use crate::command_args::install::InstallArgs;
 use crate::hyperscoop_middle::invoke_update::{update_buckets_parallel, update_hp};
@@ -9,12 +10,15 @@ use crossterm::style::Stylize;
 use std::path::Path;
 
 pub async fn execute_install_command(args: InstallArgs) -> Result<(), anyhow::Error> {
-    if args.global {
-        if !is_admin()? {
-            request_admin()
-        }
+    let app_name = args.app_name.clone().unwrap();
+    if  args.global && !is_admin()?{ 
+       let args =env::args().skip(1). collect::<Vec<String>>();
+       let  args_str= args.join(" ");
+       log::warn!("Global command arguments: {}", args_str.clone().dark_yellow());
+       request_admin( args_str.as_str())?;
+       return Ok(());
     }
-
+   
     let options = inject_user_options(&args)?;
     if options.contains(&InstallOptions::CheckCurrentVersionIsLatest) {
         auto_check_hp_update(None).await?;
@@ -28,13 +32,7 @@ pub async fn execute_install_command(args: InstallArgs) -> Result<(), anyhow::Er
     if args.app_name.is_none() {
         return Ok(());
     }
-    if args.global {
-        if !is_admin()? {
-            request_admin()
-        }
-    }
 
-    let app_name = args.app_name.clone().unwrap();
     let app_name = convert_path(app_name.trim()).to_lowercase();
     let app_path = Path::new(&app_name);
     if app_path.exists() {

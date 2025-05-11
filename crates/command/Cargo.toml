@@ -44,7 +44,7 @@ thiserror = "2.0.11"
 gix-object = "0.47.0"
 dashmap = "6.1.0"
 windows = { version = "0.61.1", features = ["Win32_UI", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging","Win32_Security",
-  "Win32_System_Registry" ] }
+  "Win32_System_Registry" , "Win32_System_Threading"] }
 textwrap = { version = "0.16.2" }
 bat = { workspace = true }
 flate2 = { workspace = true }

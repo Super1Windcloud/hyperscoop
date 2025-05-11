@@ -1,12 +1,15 @@
-﻿use env_logger;
+﻿use std::env;
+use env_logger;
 use env_logger::init;
 use crate::Cli;
-use  crossterm::style::force_color_output;
+use crossterm::style::{force_color_output, Stylize};
+use command_util_lib::utils::system::{is_admin, request_admin};
+
 pub fn init_logger(x: &Cli) {
     if cfg!(debug_assertions) || x.debug {
-        std::env::set_var("RUST_LOG", "debug");
+        env::set_var("RUST_LOG", "debug");
     } else {
-        std::env::set_var("RUST_LOG", "error");
+        env::set_var("RUST_LOG", "error");
     }
     init(); 
  
@@ -16,4 +19,17 @@ pub fn init_color_output(no_color : bool) {
    if  no_color {
       force_color_output(false); 
    }
+}
+
+#[allow(dead_code)]
+pub   fn invoke_admin_process() ->anyhow::Result<()> { 
+  if  !is_admin()? {
+    let  args =env::args().skip(1). collect::<Vec<String>>();
+    let  args_str= args.join(" ");
+    log::warn!("Global command arguments: {}", args_str.clone().dark_yellow());
+    request_admin( args_str.as_str())?;
+    return Ok(());
+  }
+  
+  Ok(())
 }
