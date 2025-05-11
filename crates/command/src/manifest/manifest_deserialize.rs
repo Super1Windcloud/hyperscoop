@@ -5,10 +5,10 @@ pub type ManifestObj = serde_json::Value;
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(untagged)] // 允许处理多种类型
 pub enum StringArrayOrString {
-    StringArray(Vec<String>), // 数组类型
+    StringArray(Vec<String>),
     #[default]
     Null,
-    String(String), // 字符串类型
+    String(String),
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
@@ -68,12 +68,13 @@ pub struct AutoUpdateStruct {
     pub extract_dir: Option<StringArrayOrString>,
     pub extract_to: Option<StringArrayOrString>,
     pub env_add_path: Option<StringArrayOrString>,
-    pub  env_set  : Option<ManifestObj>,
+    pub env_set: Option<ManifestObj>,
     pub note: Option<StringArrayOrString>,
-    pub  license : Option<StringArrayOrString>,
-
-    pub persist : Option<StringOrArrayOrDoubleDimensionArray>, 
-    pub hash: Option<ObjectArrayOrStringOrObjectOrStringArray>,
+    pub license: Option<StringOrArrayOrDotDimensionArrayOrObject>,
+    pub psmodule: Option<PSModuleStruct>,
+    pub persist: Option<StringOrArrayOrDoubleDimensionArray>,
+    pub architecture: Option<ArchitectureObject>,
+    pub hash: Option<AutoUpdateHashStruct>,
     pub installer: Option<InstallerUninstallerStruct>,
     pub uninstaller: Option<InstallerUninstallerStruct>,
     pub url: Option<ObjectArrayOrStringOrObjectOrStringArray>,
@@ -82,23 +83,47 @@ pub struct AutoUpdateStruct {
     pub post_install: Option<StringArrayOrString>,
 }
 
+// !hash mode jsonpath  regex
 #[must_use]
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
-pub struct  CheckverStruct {
-    pub bin: Option<StringOrArrayOrDoubleDimensionArray>,
-    pub extract_dir: Option<String>,
-    pub extract_to: Option<StringArrayOrString>,
-    pub note: Option<StringArrayOrString>,
-
-    pub hash: Option<ObjectArrayOrStringOrObjectOrStringArray>,
-    pub installer: Option<ManifestObj>,
-    pub uninstaller: Option<ManifestObj>,
-    pub url: Option<ObjectArrayOrStringOrObjectOrStringArray>,
-    pub shortcuts: Option<ArrayOrDoubleDimensionArray>,
-    pub pre_install: Option<StringArrayOrString>,
-    pub post_install: Option<StringArrayOrString>,
+pub struct CheckverStruct {
+    pub github: Option<String>,
+    pub url: Option<String>,
+    pub regex: Option<String>,
+    pub re: Option<String>,
+    pub jsonpath: Option<String>,
+    pub jp: Option<String>,
+    pub xpath: Option<String>,
+    pub reverse: Option<bool>,
+    pub replace: Option<String>,
+    pub useragent: Option<String>,
+    pub script: Option<StringArrayOrString>,
 }
 
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub struct AutoUpdateHashStruct {
+    pub url: Option<String>,
+    pub mode: Option<HashModeStruct>,
+    pub jsonpath: Option<String>,
+    pub jp: Option<String>,
+    pub xpath: Option<String>,
+    pub regex: Option<String>,
+    pub re: Option<String>,
+    pub find: Option<String>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub enum HashModeStruct {
+    #[default]
+    Null,
+    Json(String),
+    Xpath(String),
+    Rdf(String),
+    Metalink(String),
+    Fosshub(String),
+    Sourceforge(String),
+    Download(String),
+}
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(untagged)]
