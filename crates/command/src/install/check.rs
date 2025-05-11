@@ -3,13 +3,13 @@ use crate::install::{create_shim_or_shortcuts, InstallOptions};
 use crate::list::VersionJSON;
 use crate::update::{check_bucket_update_status, update_all_buckets_bar_parallel};
 use crate::utils::utility::update_scoop_config_last_update_time;
-use anyhow::bail;
+use anyhow::{bail, Context};
 use crossterm::style::Stylize;
 use std::os::windows::fs::symlink_dir;
 use std::path::Path;
 
 pub fn get_app_old_version(app_name: &str, options: &[InstallOptions]) -> anyhow::Result<String> {
-    let  app_install_manifest = if options.contains(&InstallOptions::Global) {
+    let app_install_manifest = if options.contains(&InstallOptions::Global) {
         get_app_dir_manifest_json_global(app_name)
     } else {
         get_app_dir_manifest_json(app_name)
@@ -17,8 +17,10 @@ pub fn get_app_old_version(app_name: &str, options: &[InstallOptions]) -> anyhow
     if !Path::new(&app_install_manifest).exists() {
         bail!("Not found {app_name} install manifest file")
     }
-    let content = std::fs::read_to_string(&app_install_manifest)?;
-    let version: VersionJSON = serde_json::from_str(content.as_str())?;
+    let content = std::fs::read_to_string(&app_install_manifest)
+      .context("Failed to read the app install manifest file at line 21")?;
+    let version: VersionJSON = serde_json::from_str(content.as_str())
+      .context("Failed to parse the app install manifest file at line 23")?;
     let version = version.version;
     if version.is_none() {
         bail!("Not found version in  install manifest file for app: {app_name}")
@@ -28,7 +30,7 @@ pub fn get_app_old_version(app_name: &str, options: &[InstallOptions]) -> anyhow
 
 pub fn check_before_install(
     name: &str,
-    version: &str ,
+    version: &str,
     options: &Box<[InstallOptions<'_>]>,
 ) -> anyhow::Result<u8> {
     if options.contains(&InstallOptions::UpdateHpAndBuckets) {
@@ -73,9 +75,7 @@ pub fn check_before_install(
             get_app_dir_manifest_json(name)
         };
 
-        if Path::new(&install_json).exists()
-            && Path::new(&manifest_json).exists()
-        {
+        if Path::new(&install_json).exists() && Path::new(&manifest_json).exists() {
             println!(
                 "{}",
                 format!("WARN  '{name }' ({old_version}) is already installed")
@@ -100,7 +100,7 @@ pub fn check_before_install(
                         .bold()
                 );
             }
-          
+
             if !Path::new(&manifest_json).exists() {
                 eprintln!(
                     "{}",
@@ -121,18 +121,24 @@ pub fn check_before_install(
                     .dark_yellow()
                     .bold(),
             );
-            check_child_directory(&app_dir)?;
+            let target = std::fs::read_link(&app_current_dir)
+                .context("Failed to read link target at line 125")?;
+
+            std::fs::remove_dir_all(target)
+                .context("Failed to remove target directory at line 126")?;
+          
+            std::fs::remove_dir(app_current_dir)
+              .context("Failed to remove app current directory at line 129")?;
+
             println!(
                 "{}",
                 format!("'{name}' was already uninstalled successfully")
                     .dark_green()
                     .bold(),
             );
-            std::fs::remove_dir_all(app_dir_path)?;
             Ok(0)
         }
-    }
-    else if app_version_path.exists() && std::fs::symlink_metadata(&app_current_dir).is_err() {
+    } else if app_version_path.exists() && std::fs::symlink_metadata(&app_current_dir).is_err() {
         let manifest_json = if options.contains(&InstallOptions::Global) {
             get_app_dir_version_dir_manifest_global(name, version)
         } else {
@@ -174,7 +180,9 @@ pub fn check_before_install(
         );
         println!(
             "{}",
-            format!("Resetting '{name}' ({version})").dark_cyan().bold()
+            format!("Resetting '{name}' ({old_version})")
+                .dark_cyan()
+                .bold()
         );
         create_dir_symbolic_link(&app_version_dir, &app_current_dir)?;
         create_shim_or_shortcuts(&manifest_json, name, options)
@@ -187,7 +195,7 @@ pub fn check_before_install(
         if Path::new(&install_json).exists() {
             println!(
                 "{}",
-                format!("WARN  '{name}' ({version}) is already installed")
+                format!("WARN  '{name}' ({old_version}) is already installed")
                     .to_string()
                     .dark_yellow()
                     .bold(),
@@ -228,8 +236,7 @@ pub fn check_before_install(
             );
             Ok(0)
         }
-    }
-    else if std::fs::symlink_metadata(&app_current_dir).is_ok() && !app_current_path.exists()
+    } else if std::fs::symlink_metadata(&app_current_dir).is_ok() && !app_current_path.exists()
     //exists默认会解析符号链接
     {
         println!(
@@ -251,7 +258,8 @@ pub fn check_before_install(
             "{}",
             format!("'{name}' was uninstalled ").dark_green().bold(),
         );
-        std::fs::remove_dir_all(app_dir_path)?;
+        std::fs::remove_dir_all(app_dir_path)
+          .context("Failed to remove app directory at line 260")?;
         Ok(0)
     } else if !app_version_path.exists() && std::fs::symlink_metadata(app_current_dir).is_err() {
         println!(
@@ -272,7 +280,8 @@ pub fn check_before_install(
             "{}",
             format!("'{name}' was uninstalled ").dark_green().bold(),
         );
-        std::fs::remove_dir_all(app_dir_path)?;
+        std::fs::remove_dir_all(app_dir_path)
+          .context("Failed to remove app directory at line 282")?;
         Ok(0)
     } else {
         println!(
@@ -281,12 +290,13 @@ pub fn check_before_install(
                 .dark_red()
                 .bold(),
         );
-        return Ok(0);
+        Ok(0)
     }
 }
 
 fn check_child_directory(app_dir: &String) -> anyhow::Result<()> {
-    let dirs = std::fs::read_dir(app_dir)?;
+    let dirs = std::fs::read_dir(app_dir)
+      .context("Failed to read app directory at line 297")?;
     for dir in dirs {
         let dir = dir?;
         let path = dir.path();
@@ -298,7 +308,8 @@ fn check_child_directory(app_dir: &String) -> anyhow::Result<()> {
 }
 
 pub fn create_dir_symbolic_link(version_dir: &String, current_dir: &String) -> anyhow::Result<()> {
-    symlink_dir(version_dir, current_dir).expect("Create dir symlink failed");
+    symlink_dir(version_dir, current_dir)
+      .context("Failed to create symbolic link directory at line 310")?;
     println!(
         "Creating  Link  {}",
         format!("{current_dir}  => {version_dir}")
