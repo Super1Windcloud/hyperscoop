@@ -65,9 +65,30 @@ impl ArchitectureObject {
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct AutoUpdateStruct {
     pub bin: Option<StringOrArrayOrDoubleDimensionArray>,
+    pub extract_dir: Option<StringArrayOrString>,
+    pub extract_to: Option<StringArrayOrString>,
+    pub env_add_path: Option<StringArrayOrString>,
+    pub  env_set  : Option<ManifestObj>,
+    pub note: Option<StringArrayOrString>,
+    pub  license : Option<StringArrayOrString>,
+
+    pub persist : Option<StringOrArrayOrDoubleDimensionArray>, 
+    pub hash: Option<ObjectArrayOrStringOrObjectOrStringArray>,
+    pub installer: Option<InstallerUninstallerStruct>,
+    pub uninstaller: Option<InstallerUninstallerStruct>,
+    pub url: Option<ObjectArrayOrStringOrObjectOrStringArray>,
+    pub shortcuts: Option<ArrayOrDoubleDimensionArray>,
+    pub pre_install: Option<StringArrayOrString>,
+    pub post_install: Option<StringArrayOrString>,
+}
+
+#[must_use]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub struct  CheckverStruct {
+    pub bin: Option<StringOrArrayOrDoubleDimensionArray>,
     pub extract_dir: Option<String>,
     pub extract_to: Option<StringArrayOrString>,
-    pub note: Option<StringArrayOrString>, //  !complete
+    pub note: Option<StringArrayOrString>,
 
     pub hash: Option<ObjectArrayOrStringOrObjectOrStringArray>,
     pub installer: Option<ManifestObj>,
@@ -77,6 +98,8 @@ pub struct AutoUpdateStruct {
     pub pre_install: Option<StringArrayOrString>,
     pub post_install: Option<StringArrayOrString>,
 }
+
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(untagged)]
 pub enum ObjectOrArray {

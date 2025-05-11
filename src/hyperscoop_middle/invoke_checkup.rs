@@ -3,6 +3,7 @@ use command_util_lib::init_env::{init_scoop_global, init_user_scoop};
 use crossterm::style::Stylize;
 use std::process::Command;
 use std::{env, path::Path};
+use anyhow::Context;
 use which::which;
 use windows::core::PCWSTR;
 use windows::Wdk::System::SystemServices::RtlGetVersion;
@@ -303,7 +304,8 @@ fn check_innounp() -> anyhow::Result<CheckupResult> {
 
 async fn check_github() -> anyhow::Result<CheckupResult> {
     let client = reqwest::Client::new();
-    let response = client.head("https://github.com").send().await?;
+    let response = client.head("https://github.com").send().await
+      .context("Failed to get response from GitHub at 308")?;
 
     if response.status().is_success() {
         Ok(CheckupResult {

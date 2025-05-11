@@ -1,20 +1,20 @@
 use crate::init_env::init_user_scoop;
+use crate::install::InstallOptions;
+use crate::install::InstallOptions::InteractiveInstall;
 use crate::merge::Merge;
 use crate::utils::system::get_system_current_time;
+use anyhow::{bail, Context};
+use chrono::Local;
 use crossterm::style::Stylize;
+use regex::Regex;
 use serde_json::Value;
 use std::cmp::Ordering;
 use std::fs;
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
-use anyhow::bail;
-use chrono::Local;
-use regex::Regex;
 use textwrap::LineEnding;
 use url::Url;
-use crate::install::InstallOptions;
-use crate::install::InstallOptions::InteractiveInstall;
 
 pub fn compare_versions(ver1: String, ver2: String) -> Ordering {
     // 分割版本号并转换为数字数组
@@ -42,16 +42,20 @@ pub fn add_key_value_to_json(
     new_key: &str,
     new_value: Value,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let data = fs::read_to_string(file_path)?;
+    let data = fs::read_to_string(file_path)
+        .context(format!("Failed to read file {} at line 46", file_path))?;
 
-    let mut json_data: Value = serde_json::from_str(&data)?;
+    let mut json_data: Value = serde_json::from_str(&data)
+      .context(format!("Failed to parse file {} at line 49", file_path))?;
 
     if let Value::Object(ref mut map) = json_data {
         map.insert(new_key.to_string(), new_value);
     } else {
         return Err("Invalid JSON: Expected an object".into());
     }
-    fs::write(file_path, serde_json::to_string_pretty(&json_data)?)?;
+    fs::write(file_path, serde_json::to_string_pretty(&json_data)
+      .context("Failed to transform JSON to pretty string at line 57")?)
+      .context(format!("Failed to write file {} at line 58", file_path))?;
     Ok(())
 }
 
@@ -181,13 +185,16 @@ pub fn remove_bom_and_control_chars_from_utf8_file<P: AsRef<Path>>(
             }
         }
     }
-    let content = serde_json::to_string_pretty(&filtered_data)?;
-    fs::write(&path, content)?;
-    let content = fs::read_to_string(&path)?;
+    let content = serde_json::to_string_pretty(&filtered_data)
+      .context("Failed to transform filtered data to JSON string at line 189")?;
+    fs::write(&path, content)
+      .context(format!("Failed to write file {} at line 191", path.as_ref().to_str().unwrap()))?;
+    let content = fs::read_to_string(&path)
+      .context(format!("Failed to read file {} at line 193", path.as_ref().to_str().unwrap()))?;
     Ok(content)
 }
 
-pub fn assume_yes_to_cover_shim(path: &str ) -> anyhow::Result<bool> {
+pub fn assume_yes_to_cover_shim(path: &str) -> anyhow::Result<bool> {
     use dialoguer::Confirm;
     let message = format!("文件{path}已存在,建议检查,是否进行覆盖?(y/n)")
         .dark_cyan()
@@ -211,8 +218,7 @@ pub fn assume_yes_to_cover_shim(path: &str ) -> anyhow::Result<bool> {
     }
 }
 
-
-pub fn assume_yes_to_cover_shortcuts (path: &str ) -> anyhow::Result<bool> {
+pub fn assume_yes_to_cover_shortcuts(path: &str) -> anyhow::Result<bool> {
     use dialoguer::Confirm;
     let message = format!("快捷方式'{path}'已存在,建议检查,是否进行覆盖?(y/n)")
         .dark_cyan()
@@ -236,9 +242,8 @@ pub fn assume_yes_to_cover_shortcuts (path: &str ) -> anyhow::Result<bool> {
     }
 }
 
-
 #[must_use]
-pub fn assume_yes_to_cover_folder (path: &str ) -> anyhow::Result<bool> {
+pub fn assume_yes_to_cover_folder(path: &str) -> anyhow::Result<bool> {
     use dialoguer::Confirm;
     let message = format!("该目录'{path}'已存在,建议检查,是否进行删除?(y/n)")
         .dark_cyan()
@@ -264,7 +269,7 @@ pub fn assume_yes_to_cover_folder (path: &str ) -> anyhow::Result<bool> {
 
 pub fn write_utf8_file(path: &str, content: &str, option: &[InstallOptions]) -> anyhow::Result<()> {
     // 文件存在, 进行覆盖警告
-    if Path::new(&path).exists()  && option.contains(&InteractiveInstall){
+    if Path::new(&path).exists() && option.contains(&InteractiveInstall) {
         let result = assume_yes_to_cover_shim(path)?;
         if !result {
             return Ok(());
@@ -272,61 +277,61 @@ pub fn write_utf8_file(path: &str, content: &str, option: &[InstallOptions]) -> 
             log::warn!("{}", "覆盖写入".dark_yellow().bold());
         }
     }
-    let mut file = File::create(path)?;
+    let mut file = File::create(path)
+      .context(format!("Failed to create utf8 file {} at line 281", path))?;
     /*
      File::create(path) 的默认行为
     如果文件存在： 会 直接清空文件内容（相当于 truncate 模式），然后写入新数据。
     不会报错，但原内容会丢失！
     如果文件不存在： 创建新文件并写入内容。*/
-    let  crlf_content = content.replace(LineEnding::LF.as_str(), LineEnding::CRLF.as_str());
-    file.write_all(crlf_content.as_bytes())?; // 一次性全部写入
+    let crlf_content = content.replace(LineEnding::LF.as_str(), LineEnding::CRLF.as_str());
+    file.write_all(crlf_content.as_bytes())
+      .context(format!("Failed to write utf8 file {} at line 289", path))?; // 一次性全部写入
     Ok(())
 }
 
 pub fn is_valid_url(url_str: &str) -> bool {
-  if let Ok(url) = Url::parse(url_str) {
-    matches!(url.scheme(), "http" | "https")
-  } else {
-    false
-  }
+    if let Ok(url) = Url::parse(url_str) {
+        matches!(url.scheme(), "http" | "https")
+    } else {
+        false
+    }
 }
 
 pub fn validate_version(version: &str) -> anyhow::Result<()> {
-  // 定义允许的字符：字母、数字、点(.)、横线(-)、加号(+)、下划线(_)
-  let re = Regex::new(r"[^\w.\-+]")?; // \w 包含下划线，所以不需要单独加 _
+    // 定义允许的字符：字母、数字、点(.)、横线(-)、加号(+)、下划线(_)
+    let re = Regex::new(r"[^\w.\-+]")?; // \w 包含下划线，所以不需要单独加 _
 
-  if let Some(captures) = re.captures(version) {
-    let invalid_char = captures.get(0).unwrap().as_str();
-     bail!(format!(
-      "Manifest version has unsupported character '{}'.",
-      invalid_char
-    ));
-  }
+    if let Some(captures) = re.captures(version) {
+        let invalid_char = captures.get(0).unwrap().as_str();
+        bail!(format!(
+            "Manifest version has unsupported character '{}'.",
+            invalid_char
+        ));
+    }
 
-  Ok( ())
+    Ok(())
 }
 
-pub fn nightly_version( ) ->  anyhow::Result<String> {
-  eprintln!("⚠️ This is a nightly version. Downloaded files won't be verified.");
-  let date = Local::now().format("%Y%m%d").to_string();
-  Ok(format!("nightly-{}", date))
+pub fn nightly_version() -> anyhow::Result<String> {
+    eprintln!("⚠️ This is a nightly version. Downloaded files won't be verified.");
+    let date = Local::now().format("%Y%m%d").to_string();
+    Ok(format!("nightly-{}", date))
 }
 
-
-
-pub fn  get_parse_url_query (url : &str) -> anyhow::Result<String> {
-  let url = Url::parse(url)?;
-  if let Some(query) = url.query() {
-      let  last_equal_item = query .rsplit('=').next().unwrap(); 
-      Ok(last_equal_item.to_string())
-  }
-  else {
-    bail!("url query is empty");
-  }
+pub fn get_parse_url_query(url: &str) -> anyhow::Result<String> {
+    let url = Url::parse(url)
+      .context(format!("Failed to parse '{}' as a URL", url))?;
+    if let Some(query) = url.query() {
+        let last_equal_item = query.rsplit('=').next().unwrap();
+        Ok(last_equal_item.to_string())
+    } else {
+        bail!("url query is empty");
+    }
 }
 
-pub  fn clap_args_to_lowercase(s: &str) -> Result<String, String> {
-  Ok(s.to_lowercase())
+pub fn clap_args_to_lowercase(s: &str) -> Result<String, String> {
+    Ok(s.to_lowercase())
 }
 #[cfg(test)]
 mod tests {

@@ -70,17 +70,24 @@ impl<'a> DownloadManager<'a> {
         });
         let write_manifest_path = format!("{}\\manifest.json", current_dir);
         if Path::new(&install_json_path).exists() {
-            std::fs::remove_file(&install_json_path)?;
+            std::fs::remove_file(&install_json_path).context(format!(
+                "Failed to remove old {} at line 74",
+                &install_json_path
+            ))?;
         }
 
-        let file =
-            std::fs::File::create(&install_json_path).expect("Failed to create install.json");
+        let file = std::fs::File::create(&install_json_path)
+            .context("Failed to create app install.json at line 80")?;
 
-        serde_json::to_writer_pretty(&file, &install_json).expect("Failed to write install.json");
+        serde_json::to_writer_pretty(&file, &install_json)
+            .context("Failed to write pretty json to install.json")?;
+
         if Path::new(&write_manifest_path).exists() {
-            std::fs::remove_file(&write_manifest_path)?;
+            std::fs::remove_file(&write_manifest_path)
+                .context("Failed to remove app old manifest.json at line 87".to_string())?;
         }
-        std::fs::copy(self.manifest_path, write_manifest_path).expect("copy manifest failed");
+        std::fs::copy(self.manifest_path, write_manifest_path)
+            .context("copy bucket manifest to app current dir failed at line 90")?;
         Ok(())
     }
     pub fn get_archive_files_format(&self) -> &[ArchiveFormat] {
@@ -308,9 +315,10 @@ impl<'a> DownloadManager<'a> {
 
     pub fn create_input_file(&self) -> anyhow::Result<()> {
         let final_caches = self.final_cache_file_path.as_ref();
-        log::debug!("final caches file : {:?}", final_caches); 
-      
-        let mut file = std::fs::File::create(self.get_input_file())?;
+        log::debug!("final caches file : {:?}", final_caches);
+
+        let mut file = std::fs::File::create(self.get_input_file())
+            .context("Failed to create input file at line 321")?;
         log::debug!("create input file {}", self.get_input_file());
         let urls = self.get_download_urls();
         let result =
@@ -318,7 +326,8 @@ impl<'a> DownloadManager<'a> {
                 .zip(self.get_cache_file_name())
                 .try_for_each(|(url, cache_name)| {
                     let content = format!("{}\n\tout={}", url, cache_name);
-                    writeln!(file, "{}", content)?;
+                    writeln!(file, "{}", content)
+                        .context("Failed to write input file at line 330")?;
                     Ok(())
                 }) as anyhow::Result<_>;
         if result.is_err() {
@@ -364,7 +373,8 @@ impl<'a> DownloadManager<'a> {
         let path = Path::new(self.app_version_dir.as_str());
 
         if !path.exists() {
-            std::fs::create_dir_all(path)?;
+            std::fs::create_dir_all(path)
+                .context("Failed to create app version directory at line 377")?;
         }
         let absolute_path = if path.is_relative() {
             std::env::current_dir()?.join(path)
@@ -451,8 +461,14 @@ impl<'a> DownloadManager<'a> {
             self.create_input_file()?;
             return Ok(());
         }
-        let content = std::fs::read_to_string(manifest_path)?;
-        let serde_obj = serde_json::from_str::<InstallManifest>(&content)?;
+        let content = std::fs::read_to_string(manifest_path).context(format!(
+            "Failed to read manifest file {} at line 465",
+            manifest_path
+        ))?;
+        let serde_obj = serde_json::from_str::<InstallManifest>(&content).context(format!(
+            "Failed to parse manifest file {} at line 467",
+            manifest_path
+        ))?;
         let version = serde_obj.version.expect("version 不能为空");
         let innosetup = serde_obj.innosetup;
         let exe_setup = innosetup.unwrap_or(false);
@@ -718,9 +734,9 @@ impl<'a> DownloadManager<'a> {
             );
         }
         let final_caches = self.final_cache_file_path.as_ref();
-        let result = final_caches.iter().all(|path| Path::new(path).exists()); 
+        let result = final_caches.iter().all(|path| Path::new(path).exists());
         if result {
-           log::info!("cache file already exist, skip download");
+            log::info!("cache file already exist, skip download");
             self.origin_cache_file_names.iter().for_each(|name| {
                 println!(
                     "{} {} {}",
@@ -732,7 +748,7 @@ impl<'a> DownloadManager<'a> {
             if Path::new(input_file).exists() && !is_valid_url(self.manifest_path) {
                 log::debug!("start remove aria2 input file {}", input_file);
                 std::fs::remove_file(input_file)
-                  .context("failed to remove aria2 input file at line 735")?;
+                    .context("failed to remove aria2 input file at line 735")?;
             }
             return Ok(());
         }
@@ -743,17 +759,18 @@ impl<'a> DownloadManager<'a> {
                 println!("{}", output);
                 if Path::new(&input_file).exists() {
                     log::debug!("start remove aria2 input file");
-                    std::fs::remove_file(input_file)?;
+                    std::fs::remove_file(input_file)
+                        .context("failed to remove aria2 input file at line 759")?;
                 }
                 Ok(())
             }
             Err(e) => {
                 if Path::new(&input_file).exists() {
                     log::debug!("start remove aria2 input file");
-                    std::fs::remove_file(input_file)?;
+                    std::fs::remove_file(input_file)
+                        .context("failed to remove aria2 input file at line 767")?;
                 }
-                eprintln!("Error : {}", e.to_string().dark_red().bold());
-                std::fs::remove_file(input_file)?;
+                eprintln!("Aria2 Error : {}", e.to_string().dark_red().bold());
                 Ok(())
             }
         }
@@ -770,7 +787,8 @@ impl<'a> DownloadManager<'a> {
             .zip(hash_values)
             .zip(origin_names)
             .try_for_each(|(((file, format), hash_value), origin_name)| {
-                let open_file = std::fs::File::open(file)?;
+                let open_file =
+                    std::fs::File::open(file).context("failed to open cache file at line 787")?;
                 let mut reader = BufReader::new(open_file);
                 let mut buffer = [0; 1024 * 64]; // 一次性读取64KB到缓冲区性能最好
 
@@ -926,26 +944,28 @@ impl<'a> DownloadManager<'a> {
             if splits.len() == 0 {
                 bail!("别名为空，请检查")
             } else if splits.len() == 1 {
-                 let    temp = format!("{}.{}", splits[0], suffix);
-                 log::debug!("temp: {}", temp);
-                 temp
+                let temp = format!("{}.{}", splits[0], suffix);
+                log::debug!("temp: {}", temp);
+                temp
             } else if splits.len() == 2 {
-                 let  temp = app_alias.unwrap().to_string();
-                  log::debug!("temp: {}", temp);
-                  temp
+                let temp = app_alias.unwrap().to_string();
+                log::debug!("temp: {}", temp);
+                temp
             } else {
                 bail!("app_alias 格式错误，请使用 app_name.exe 或者 app_name 格式")
             }
         } else {
-            self.get_download_app_name().to_string()+"."+suffix
+            self.get_download_app_name().to_string() + "." + suffix
         };
         let target = format!("{}\\{}", self.get_app_version_dir(), app_name); // with_extension
         if !Path::new(&target).exists() {
-            std::fs::create_dir_all(self.get_app_version_dir())?;
+            std::fs::create_dir_all(self.get_app_version_dir())
+                .context("failed to create app remote_url dir at line 963")?;
         } else {
             let result = assume_yes_to_cover_folder(&target)?;
             if result {
-                std::fs::remove_file(&target)?;
+                std::fs::remove_file(&target)
+                    .context("failed to remove old app file at line 968")?;
             } else {
                 bail!("取消删除")
             }
@@ -954,42 +974,52 @@ impl<'a> DownloadManager<'a> {
         if cache_files.len() != 1 {
             bail!("缓存文件数量不正确")
         }
-        let cache_path  =  cache_files.first().unwrap();
+        let cache_path = cache_files.first().unwrap();
         if !Path::new(&cache_path).exists() {
             bail!("缓存文件不存在 {}", cache_path)
         }
-       let cache_file= Path::new(&cache_path).file_name().unwrap().to_str().unwrap();
+        let cache_file = Path::new(&cache_path)
+            .file_name()
+            .unwrap()
+            .to_str()
+            .unwrap();
         print!(
-        "{}  {}......",
-        "Extracting archive".dark_blue().bold(),
-        cache_file.dark_cyan().bold()
-       );
-        std::fs::copy(cache_path.as_str(), target)?;
+            "{}  {}......",
+            "Extracting archive".dark_blue().bold(),
+            cache_file.dark_cyan().bold()
+        );
+        std::fs::copy(cache_path.as_str(), target)
+            .context("failed to copy cache file to app target at line 992")?;
+
         println!("✅");
         Ok(app_name)
     }
 
-    pub fn link_current_from_remote_url(&self)  ->  anyhow::Result<()> {
-      let version_dir = self.get_app_version_dir();
-       if  ! Path::new(&version_dir).exists() {
+    pub fn link_current_from_remote_url(&self) -> anyhow::Result<()> {
+        let version_dir = self.get_app_version_dir();
+        if !Path::new(&version_dir).exists() {
             bail!("版本目录不存在 {}", version_dir)
-       }
-      let current_dir = self.get_app_current_dir();
-      if  Path::new(&current_dir).is_file() {
-         std::fs::remove_file(&current_dir)?;
-      }
-      let result = std::os::windows::fs::symlink_dir(version_dir, current_dir);
-      if result.is_err() {
-         std::fs::remove_dir_all(current_dir)?;
-         std::os::windows::fs::symlink_dir(version_dir, current_dir)?;
-      }
-      println!(
-        "{}  {} => {}",
-        "Linking".dark_blue().bold(),
-        current_dir.dark_green().bold(),
-        version_dir.dark_green().bold()
-      );
-      Ok(())
+        }
+        let current_dir = self.get_app_current_dir();
+        if Path::new(&current_dir).is_file() {
+            std::fs::remove_file(&current_dir)
+                .context("failed to remove app current link file at line 1006")?;
+        }
+
+        let result = std::os::windows::fs::symlink_dir(version_dir, current_dir);
+        if result.is_err() {
+            std::fs::remove_dir_all(current_dir)
+              .context("failed to remove app current link dir at line 1011")?;
+            std::os::windows::fs::symlink_dir(version_dir, current_dir)
+              .context("failed to create app current symlink dir at line 1014")?;
+        }
+        println!(
+            "{}  {} => {}",
+            "Linking".dark_blue().bold(),
+            current_dir.dark_green().bold(),
+            version_dir.dark_green().bold()
+        );
+        Ok(())
     }
 }
 

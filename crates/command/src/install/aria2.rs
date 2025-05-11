@@ -1,6 +1,6 @@
 use crate::config::get_config_value_no_print;
 use crate::utils::utility::is_valid_url;
-use anyhow::bail;
+use anyhow::{bail, Context};
 use crossterm::style::Stylize;
 use std::borrow::Cow;
 use std::fs::File;
@@ -154,17 +154,17 @@ impl<'a> Aria2C<'a> {
             } else {
                 proxy
             };
-      let proxy = if proxy.is_empty() {
-        env::var_os("HTTPS_PROXY")
-          .ok_or(env::var_os("HTTP_PROXY"))
-          .unwrap_or_default()
-          .to_str()
-          .unwrap()
-          .to_string()
-      } else {
-        proxy
-      };
-      
+        let proxy = if proxy.is_empty() {
+            env::var_os("HTTPS_PROXY")
+                .ok_or(env::var_os("HTTP_PROXY"))
+                .unwrap_or_default()
+                .to_str()
+                .unwrap()
+                .to_string()
+        } else {
+            proxy
+        };
+
         if !is_valid_url(&proxy) && !proxy.is_empty() {
             bail!("Proxy is not valid, url format error");
         };
@@ -231,9 +231,9 @@ impl<'a> Aria2C<'a> {
             .arg(format!("--all-proxy={proxy}"))
             .arg(format!("--input-file={input_file}"))
             .args(self.get_aria2c_download_config())
-            .stdout(Stdio::piped()) // 将标准输出到管道
+            .stdout(Stdio::piped())
             .stderr(Stdio::piped())
-            .spawn()?; // 阻塞进程
+            .spawn()?;
 
         if let Some(mut stdout) = child.stdout.take() {
             let mut buffer = [0u8; 1024];
@@ -273,10 +273,14 @@ impl<'a> Aria2C<'a> {
         const COMPRESSED_ARIA2: &[u8] = include_bytes!("../../../../resources/aria2c_data.gz");
         let mut decoder = flate2::read::GzDecoder::new(COMPRESSED_ARIA2);
         let mut decompressed_data = Vec::new();
-        decoder.read_to_end(&mut decompressed_data)?;
+        decoder
+            .read_to_end(&mut decompressed_data)
+            .context("Failed to decompress aria2c data")?;
 
-        let mut file = File::create(aria2_exe)?;
-        file.write_all(&decompressed_data)?;
+        let mut file = File::create(aria2_exe)
+            .context("Failed to create aria2c_data file in temp dir at line 280")?;
+        file.write_all(&decompressed_data)
+            .context("Failed to write aria2c data to temp file at line 282")?;
         file.flush()?;
         file.sync_all()?;
         drop(file); // 需关闭句柄才能调用

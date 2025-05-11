@@ -127,7 +127,8 @@ async fn get_latest_version_from_github() -> anyhow::Result<String> {
        if  !is_valid_url(&proxy_url){ 
            bail!("invalid proxy url: {}", proxy_url); 
        };
-        let proxy = reqwest::Proxy::https(proxy_url)?;
+        let proxy = reqwest::Proxy::https(proxy_url)
+          .context("failed to create proxy")?;
         Client::builder().proxy(proxy).build()?
     } else {
         Client::builder().build()?

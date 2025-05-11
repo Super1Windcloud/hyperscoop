@@ -6,7 +6,6 @@ use crossterm::style::Stylize;
 use std::io::{self, Write};
 use std::process::Command;
 
-// 钩子类型枚举
 #[derive(Debug, Clone)]
 pub enum HookType {
     Uninstaller,
@@ -15,7 +14,6 @@ pub enum HookType {
     PsModule,
 }
 
-// 处理器架构枚举
 #[derive(Debug, Clone)]
 pub enum ProcessorArchitecture {
     Bit32,
@@ -40,7 +38,7 @@ fn arch_specific(hook_type: HookType, manifest: &UninstallManifest) -> Option<St
             let result = match script {
                 StringArrayOrString::String(s) => Some(s.clone()),
                 StringArrayOrString::StringArray(arr) => {
-                     let result  =arr.join("\n");
+                    let result = arr.join("\n");
                     Some(result)
                 }
                 _ => None,

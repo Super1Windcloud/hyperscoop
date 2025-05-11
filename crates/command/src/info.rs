@@ -8,7 +8,6 @@ use rayon::prelude::*;
 use regex::Regex;
 use serde_json::Value;
 use std::fs;
-use std::io;
 use std::path::Path;
 
 /// 宏定义：简化键值对格式化输出
@@ -642,9 +641,11 @@ fn format_and_print(
     Ok(())
 }
 
-fn get_file_modified_time(file_path: &str) -> io::Result<String> {
-    let metadata = fs::metadata(file_path)?;
-    let time = metadata.modified()?;
+fn get_file_modified_time(file_path: &str) -> anyhow::Result<String> {
+    let metadata = fs::metadata(file_path)
+      .context(format!("Failed to get metadata of file {} at line 647", file_path))?;
+    let time = metadata.modified()
+      .context(format!("Failed to get modified time of file {} at line 649", file_path))?;
     let datetime: DateTime<Local> = time.into();
     Ok(datetime.format("%Y-%m-%d %H:%M:%S").to_string())
 }

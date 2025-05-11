@@ -7,16 +7,16 @@ pub fn execute_export_command(file: ExportArgs) -> Result<(), anyhow::Error> {
         if file_name.contains('\\') || file_name.contains('/') {
             if file.config {
                 log::info!("Exporting Scoop config");
-                export_config_to_path_width_config(file_name.clone());
+                export_config_to_path_width_config(file_name.clone())?;
             } else {
-                export_config_to_path(file_name.clone());
+                export_config_to_path(file_name.clone())?;
             }
         } else {
             if file.config {
                 log::info!("Exporting Scoop config");
-                export_config_to_current_dir_with_config(file_name.clone());
+                export_config_to_current_dir_with_config(file_name.clone())?;
             } else {
-                export_config_to_current_dir(file_name.clone());
+                export_config_to_current_dir(file_name.clone())?;
             };
         }
     }

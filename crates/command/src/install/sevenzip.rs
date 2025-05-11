@@ -108,16 +108,15 @@ impl<'a> SevenZipStruct<'a> {
         let target = self.get_target_app_version_dir();
         let current = self.get_target_app_current_dir();
         if Path::new(&current).exists() {
-            std::fs::remove_dir(&current)
-              .context("remove current dir failed at line 112")?;
+            std::fs::remove_dir(&current).context("remove current dir failed at line 112")?;
         }
         if is_broken_symlink(&current)? {
-            std::fs::remove_dir(&current)    // can't use remove_file here
-              .context("remove current dir failed at line 116")?; 
+            std::fs::remove_dir(&current) // can't use remove_file here
+                .context("remove current dir failed at line 116")?;
         }
         fs::symlink_dir(target, &current)
-          .context("create current dir symlink failed at line 120")?; 
-      
+            .context("create current dir symlink failed at line 120")?;
+
         println!(
             "{} {} => {}",
             "Linking".dark_blue().bold(),
@@ -199,7 +198,8 @@ impl<'a> SevenZipStruct<'a> {
             if !Path::new(&shim_file).exists() {
                 bail!("{shim_file} is not exists")
             }
-            let content = std::fs::read_to_string(shim_file)?;
+            let content = std::fs::read_to_string(shim_file)
+                .context("failed to read shim file at line 203")?;
             let first_line = content.lines().next().unwrap();
             let content = first_line.replace("path = ", "").replace("\"", "");
             Ok(content.trim().to_string())
@@ -248,11 +248,12 @@ impl<'a> SevenZipStruct<'a> {
             } else {
                 get_shims_root_dir()
             };
-            let exe_current =  self.output_current_exe(seven_zip_dir.clone(), shim_root_dir.as_str())?;
-            let parent= Path::new(&exe_current).parent().unwrap();  
-          
+            let exe_current =
+                self.output_current_exe(seven_zip_dir.clone(), shim_root_dir.as_str())?;
+            let parent = Path::new(&exe_current).parent().unwrap();
+
             let dll_path = format!("{}\\7z.dll", parent.to_str().unwrap());
-          
+
             if !Path::new(&dll_path).exists() {
                 bail!("7z.dll not found in 7zip dir , please install 7zip and try again.")
             }
@@ -264,12 +265,18 @@ impl<'a> SevenZipStruct<'a> {
             log::debug!("7z.exe {} ,7z.dll {}", &exe_path, &dll_path);
             return Ok(exe_path);
         }
-        let mut exe_file = File::create(&exe_path)?;
-        let mut dll_file = File::create(dll_path)?;
-        exe_file.write_all(_7ZIP_EXE)?;
+        let mut exe_file =
+            File::create(&exe_path).context(format!("failed to create 7z.exe {}", &exe_path))?;
+        let mut dll_file =
+            File::create(&dll_path).context(format!("failed to create 7z.dll {}", &dll_path))?;
+        exe_file
+            .write_all(_7ZIP_EXE)
+            .context(format!("failed to write 7z.exe to {}", &exe_path))?;
         exe_file.flush()?;
         exe_file.sync_all()?;
-        dll_file.write_all(_7ZIP_DLL)?;
+        dll_file
+            .write_all(_7ZIP_DLL)
+            .context(format!("failed to write 7z.dll to {}", &dll_path))?;
         dll_file.flush()?;
         dll_file.sync_all()?;
         drop(exe_file);
@@ -294,7 +301,8 @@ impl<'a> SevenZipStruct<'a> {
 
         let target_dir = self.get_target_app_version_dir();
         if !Path::new(target_dir).exists() {
-            std::fs::create_dir_all(target_dir)?;
+            std::fs::create_dir_all(target_dir)
+                .context("Failed to create target version directory at line 303")?;
         }
         let extract_to_dir = extract_to
             .iter()
@@ -389,14 +397,21 @@ impl<'a> SevenZipStruct<'a> {
                         } else {
                             let child_dir = format!("{}\\{}", extract_to, extract_dir);
                             // log::debug!("child dir: {}", child_dir);
-                            for entry in std::fs::read_dir(&child_dir)? {
+                            for entry in std::fs::read_dir(&child_dir)
+                                .context(format!("Failed to read child directory {}", &child_dir))?
+                            {
                                 let entry = entry?;
                                 let from = entry.path();
                                 let file_name = entry.file_name();
                                 let to = Path::new(&extract_to).join(file_name);
-                                std::fs::rename(from, to)?;
+                                std::fs::rename(&from, &to).context(format!(
+                                    "Failed to move file {} to {}",
+                                    from.display(),
+                                    to.display()
+                                ))?;
                             }
-                            std::fs::remove_dir_all(&child_dir)?;
+                            std::fs::remove_dir_all(&child_dir)
+                                .context(format!("Failed to remove old child {}", &child_dir))?;
                             println!("✅");
                             Ok(())
                         }
@@ -417,10 +432,16 @@ impl<'a> SevenZipStruct<'a> {
         let decompress_path = temp.join("decompress.ps1");
         let temp_str = temp.to_str().unwrap();
         if !core_path.exists() {
-            std::fs::write(&core_path, core_script)?;
+            std::fs::write(&core_path, core_script).context(format!(
+                "Failed to write core script: {}",
+                core_path.display()
+            ))?;
         }
         if !decompress_path.exists() {
-            std::fs::write(&decompress_path, decompress_script)?;
+            std::fs::write(&decompress_path, decompress_script).context(format!(
+                "Failed to write decompress script: {}",
+                decompress_path.display()
+            ))?;
         }
         let include_header = format!(
             r#". "{temp_str}core.ps1";
@@ -452,10 +473,16 @@ Expand-MsiArchive  "{msi_file}" "{target_dir}"  -Removal
         let decompress_path = temp.join("decompress.ps1");
         let temp_str = temp.to_str().unwrap();
         if !core_path.exists() {
-            std::fs::write(&core_path, core_script)?;
+            std::fs::write(&core_path, core_script).context(format!(
+                "Failed to write core script: {} at line 477",
+                core_path.display()
+            ))?;
         }
         if !decompress_path.exists() {
-            std::fs::write(&decompress_path, decompress_script)?;
+            std::fs::write(&decompress_path, decompress_script).context(format!(
+                "Failed to write decompress script: {} at line 481",
+                decompress_path.display()
+            ))?;
         }
         let include_header = format!(
             r#". "{temp_str}core.ps1";
@@ -500,7 +527,8 @@ Expand-InnoArchive "{inno_file}" "{target_dir}"  -Removal
 
         let target_dir = self.get_target_app_version_dir();
         if !Path::new(target_dir).exists() {
-            std::fs::create_dir_all(target_dir)?;
+            std::fs::create_dir_all(target_dir)
+                .context("Failed to create target version directory at line 527")?;
         }
         let result = archive_items
             .iter()
@@ -602,16 +630,24 @@ Expand-InnoArchive "{inno_file}" "{target_dir}"  -Removal
     }
 
     pub fn move_child_dir_to_root(&self, child_dir: &str, target_dir: &str) -> anyhow::Result<()> {
-        for entry in std::fs::read_dir(&child_dir)? {
+        for entry in std::fs::read_dir(&child_dir)
+            .context("Failed to read moved child directory at line 630")?
+        {
             let entry = entry?;
             let from = entry.path();
             let file_name = entry.file_name();
             let to = Path::new(&target_dir).join(file_name);
-            std::fs::rename(from, to)?;
+            std::fs::rename(from.as_path(), to.as_path()).context(format!(
+                "Failed to move file {} to {} at line 636",
+                from.display(),
+                to.display()
+            ))?;
         }
-        std::fs::remove_dir_all(&child_dir)?; // 清理原来的空目录
+        std::fs::remove_dir_all(&child_dir)
+            .context("Failed to remove old child directory at line 640")?; // 清理原来的空目录
         Ok(())
     }
+
     pub fn extract_archive_to_target_dir(
         &self,
         target_dir: Option<Vec<String>>,

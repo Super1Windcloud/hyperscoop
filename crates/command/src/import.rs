@@ -16,7 +16,7 @@ pub fn add_buckets(buckets: Vec<(&str, &str)>, path: String) -> Result<(), anyho
     for bucket in buckets {
         if bucket.0.is_empty() || bucket.1.is_empty() {
             bail!(
-                "Config_File Error: bucket name or url is empty on {}",
+                "Config_File Error: bucket name or bucket source is empty on {}",
                 path.red().bold()
             )
         }
@@ -49,10 +49,10 @@ fn invoke_hp_bucket_add(name: &str, url: &str) {
 }
 
 pub   fn install_apps(app_info: Vec<(&str, &str, &str)>, path: String) -> Result<(), anyhow::Error> {
-    for (app_name, bucket, version) in app_info {
-        if app_name.is_empty() || bucket.is_empty() || version.is_empty() {
+    for (app_name, bucket, _ ) in app_info {
+        if app_name.is_empty() || bucket.is_empty() {
             bail!(
-                "Config_File Error: app name or bucket or version is empty, on {}",
+                "Config_File Error: app name or bucket name is empty, on {}",
                 path.red().bold()
             )
         }

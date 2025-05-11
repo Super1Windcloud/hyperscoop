@@ -20,8 +20,10 @@ pub fn list_all_shims(global: bool) -> Result<(), anyhow::Error> {
         bail!("{} is not exist", shim_path.display());
     }
     let mut shims = vec![];
-    for entry in shim_path.read_dir()
-       .context("Failed to read  shim root dir at line 24")? {
+    for entry in shim_path
+        .read_dir()
+        .context("Failed to read  shim root dir at line 24")?
+    {
         let entry = entry.context("Failed to read  shim root dir at line 26")?;
         let file_name = entry.file_type()?;
         let path = entry.path();
@@ -45,7 +47,8 @@ pub fn list_all_shims(global: bool) -> Result<(), anyhow::Error> {
         };
 
         let shim_source = std::fs::read_to_string(&shim_file_path)
-          .context("Failed to read shim file content at line 48")?.replace("path =", "");
+            .context("Failed to read shim file content at line 48")?
+            .replace("path =", "");
         shims.push((shim_name, path.to_str().unwrap().to_owned(), shim_source));
     }
 
@@ -123,8 +126,10 @@ pub fn list_shim_info(name: Option<String>, global: bool) -> anyhow::Result<()> 
     if !shim_path.exists() {
         bail!("{} is not exist", shim_path.display());
     }
-    for entry in shim_path.read_dir()
-       .context("Failed to read  shim root dir at line 127")? {
+    for entry in shim_path
+        .read_dir()
+        .context("Failed to read  shim root dir at line 127")?
+    {
         let entry = entry?;
         let file_type = entry.file_type()?;
         let path = entry.path();
@@ -357,7 +362,8 @@ pub fn remove_shim(name: Option<String>, global: bool) -> anyhow::Result<()> {
     if !shim_path.exists() {
         bail!("{} is not exist", shim_path.display());
     }
-    let shim_dir = std::fs::read_dir(&shim_path)?;
+    let shim_dir = std::fs::read_dir(&shim_path)
+      .context("Failed to read  shim root dir at line 366")?;
     let matched_shims = shim_dir
         .filter_map(|entry| {
             let entry = entry.ok()?;

@@ -5,7 +5,9 @@ use crate::init_env::{
 use crate::install::UpdateOptions;
 use crate::install::UpdateOptions::Global;
 use crate::list::VersionJSON;
-use crate::manifest::manifest::{ get_latest_app_version_from_local_bucket, get_latest_app_version_from_local_bucket_global};
+use crate::manifest::manifest::{
+    get_latest_app_version_from_local_bucket, get_latest_app_version_from_local_bucket_global,
+};
 use crate::utils::utility::{get_official_bucket_path, get_official_buckets_name};
 use anyhow::{bail, Context};
 use crossterm::style::Stylize;
@@ -68,6 +70,7 @@ pub fn check_bucket_update_status<'a>() -> anyhow::Result<bool> {
         }
         Ok(())
     });
+  
     if result.is_err() {
         bail!(result.unwrap_err())
     }
@@ -90,9 +93,8 @@ pub fn check_bucket_update_status<'a>() -> anyhow::Result<bool> {
 }
 
 pub fn check_app_version_latest(app_name: &str, options: &[UpdateOptions]) -> anyhow::Result<bool> {
-  
-    if options.contains(&UpdateOptions::ForceUpdateOverride){ 
-      return Ok(false);
+    if options.contains(&UpdateOptions::ForceUpdateOverride) {
+        return Ok(false);
     }
     let app_dir = if options.contains(&Global) {
         get_app_dir_global(app_name)
@@ -111,9 +113,9 @@ pub fn check_app_version_latest(app_name: &str, options: &[UpdateOptions]) -> an
         bail!("Manifest path {} does not exist", manifest_path);
     }
     let content = std::fs::read_to_string(&manifest_path)
-      .context("Failed to read manifest.json at line 112")?;
-    let version: VersionJSON = serde_json::from_str(&content)
-      .context("Failed to parse manifest.json at line 114")?;
+        .context("Failed to read manifest.json at line 112")?;
+    let version: VersionJSON =
+        serde_json::from_str(&content).context("Failed to parse manifest.json at line 114")?;
     let old_version = version.version.ok_or(0);
     match old_version {
         Err(_) => {
@@ -133,9 +135,6 @@ pub fn check_app_version_latest(app_name: &str, options: &[UpdateOptions]) -> an
         }
     }
 }
-
-
-
 
 mod test {
     #[allow(unused)]

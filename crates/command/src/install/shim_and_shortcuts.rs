@@ -7,7 +7,7 @@ use crate::manifest::manifest_deserialize::{
 };
 use crate::utils::system::get_system_default_arch;
 use crate::utils::utility::{assume_yes_to_cover_shortcuts, write_utf8_file};
-use anyhow::bail;
+use anyhow::{bail, Context};
 use crossterm::style::Stylize;
 use shortcuts_rs::ShellLink;
 use std::fs;
@@ -21,8 +21,14 @@ pub fn create_shim_or_shortcuts(
     app_name: &str,
     options: &Box<[InstallOptions]>,
 ) -> anyhow::Result<()> {
-    let content = fs::read_to_string(manifest_json)?;
-    let serde_obj: InstallManifest = serde_json::from_str(&content)?;
+    let content = fs::read_to_string(manifest_json).context(format!(
+        "Failed to read manifest file: {} at line 25",
+        manifest_json
+    ))?;
+    let serde_obj: InstallManifest = serde_json::from_str(&content).context(format!(
+        "Failed to parse manifest file: {} at line 27",
+        manifest_json
+    ))?;
     let bin = serde_obj.bin;
     let architecture = serde_obj.architecture;
     let shortcuts = serde_obj.shortcuts;
@@ -106,7 +112,10 @@ pub fn create_shims_file(
         get_shims_root_dir()
     };
     if !Path::new(&shim_path).exists() {
-        fs::create_dir_all(&shim_path)?;
+        fs::create_dir_all(&shim_path).context(format!(
+            "Failed to create shims root dir: {} at line 116",
+            shim_path
+        ))?;
     }
     match bin {
         StringOrArrayOrDoubleDimensionArray::String(s) => {
@@ -219,7 +228,10 @@ pub fn create_start_menu_shortcuts(
         )
     };
     if !Path::new(&scoop_link_home).exists() {
-        fs::create_dir_all(&scoop_link_home)?;
+        fs::create_dir_all(&scoop_link_home).context(format!(
+            "Failed to create scoop link home dir: {} at line 232",
+            scoop_link_home
+        ))?;
     }
     match shortcuts {
         ArrayOrDoubleDimensionArray::Null => return Ok(()),
@@ -318,7 +330,8 @@ pub fn start_create_shortcut<P: AsRef<Path>>(
     if link_path.exists() && options.contains(&InteractiveInstall) {
         let result = assume_yes_to_cover_shortcuts(link_alias_name)?;
         if result {
-            fs::remove_file(start_menu_path.as_ref())?;
+            fs::remove_file(start_menu_path.as_ref())
+                .context("Failed to remove  old  start_menu_path at line 334".to_string())?;
         } else {
             return Ok(());
         }
@@ -336,11 +349,12 @@ pub fn start_create_shortcut<P: AsRef<Path>>(
     let shell_link = ShellLink::new(link_target_path, args, None, None)?;
     let parent = start_menu_path.as_ref().parent().unwrap();
     if !parent.exists() {
-        fs::create_dir_all(parent)?;
+        fs::create_dir_all(parent)
+          .context("Failed to create link parent directory at line 353")?;
     };
     shell_link
         .create_lnk(start_menu_path)
-        .expect("Create Shortcuts  Failed");
+        .context("Create shell_link shortcuts failed  at line 357")?;
     Ok(())
 }
 
@@ -862,7 +876,8 @@ pub fn create_exe_type_shim_file_and_shim_bin<P1: AsRef<Path>, P2: AsRef<Path>>(
     let shim_path = output_dir.join(&shim_name);
     let shim_path2 = output_dir.join(&shim_name2);
     if !shim_path.exists() {
-        fs::create_dir_all(&output_dir)?;
+        fs::create_dir_all(&output_dir)
+          .context("failed create output_dir at line 880")?;
     }
 
     let crlf_content = content.replace(LineEnding::LF.as_str(), LineEnding::CRLF.as_str());
@@ -891,7 +906,8 @@ pub fn create_exe_type_shim_file_and_shim_bin<P1: AsRef<Path>, P2: AsRef<Path>>(
         let output_shim_exe = output_dir.join(&exe_name);
         let parent_dir = output_shim_exe.parent().unwrap();
         if !parent_dir.exists() {
-            fs::create_dir_all(&parent_dir)?; // 递归创建所有不存在的父目录
+            fs::create_dir_all(&parent_dir)
+              .context("failed create parent_dir at line 910")?;  
         }
         if output_shim_exe.exists() {
             return Ok(());

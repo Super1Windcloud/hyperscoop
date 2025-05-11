@@ -3,36 +3,29 @@ use crate::manifest::manifest_deserialize::{
 };
 use crate::manifest::uninstall_manifest::UninstallManifest;
 use crate::utils::system::get_system_default_arch;
-use anyhow::bail;
+use anyhow::{bail, Context};
 use crossterm::style::Stylize;
 use std::path::{Path, PathBuf};
 
-pub fn get_all_shortcuts_link_paths() -> Vec<PathBuf> {
-    let paths = vec![
-        PathBuf::from("C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\Startup"),
-        PathBuf::from("C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs"),
-        PathBuf::from("C:\\Users\\Public\\Desktop"),
-        PathBuf::from(format!(
-            "C:\\Users\\{}\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup",
-            std::env::var("USERNAME").unwrap_or_else(|_| "Default".to_string())
-        )),
-        PathBuf::from(format!(
-            "C:\\Users\\{}\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs",
-            std::env::var("USERNAME").unwrap_or_else(|_| "Default".to_string())
-        )),
-        PathBuf::from(format!(
-            "C:\\Users\\{}\\Desktop",
-            std::env::var("USERNAME").unwrap_or_else(|_| "Default".to_string())
-        )),
+pub fn get_all_shortcuts_link_paths(is_global: bool) -> PathBuf {
+    let paths = if is_global {
+        PathBuf::from(
+            r"C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Scoop Apps".to_string(),
+        )
+    } else {
         PathBuf::from(format!(
             r"C:\Users\{}\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Scoop Apps",
             std::env::var("USERNAME").unwrap_or_else(|_| "Default".to_string())
-        )),
-    ];
+        ))
+    };
+
     paths
 }
 
-pub fn rm_start_menu_shortcut(manifest: &UninstallManifest) -> Result<(), anyhow::Error> {
+pub fn rm_start_menu_shortcut(
+    manifest: &UninstallManifest,
+    is_global: bool,
+) -> Result<(), anyhow::Error> {
     let shortcuts = manifest.clone().shortcuts;
     let architecture = manifest.clone().architecture;
     if shortcuts.is_none() && architecture.is_none() {
@@ -57,20 +50,21 @@ pub fn rm_start_menu_shortcut(manifest: &UninstallManifest) -> Result<(), anyhow
                 if shortcut_name.is_empty() {
                     bail!("Shortcut name cannot be empty");
                 }
-                let scoop_links = get_all_shortcuts_link_paths();
-                for scoop_link in scoop_links {
-                    if scoop_link.exists() {
-                        let path = scoop_link.join(&shortcut_name);
-                        if path.exists() {
-                            println!(
-                                "{} '{}'",
-                                format!("Removing start menu shortcut for '{target_name}'")
-                                    .dark_blue()
-                                    .bold(),
-                                shortcut_name.to_string().dark_cyan().bold()
-                            );
-                            std::fs::remove_file(path)?;
-                        }
+                let scoop_link = get_all_shortcuts_link_paths(is_global);
+                if scoop_link.exists() {
+                    let path = scoop_link.join(&shortcut_name);
+                    if path.exists() {
+                        println!(
+                            "{} '{}'",
+                            format!("Removing start menu shortcut for '{target_name}'")
+                                .dark_blue()
+                                .bold(),
+                            shortcut_name.to_string().dark_cyan().bold()
+                        );
+                        std::fs::remove_file(&path).context(format!(
+                            "Failed to remove shortcut file: {} at line 65",
+                            path.display()
+                        ))?;
                     }
                 }
             }
@@ -99,20 +93,21 @@ pub fn rm_start_menu_shortcut(manifest: &UninstallManifest) -> Result<(), anyhow
                     if shortcut_name.is_empty() {
                         return Ok(());
                     }
-                    let scoop_links = get_all_shortcuts_link_paths();
-                    for scoop_link in scoop_links {
-                        if scoop_link.exists() {
-                            let path = scoop_link.join(&shortcut_name);
-                            if path.exists() {
-                                println!(
-                                    "{} '{}'",
-                                    format!("Removing start menu shortcut for '{target_name}'")
-                                        .dark_blue()
-                                        .bold(),
-                                    shortcut_name.to_string().dark_cyan().bold()
-                                );
-                                std::fs::remove_file(path)?;
-                            }
+                    let scoop_link = get_all_shortcuts_link_paths(is_global);
+                    if scoop_link.exists() {
+                        let path = scoop_link.join(&shortcut_name);
+                        if path.exists() {
+                            println!(
+                                "{} '{}'",
+                                format!("Removing start menu shortcut for '{target_name}'")
+                                    .dark_blue()
+                                    .bold(),
+                                shortcut_name.to_string().dark_cyan().bold()
+                            );
+                            std::fs::remove_file(&path).context(format!(
+                                "Failed to remove shortcut file: {} at line 106",
+                                path.display()
+                            ))?;
                         }
                     }
                 }
@@ -151,20 +146,21 @@ pub fn rm_start_menu_shortcut(manifest: &UninstallManifest) -> Result<(), anyhow
                     if shortcut_name.is_empty() {
                         return Ok(());
                     }
-                    let scoop_links = get_all_shortcuts_link_paths();
-                    for scoop_link in scoop_links {
-                        if scoop_link.exists() {
-                            let path = scoop_link.join(&shortcut_name);
-                            if path.exists() {
-                                println!(
-                                    "{} '{}'",
-                                    format!("Removing start menu shortcut for '{target_name}'")
-                                        .dark_blue()
-                                        .bold(),
-                                    shortcut_name.to_string().dark_cyan().bold()
-                                );
-                                std::fs::remove_file(path)?;
-                            }
+                    let scoop_link = get_all_shortcuts_link_paths(is_global);
+                    if scoop_link.exists() {
+                        let path = scoop_link.join(&shortcut_name);
+                        if path.exists() {
+                            println!(
+                                "{} '{}'",
+                                format!("Removing start menu shortcut for '{target_name}'")
+                                    .dark_blue()
+                                    .bold(),
+                                shortcut_name.to_string().dark_cyan().bold()
+                            );
+                            std::fs::remove_file(&path).context(format!(
+                                "Failed to remove shortcut file: {} at line 157",
+                                path.display()
+                            ))?;
                         }
                     }
                 }
@@ -193,20 +189,21 @@ pub fn rm_start_menu_shortcut(manifest: &UninstallManifest) -> Result<(), anyhow
                             return Ok(());
                         }
                         let target_name = shortcut_item[0].clone();
-                        let scoop_links = get_all_shortcuts_link_paths();
-                        for scoop_link in scoop_links {
-                            if scoop_link.exists() {
-                                let path = scoop_link.join(&shortcut_name);
-                                if path.exists() {
-                                    println!(
-                                        "{} '{}'",
-                                        format!("Removing start menu shortcut for '{target_name}'")
-                                            .dark_blue()
-                                            .bold(),
-                                        shortcut_name.to_string().dark_cyan().bold()
-                                    );
-                                    std::fs::remove_file(path)?;
-                                }
+                        let scoop_link = get_all_shortcuts_link_paths(is_global);
+                        if scoop_link.exists() {
+                            let path = scoop_link.join(&shortcut_name);
+                            if path.exists() {
+                                println!(
+                                    "{} '{}'",
+                                    format!("Removing start menu shortcut for '{target_name}'")
+                                        .dark_blue()
+                                        .bold(),
+                                    shortcut_name.to_string().dark_cyan().bold()
+                                );
+                                std::fs::remove_file(&path).context(format!(
+                                    "Failed to remove shortcut file: {} at line 198",
+                                    path.display()
+                                ))?;
                             }
                         }
                     }
@@ -239,20 +236,21 @@ pub fn rm_start_menu_shortcut(manifest: &UninstallManifest) -> Result<(), anyhow
                     if shortcut_name.is_empty() {
                         return Ok(());
                     }
-                    let scoop_links = get_all_shortcuts_link_paths();
-                    for scoop_link in scoop_links {
-                        if scoop_link.exists() {
-                            let path = scoop_link.join(&shortcut_name);
-                            if path.exists() {
-                                println!(
-                                    "{} '{}'",
-                                    format!("Removing start menu shortcut for '{target_name}'")
-                                        .dark_blue()
-                                        .bold(),
-                                    shortcut_name.to_string().dark_cyan().bold()
-                                );
-                                std::fs::remove_file(path)?;
-                            }
+                    let scoop_link = get_all_shortcuts_link_paths(is_global);
+                    if scoop_link.exists() {
+                        let path = scoop_link.join(&shortcut_name);
+                        if path.exists() {
+                            println!(
+                                "{} '{}'",
+                                format!("Removing start menu shortcut for '{target_name}'")
+                                    .dark_blue()
+                                    .bold(),
+                                shortcut_name.to_string().dark_cyan().bold()
+                            );
+                            std::fs::remove_file(&path).context(format!(
+                                "Failed to remove shortcut file: {} at line 243",
+                                path.display()
+                            ))?;
                         }
                     }
                 }
@@ -281,20 +279,21 @@ pub fn rm_start_menu_shortcut(manifest: &UninstallManifest) -> Result<(), anyhow
                             return Ok(());
                         }
                         let target_name = shortcut_item[0].clone();
-                        let scoop_links = get_all_shortcuts_link_paths();
-                        for scoop_link in scoop_links {
-                            if scoop_link.exists() {
-                                let path = scoop_link.join(&shortcut_name);
-                                if path.exists() {
-                                    println!(
-                                        "{} '{}'",
-                                        format!("Removing start menu shortcut for '{target_name}'")
-                                            .dark_blue()
-                                            .bold(),
-                                        shortcut_name.to_string().dark_cyan().bold()
-                                    );
-                                    std::fs::remove_file(path)?;
-                                }
+                        let scoop_link = get_all_shortcuts_link_paths(is_global);
+                        if scoop_link.exists() {
+                            let path = scoop_link.join(&shortcut_name);
+                            if path.exists() {
+                                println!(
+                                    "{} '{}'",
+                                    format!("Removing start menu shortcut for '{target_name}'")
+                                        .dark_blue()
+                                        .bold(),
+                                    shortcut_name.to_string().dark_cyan().bold()
+                                );
+                                std::fs::remove_file(&path).context(format!(
+                                    "Failed to remove shortcut file: {} at line 284",
+                                    path.display()
+                                ))?;
                             }
                         }
                     }
@@ -327,20 +326,21 @@ pub fn rm_start_menu_shortcut(manifest: &UninstallManifest) -> Result<(), anyhow
                         return Ok(());
                     }
                     let target_name = shortcut[0].clone();
-                    let scoop_links = get_all_shortcuts_link_paths();
-                    for scoop_link in scoop_links {
-                        if scoop_link.exists() {
-                            let path = scoop_link.join(&shortcut_name);
-                            if path.exists() {
-                                println!(
-                                    "{} '{}'",
-                                    format!("Removing start menu shortcut for '{target_name}'")
-                                        .dark_blue()
-                                        .bold(),
-                                    shortcut_name.to_string().dark_cyan().bold()
-                                );
-                                std::fs::remove_file(path)?;
-                            }
+                    let scoop_link = get_all_shortcuts_link_paths(is_global);
+                    if scoop_link.exists() {
+                        let path = scoop_link.join(&shortcut_name);
+                        if path.exists() {
+                            println!(
+                                "{} '{}'",
+                                format!("Removing start menu shortcut for '{target_name}'")
+                                    .dark_blue()
+                                    .bold(),
+                                shortcut_name.to_string().dark_cyan().bold()
+                            );
+                            std::fs::remove_file(&path).context(format!(
+                                "Failed to remove shortcut file: {} at line 329",
+                                path.display()
+                            ))?;
                         }
                     }
                 }
@@ -369,20 +369,21 @@ pub fn rm_start_menu_shortcut(manifest: &UninstallManifest) -> Result<(), anyhow
                             return Ok(());
                         }
                         let target_name = shortcut_item[0].clone();
-                        let scoop_links = get_all_shortcuts_link_paths();
-                        for scoop_link in scoop_links {
-                            if scoop_link.exists() {
-                                let path = scoop_link.join(&shortcut_name);
-                                if path.exists() {
-                                    println!(
-                                        "{} '{}'",
-                                        format!("Removing start menu shortcut for '{target_name}'")
-                                            .dark_blue()
-                                            .bold(),
-                                        shortcut_name.to_string().dark_cyan().bold()
-                                    );
-                                    std::fs::remove_file(path)?;
-                                }
+                        let scoop_link = get_all_shortcuts_link_paths(is_global);
+                        if scoop_link.exists() {
+                            let path = scoop_link.join(&shortcut_name);
+                            if path.exists() {
+                                println!(
+                                    "{} '{}'",
+                                    format!("Removing start menu shortcut for '{target_name}'")
+                                        .dark_blue()
+                                        .bold(),
+                                    shortcut_name.to_string().dark_cyan().bold()
+                                );
+                                std::fs::remove_file(&path).context(format!(
+                                    "Failed to remove shortcut file: {} at line 370",
+                                    path.display()
+                                ))?;
                             }
                         }
                     }
@@ -674,7 +675,8 @@ fn rm_alias_shim_name_file(
             "origin exe shim file {}",
             origin_shim_file.display().to_string().dark_cyan().bold()
         );
-        std::fs::remove_file(origin_shim_file)?;
+        std::fs::remove_file(origin_shim_file)
+            .context("failed to remove original shim file at line 679")?;
     }
 
     if suffix == "exe" {
@@ -686,7 +688,8 @@ fn rm_alias_shim_name_file(
                 "Removing shim file".dark_blue().bold(),
                 shim_file.display().to_string().dark_green().bold()
             );
-            std::fs::remove_file(&shim_file)?;
+            std::fs::remove_file(&shim_file)
+              .context("failed to remove exe shim file at line 692")?;
         }
         let shim = prefix.to_string() + ".shim";
         let shim_file = shim_path.join(shim);
@@ -698,7 +701,8 @@ fn rm_alias_shim_name_file(
             "Removing shim file".dark_blue().bold(),
             shim_file.display().to_string().dark_green().bold()
         );
-        std::fs::remove_file(shim_file)?;
+        std::fs::remove_file(shim_file)
+          .context("failed to remove shim file at line 705")?;
     }
     if suffix == "bat" || suffix == "cmd" {
         if shim_file.exists() {
@@ -707,7 +711,8 @@ fn rm_alias_shim_name_file(
                 "Removing shim file".dark_blue().bold(),
                 shim_file.display().to_string().dark_green().bold()
             );
-            std::fs::remove_file(&shim_file)?;
+            std::fs::remove_file(&shim_file)
+              .context("failed to remove sh shim file at line 715")?;
         }
         let cmd_str = prefix.to_string() + ".cmd";
         let cmd_file = shim_path.join(cmd_str);
@@ -718,7 +723,8 @@ fn rm_alias_shim_name_file(
                 "Removing shim file".dark_blue().bold(),
                 cmd_file.display().to_string().dark_green().bold()
             );
-            std::fs::remove_file(&cmd_file)?;
+            std::fs::remove_file(&cmd_file)
+              .context("failed to remove cmd bat shim file at line 727")?;
         }
     }
 
@@ -732,7 +738,8 @@ fn rm_alias_shim_name_file(
                 "Removing shim file".dark_blue().bold(),
                 shim_file.display().to_string().dark_green().bold()
             );
-            std::fs::remove_file(&shim_file)?;
+            std::fs::remove_file(&shim_file)
+              .context("failed to remove ps1 shim file at line 742")?;
         }
         let cmd_str = prefix.to_string() + ".cmd";
         let shell_file = shim_path.join(prefix);
@@ -743,7 +750,8 @@ fn rm_alias_shim_name_file(
                 "Removing shim file".dark_blue().bold(),
                 shell_file.display().to_string().dark_green().bold()
             );
-            std::fs::remove_file(&shell_file)?;
+            std::fs::remove_file(&shell_file)
+              .context("failed to remove sh shim file at line 754")?;
         }
         if cmd_file.exists() {
             println!(
@@ -751,7 +759,8 @@ fn rm_alias_shim_name_file(
                 "Removing shim file".dark_blue().bold(),
                 cmd_file.display().to_string().dark_green().bold()
             );
-            std::fs::remove_file(&cmd_file)?;
+            std::fs::remove_file(&cmd_file)
+              .context("failed to remove cmd shim file at line 763")?;
         }
     }
     Ok(())
@@ -778,7 +787,8 @@ fn rm_default_shim_name_file(s: String, shim_path: &Path) -> anyhow::Result<()> 
             "Removing shim file".dark_blue().bold(),
             shim_file.display().to_string().dark_green().bold()
         );
-        std::fs::remove_file(&shim_file)?;
+        std::fs::remove_file(&shim_file)
+          .context("failed to remove exe shim file at line 791")?;
         let shim = prefix.to_string() + ".shim";
         let shim_file = shim_path.join(shim);
         if !shim_file.exists() {
@@ -789,7 +799,8 @@ fn rm_default_shim_name_file(s: String, shim_path: &Path) -> anyhow::Result<()> 
             "Removing shim file".dark_blue().bold(),
             shim_file.display().to_string().dark_green().bold()
         );
-        std::fs::remove_file(shim_file)?;
+        std::fs::remove_file(shim_file)
+          .context("failed to remove shim file at line 803")?;
     }
     if suffix == "bat" || suffix == "cmd" {
         if shim_file.exists() {
@@ -798,7 +809,8 @@ fn rm_default_shim_name_file(s: String, shim_path: &Path) -> anyhow::Result<()> 
                 "Removing shim file".dark_blue().bold(),
                 shim_file.display().to_string().dark_green().bold()
             );
-            std::fs::remove_file(&shim_file)?;
+            std::fs::remove_file(&shim_file)
+              .context("failed to remove cmd bat file at line 813")?;
         }
         let cmd_str = prefix.to_string() + ".cmd";
         let shell_file = shim_path.join(prefix);
@@ -809,7 +821,8 @@ fn rm_default_shim_name_file(s: String, shim_path: &Path) -> anyhow::Result<()> 
                 "Removing shim file".dark_blue().bold(),
                 shell_file.display().to_string().dark_green().bold()
             );
-            std::fs::remove_file(&shell_file)?;
+            std::fs::remove_file(&shell_file)
+              .context("failed to remove sh file at line 825")?;
         }
         if cmd_file.exists() {
             println!(
@@ -817,7 +830,8 @@ fn rm_default_shim_name_file(s: String, shim_path: &Path) -> anyhow::Result<()> 
                 "Removing shim file".dark_blue().bold(),
                 cmd_file.display().to_string().dark_green().bold()
             );
-            std::fs::remove_file(&cmd_file)?;
+            std::fs::remove_file(&cmd_file)
+              .context("failed to remove cmd file at line 834")?;
         }
     }
 
@@ -827,7 +841,8 @@ fn rm_default_shim_name_file(s: String, shim_path: &Path) -> anyhow::Result<()> 
             "Removing shim file".dark_blue().bold(),
             shim_file.display().to_string().dark_green().bold()
         );
-        std::fs::remove_file(&shim_file)?;
+        std::fs::remove_file(&shim_file)
+          .context("failed to remove ps1 shim file at line 845")?;
 
         let cmd_str = prefix.to_string() + ".cmd";
         let shell_file = shim_path.join(prefix);
@@ -838,7 +853,8 @@ fn rm_default_shim_name_file(s: String, shim_path: &Path) -> anyhow::Result<()> 
                 "Removing shim file".dark_blue().bold(),
                 shell_file.display().to_string().dark_green().bold()
             );
-            std::fs::remove_file(&shell_file)?;
+            std::fs::remove_file(&shell_file)
+              .context("failed to remove sh shim file at line 857")?;
         }
         if cmd_file.exists() {
             println!(
@@ -846,7 +862,8 @@ fn rm_default_shim_name_file(s: String, shim_path: &Path) -> anyhow::Result<()> 
                 "Removing shim file".dark_blue().bold(),
                 cmd_file.display().to_string().dark_green().bold()
             );
-            std::fs::remove_file(&cmd_file)?;
+            std::fs::remove_file(&cmd_file)
+              .context("failed to remove cmd shim file at line 866")?;
         }
     }
 
@@ -874,5 +891,11 @@ mod tests {
             s = split.last().unwrap().to_string();
         }
         println!("s is {s }");
+    }
+
+    #[test]
+    fn test_username() {
+        let username = std::env::var("USERNAME").unwrap();
+        println!("username is {username}");
     }
 }

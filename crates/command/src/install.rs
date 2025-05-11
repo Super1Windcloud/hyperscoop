@@ -138,7 +138,10 @@ pub fn install_app_from_local_manifest_file<P: AsRef<Path>>(
                         Err(_) => {
                             log::debug!("kill {app_name}  process");
                             kill_processes_using_app(&app_name);
-                            std::fs::remove_dir_all(&special_app_dir)?;
+                            std::fs::remove_dir_all(&special_app_dir).context(format!(
+                                "After kill process ,still remove app dir '{}' failed at line 142",
+                                special_app_dir
+                            ))?;
                         }
                     }
                 }
@@ -488,8 +491,11 @@ pub async fn install_and_replace_hp(options: &[InstallOptions<'_>]) -> Result<St
         let parent = duplicate.parent().unwrap().parent().unwrap();
         parent.file_name().unwrap().to_str().unwrap()
     })();
-    let version: VersionJSON = serde_json::from_str(&std::fs::read_to_string(&manifest_path)?)
-        .expect("JSON格式错误,检查hp.json");
+    let version: VersionJSON = serde_json::from_str(
+        &std::fs::read_to_string(&manifest_path)
+            .context("failed to read hp manifest version from local bucket")?,
+    )
+    .expect("JSON格式错误,检查hp.json");
 
     install_app_from_local_manifest_file(
         manifest_path.as_path(),

@@ -4,6 +4,7 @@
 use crate::init_hyperscoop;
 use crate::utils::get_file_or_dir_metadata::get_dir_updated_time;
 use crate::utils::safe_check::is_directory_empty;
+use anyhow::Context;
 use comfy_table::modifiers::UTF8_ROUND_CORNERS;
 use comfy_table::presets::UTF8_BORDERS_ONLY;
 use comfy_table::{Attribute, Cell, Color, ContentArrangement, Table};
@@ -14,29 +15,28 @@ use serde::{Deserialize, Serialize};
 use std::fs::{read_dir, remove_dir_all};
 use std::io::read_to_string;
 use std::path::Path;
-use anyhow::Context;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ArchType {
-  #[serde(rename = "32bit")]
-  X86,
-  #[serde(rename = "64bit")]
-  X64,
-  #[serde(rename = "arm64")]
-  Arm64,
+    #[serde(rename = "32bit")]
+    X86,
+    #[serde(rename = "64bit")]
+    X64,
+    #[serde(rename = "arm64")]
+    Arm64,
 }
 
 impl Default for ArchType {
-  fn default() -> Self {
-    ArchType::X64
-  }
+    fn default() -> Self {
+        ArchType::X64
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct VersionJSON {
     pub bucket: Option<String>,
-    pub version: Option<String>, 
+    pub version: Option<String>,
     #[serde(skip)]
     pub architecture: Option<ArchType>,
 }
@@ -74,7 +74,7 @@ pub fn list_all_installed_apps_refactor(is_global: bool) -> anyhow::Result<Vec<A
         get_apps_path()
     };
     let all_apps_path = read_dir(&apps_dir)
-      .context("Failed to read apps root directory at line 77")?
+        .context("Failed to read apps root directory at line 77")?
         .par_bridge() // 将标准迭代器转换为并行迭代器
         .filter_map(|entry| {
             let entry = entry.ok()?;
@@ -123,10 +123,14 @@ pub fn get_install_json_version(manifest_json: &String) -> anyhow::Result<String
     if !path.exists() {
         return Ok("unknown".to_string());
     }
-    let content = std::fs::read_to_string(manifest_json)
-      .context(format!("Failed to read manifest json file: {} at line 127", manifest_json))?;
-    let obj: VersionJSON = serde_json::from_str(&content)
-      .context(format!("Failed to parse manifest json file: {} at line 129", manifest_json))?;
+    let content = std::fs::read_to_string(manifest_json).context(format!(
+        "Failed to read manifest json file: {} at line 127",
+        manifest_json
+    ))?;
+    let obj: VersionJSON = serde_json::from_str(&content).context(format!(
+        "Failed to parse manifest json file: {} at line 129",
+        manifest_json
+    ))?;
     let version = obj.version;
     if version.is_none() {
         return Ok("unknown".to_string());
@@ -139,8 +143,14 @@ pub fn get_install_json_bucket(install_json: &String) -> anyhow::Result<String> 
     if Path::new(install_json).exists() == false {
         return Ok("unknown".to_string());
     }
-    let content = std::fs::read_to_string(install_json)?;
-    let obj: VersionJSON = serde_json::from_str(&content)?;
+    let content = std::fs::read_to_string(install_json).context(format!(
+        "Failed to read install json file: {} at line 147",
+        install_json
+    ))?;
+    let obj: VersionJSON = serde_json::from_str(&content).context(format!(
+        "Failed to parse install json file: {} at line 151",
+        install_json
+    ))?;
     let bucket = obj.bucket;
     if bucket.is_none() {
         return Ok("unknown".to_string());
@@ -359,6 +369,7 @@ pub fn display_apps_info_extra(is_global: bool) -> anyhow::Result<()> {
     println!("{table}");
     Ok(())
 }
+
 pub fn display_app_info(is_global: bool) -> anyhow::Result<()> {
     let mut package = list_all_installed_apps_refactor(is_global)?;
     package.sort_by(|a, b| a.name.cmp(&b.name));

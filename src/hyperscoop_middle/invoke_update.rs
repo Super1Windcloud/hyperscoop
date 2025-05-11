@@ -1,5 +1,6 @@
 ﻿use crate::check_self_update::{auto_check_hp_update, get_app_old_version};
 use crate::command_args::update::UpdateArgs;
+use anyhow::Context;
 use command_util_lib::init_env::{
     get_app_current_bin_path, get_app_current_dir, get_app_current_dir_global, get_app_dir,
     get_app_version_dir,
@@ -7,6 +8,7 @@ use command_util_lib::init_env::{
 use command_util_lib::install::UpdateOptions::ForceUpdateOverride;
 use command_util_lib::install::{install_and_replace_hp, InstallOptions, UpdateOptions};
 use command_util_lib::update::*;
+use command_util_lib::utils::system::{is_admin, request_admin};
 use command_util_lib::utils::utility::update_scoop_config_last_update_time;
 use crossterm::style::Stylize;
 use line_ending::LineEnding;
@@ -16,6 +18,11 @@ use std::path::Path;
 use std::process::Command;
 
 pub async fn execute_update_command(update_args: UpdateArgs) -> Result<(), anyhow::Error> {
+    if update_args.global {
+        if !is_admin()? {
+            request_admin()
+        }
+    }
     let options = inject_update_user_options(&update_args)?;
     if update_args.update_self_and_buckets {
         println!("{}", "开始更新hp和buckets".dark_cyan().bold());
@@ -30,7 +37,7 @@ pub async fn execute_update_command(update_args: UpdateArgs) -> Result<(), anyho
     }
     if update_args.all {
         log::debug!("update all app ");
-        update_all_apps(&options).await?;
+        update_all_apps(&options)?;
         return Ok(());
     }
     if update_args.app_name.is_none() {
@@ -41,7 +48,7 @@ pub async fn execute_update_command(update_args: UpdateArgs) -> Result<(), anyho
         update_hp(&options).await?;
         return Ok(());
     }
-    update_specific_app(&app_name, &options).await?;
+    update_specific_app(&app_name, &options)?;
     Ok(())
 }
 
@@ -157,7 +164,7 @@ pub async fn update_hp(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
         launch_update_script(global, "", true).expect("update hp script failed");
     } else {
         launch_update_script(global, app_old_version_dir.as_str(), false)
-            .map_err( |e| anyhow::anyhow!("launch_update_script failed: \n{}", e))?;
+            .map_err(|e| anyhow::anyhow!("launch_update_script failed: \n{}", e))?;
     }
     println!(
         "{}",
@@ -198,7 +205,7 @@ if "{old_version_dir}" == "" (
 )
 
 if exist "{old_version_dir}" (
-    rmdir  /S /Q "{old_version_dir}" 
+    rmdir  /S /Q "{old_version_dir}"
     if exist "{old_version_dir}"  (
         echo ERROR: Directory still exists after deletion.
         exit /b 1
@@ -280,7 +287,11 @@ endlocal
     let updater = format!("{hp_current}\\updater.bat");
     let mut file = File::create(&updater).expect("Failed to create updater.bat");
     let script_content = script_content.replace(LineEnding::LF.as_str(), LineEnding::CRLF.as_str());
-    file.write_all(script_content.as_bytes())?;
-    Command::new("cmd").args(&["/C", &updater]).spawn()?;
+    file.write_all(script_content.as_bytes())
+        .context("Failed to write updater.bat")?;
+    Command::new("cmd")
+        .args(&["/C", &updater])
+        .spawn()
+        .context("Failed to run updater")?;
     Ok(())
 }

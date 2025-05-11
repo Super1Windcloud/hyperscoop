@@ -1,4 +1,5 @@
 use crate::command_args::status::StatusArgs;
+use anyhow::Context;
 use comfy_table::modifiers::UTF8_ROUND_CORNERS;
 use comfy_table::presets::UTF8_BORDERS_ONLY;
 use comfy_table::{Attribute, Cell, CellAlignment, Color, ContentArrangement, Table};
@@ -9,7 +10,6 @@ use command_util_lib::init_env::{
 use command_util_lib::list::VersionJSON;
 use rayon::prelude::*;
 use std::collections::HashMap;
-use anyhow::Context;
 
 pub fn execute_status_command(status_args: StatusArgs) -> Result<(), anyhow::Error> {
     let apps_path = if status_args.global {
@@ -25,9 +25,12 @@ pub fn execute_status_command(status_args: StatusArgs) -> Result<(), anyhow::Err
 
     let mut current_versions = Vec::new();
     let mut installed_apps = Vec::new();
-    for app_path in std::fs::read_dir(apps_path)
-      .context("Failed to read apps directory at line 29")? {
-        let app_path = app_path.context("Failed to read app directory at line 30")?.path();
+    for app_path in
+        std::fs::read_dir(apps_path).context("Failed to read apps directory at line 29")?
+    {
+        let app_path = app_path
+            .context("Failed to read app directory at line 30")?
+            .path();
         let app_name = app_path
             .file_name()
             .expect("Invalid app path")
@@ -42,9 +45,9 @@ pub fn execute_status_command(status_args: StatusArgs) -> Result<(), anyhow::Err
             continue;
         }
         let manifest = std::fs::read_to_string(manifest_path)
-          .context("Failed to read manifest.json at line 45")?;
+            .context("Failed to read manifest.json at line 45")?;
         let manifest: VersionJSON = serde_json::from_str(&manifest)
-          .context("Failed to parse manifest.json to VersionJSON at line 47")?;
+            .context("Failed to parse manifest.json to VersionJSON at line 47")?;
         let current_version = manifest.version.unwrap_or("Not Found".to_string());
         current_versions.push(current_version.to_string());
         installed_apps.push(app_name.to_string());
@@ -122,7 +125,8 @@ fn build_version_map(
         .iter()
         .map(|app| app.to_lowercase())
         .collect::<Vec<_>>();
-    let _ = std::fs::read_dir(bucket_path)?
+    let _ = std::fs::read_dir(bucket_path)
+        .context("Failed to read buckets directory at line 126")?
         .par_bridge()
         .filter_map(|bucket| {
             let bucket = bucket.ok()?.path().join("bucket");

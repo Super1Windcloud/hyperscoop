@@ -7,7 +7,7 @@ use crate::install::{install_app, InstallOptions};
 use crate::manifest::install_manifest::InstallManifest;
 use crate::manifest::manifest_deserialize::{InstallerUninstallerStruct, StringArrayOrString};
 use crate::utils::system::get_system_default_arch;
-use anyhow::bail;
+use anyhow::{bail, Context};
 use crossterm::style::Stylize;
 use regex::Regex;
 use std::collections::HashMap;
@@ -457,7 +457,8 @@ fn installer_uninstaller_parser(
 
             let keep = keep.unwrap_or(false);
             if !keep {
-                std::fs::remove_file(&prog_path)?;
+                std::fs::remove_file(&prog_path)
+                  .context(format!("Failed to remove program file {}", prog_path.display()))?;
             }
         }
     }
@@ -547,10 +548,12 @@ fn invoke_ps_scripts(
     let decompress_path = temp.join("decompress.ps1");
     let temp_str = temp.to_str().unwrap();
     if !core_path.exists() {
-        std::fs::write(&core_path, core_script)?;
+        std::fs::write(&core_path, core_script)
+          .context(format!("Failed to write core.ps1 file {} at line 522", core_path.display()))?;
     }
     if !decompress_path.exists() {
-        std::fs::write(&decompress_path, decompress_script)?;
+        std::fs::write(&decompress_path, decompress_script)
+          .context(format!("Failed to write decompress file {} at line 556", decompress_path.display()))?;
     }
     let old_scoop_dir = get_old_scoop_dir();
     let cfg_path = get_scoop_cfg_path();

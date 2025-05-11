@@ -18,9 +18,9 @@ pub fn get_app_old_version(app_name: &str, options: &[InstallOptions]) -> anyhow
         bail!("Not found {app_name} install manifest file")
     }
     let content = std::fs::read_to_string(&app_install_manifest)
-      .context("Failed to read the app install manifest file at line 21")?;
+        .context("Failed to read the app install manifest file at line 21")?;
     let version: VersionJSON = serde_json::from_str(content.as_str())
-      .context("Failed to parse the app install manifest file at line 23")?;
+        .context("Failed to parse the app install manifest file at line 23")?;
     let version = version.version;
     if version.is_none() {
         bail!("Not found version in  install manifest file for app: {app_name}")
@@ -47,7 +47,8 @@ pub fn check_before_install(
     };
     let app_dir_path = Path::new(&app_dir);
     if !app_dir_path.exists() {
-        std::fs::create_dir_all(app_dir_path)?;
+        std::fs::create_dir_all(app_dir_path)
+            .context("Failed to create app directory at line 52")?;
         return Ok(0);
     }
     let app_version_dir = if options.contains(&InstallOptions::Global) {
@@ -126,9 +127,9 @@ pub fn check_before_install(
 
             std::fs::remove_dir_all(target)
                 .context("Failed to remove target directory at line 126")?;
-          
+
             std::fs::remove_dir(app_current_dir)
-              .context("Failed to remove app current directory at line 129")?;
+                .context("Failed to remove app current directory at line 129")?;
 
             println!(
                 "{}",
@@ -259,7 +260,7 @@ pub fn check_before_install(
             format!("'{name}' was uninstalled ").dark_green().bold(),
         );
         std::fs::remove_dir_all(app_dir_path)
-          .context("Failed to remove app directory at line 260")?;
+            .context("Failed to remove app directory at line 260")?;
         Ok(0)
     } else if !app_version_path.exists() && std::fs::symlink_metadata(app_current_dir).is_err() {
         println!(
@@ -281,7 +282,7 @@ pub fn check_before_install(
             format!("'{name}' was uninstalled ").dark_green().bold(),
         );
         std::fs::remove_dir_all(app_dir_path)
-          .context("Failed to remove app directory at line 282")?;
+            .context("Failed to remove app directory at line 282")?;
         Ok(0)
     } else {
         println!(
@@ -295,8 +296,7 @@ pub fn check_before_install(
 }
 
 fn check_child_directory(app_dir: &String) -> anyhow::Result<()> {
-    let dirs = std::fs::read_dir(app_dir)
-      .context("Failed to read app directory at line 297")?;
+    let dirs = std::fs::read_dir(app_dir).context("Failed to read app directory at line 297")?;
     for dir in dirs {
         let dir = dir?;
         let path = dir.path();
@@ -309,7 +309,7 @@ fn check_child_directory(app_dir: &String) -> anyhow::Result<()> {
 
 pub fn create_dir_symbolic_link(version_dir: &String, current_dir: &String) -> anyhow::Result<()> {
     symlink_dir(version_dir, current_dir)
-      .context("Failed to create symbolic link directory at line 310")?;
+        .context("Failed to create symbolic link directory at line 310")?;
     println!(
         "Creating  Link  {}",
         format!("{current_dir}  => {version_dir}")

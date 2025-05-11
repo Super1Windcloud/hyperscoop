@@ -11,7 +11,6 @@ pub struct UninstallManifest {
     #[serde(skip)]
     pub(crate) name: Option<String>,
 
-    /// 版本号
     pub version: Option<String>,
 
     /**

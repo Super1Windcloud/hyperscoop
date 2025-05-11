@@ -2,7 +2,7 @@
 use crate::info::validate_app_name;
 use crate::list::get_all_installed_apps_name;
 use crate::utils::detect_encoding::transform_to_only_version_manifest;
-use anyhow::bail;
+use anyhow::{bail, Context};
 use crossterm::style::Stylize;
 use rayon::prelude::*;
 use std::fs::DirEntry;
@@ -27,7 +27,6 @@ pub fn fuzzy_search(query: String, global: bool) -> anyhow::Result<()> {
             search_app_in_specific_bucket(buckets_path, &query_args[0], &query_args[1])?;
         }
     } else {
-      
         let all_manifests_path = get_all_manifest_package_name(buckets_path);
         if all_manifests_path.is_err() {
             eprintln!("Error: All manifests path is invalid");
@@ -206,23 +205,27 @@ fn search_app_in_specific_bucket(
 fn sort_result_by_bucket_name(mut result: Vec<(String, String, String)>) {
     //  ( name  version source )
     let official_bucket = ["main", "extras"];
-   result.sort_by(|a, b| a.0.cmp(&b.0));
+    result.sort_by(|a, b| a.0.cmp(&b.0));
 
-   result.sort_by(|a, b| {
-    let a_in_official = official_bucket.contains(&a.2.to_lowercase().as_str());
-    let b_in_official = official_bucket.contains(&b.2.to_lowercase().as_str());
-     // 如果 a 在 official_bucket 而 b 不在，a 应该排在后面（升序时）
-     a_in_official.cmp(&b_in_official)
-   });
-  
+    result.sort_by(|a, b| {
+        let a_in_official = official_bucket.contains(&a.2.to_lowercase().as_str());
+        let b_in_official = official_bucket.contains(&b.2.to_lowercase().as_str());
+        // 如果 a 在 official_bucket 而 b 不在，a 应该排在后面（升序时）
+        a_in_official.cmp(&b_in_official)
+    });
+
     display_result(&result)
 }
 
 fn get_apps_names(path: &Path, query: &str) -> Result<Vec<(String, PathBuf)>, anyhow::Error> {
     let query = query.trim().to_string().to_lowercase();
-  
+
     let app_names = path
-        .read_dir()?
+        .read_dir()
+        .context(format!(
+            "Failed to read directory {} at line 226",
+            path.display()
+        ))?
         .into_iter()
         .par_bridge()
         .filter_map(|entry| {
@@ -296,8 +299,15 @@ pub fn get_all_manifest_package_name_slow(
     Ok(all_json_manifests)
 }
 
-fn par_read_dir(path: &Path) -> std::io::Result<impl ParallelIterator<Item = DirEntry>> {
-    Ok(path.read_dir()?.par_bridge().filter_map(|de| de.ok()))
+fn par_read_dir(path: &Path) -> anyhow::Result<impl ParallelIterator<Item = DirEntry>> {
+    Ok(path
+        .read_dir()
+        .context(format!(
+            "Failed to read directory {} at line 306",
+            path.display()
+        ))?
+        .par_bridge()
+        .filter_map(|de| de.ok()))
 }
 
 fn is_manifest(dir_entry: &DirEntry) -> bool {
@@ -431,8 +441,7 @@ pub fn is_installed(app_name: &str) -> bool {
     false
 }
 
- 
-pub  fn remove_bom(content: &str) -> String {
+pub fn remove_bom(content: &str) -> String {
     if content.starts_with("\u{feff}") {
         content[3..].to_string()
     } else {

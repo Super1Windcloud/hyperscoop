@@ -12,7 +12,7 @@ use winreg::RegKey;
 pub fn handle_env_set(
     env_set: ManifestObj,
     manifest: InstallManifest,
-    options: &Box<[InstallOptions]>,
+    options: &[InstallOptions],
 ) -> anyhow::Result<()> {
     let app_name = manifest.name.unwrap_or(String::new());
     let app_version = manifest.version.unwrap_or(String::new());
@@ -34,7 +34,7 @@ pub fn handle_env_set(
         r#"
       $app = "{app_name}" ;
       $version = "{app_version}" ;
-      $cmd ="uninstall" ;
+      $cmd ="install" ;
       $global = $false  ;
       $scoopdir ="{scoop_home}" ;
       $dir = "{scoop_home}\apps\$app\current" ;
@@ -61,9 +61,15 @@ pub fn handle_env_set(
             if env_value.contains(r"\\") {
                 env_value = env_value.replace(r"\\", r"\");
             }
-            let cmd = format!(
-                r#"Set-ItemProperty -Path "HKCU:\Environment" -Name "{key}" -Value {env_value}"#
-            );
+            let cmd = if options.contains(&InstallOptions::Global) {
+                format!(
+                    r#"Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" -Name {key} -Value {env_value}"#
+                )
+            } else {
+                format!(
+                    r#"Set-ItemProperty -Path "HKCU:\Environment" -Name {key}  -Value {env_value}"#
+                )
+            };
 
             let output = std::process::Command::new("powershell")
                 .arg("-Command")
@@ -71,6 +77,7 @@ pub fn handle_env_set(
                 .arg(&injects_var)
                 .arg(cmd)
                 .output()?;
+
             if !output.status.success() {
                 let error_output = String::from_utf8_lossy(&output.stderr);
                 bail!(
@@ -80,7 +87,7 @@ pub fn handle_env_set(
             }
 
             println!(
-                "{} {}",
+                "{} '{}'",
                 "Env set successfully for".to_string().dark_green().bold(),
                 key.to_string().dark_cyan().bold(),
             );
@@ -92,19 +99,15 @@ pub fn handle_env_set(
 pub fn handle_env_add_path(
     env_add_path: StringArrayOrString,
     app_current_dir: String,
-    options: &Box<[InstallOptions]>,
+    options: &[InstallOptions],
 ) -> anyhow::Result<()> {
     let app_current_dir = app_current_dir.replace('/', r"\");
     if let StringArrayOrString::StringArray(paths) = env_add_path {
         for path in paths {
-            add_bin_to_path(
-                path.as_ref(),
-                &app_current_dir,
-                options,
-            )?;
+            add_bin_to_path(path.as_ref(), &app_current_dir, options)?;
         }
     } else if let StringArrayOrString::String(path) = env_add_path {
-        add_bin_to_path(path.as_ref(), &app_current_dir, options )?;
+        add_bin_to_path(path.as_ref(), &app_current_dir, options)?;
     }
 
     Ok(())
@@ -113,7 +116,7 @@ pub fn handle_env_add_path(
 pub fn add_bin_to_path(
     path: &str,
     app_current_dir: &str,
-    options: &Box<[InstallOptions]>,
+    options: &[InstallOptions],
 ) -> anyhow::Result<()> {
     let path = if path.eq(".") {
         Path::new(app_current_dir).to_str().unwrap().to_string()
@@ -125,10 +128,16 @@ pub fn add_bin_to_path(
             .to_string()
     };
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-    let environment_key = hkcu.open_subkey("Environment")?;
-    let user_path: String = environment_key.get_value("PATH")?; 
-    let  user_path_split: Vec<&str> = user_path.split(";").collect();
-    if  user_path_split.contains(&path.as_str()) {
+    let environment_key = if options.contains(&InstallOptions::Global) {
+        hkcu.open_subkey("SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment")?
+    } else {
+        hkcu.open_subkey("Environment")?
+    };
+
+    let user_path: String = environment_key.get_value("PATH")?;
+    let user_path_split: Vec<&str> = user_path.split(";").collect();
+
+    if user_path_split.contains(&path.as_str()) {
         log::warn!(
             "{} {} {}",
             "The path already exists in the user's PATH"
@@ -148,6 +157,7 @@ pub fn add_bin_to_path(
     log::debug!("\n 更新后的用户的 PATH: {}", user_path);
     let script =
         format!(r#"[System.Environment]::SetEnvironmentVariable("PATH","{user_path}", "Machine")"#);
+
     if options.contains(&InstallOptions::Global) {
         let output = std::process::Command::new("powershell")
             .arg("-Command")
@@ -160,5 +170,32 @@ pub fn add_bin_to_path(
     } else {
         set_user_env_var("Path", &user_path)?;
         Ok(())
+    }
+}
+
+mod test_env_operate {
+
+    #[test]  // 默认要执行很多次, 千万不用用于提权类的测试  
+    fn test_env_set() {
+        use crate::utils::system::request_admin;
+        use crate::install::{handle_env_set, InstallOptions};
+        use crate::manifest::install_manifest::InstallManifest;
+        // "AAAHOME": "$dir\\AAAHOME",
+        // "AAAYAZI":  "$persist_dir//AAAYAZI",
+        // "AAASUPER" :"$dir/AAASUPER",
+        let global = true  ;
+        let path = r"A:\Scoop\buckets\main\bucket\yazi.json";
+
+        let content = std::fs::read_to_string(path).unwrap();
+        let mut manifest: InstallManifest = serde_json::from_str(&content).unwrap();
+        let options = if global { 
+            request_admin();
+            vec![InstallOptions::Global]
+        } else {
+            vec![]
+        };
+        manifest.set_name("yazi");
+        let env_set = manifest.env_set.clone().unwrap();
+        handle_env_set(env_set, manifest, options.into_boxed_slice().as_ref()).unwrap();
     }
 }

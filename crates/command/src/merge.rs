@@ -40,7 +40,6 @@ impl Display for Merge {
     }
 }
 
-// 合并所有冗余的manifest
 pub fn merge_all_buckets() -> Result<(), anyhow::Error> {
     //  1. 读取所有bucket的manifest文件
     println!("{ }", "正在合并所有冗余的manifest文件".dark_green().bold());
@@ -217,7 +216,8 @@ fn remove_old_manifest(
 
     // 读取目录条目并收集结果（提前处理错误）
     let entries: Vec<_> = bucket_dir
-        .read_dir()?
+        .read_dir()
+        .context("read bucket dir error at line 220")?
         .par_bridge()
         .collect::<Result<Vec<_>, _>>()?;
 
@@ -475,7 +475,8 @@ fn rm_err_manifest_unit(
     }
     let bucket_path = Path::new(bucket_path);
     let manifests = bucket_path
-        .read_dir()?
+        .read_dir()
+        .context( format!("read bucket dir error at line 479 {}", bucket_path.display()))?
         .par_bridge()
         .filter_map(|path| Some(path.ok()))
         .collect::<Vec<_>>();

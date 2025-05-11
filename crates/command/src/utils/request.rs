@@ -1,6 +1,8 @@
 ﻿use crate::config::get_config_value_no_print;
-use anyhow::bail;
+use anyhow::{bail, Context};
 use crossterm::style::Stylize;
+use dialoguer::theme::ColorfulTheme;
+use dialoguer::Confirm;
 use git2::{FetchOptions, Progress, ProxyOptions, RemoteCallbacks, Repository};
 use indicatif::{ProgressBar, ProgressDrawTarget, ProgressStyle};
 use regex::Regex;
@@ -9,10 +11,7 @@ use std::fs::{create_dir_all, read_dir, remove_dir, remove_dir_all, remove_file,
 use std::io::{copy, Read, Write};
 use std::path::Path;
 use std::process::{Command, Stdio};
-use std::time::{Duration, Instant};
-use dialoguer::Confirm;
-use dialoguer::theme::ColorfulTheme;
-use tokio::time;
+use std::time::Instant;
 use zip::ZipArchive;
 
 pub async fn request_download_git_repo(
@@ -38,8 +37,7 @@ pub async fn request_download_git_repo(
             branch_flag = "-dev".to_string();
         }
     }
-    //url 是git仓库地址，bucket_path 是下载到本地的路径
-    // 创建一个文件用于存储 ZIP 数据
+
     let zip_path = Path::new(download_path).join("repo.zip");
     if !Path::new(download_path).exists() {
         create_dir_all(&download_path).expect("Failed to create directory for bucket ");
@@ -75,15 +73,15 @@ pub async fn request_download_git_repo(
             copy(&mut file, &mut outfile)?;
         }
     }
-    // 删除 ZIP 文件
+
     remove_file(&zip_path)?;
+
     let last_url = url.split("/").last().unwrap().to_string();
     let current_dir = dest.join(last_url + &branch_flag);
-    // println!("{:?} ", current_dir);
-    // println!("{:?} ", dest);
-    //遍历源目录中的所有项
-    for entry in read_dir(&current_dir)? {
-        //下载 zip
+    for entry in read_dir(&current_dir).context(format!(
+        "Failed to read directory {} at line 83",
+        current_dir.clone().display()
+    ))? {
         let error_message = format!("无法读取目录 {}", current_dir.clone().display());
         let path = entry.expect(error_message.as_str()).path();
         let entry: &Path = path.as_ref();
@@ -100,7 +98,7 @@ pub async fn request_download_git_repo(
     Ok("下载成功!!!".dark_green().bold().to_string())
 }
 
-pub async fn request_download_git_clone(
+pub fn request_download_git_clone(
     repo_url: &str,
     destination: &str,
 ) -> Result<String, anyhow::Error> {
@@ -125,7 +123,7 @@ pub async fn request_download_git_clone(
         .stderr(Stdio::piped())
         .spawn();
     if output.is_err() {
-        return request_git_clone_by_git2(repo_url, destination.to_string()).await;
+        return request_git_clone_by_git2(repo_url, destination.to_string());
     }
     let mut output = output?;
 
@@ -205,7 +203,7 @@ pub async fn request_download_git_clone(
     // ---
     let pb = ProgressBar::new(total_size as u64);
     pb.set_draw_target(ProgressDrawTarget::stdout());
-   
+
     pb.set_style(ProgressStyle::with_template("{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({bytes_per_sec}, {eta})")?
     .progress_chars("#>-"));
     while downloaded < total_size {
@@ -214,8 +212,6 @@ pub async fn request_download_git_clone(
         pb.set_position(new as u64);
         // 更新进度条的信息
         //pb.set_message(format!("{:.2} KB / {:.2} MB", downloaded_mb, total_size_mb));
-       
-        time::sleep(Duration::from_millis(12)).await;
     }
 
     pb.finish_with_message("downloaded");
@@ -234,7 +230,7 @@ pub async fn request_download_git_clone(
     }
 }
 
-pub async fn request_git_clone_by_git2(
+pub fn request_git_clone_by_git2(
     repo_url: &str,
     destination: String,
 ) -> Result<String, anyhow::Error> {
@@ -245,34 +241,37 @@ pub async fn request_git_clone_by_git2(
         create_dir_all(&destination).expect("Failed to create directory for bucket ");
     }
     match Repository::clone(repo_url, &destination) {
-        // {:?} 会调用 Display的trait 实现
         Ok(_) => println!("✅ 仓库已克隆到 {}", destination.dark_green().bold()),
         Err(e) => eprintln!("❌ 克隆失败: {}", e),
     }
     Ok("下载成功!!!".dark_green().bold().to_string())
 }
 
-pub   fn request_git_clone_by_git2_with_progress(
+pub fn request_git_clone_by_git2_with_progress(
     repo_url: &str,
     destination: &String,
 ) -> Result<String, anyhow::Error> {
     if Path::new(destination).exists() {
-      let proceed = Confirm::with_theme(&ColorfulTheme::default())
-        .with_prompt(format!("目录 {} 已存在，是否删除?", destination))
-        .interact()?;
-      if proceed {
-        remove_dir_all(destination)?;
-        println!("已删除目录 {}", destination);
-      } else {
-        return Ok("保留原目录，操作取消".to_string().dark_green().bold().to_string() );
-      }
+        let proceed = Confirm::with_theme(&ColorfulTheme::default())
+            .with_prompt(format!("目录 {} 已存在，是否删除?", destination))
+            .interact()?;
+        if proceed {
+            remove_dir_all(destination)?;
+            println!("已删除目录 {}", destination);
+        } else {
+            return Ok("保留原目录，操作取消"
+                .to_string()
+                .dark_green()
+                .bold()
+                .to_string());
+        }
     }
     if !Path::new(destination).exists() {
         create_dir_all(destination)?
     }
     let pb = ProgressBar::new(100);
     pb.set_draw_target(ProgressDrawTarget::stdout());
-  
+
     pb.set_style(
         ProgressStyle::with_template("[{elapsed_precise}] [{bar:40.cyan/blue}] {pos}%  {msg}")?
             .progress_chars("#>-"),
@@ -283,41 +282,41 @@ pub   fn request_git_clone_by_git2_with_progress(
 
     let mut callbacks = RemoteCallbacks::new();
     callbacks.transfer_progress(|stats: Progress| {
-    let received_objects = stats.received_objects();
-    let total_objects = if stats.total_objects() > 0 {
-      stats.total_objects()
-    } else {
-      stats.indexed_objects()
-    };
-    if total_objects > 0 {
-      let percent = (received_objects as f64 / total_objects as f64) * 100.0;
+        let received_objects = stats.received_objects();
+        let total_objects = if stats.total_objects() > 0 {
+            stats.total_objects()
+        } else {
+            stats.indexed_objects()
+        };
+        if total_objects > 0 {
+            let percent = (received_objects as f64 / total_objects as f64) * 100.0;
 
-      // 计算下载速率（单位：对象数/s）
-      let now = Instant::now();
-      let elapsed = now.duration_since(last_time);
-      let delta_objects = received_objects - last_received;
+            // 计算下载速率（单位：对象数/s）
+            let now = Instant::now();
+            let elapsed = now.duration_since(last_time);
+            let delta_objects = received_objects - last_received;
 
-      let speed = if elapsed.as_secs_f64() > 0.0 {
-        delta_objects as f64 / elapsed.as_secs_f64()
-      } else {
-        0.0
-      };
-      // #[cfg(debug_assertions)]
-      // write_into_log_file_append_mode("git2_clone.txt",
-      //                                 format!("speed {speed:.2}, total_objects {total_objects}, received_objects {received_objects},percent {percent:.2}"));
+            let speed = if elapsed.as_secs_f64() > 0.0 {
+                delta_objects as f64 / elapsed.as_secs_f64()
+            } else {
+                0.0
+            };
+            // #[cfg(debug_assertions)]
+            // write_into_log_file_append_mode("git2_clone.txt",
+            //                                 format!("speed {speed:.2}, total_objects {total_objects}, received_objects {received_objects},percent {percent:.2}"));
 
-      pb.set_position(percent as u64);
-      pb.set_message(format!(
-        "{} / {} objects, {:.2} objs/s",
-        received_objects, total_objects, speed
-      ));
-      pb.tick();
-      std::io::stdout().flush().unwrap();
-      last_received = received_objects;
-      last_time = now;
-    }
-    true // 继续下载
-  });
+            pb.set_position(percent as u64);
+            pb.set_message(format!(
+                "{} / {} objects, {:.2} objs/s",
+                received_objects, total_objects, speed
+            ));
+            pb.tick();
+            std::io::stdout().flush().unwrap();
+            last_received = received_objects;
+            last_time = now;
+        }
+        true // 继续下载
+    });
     let mut proxy_option = ProxyOptions::new();
     let config_proxy = get_config_value_no_print("proxy");
     if !config_proxy.is_empty() {
@@ -354,8 +353,7 @@ pub   fn request_git_clone_by_git2_with_progress(
     }
 }
 
-#[allow(unused)]
-pub async fn download_third_party_buckets() -> Result<String, anyhow::Error> {
+pub fn download_third_party_buckets() -> Result<String, anyhow::Error> {
     let third_buckets = vec![
         "https://github.com/DoveBoy/Apps",
         "https://github.com/anderlli0053/DEV-tools",
@@ -394,7 +392,7 @@ pub async fn download_third_party_buckets() -> Result<String, anyhow::Error> {
             continue;
         }
 
-        request_download_git_clone(url, &download_path).await?;
+        request_download_git_clone(url, &download_path)?;
     }
 
     Ok("下载成功!!!".dark_green().bold().to_string())

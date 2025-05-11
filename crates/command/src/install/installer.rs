@@ -16,13 +16,12 @@ use crate::utils::system::{
     get_system_default_arch, get_system_env_str, get_system_env_var, get_user_env_str,
     get_user_env_var, set_global_env_var, set_user_env_var,
 };
-use anyhow::bail;
+use anyhow::{bail, Context};
 use crossterm::style::Stylize;
 use regex::Regex;
 use std::os::windows::fs;
 use std::path::Path;
 use which::which;
-
 
 pub fn show_suggest(suggest: &SuggestObj) -> anyhow::Result<()> {
     println!(
@@ -115,8 +114,6 @@ pub fn handle_arch(arch: &[InstallOptions]) -> anyhow::Result<String> {
     }
 }
 
-
-
 pub fn add_scoop_shim_root_dir_to_env_path(options: &Box<[InstallOptions]>) -> anyhow::Result<()> {
     let origin = if options.contains(&InstallOptions::Global) {
         get_system_env_str()
@@ -174,9 +171,13 @@ pub fn install_psmodule(
                 .bold()
                 .to_string()
         );
-        std::fs::remove_dir_all(&link_dir)?;
+        std::fs::remove_dir_all(&link_dir).context(format!(
+            "remove old module dir link failed {} at line 178",
+            link_dir
+        ))?;
     }
-    fs::symlink_dir(&app_version_dir, &link_dir).expect("Create dir symlink failed");
+    fs::symlink_dir(&app_version_dir, &link_dir)
+        .context("Create ps module dir symlink failed at line 180")?;
     println!(
         "{}  {} => {}",
         "Linking".dark_blue().bold(),
@@ -299,16 +300,19 @@ pub fn create_persist_data_link(
     Ok(())
 }
 
-pub fn ensure_directory(target: &str) -> std::io::Result<()> {
+pub fn ensure_directory(target: &str) ->  anyhow::Result<()> {
     let path = Path::new(target);
     if !path.exists() {
-        std::fs::create_dir_all(path)?;
+        std::fs::create_dir_all(path).context(format!(
+            "create target directory failed {} at line 307",
+            target
+        ))?;
     } else if !path.is_dir() {
         // 如果路径存在但不是目录，返回错误
         return Err(std::io::Error::new(
-            std::io::ErrorKind::AlreadyExists,
-            "Path exists but is not a directory",
-        ));
+          std::io::ErrorKind::AlreadyExists,
+          "Path exists but is not a directory",
+        ).into());
     }
 
     Ok(())
@@ -332,25 +336,33 @@ pub fn start_create_file_and_dir_link(
     };
     let target_persist_dir = format!("{persist_root_dir}\\{app_name}\\{persist_dir}");
     let source_dir = format!("{app_current_dir}\\{source_dir}");
+
     if Path::new(&target_persist_dir).exists() {
         if Path::new(&source_dir).exists() {
-            std::fs::rename(&source_dir, format!("{source_dir}.original"))?
+            std::fs::rename(&source_dir, format!("{source_dir}.original")).context(format!(
+                "rename old source dir failed {} at line 343",
+                source_dir
+            ))?;
         }
     } else if Path::new(&source_dir).exists() {
         let parent = Path::new(&target_persist_dir).parent().unwrap();
         if !parent.exists() {
-            std::fs::create_dir_all(parent)?;
+            std::fs::create_dir_all(parent)
+              .context(format!("create parent directory failed {} at line 351", parent.display()))?;
         }
-        std::fs::rename(&source_dir, &target_persist_dir)?
+        std::fs::rename(&source_dir, &target_persist_dir)
+          .context(format!("move source dir failed {} at line 355", source_dir))?
     } else {
         ensure_directory(&target_persist_dir)?;
     }
 
-    // create link
+    // !create persist data link
     if Path::new(&target_persist_dir).is_dir() {
-        fs::symlink_dir(target_persist_dir, &source_dir)?;
+        fs::symlink_dir(&target_persist_dir, &source_dir)
+          .context(format!("create target persisted dir failed {} at line 362", target_persist_dir))?;
     } else {
-        std::fs::hard_link(target_persist_dir, &source_dir)?;
+        std::fs::hard_link(&target_persist_dir, &source_dir)
+          .context(format!("create target persisted hard file failed {} at line 365", target_persist_dir))?;
     }
 
     Ok(())
@@ -440,11 +452,11 @@ mod test_installer {
         let info = std::fs::read_link(r"A:\Scoop\apps\motrix\current").unwrap();
         println!("{:?}", info.display());
     }
-  
-  #[test]
-   fn test_path_format(){ 
-     let  path = r"A:\Scoop\apps\nodejs\current\."; 
-     let  path = Path::new(path).canonicalize().unwrap();
-      println!("{:?}", path.display());
-  }
+
+    #[test]
+    fn test_path_format() {
+        let path = r"A:\Scoop\apps\nodejs\current\.";
+        let path = Path::new(path).canonicalize().unwrap();
+        println!("{:?}", path.display());
+    }
 }

@@ -30,13 +30,13 @@ pub use update::*;
 
 const FINISH_MESSAGE: &str = "✅";
 
-pub async fn update_all_apps(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
+pub   fn update_all_apps(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
     let all_apps_name = get_all_installed_apps_name();
     for app in all_apps_name {
         if check_app_version_latest(&app, &options)? {
             continue;
         };
-        update_specific_app(&app, options).await?;
+        update_specific_app(&app, options)?;
     }
     Ok(())
 }
@@ -83,7 +83,7 @@ pub fn transform_update_options_to_install(
     options
 }
 
-pub async fn update_specific_app(
+pub   fn update_specific_app(
     app_name: &str,
     options: &[UpdateOptions],
 ) -> Result<(), anyhow::Error> {

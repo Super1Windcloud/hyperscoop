@@ -8,7 +8,7 @@ use std::path::PathBuf;
 use winreg::enums::*;
 use winreg::RegKey;
 
-pub fn env_var_rm(manifest: &UninstallManifest) -> Result<(), anyhow::Error> {
+pub fn env_var_rm(manifest: &UninstallManifest, is_global: bool) -> Result<(), anyhow::Error> {
     let env_set = manifest.env_set.clone();
     if env_set.is_none() {
         return Ok(());
@@ -58,12 +58,22 @@ pub fn env_var_rm(manifest: &UninstallManifest) -> Result<(), anyhow::Error> {
     if let serde_json::Value::Object(env_set) = env_set {
         for (key, _) in env_set {
             let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-            let environment_key = hkcu.open_subkey("Environment")?;
+            let environment_key = if is_global {
+                hkcu.open_subkey(r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment")?
+            } else {
+                hkcu.open_subkey("Environment")?
+            };
             let env_value: String = environment_key.get_value(&key).unwrap_or("".into());
             if env_value.is_empty() {
                 continue;
             }
-            let cmd = format!(r#"Remove-ItemProperty -Path "HKCU:\Environment" -Name {key}"#);
+            let cmd = if is_global {
+                format!(
+                    r#"Remove-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" -Name {key}"#
+                )
+            } else {
+                format!(r#"Remove-ItemProperty -Path "HKCU:\Environment" -Name {key}"#)
+            };
 
             let rm_env_var_pointer_path = format!(
                 r#"
@@ -85,6 +95,7 @@ pub fn env_var_rm(manifest: &UninstallManifest) -> Result<(), anyhow::Error> {
                 .arg(cmd)
                 .arg(rm_env_var_pointer_path)
                 .output()?;
+          
             if !output.status.success() {
                 bail!("powershell failed to set environment variable");
             }
@@ -109,7 +120,12 @@ pub fn env_path_var_rm(
             current.join(env_add_path_str)
         };
         let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-        let environment_key = hkcu.open_subkey("Environment")?;
+        let environment_key = if is_global {
+            hkcu.open_subkey(r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment")?
+        } else {
+            hkcu.open_subkey("Environment")?
+        };
+
         let user_path: String = environment_key.get_value("PATH")?;
         log::debug!("\n 当前用户的 PATH: {}", user_path);
         let mut paths: Vec<PathBuf> = std::env::split_paths(&user_path).collect();
@@ -186,6 +202,6 @@ mod test {
     fn test_rm_env() {
         let mut manifest = UninstallManifest::new(r"A:\Scoop\buckets\DoveBoyApps\bucket\nvm.json");
         manifest = manifest.set_name(&"nvm".to_string()).to_owned();
-        env_var_rm(&manifest).unwrap();
+        env_var_rm(&manifest, false).unwrap();
     }
 }
