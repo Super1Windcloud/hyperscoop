@@ -300,7 +300,7 @@ pub fn create_persist_data_link(
     Ok(())
 }
 
-pub fn ensure_directory(target: &str) ->  anyhow::Result<()> {
+pub fn ensure_directory(target: &str) -> anyhow::Result<()> {
     let path = Path::new(target);
     if !path.exists() {
         std::fs::create_dir_all(path).context(format!(
@@ -310,9 +310,10 @@ pub fn ensure_directory(target: &str) ->  anyhow::Result<()> {
     } else if !path.is_dir() {
         // 如果路径存在但不是目录，返回错误
         return Err(std::io::Error::new(
-          std::io::ErrorKind::AlreadyExists,
-          "Path exists but is not a directory",
-        ).into());
+            std::io::ErrorKind::AlreadyExists,
+            "Path exists but is not a directory",
+        )
+        .into());
     }
 
     Ok(())
@@ -347,22 +348,28 @@ pub fn start_create_file_and_dir_link(
     } else if Path::new(&source_dir).exists() {
         let parent = Path::new(&target_persist_dir).parent().unwrap();
         if !parent.exists() {
-            std::fs::create_dir_all(parent)
-              .context(format!("create parent directory failed {} at line 351", parent.display()))?;
+            std::fs::create_dir_all(parent).context(format!(
+                "create parent directory failed {} at line 351",
+                parent.display()
+            ))?;
         }
         std::fs::rename(&source_dir, &target_persist_dir)
-          .context(format!("move source dir failed {} at line 355", source_dir))?
+            .context(format!("move source dir failed {} at line 355", source_dir))?
     } else {
         ensure_directory(&target_persist_dir)?;
     }
 
     // !create persist data link
     if Path::new(&target_persist_dir).is_dir() {
-        fs::symlink_dir(&target_persist_dir, &source_dir)
-          .context(format!("create target persisted dir failed {} at line 362", target_persist_dir))?;
+        fs::symlink_dir(&target_persist_dir, &source_dir).context(format!(
+            "create target persisted dir failed {} at line 362",
+            target_persist_dir
+        ))?;
     } else {
-        std::fs::hard_link(&target_persist_dir, &source_dir)
-          .context(format!("create target persisted hard file failed {} at line 365", target_persist_dir))?;
+        std::fs::hard_link(&target_persist_dir, &source_dir).context(format!(
+            "create target persisted hard file failed {} at line 365",
+            target_persist_dir
+        ))?;
     }
 
     Ok(())
@@ -370,7 +377,7 @@ pub fn start_create_file_and_dir_link(
 
 pub fn install_app_from_url(
     download_url: &Path,
-    options: &[InstallOptions],
+    options: &[InstallOptions<'_>],
     app_alias: Option<String>,
 ) -> anyhow::Result<()> {
     log::info!("Installing app from url: {}", download_url.display());

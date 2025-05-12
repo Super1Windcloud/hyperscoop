@@ -1,9 +1,9 @@
+use anyhow::Context;
 use color_eyre::owo_colors::OwoColorize;
 use command_util_lib::init_env::{init_scoop_global, init_user_scoop};
 use crossterm::style::Stylize;
 use std::process::Command;
 use std::{env, path::Path};
-use anyhow::Context;
 use which::which;
 use windows::core::PCWSTR;
 use windows::Wdk::System::SystemServices::RtlGetVersion;
@@ -49,14 +49,19 @@ pub async fn execute_checkup_command(global: bool) -> anyhow::Result<()> {
         total_issues += 1;
         print_result(&av_result);
     }
-  
-   let aria2c_result = check_aria2c_path()?;
+
+    let aria2c_result = check_aria2c_path()?;
     if !aria2c_result.passed {
         total_issues += 1;
         print_result(&aria2c_result);
     }
-  
-  
+
+    let curl_result = check_curl_path()?;
+    if !curl_result.passed {
+        total_issues += 1;
+        print_result(&curl_result);
+    }
+
     let innounp_result = check_innounp()?;
     if !innounp_result.passed {
         total_issues += 1;
@@ -304,8 +309,11 @@ fn check_innounp() -> anyhow::Result<CheckupResult> {
 
 async fn check_github() -> anyhow::Result<CheckupResult> {
     let client = reqwest::Client::new();
-    let response = client.head("https://github.com").send().await
-      .context("Failed to get response from GitHub at 308")?;
+    let response = client
+        .head("https://github.com")
+        .send()
+        .await
+        .context("Failed to get response from GitHub at 308")?;
 
     if response.status().is_success() {
         Ok(CheckupResult {
@@ -336,6 +344,23 @@ fn check_git() -> anyhow::Result<CheckupResult> {
         Ok(CheckupResult {
             passed: true,
             message: "git is installed".to_string(),
+            fix_hint: None,
+        })
+    }
+}
+
+fn check_curl_path() -> anyhow::Result<CheckupResult> {
+    if which("curl").is_err() {
+        Ok(CheckupResult {
+            passed: false,
+            message: "'curl' is not installed! It's required for downloading some programs"
+                .to_string(),
+            fix_hint: Some("Run: hp install curl".to_string()),
+        })
+    } else {
+        Ok(CheckupResult {
+            passed: true,
+            message: "curl is installed".to_string(),
             fix_hint: None,
         })
     }
@@ -401,8 +426,8 @@ fn check_common_antivirus() -> anyhow::Result<CheckupResult> {
         "QQPCTray.exe",   // 腾讯电脑管家
         "McAfee.exe",     // McAfee
         "AvastUI.exe",    // Avast
-        "wsctrlsvc.exe"  , // huorong
-        "HipsDaemon.exe" ,  // huorong
+        "wsctrlsvc.exe",  // huorong
+        "HipsDaemon.exe", // huorong
         "HipsTray.exe",   // huorong
     ];
 

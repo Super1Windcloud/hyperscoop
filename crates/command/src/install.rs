@@ -187,7 +187,9 @@ pub fn install_app_from_local_manifest_file<P: AsRef<Path>>(
     // let post_install = serde_obj.post_install;
 
     if !depends.is_none() && !options.contains(&InstallOptions::NoAutoDownloadDepends) {
-        handle_depends(depends.unwrap().as_str(), &options)?;
+        let depend = depends.unwrap();
+        let future = handle_depends(depend.as_str(), options.as_ref());
+        future?;
     }
     //   **invoke aria2  to  download  file to cache
     let download_manager = DownloadManager::new(&options, &manifest_path, bucket_source);
@@ -333,7 +335,7 @@ pub fn install_from_specific_bucket(
     Ok(())
 }
 
-pub fn install_app_specific_version(
+pub async fn install_app_specific_version(
     app_name: &str,
     app_version: &str,
     options: &Vec<InstallOptions<'_>>,
@@ -455,13 +457,13 @@ pub fn install_app(app_name: &str, options: &[InstallOptions<'_>]) -> Result<()>
             } else {
                 result?
             }
-        } else { 
-            let result = get_best_manifest_from_local_bucket_global(app_name); 
-          if result.is_err() {
-             get_best_manifest_from_local_bucket(app_name)?
-          }else{ 
-            result?
-          }
+        } else {
+            let result = get_best_manifest_from_local_bucket_global(app_name);
+            if result.is_err() {
+                get_best_manifest_from_local_bucket(app_name)?
+            } else {
+                result?
+            }
         }
     } else if options.contains(&InstallOptions::UpdateTransaction) {
         get_latest_manifest_from_local_bucket(app_name)?

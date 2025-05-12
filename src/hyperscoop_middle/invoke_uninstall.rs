@@ -7,19 +7,19 @@ use crossterm::style::Stylize;
 use std::env;
 use std::path::Path;
 
-pub fn execute_uninstall_command(args: UninstallArgs) -> Result<(), anyhow::Error> {
 
+pub   fn execute_uninstall_command(args: UninstallArgs) -> Result<(), anyhow::Error> {
     if let Some(app_name) = args.app_name {
-      if args.global && !is_admin()? {
-        let args = env::args().skip(1).collect::<Vec<String>>();
-        let args_str = args.join(" ");
-        log::warn!(
-            "Global command arguments: {}",
-            args_str.clone().dark_yellow()
-        );
-        request_admin(args_str.as_str())?;
-        return Ok(());
-      }
+        if args.global && !is_admin()? {
+            let args = env::args().skip(1).collect::<Vec<String>>();
+            let args_str = args.join(" ");
+            log::warn!(
+                "Global command arguments: {}",
+                args_str.clone().dark_yellow()
+            );
+            request_admin(args_str.as_str())?;
+            return Ok(());
+        }
       
         if args.purge {
             log::info!("purging app {}", &app_name);

@@ -2,6 +2,8 @@ use crate::config::get_config_value_no_print;
 use crate::utils::utility::is_valid_url;
 use anyhow::{bail, Context};
 use crossterm::style::Stylize;
+use futures::stream::{iter, StreamExt, TryStreamExt};
+use reqwest::Client;
 use std::borrow::Cow;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Read, Write};
@@ -19,13 +21,25 @@ pub struct Aria2C<'a> {
     cache_file_name: Box<[String]>,
     scoop_cache_dir: &'a str,
     final_download_path: Box<[String]>,
+    download_urls: Box<[String]>,
 }
 
 impl<'a> Aria2C<'a> {
     pub fn get_final_download_path(&self) -> &Box<[String]> {
         &self.final_download_path
     }
-    pub fn set_final_download_path(&mut self) {}
+    pub fn set_final_download_path(&mut self, final_download_path: &[String]) {
+        self.final_download_path = final_download_path.to_vec().into_boxed_slice();
+    }
+
+    pub fn get_download_urls(&self) -> Vec<String> {
+        self.download_urls.clone().to_vec()
+    }
+
+    pub fn set_download_urls(&mut self, download_urls: &[String]) {
+        self.download_urls = download_urls.to_vec().into_boxed_slice();
+    }
+
     pub fn get_scoop_cache_dir(&self) -> &'a str {
         self.scoop_cache_dir
     }
@@ -33,7 +47,6 @@ impl<'a> Aria2C<'a> {
         self.scoop_cache_dir = scoop_cache_dir;
     }
     fn init(&mut self) -> anyhow::Result<()> {
-        self.init_aria2c_config();
         let aria2_path = self.extract_aria2()?;
         log::debug!("aria2c.exe : {}", aria2_path.as_str());
         self.set_aria2c_path(Cow::Owned(aria2_path));
@@ -62,6 +75,7 @@ impl<'a> Aria2C<'a> {
             cache_file_name: Box::new([]),
             scoop_cache_dir: "",
             final_download_path: Box::new([]),
+            download_urls: Box::new([]),
         };
         match aria.init() {
             Ok(_) => aria,
@@ -77,31 +91,219 @@ impl<'a> Aria2C<'a> {
     pub fn add_aria2c_download_config(&mut self, config: &'a str) {
         self.aria2c_download_config.push(config);
     }
-    pub fn init_aria2c_config(&mut self) {
-        let args = vec![
-            "--optimize-concurrent-downloads=true",
-            "--enable-http-pipelining=true",
-            "--enable-color=true",      //  启用颜色输出
-            "retry-wait=3",             // 重试等待时间
-            "auto-file-renaming=false", // 不自动重命名文件
-            "--allow-overwrite=true",
-            "--metalink-preferred-protocol=https", // 优先使用 HTTPS 协议下载 Metalink 文件
-            "--min-tls-version=TLSv1.2",           // 最小 TLS 版本
-            "--check-certificate=false",           // 跳过证书验证
-            "--max-connection-per-server=16",      // 单服务器最大连接数
-            "--split=16",                          // 分片数
-            "--console-log-level=warn",            // 日志级别
-            "--follow-metalink=true",              // 支持 Metalink 下载
-            "--min-split-size=5M",                 // 最小分片大小
-            "--continue=true",                     // 断点续传
-            "--file-allocation=trunc",             // windows下文件预分配磁盘空间（SSD推荐）
-            "--summary-interval=0",                // 不频繁输出日志减少IO
-            "--auto-save-interval=1",              //  自动保存间隔
-            "--disable-ipv6=true",                 // 禁用 IPv6（如果不需要）
-            "--no-file-allocation-limit=500M",     // 大文件不预分配（SSD 可启用）
-            "--async-dns=true",                    // 异步 DNS 解析
+
+    pub fn get_download_file_size_by_powershell(&self) -> anyhow::Result<u64> {
+        let mut max_size = 0;
+        let urls = self.get_download_urls();
+        let result = urls.iter().try_for_each(|url| {
+            let script = format!(
+                "try {{
+            $response = Invoke-WebRequest -Uri '{}' -Method Head -UseBasicParsing
+            if ($response.Headers['Content-Length']) {{
+                Write-Output $response.Headers['Content-Length']
+            }} else {{
+                Write-Error 'No Content-Length'
+            }}
+        }} catch {{
+            Write-Error $_
+        }}",
+                url
+            );
+            let output = Command::new("powershell")
+                .args(["-Command", &script])
+                .output()?;
+
+            if !output.status.success() {
+                let err = String::from_utf8_lossy(&output.stderr);
+                bail!("PowerShell 调用失败: {}", err);
+            }
+
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let size = stdout
+                .trim()
+                .parse::<u64>()
+                .context("Failed to parse content-length: at line 153")?;
+            let size_mb = size / 1024 / 1024;
+            max_size = max_size.max(size_mb);
+            Ok(())
+        });
+
+        if result.is_err() {
+            bail!(result.unwrap_err());
+        }
+        Ok(max_size)
+    }
+
+    pub fn request_download_file_size_by_external_command(&self) -> anyhow::Result<u64> {
+        let curl_result = which("curl").ok();
+        let urls = self.get_download_urls();
+        let mut max_size = 0;
+        if curl_result.is_some() {
+            let result = urls.iter().try_for_each(|url| {
+                log::info!("Get file size by curl: {}", url);
+                let output = Command::new("curl")
+                    .arg("-sIL")
+                     // **-I 表示 HEAD 请求, -s 表示静默模式, -L 表示跟随重定向
+                    .arg(url)
+                    .output()?;
+                if !output.status.success() {
+                    bail!(
+                        "Failed to get file size: {}",
+                        String::from_utf8_lossy(&output.stderr)
+                    )
+                }
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                for line in stdout.lines() {
+                    if line.to_lowercase().starts_with("content-length:") {
+                        let size = line["content-length:".len()..]
+                            .trim()
+                            .parse::<u64>()
+                            .context("Failed to parse content-length: at line 115")?;
+                        let size_mb = size / 1024 / 1024;
+                        log::debug!("File size: {} MB", size_mb);
+                        max_size = max_size.max(size_mb);
+                    }
+                }
+                Ok(())
+            });
+            if result.is_err() {
+                bail!(result.unwrap_err());
+            }
+        } else {
+            let result = urls.iter().try_for_each(|url| {
+                let script = format!(
+                    "try {{
+            $response = Invoke-WebRequest -Uri '{}' -Method Head -UseBasicParsing
+            if ($response.Headers['Content-Length']) {{
+                Write-Output $response.Headers['Content-Length']
+            }} else {{
+                Write-Error 'No Content-Length'
+            }}
+        }} catch {{
+            Write-Error $_
+        }}",
+                    url
+                );
+                let output = Command::new("powershell")
+                    .args(["-Command", &script])
+                    .output()?;
+
+                if !output.status.success() {
+                    let err = String::from_utf8_lossy(&output.stderr);
+                    bail!("PowerShell 调用失败: {}", err);
+                }
+
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                let size = stdout
+                    .trim()
+                    .parse::<u64>()
+                    .context("Failed to parse content-length: at line 153")?;
+                let size_mb = size / 1024 / 1024;
+                max_size = max_size.max(size_mb);
+                Ok(())
+            });
+
+            if result.is_err() {
+                bail!(result.unwrap_err());
+            }
+        }
+        Ok(max_size)
+    }
+
+    pub async fn request_download_file_size_async(&self) -> anyhow::Result<u64> {
+        let urls = self.get_download_urls();
+        let sizes: Vec<u64> = iter(urls)
+            .map(Ok as fn(_) -> anyhow::Result<String>)
+            .then(|url| async move {
+                match url {
+                    Ok(url) => {
+                        let client = Client::new();
+                        let response = client
+                            .head(&url)
+                            .send()
+                            .await
+                            .with_context(|| format!("Failed to get response from {}", url))?;
+
+                        if let Some(content_length) =
+                            response.headers().get(reqwest::header::CONTENT_LENGTH)
+                        {
+                            let size =
+                                content_length.to_str()?.parse::<u64>().with_context(|| {
+                                    format!("Failed to parse content length from {}", url)
+                                })?;
+                            let size_mb = size / 1024 / 1024;
+                            Ok(size_mb)
+                        } else {
+                            bail!("无法获取文件大小（Content-Length 不存在）");
+                        }
+                    }
+                    Err(e) => {
+                        bail!("Failed to get file size: {}", e);
+                    }
+                }
+            })
+            .try_collect()
+            .await?;
+
+        if let Some(max_size) = sizes.iter().max() {
+            println!("最大文件大小: {} MB", max_size);
+            Ok(*max_size)
+        } else {
+            bail!("未能获取任何文件大小");
+        }
+    }
+
+    pub fn init_aria2c_config(&mut self) -> anyhow::Result<()> {
+        let max_file_size = self.request_download_file_size_by_external_command()?;
+        let threshold = 100;
+        let split = if max_file_size > threshold {
+            "--split=16"
+        } else {
+            "--split=5"
+        };
+        let max_server = if max_file_size > threshold {
+            "--max-connection-per-server=16"
+        } else {
+            "--max-connection-per-server=5"
+        };
+        log::debug!(
+            "max_file_size: {}, threshold: {}, split: {}, max_server: {}",
+            max_file_size,
+            threshold,
+            split,
+            max_server
+        );
+        let min_split_size = "--min-split-size=10M";
+        let mut args = vec![
+            "--optimize-concurrent-downloads=true", // 优化并行下载
+            "--enable-http-pipelining=true",        // 启用 HTTP 管道
+            "--enable-color=true",                  //  启用颜色输出
+            "--retry-wait=3",                       // 重试等待时间
+            "--auto-file-renaming=false",           // 不自动重命名文件
+            "--allow-overwrite=true",               // 允许覆盖已存在文件
+            "--no-conf=true",                       // 不读取系统配置文件
+            "--metalink-preferred-protocol=https",  // 优先使用 HTTPS 协议下载 Metalink 文件
+            "--min-tls-version=TLSv1.2",            // 最小 TLS 版本
+            "--check-certificate=false",            // 跳过证书验证
+            // "--max-connection-per-server=16",       // 单服务器最大连接数
+            // "--split=16",                           // 分片数
+            "--console-log-level=warn", // 日志级别
+            "--follow-metalink=true",   // 支持 Metalink 下载
+            // "--min-split-size=5M",                  // 最小分片大小
+            "--continue=true",                 // 断点续传
+            "--file-allocation=trunc",         // windows下文件预分配磁盘空间（SSD推荐）
+            "--summary-interval=0",            // 不频繁输出日志减少IO
+            "--auto-save-interval=1",          //  自动保存间隔
+            "--disable-ipv6=true",             // 禁用 IPv6（如果不需要）
+            "--no-file-allocation-limit=500M", // 大文件不预分配（SSD 可启用）
+            "--async-dns=true",                // 异步 DNS 解析
         ];
+        args.push(split);
+        args.push(max_server);
+        args.push(min_split_size);
         self.aria2c_download_config = args;
+
+        Ok(())
     }
 
     pub fn set_aria2c_path(&mut self, path: Cow<'a, str>) {
@@ -347,5 +549,20 @@ mod tests {
     fn test_agent() {
         let a = Aria2C::new();
         println!("{}", a.get_scoop_user_agent())
+    }
+
+    #[tokio::test]
+    async fn test_powershell_get_file_size() {
+        let mut a = Aria2C::new();
+        let urls =
+            vec!["https://github.com/Super1Windcloud/hyperscoop/releases/download/4.0.7/hp.exe".to_string()
+      ,"https://github.com/sxyazi/yazi/releases/download/v25.4.8/yazi-x86_64-pc-windows-msvc.zip".to_string()
+      ];
+
+        a.set_download_urls(urls.as_slice());
+        let  max_size_by_lib = a.request_download_file_size_async().await.unwrap();
+        println!("max_size_by_lib = {}", max_size_by_lib);
+        let max_size_by_powershell = a.get_download_file_size_by_powershell().unwrap();
+        println!("max_size_by_powershell = {}", max_size_by_powershell);
     }
 }

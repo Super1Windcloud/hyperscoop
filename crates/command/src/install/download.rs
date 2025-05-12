@@ -251,8 +251,8 @@ impl<'a> DownloadManager<'a> {
         }
     }
 
-    pub fn get_download_urls(&self) -> Vec<&str> {
-        self.download_urls.iter().map(|s| &**s).collect()
+    pub fn get_download_urls(&self) -> Vec<String> {
+        self.download_urls.iter().map(|s| s.to_string()).collect()
     }
 
     pub fn set_download_urls(&mut self, download_urls: &Vec<String>) {
@@ -690,8 +690,8 @@ impl<'a> DownloadManager<'a> {
         let mut aria2c = self.create_aria2c_instance();
         log::info!("input  file: {}", input_file);
         aria2c.set_input_file(input_file);
-        aria2c.set_scoop_cache_dir(scoop_cache_dir); // 设置aria2c的缓存目录
-
+        aria2c.set_scoop_cache_dir(scoop_cache_dir);
+        aria2c.set_download_urls(self.get_download_urls().as_slice()); 
         if self.options.contains(&ForceDownloadNoInstallOverrideCache)
             || self.options.contains(&NoUseDownloadCache)
         {
@@ -751,7 +751,10 @@ impl<'a> DownloadManager<'a> {
                     .context("failed to remove aria2 input file at line 735")?;
             }
             return Ok(());
-        }
+        } 
+        // !!only not exist cache file 
+        aria2c.init_aria2c_config()?;
+      
         let output = aria2c.invoke_aria2c_download();
 
         match output {
@@ -1009,9 +1012,9 @@ impl<'a> DownloadManager<'a> {
         let result = std::os::windows::fs::symlink_dir(version_dir, current_dir);
         if result.is_err() {
             std::fs::remove_dir_all(current_dir)
-              .context("failed to remove app current link dir at line 1011")?;
+                .context("failed to remove app current link dir at line 1011")?;
             std::os::windows::fs::symlink_dir(version_dir, current_dir)
-              .context("failed to create app current symlink dir at line 1014")?;
+                .context("failed to create app current symlink dir at line 1014")?;
         }
         println!(
             "{}  {} => {}",

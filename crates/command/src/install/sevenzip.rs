@@ -240,9 +240,9 @@ impl<'a> SevenZipStruct<'a> {
             seven_zip.clone().unwrap().to_str().unwrap().to_string()
         } else {
             self.get_temp_7z_path()
-        }; 
-        let  global = self.get_options().contains(&InstallOptions::Global);
-        let dll_path = if seven_zip.is_some()  && !global {
+        };
+        let global = self.get_options().contains(&InstallOptions::Global);
+        let dll_path = if seven_zip.is_some() && !global {
             let seven_zip_dir = seven_zip.unwrap();
             let shim_root_dir = if self.get_options().contains(&InstallOptions::Global) {
                 get_shims_root_dir_global()

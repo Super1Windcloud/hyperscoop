@@ -68,8 +68,16 @@ pub fn get_app_dir_manifest_json(app_name: &str) -> String {
     format!("{}\\apps\\{}\\current\\manifest.json", scoop_home, app_name)
 }
 
-pub fn get_app_current_bin_path(app_name: &str, bin_name: &str) -> String {
-    let scoop_home = init_user_scoop();
+pub fn get_app_current_bin_path(
+    app_name: &str,
+    bin_name: &str,
+    options: &[InstallOptions],
+) -> String {
+    let scoop_home = if options.contains(&InstallOptions::Global) {
+        init_scoop_global()
+    } else {
+        init_user_scoop()
+    };
     format!("{}\\apps\\{}\\current\\{}", scoop_home, app_name, bin_name)
 }
 
@@ -506,8 +514,8 @@ pub fn get_special_bucket_all_manifest_path_global(
     bucket_name: &str,
 ) -> anyhow::Result<Vec<PathBuf>> {
     let bucket_path = get_special_bucket_child_path_global(bucket_name);
-    let entries = read_dir(&bucket_path).
-      context(format!("Failed to read dir {} at line 510", bucket_path))?;
+    let entries = read_dir(&bucket_path)
+        .context(format!("Failed to read dir {} at line 510", bucket_path))?;
 
     let buckets_path = entries
         .par_bridge()
@@ -570,8 +578,9 @@ mod test_path {
     #[test]
     fn get_current_bin_path() {
         let app_name = "zigmod";
-        let exe_name = "zig/zig.exe";
-        let path = get_app_current_bin_path(app_name, &exe_name);
+        let exe_name = "zig/zig.exe"; 
+        let vec = vec![InstallOptions::Global];
+        let path = get_app_current_bin_path(app_name, &exe_name , &vec );
         if Path::new(&path).exists() {
             println!("{}", path);
         }

@@ -257,7 +257,7 @@ pub fn create_start_menu_shortcuts(
             if scoop_link_home.exists() {
                 let start_menu_link_path = scoop_link_home.join(&shortcut_name);
                 let target_path =
-                    get_app_current_bin_path(app_name.as_str(), &bin_name_with_extension);
+                    get_app_current_bin_path(app_name.as_str(), &bin_name_with_extension, options);
                 start_create_shortcut(
                     start_menu_link_path,
                     target_path,
@@ -294,7 +294,7 @@ pub fn create_start_menu_shortcuts(
                 if scoop_link_home.exists() {
                     let start_menu_link_path = scoop_link_home.join(&shortcut_name);
                     let target_path =
-                        get_app_current_bin_path(app_name.as_str(), &bin_name_with_extension);
+                        get_app_current_bin_path(app_name.as_str(), &bin_name_with_extension, options );
                     if !Path::new(&target_path).exists() {
                         bail!(format!("链接目标文件 {target_path} 不存在"))
                     };
@@ -372,7 +372,7 @@ pub fn create_alias_shim_name_file(
     let suffix = temp.split('.').last().unwrap();
     // log::debug!("Origin file type {}", suffix);
 
-    let target_path = get_app_current_bin_path(app_name.into(), &exe_name);
+    let target_path = get_app_current_bin_path(app_name.into(), &exe_name, options);
     if !out_dir.exists() {
         bail!(format!("shim 目录 {shim_dir} 不存在"));
     }
@@ -448,7 +448,7 @@ pub fn create_default_shim_name_file(
     if suffix.is_empty() {
         bail!(format!("shim 文件名 {exe_name} 后缀为空 WTF?"))
     }
-    let target_path = get_app_current_bin_path(app_name.into(), &exe_name);
+    let target_path = get_app_current_bin_path(app_name.into(), &exe_name, options);
     if !out_dir.exists() {
         bail!(format!("shim 目录 {shim_dir} 不存在"));
     }
@@ -970,8 +970,9 @@ mod test_shim {
         let cwd = env::current_dir().unwrap();
         let output_dir = cwd.join("src\\bin\\output");
         let app_name = "sbt".to_string();
-        let exe_name = r"bin\\sbt.bat".to_string();
-        let target_path = get_app_current_bin_path(app_name.as_str(), &exe_name);
+        let exe_name = r"bin\\sbt.bat".to_string(); 
+        let options = vec![InstallOptions::Global];
+        let target_path = get_app_current_bin_path(app_name.as_str(), &exe_name,options.as_slice() );
         if Path::new(&target_path).exists() {
             println!("target {target_path}");
         }
@@ -993,8 +994,9 @@ mod test_shim {
         let cwd = env::current_dir().unwrap();
         let output_dir = cwd.join("src\\bin\\output");
         let app_name = "composer".to_string();
-        let exe_name = r"composer.ps1".to_string();
-        let target_path = get_app_current_bin_path(app_name.as_str(), &exe_name);
+        let exe_name = r"composer.ps1".to_string(); 
+        let options = vec![InstallOptions::Global];
+        let target_path = get_app_current_bin_path(app_name.as_str(), &exe_name, options.as_slice() );
         if Path::new(&target_path).exists() {
             println!("target {target_path}");
         }

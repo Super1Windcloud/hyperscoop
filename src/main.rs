@@ -95,7 +95,7 @@ async fn main() -> anyhow::Result<()> {
     //     invoke_admin_process()?;
     //     return Ok(());
     // }
-  
+
     let result = match cli.command {
         None => {
             auto_check_hp_update(None).await?;
