@@ -28,10 +28,10 @@
 
 ![bucket.png](https://imgfans.com/_Ww0K4)
 
-## 🏗 Project Status   (Completed)
+## 🏗 Project Status   (Completed🍻🎉🐉)
 | ![](https://i.giphy.com/media/CwfC5Pv6Rtp66h4coK/giphy.gif) |
 |:-----------------------------------------------------------:|
-|                      Under Manntenance                      |
+|                      Under Maintenance                      |
 ---
 
 ## CLI Features
