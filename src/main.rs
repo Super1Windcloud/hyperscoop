@@ -104,7 +104,7 @@ async fn main() -> anyhow::Result<()> {
         }
         Some(input_command) => match input_command {
             Commands::Alias(alias_args) => execute_alias_command(alias_args),
-            Commands::Bucket(bucket) => execute_bucket_command(&bucket.command),
+            Commands::Bucket(bucket) => execute_bucket_command(bucket),
             Commands::Cat(cat) => execute_cat_command(cat),
             Commands::Cache(cache_args) => execute_cache_command(cache_args),
             Commands::Checkup(args) => execute_checkup_command(args.global).await,

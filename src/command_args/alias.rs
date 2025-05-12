@@ -6,7 +6,9 @@ use command_util_lib::utils::utility::clap_args_to_lowercase;
 use crossterm::style::Stylize;
 use rayon::prelude::*;
 use std::cmp::max;
+use std::env;
 use std::path::Path;
+use command_util_lib::utils::system::{is_admin, request_admin};
 
 #[derive(Debug, Clone, Args)]
 #[clap(author, version, about="🎉\t\t创建Window终端命令的别名",  long_about = None)]
@@ -68,7 +70,15 @@ pub struct AddArgs {
 #[command(about = "列出所有alias的ps1脚本 ")]
 pub struct ListArgs {}
 
-pub fn execute_alias_command(args: AliasArgs) -> anyhow::Result<()> {
+pub fn execute_alias_command(args: AliasArgs) -> anyhow::Result<()> { 
+    if args.global && !is_admin()? {
+      let args =env::args().skip(1). collect::<Vec<String>>();
+      let  args_str= args.join(" ");
+      log::warn!("Global command arguments: {}", args_str.clone().dark_yellow());
+      request_admin( args_str.as_str())?;
+      return Ok(());
+    }
+  
     let shim_root_dir = if args.global {
         get_shims_root_dir_global()
     } else {

@@ -1,10 +1,20 @@
+use std::env;
+use crossterm::style::Stylize;
 use crate::command_args::shim::ShimSubCommand;
 use command_util_lib::shim::*;
-
+use command_util_lib::utils::system::{is_admin, request_admin};
 
 pub fn execute_shim_command(
     args: crate::command_args::shim::ShimArgs,
-) -> Result<(), anyhow::Error> {
+) -> Result<(), anyhow::Error> { 
+   if  args.global  && !is_admin()? {
+     let args =env::args().skip(1). collect::<Vec<String>>();
+     let  args_str= args.join(" ");
+     log::warn!("Global command arguments: {}", args_str.clone().dark_yellow());
+     request_admin( args_str.as_str())?;
+     return Ok(());
+   }
+  
     if let Some(command) = args.command {
         match command {
             ShimSubCommand::Add(args) => {

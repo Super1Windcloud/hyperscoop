@@ -20,7 +20,10 @@ Example Usage:
     hp shim add myapp 'A:\\path\\myapp.exe'  --arguments  myapp_args")]
 pub struct ShimArgs {
     #[clap(subcommand)]
-    pub(crate) command: Option<ShimSubCommand>,
+    pub(crate) command: Option<ShimSubCommand>, 
+  
+    #[arg(from_global)]
+    pub global: bool,
 }
 
 #[derive(Debug, Args)]

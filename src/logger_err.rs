@@ -20,7 +20,9 @@ pub fn init_color_output(no_color : bool) {
       force_color_output(false); 
    }
 }
+ 
 
+// 主函数入口调用提权, 管理员进程会自动闪退不知道为什么 
 #[allow(dead_code)]
 pub   fn invoke_admin_process() ->anyhow::Result<()> { 
   if  !is_admin()? {

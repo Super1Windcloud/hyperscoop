@@ -8,17 +8,19 @@ use command_util_lib::init_env::{
 use command_util_lib::install::UpdateOptions::ForceUpdateOverride;
 use command_util_lib::install::{install_and_replace_hp, InstallOptions, UpdateOptions};
 use command_util_lib::update::*;
+use command_util_lib::utils::system::{is_admin, request_admin};
 use command_util_lib::utils::utility::update_scoop_config_last_update_time;
 use crossterm::style::Stylize;
 use line_ending::LineEnding;
+use std::env;
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
 use std::process::Command;
 
 pub async fn execute_update_command(update_args: UpdateArgs) -> Result<(), anyhow::Error> {
-    
     let options = inject_update_user_options(&update_args)?;
+
     if update_args.update_self_and_buckets {
         println!("{}", "开始更新hp和buckets".dark_cyan().bold());
 
@@ -38,6 +40,19 @@ pub async fn execute_update_command(update_args: UpdateArgs) -> Result<(), anyho
     if update_args.app_name.is_none() {
         return Ok(());
     }
+    if update_args.global {
+        if !is_admin()? {
+            let args = env::args().skip(1).collect::<Vec<String>>();
+            let args_str = args.join(" ");
+            log::warn!(
+                "Global command arguments: {}",
+                args_str.clone().dark_yellow()
+            );
+            request_admin(args_str.as_str())?;
+        }
+        return Ok(());
+    }
+
     let app_name = update_args.app_name.unwrap();
     if app_name.to_lowercase() == "hp" {
         update_hp(&options).await?;
@@ -290,5 +305,3 @@ endlocal
         .context("Failed to run updater")?;
     Ok(())
 }
-
-

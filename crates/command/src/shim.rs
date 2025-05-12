@@ -145,6 +145,11 @@ pub fn list_shim_info(name: Option<String>, global: bool) -> anyhow::Result<()> 
         {
             continue;
         }
+        let  app_type = if file_name.ends_with(".exe") {
+            "Application"
+        } else {
+            "ExternalScript"
+        };
         let shim_path = path.to_str().unwrap().to_owned();
         println!(
             "{:<10} : {}",
@@ -161,8 +166,8 @@ pub fn list_shim_info(name: Option<String>, global: bool) -> anyhow::Result<()> 
             "Source ",
             shim_name.clone().dark_green().bold()
         );
-        println!("{:<10} : {}", "Type ", "Application".dark_green().bold());
-        println!("{:<10} : {}", "IsGlobal ", "False".dark_green().bold());
+        println!("{:<10} : {}", "Type ",app_type.dark_green().bold());
+        println!("{:<10} : {}", "IsGlobal ", if global { "True" } else { "False" }.dark_green().bold());
         println!("{:<10} : {}", "IsHidden ", "False".dark_green().bold());
     }
     println!(
