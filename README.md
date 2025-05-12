@@ -19,7 +19,6 @@
 -  `scoop  install  -u  -s   hp/hp`    
 --- 
 ###   2.  下载[exe](https://github.com/Super1Windcloud/hyperscoop/releases)使用,并添加到 `$env:Path`
- 
 
 ## 使用前提
 >  `hp b k` 查看官方的bucket列表, 'hp b add' 建议添加所有bucket ,hp  i  7zip 用于生命周期脚本
@@ -33,7 +32,6 @@
 |:-----------------------------------------------------------:|
 |                      Under Maintenance                      |
 ---
-
 --- 
 ## Feature
 - >   **多进度条, 多线程  , 丰富色彩, 命令识别自动补全 ......**
@@ -42,10 +40,8 @@
 
 ## CLI Features
 --- 
-
 [//]: # ( ![pinpix.png]&#40;https://imgfans.com/_oONbC&#41;)
 ![cmd.png](https://imgfans.com/_s0giY)
-
 
 --- 
 ## ☑️ TODO (功能全部完成, 尽情使用)
