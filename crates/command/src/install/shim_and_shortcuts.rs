@@ -863,6 +863,7 @@ pub fn create_exe_type_shim_file_and_shim_bin<P1: AsRef<Path>, P2: AsRef<Path>>(
         let target_name = target_name.unwrap();
         bail!("Invalid target executable name {target_path} \n Error TargetName :{target_name}")
     }
+
     let content = if program_params.is_none() {
         format!("path = \"{}\"", target_path)
     } else {
@@ -907,7 +908,7 @@ pub fn create_exe_type_shim_file_and_shim_bin<P1: AsRef<Path>, P2: AsRef<Path>>(
         let parent_dir = output_shim_exe.parent().unwrap();
         if !parent_dir.exists() {
             fs::create_dir_all(&parent_dir)
-              .context("failed create parent_dir at line 910")?;  
+              .context("failed create parent_dir at line 910")?;
         }
         if output_shim_exe.exists() {
             return Ok(());
@@ -970,7 +971,7 @@ mod test_shim {
         let cwd = env::current_dir().unwrap();
         let output_dir = cwd.join("src\\bin\\output");
         let app_name = "sbt".to_string();
-        let exe_name = r"bin\\sbt.bat".to_string(); 
+        let exe_name = r"bin\\sbt.bat".to_string();
         let options = vec![InstallOptions::Global];
         let target_path = get_app_current_bin_path(app_name.as_str(), &exe_name,options.as_slice() );
         if Path::new(&target_path).exists() {
@@ -994,7 +995,7 @@ mod test_shim {
         let cwd = env::current_dir().unwrap();
         let output_dir = cwd.join("src\\bin\\output");
         let app_name = "composer".to_string();
-        let exe_name = r"composer.ps1".to_string(); 
+        let exe_name = r"composer.ps1".to_string();
         let options = vec![InstallOptions::Global];
         let target_path = get_app_current_bin_path(app_name.as_str(), &exe_name, options.as_slice() );
         if Path::new(&target_path).exists() {

@@ -30,11 +30,26 @@ pub use update::*;
 
 const FINISH_MESSAGE: &str = "✅";
 
-pub   fn update_all_apps(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
+pub fn update_all_apps(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
     let all_apps_name = get_all_installed_apps_name();
     for app in all_apps_name {
-        if check_app_version_latest(&app, &options)? {
-            continue;
+        let _ = match check_app_version_latest(&app, &options) {
+            Ok(version) => {
+                if version.is_some() {
+                    continue;
+                }
+            }
+            Err(err) => {
+                eprintln!("{}", err.to_string().dark_red().bold()); 
+                let  app_current = if options.contains(&Global) {
+                    get_app_current_dir_global(&app)
+                } else {
+                    get_app_current_dir(&app)
+                };
+                fs::remove_dir(&app_current).context(format!(
+                    "Failed to remove broken link current {app_current} at 50"
+                ))?;
+            }
         };
         update_specific_app(&app, options)?;
     }
@@ -48,10 +63,12 @@ pub fn remove_old_version(app_name: &str, options: &[UpdateOptions]) -> anyhow::
         get_app_current_dir(app_name)
     };
     let target_version_path = fs::read_link(app_current_dir)
-      .context(format!("failed to read link of {} at line 51", app_name))?;
+        .context(format!("failed to read link of {} at line 51", app_name))?;
     log::debug!("target_version_path: {:?}", target_version_path);
-    fs::remove_dir_all(target_version_path)
-      .context(format!("failed to remove target version of {} at line 54", app_name))?;
+    fs::remove_dir_all(target_version_path).context(format!(
+        "failed to remove target version of {} at line 54",
+        app_name
+    ))?;
     Ok(())
 }
 pub fn transform_update_options_to_install(
@@ -83,10 +100,7 @@ pub fn transform_update_options_to_install(
     options
 }
 
-pub   fn update_specific_app(
-    app_name: &str,
-    options: &[UpdateOptions],
-) -> Result<(), anyhow::Error> {
+pub fn update_specific_app(app_name: &str, options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
     log::debug!("update_specific_app {}", &app_name);
     let origin_options = options.to_vec();
     let options = transform_update_options_to_install(options);
@@ -99,15 +113,40 @@ pub   fn update_specific_app(
         };
         if Path::new(&special_app_dir).exists() {
             fs::remove_dir_all(special_app_dir)
-              .context("Failed to remove old version of app at 102")?;
+                .context("Failed to remove old version of app at 102")?;
         }
     };
-    if check_app_version_latest(&app_name, &origin_options)? {
-        println!("{}", "当前App已是最新版本,无需更新".dark_cyan().bold());
-        return Ok(());
+    let _ = match check_app_version_latest(&app_name, &origin_options) {
+        Ok(version) => {
+            if version.is_some() {
+                let version = version.unwrap();
+                println!(
+                    "{}",
+                    format!("当前App已是最新版本 {version},无需更新")
+                        .dark_cyan()
+                        .bold()
+                        .to_string()
+                );
+                return Ok(());
+            }
+        }
+        Err(err) => {
+            eprintln!("{}", err.to_string().dark_red().bold());
+            let app_current = if origin_options.contains(&Global) {
+                get_app_current_dir_global(&app_name)
+            } else {
+                get_app_current_dir(&app_name)
+            };
+            fs::remove_dir(&app_current).context(format!(
+                "Failed to remove broken link current {app_current} at 126"
+            ))?;
+        }
     };
-    if origin_options.contains(&RemoveOldVersionApp) && app_name != "hp" 
-      && !origin_options.contains(&ForceUpdateOverride){
+
+    if origin_options.contains(&RemoveOldVersionApp)
+        && app_name != "hp"
+        && !origin_options.contains(&ForceUpdateOverride)
+    {
         remove_old_version(&app_name, &origin_options)?;
     }
     install_app(&app_name, options.as_ref())?;

@@ -77,7 +77,7 @@ pub fn reset_latest_version(
         let max_version_path = app_dir.join(&max_version);
         log::info!("Resetting app: {}", max_version_path.display());
         symlink_dir(max_version_path, app_current_path.as_path())
-            .expect("Failed to create app symlink");
+            .context("Failed to create app symlink for reset at line 80")?;
         println!(
             "{}",
             format!("Resetting {}@{} successfully!", name, &max_version)

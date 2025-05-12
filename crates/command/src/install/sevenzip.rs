@@ -1,7 +1,7 @@
 use crate::init_env::{get_shims_root_dir, get_shims_root_dir_global};
 use crate::install::{install_app, ArchiveFormat, InstallOptions};
 use crate::manifest::manifest_deserialize::StringArrayOrString;
-use crate::utils::system::is_broken_symlink;
+use crate::utils::system::{is_broken_symlink, kill_processes_using_app};
 use anyhow::{bail, Context};
 use crossterm::style::Stylize;
 use std::env;
@@ -110,7 +110,9 @@ impl<'a> SevenZipStruct<'a> {
         if Path::new(&current).exists() {
             std::fs::remove_dir(&current).context("remove current dir failed at line 112")?;
         }
+
         if is_broken_symlink(&current)? {
+            log::debug!("{} is a broken symlink, removing it", &current);
             std::fs::remove_dir(&current) // can't use remove_file here
                 .context("remove current dir failed at line 116")?;
         }
@@ -507,9 +509,21 @@ Expand-InnoArchive "{inno_file}" "{target_dir}"  -Removal
         Ok(())
     }
 
-    pub fn link_current(&self) {
-        self.link_current_target_version_dir()
-            .expect("Failed to link current version");
+    pub fn link_current(&self) -> anyhow::Result<()> {
+        let result = self.link_current_target_version_dir();
+        if result.is_err() {
+            eprintln!(
+                "Error Link: {}",
+                result.err().unwrap().to_string().dark_red().bold()
+            );
+            let current = self.get_target_app_current_dir();
+            let app_name = self.get_app_name();
+            if Path::new(&current).exists() {
+                kill_processes_using_app(app_name);
+            }
+            self.link_current_target_version_dir()?;
+        }
+        Ok(())
     }
 
     pub fn extract_archive_child_to_target_dir(

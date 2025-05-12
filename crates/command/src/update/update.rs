@@ -70,7 +70,7 @@ pub fn check_bucket_update_status<'a>() -> anyhow::Result<bool> {
         }
         Ok(())
     });
-  
+
     if result.is_err() {
         bail!(result.unwrap_err())
     }
@@ -92,9 +92,12 @@ pub fn check_bucket_update_status<'a>() -> anyhow::Result<bool> {
     Ok(flag)
 }
 
-pub fn check_app_version_latest(app_name: &str, options: &[UpdateOptions]) -> anyhow::Result<bool> {
+pub fn check_app_version_latest(
+    app_name: &str,
+    options: &[UpdateOptions],
+) -> anyhow::Result<Option<String>> {
     if options.contains(&UpdateOptions::ForceUpdateOverride) {
-        return Ok(false);
+        return Ok(None);
     }
     let app_dir = if options.contains(&Global) {
         get_app_dir_global(app_name)
@@ -128,9 +131,9 @@ pub fn check_app_version_latest(app_name: &str, options: &[UpdateOptions]) -> an
                 get_latest_app_version_from_local_bucket(app_name)?
             };
             if old_version == latest_version {
-                Ok(true)
+                Ok(Some(old_version))
             } else {
-                Ok(false)
+                Ok(None)
             }
         }
     }
