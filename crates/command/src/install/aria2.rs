@@ -284,18 +284,18 @@ impl<'a> Aria2C<'a> {
             "--metalink-preferred-protocol=https",  // 优先使用 HTTPS 协议下载 Metalink 文件
             "--min-tls-version=TLSv1.2",            // 最小 TLS 版本
             "--check-certificate=true",             // 证书验证
-            // "--max-connection-per-server=16",       // 单服务器最大连接数
-            // "--split=16",                           // 分片数
-            "--console-log-level=warn", // 日志级别
-            "--follow-metalink=true",   // 支持 Metalink 下载
-            // "--min-split-size=5M",                  // 最小分片大小
-            "--continue=true",                 // 断点续传
-            "--file-allocation=trunc",         // windows下文件预分配磁盘空间（SSD推荐）
-            "--summary-interval=0",            // 不频繁输出日志减少IO
-            "--auto-save-interval=1",          //  自动保存间隔
-            "--disable-ipv6=true",             // 禁用 IPv6（如果不需要）
-            "--no-file-allocation-limit=500M", // 大文件不预分配（SSD 可启用）
-            "--async-dns=true",                // 异步 DNS 解析
+            // "--max-connection-per-server=16",    // 单服务器最大连接数
+            // "--split=16",                        // 分片数
+            "--console-log-level=warn",             // 日志级别
+            "--follow-metalink=true",               // 支持 Metalink 下载
+            // "--min-split-size=5M",               // 最小分片大小
+            "--continue=true",                      // 断点续传
+            "--file-allocation=trunc",              // windows下文件预分配磁盘空间（SSD推荐）
+            "--summary-interval=0",                 // 不频繁输出日志减少IO
+            "--auto-save-interval=1",               //  自动保存间隔
+            "--disable-ipv6=true",                  // 禁用 IPv6（如果不需要）
+            "--no-file-allocation-limit=500M",      // 大文件不预分配（SSD 可启用）
+            "--async-dns=true",                     // 异步 DNS 解析
         ];
         args.push(split);
         args.push(max_server);
