@@ -143,7 +143,7 @@ impl<'a> Aria2C<'a> {
                 log::info!("Get file size by curl: {}", url);
                 let output = Command::new("curl")
                     .arg("-sIL")
-                     // **-I 表示 HEAD 请求, -s 表示静默模式, -L 表示跟随重定向
+                    // **-I 表示 HEAD 请求, -s 表示静默模式, -L 表示跟随重定向
                     .arg(url)
                     .output()?;
                 if !output.status.success() {
@@ -276,7 +276,6 @@ impl<'a> Aria2C<'a> {
         let min_split_size = "--min-split-size=10M";
         let mut args = vec![
             "--optimize-concurrent-downloads=true", // 优化并行下载
-            "--enable-http-pipelining=true",        // 启用 HTTP 管道
             "--enable-color=true",                  //  启用颜色输出
             "--retry-wait=3",                       // 重试等待时间
             "--auto-file-renaming=false",           // 不自动重命名文件
@@ -284,7 +283,7 @@ impl<'a> Aria2C<'a> {
             "--no-conf=true",                       // 不读取系统配置文件
             "--metalink-preferred-protocol=https",  // 优先使用 HTTPS 协议下载 Metalink 文件
             "--min-tls-version=TLSv1.2",            // 最小 TLS 版本
-            "--check-certificate=false",            // 跳过证书验证
+            "--check-certificate=true",             // 证书验证
             // "--max-connection-per-server=16",       // 单服务器最大连接数
             // "--split=16",                           // 分片数
             "--console-log-level=warn", // 日志级别
@@ -560,7 +559,7 @@ mod tests {
       ];
 
         a.set_download_urls(urls.as_slice());
-        let  max_size_by_lib = a.request_download_file_size_async().await.unwrap();
+        let max_size_by_lib = a.request_download_file_size_async().await.unwrap();
         println!("max_size_by_lib = {}", max_size_by_lib);
         let max_size_by_powershell = a.get_download_file_size_by_powershell().unwrap();
         println!("max_size_by_powershell = {}", max_size_by_powershell);
