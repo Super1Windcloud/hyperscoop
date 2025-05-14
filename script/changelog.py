@@ -2,10 +2,19 @@ import hashlib
 import os
 import http.client
 import json
-from publish import get_access_token
 
 github_owner = "Super1Windcloud"
 github_repo = "hyperscoop"
+
+
+def get_access_token():
+    current_file_path = Path(__file__).absolute()
+    root = current_file_path.parent.parent
+    env_file = join_paths(root, ".github_token")
+    with open(env_file, "r", encoding="utf-8") as file:
+        content = file.read()
+    return content.strip()  # Remove any extra whitespace/newlines
+
 
 
 def get_latest_release():

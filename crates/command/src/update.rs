@@ -122,7 +122,7 @@ pub fn update_specific_app(app_name: &str, options: &[UpdateOptions]) -> Result<
                 let version = version.unwrap();
                 println!(
                     "{}",
-                    format!("当前App {app_name}({version}) 已是最新版本,无需更新")
+                    format!("🐉🎉🍾🐦‍🔥 {app_name}({version}) 已是最新版本,无需更新")
                         .dark_cyan()
                         .bold()
                         .to_string()
