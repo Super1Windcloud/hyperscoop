@@ -6,6 +6,7 @@ release:
     cargo  br
     just  update_hash
     just  upload
+    just  compress
 
 
 publish_release:
