@@ -7,7 +7,7 @@ use git2::{FetchOptions, Progress, ProxyOptions, RemoteCallbacks, Repository};
 use indicatif::{ProgressBar, ProgressDrawTarget, ProgressStyle};
 use regex::Regex;
 use reqwest::get;
-use std::fs::{create_dir_all, read_dir, remove_dir, remove_dir_all, remove_file, rename, File};
+use std::fs::{create_dir_all, read_dir,  remove_dir_all, remove_file, rename, File};
 use std::io::{copy, Read, Write};
 use std::path::Path;
 use std::process::{Command, Stdio};
@@ -94,7 +94,7 @@ pub async fn request_download_git_repo(
             rename(&entry, &target_path).expect("Failed to rename directory路径错误");
         }
     }
-    remove_dir(current_dir)?;
+    remove_dir_all(current_dir)?;
     Ok("下载成功!!!".dark_green().bold().to_string())
 }
 

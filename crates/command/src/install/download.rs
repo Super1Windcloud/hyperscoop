@@ -1093,21 +1093,24 @@ mod test_download_manager {
 
     #[test]
     fn test_powershell_hash() {
-        let temp_file = std::env::temp_dir().join("hash_test.bin");
+        let temp_file = std::env::temp_dir().join("hash_test.bin"); 
+        let temp_file = Path::new(r"A:\Scoop\cache\goreleaser#2.9.0#c9688c4.zip") ; 
         use std::process::Command;
-
+        let start = std::time::Instant::now();
         let output = Command::new("powershell")
             .args(&[
                 "-Command",
                 &format!(
                     "(Get-FileHash -Path '{}' -Algorithm {}).Hash",
-                    temp_file.to_str().unwrap(),
-                    "sha1"
+                     temp_file.to_str().unwrap(),
+                    "sha256"
                 ),
             ])
             .output()
             .unwrap();
         let output_hash = String::from_utf8_lossy(&output.stdout);
         println!("{}", output_hash);
+        let end = std::time::Instant::now();
+        println!(" 用时：{:?}", end - start);
     }
 }

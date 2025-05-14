@@ -39,7 +39,7 @@ pub fn reset_latest_version(
         bail!("app 文件目录为空")
     } else if count == 1 {
         if app_current_path.exists() {
-            std::fs::remove_dir(&app_current_path).context(format!(
+            std::fs::remove_dir_all(&app_current_path).context(format!(
                 "remove old app dir {} at line 43",
                 app_current_path.display()
             ))?;
@@ -47,7 +47,7 @@ pub fn reset_latest_version(
         let version_path = child_dirs.first().unwrap();
         let result = symlink_dir(version_path, app_current_path.as_path());
         if result.is_err() {
-            std::fs::remove_dir(&app_current_path)
+            std::fs::remove_dir_all(&app_current_path)
                 .context("failed remove current dir at line 49")?;
             symlink_dir(&version_path.as_path(), app_current_path.as_path())
                 .context("failed to create app symlink at line 51")?;
@@ -62,7 +62,7 @@ pub fn reset_latest_version(
         );
     } else {
         if app_current_path.exists() {
-            std::fs::remove_dir(app_current_path.as_path())
+            std::fs::remove_dir_all(app_current_path.as_path())
                 .context("failed remove app current dir at line 64")?;
         }
         let mut max_version = String::new();
@@ -148,14 +148,14 @@ pub fn reset_specific_version(
     let app_current_path = app_dir.join("current");
 
     if app_current_path.exists() {
-        std::fs::remove_dir(&app_current_path).context(format!(
+        std::fs::remove_dir_all(&app_current_path).context(format!(
             "Failed remove app current dir {} at line 150",
             app_current_path.display()
         ))?;
     };
     let result = symlink_dir(&version_path, app_current_path.as_path());
     if result.is_err() {
-        std::fs::remove_dir(&app_current_path)
+        std::fs::remove_dir_all(&app_current_path)
             .context("failed remove app current dir at line 159")?;
         symlink_dir(version_path.as_path(), app_current_path.as_path()).context(format!(
             "Failed to create app symlink {} at line 161",
@@ -175,6 +175,7 @@ pub fn reset_specific_version(
 }
 
 mod test_reset {
+
     #[test]
     fn test_reset_latest() {
         use crate::reset::reset_latest_version;
@@ -182,5 +183,16 @@ mod test_reset {
         let name = "7zip-zs";
         let global = false;
         reset_latest_version(name, global, false).unwrap();
+    }
+
+    #[test]
+    fn test_remove_dir() {
+        use std::path::Path;
+        let _current1 = Path::new(r"A:\Scoop\apps\gping\current");
+        let current2 = Path::new(r"A:\Scoop\apps\gh\current");
+  
+        if current2.exists() {
+            std::fs::remove_dir_all(current2).unwrap()
+        }
     }
 }

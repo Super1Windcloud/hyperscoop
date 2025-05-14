@@ -128,7 +128,7 @@ pub fn check_before_install(
             std::fs::remove_dir_all(target)
                 .context("Failed to remove target directory at line 126")?;
 
-            std::fs::remove_dir(app_current_dir)
+            std::fs::remove_dir_all(app_current_dir)
                 .context("Failed to remove app current directory at line 129")?;
 
             println!(

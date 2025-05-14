@@ -8,6 +8,7 @@ use rayon::prelude::*;
 use std::fs::DirEntry;
 use std::path::{Path, PathBuf};
 
+
 pub fn fuzzy_search(query: String, global: bool) -> anyhow::Result<()> {
     validate_app_name(query.as_str())?;
 

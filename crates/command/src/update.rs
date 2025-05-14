@@ -40,13 +40,13 @@ pub fn update_all_apps(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
                 }
             }
             Err(err) => {
-                eprintln!("{}", err.to_string().dark_red().bold()); 
+                eprintln!("{}", err.to_string().dark_red().bold());
                 let  app_current = if options.contains(&Global) {
                     get_app_current_dir_global(&app)
                 } else {
                     get_app_current_dir(&app)
                 };
-                fs::remove_dir(&app_current).context(format!(
+                fs::remove_dir_all(&app_current).context(format!(
                     "Failed to remove broken link current {app_current} at 50"
                 ))?;
             }
@@ -122,7 +122,7 @@ pub fn update_specific_app(app_name: &str, options: &[UpdateOptions]) -> Result<
                 let version = version.unwrap();
                 println!(
                     "{}",
-                    format!("当前App已是最新版本 {version},无需更新")
+                    format!("当前App {app_name}({version}) 已是最新版本,无需更新")
                         .dark_cyan()
                         .bold()
                         .to_string()
@@ -137,7 +137,7 @@ pub fn update_specific_app(app_name: &str, options: &[UpdateOptions]) -> Result<
             } else {
                 get_app_current_dir(&app_name)
             };
-            fs::remove_dir(&app_current).context(format!(
+            fs::remove_dir_all(&app_current).context(format!(
                 "Failed to remove broken link current {app_current} at 126"
             ))?;
         }

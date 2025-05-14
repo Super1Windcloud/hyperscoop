@@ -108,12 +108,12 @@ impl<'a> SevenZipStruct<'a> {
         let target = self.get_target_app_version_dir();
         let current = self.get_target_app_current_dir();
         if Path::new(&current).exists() {
-            std::fs::remove_dir(&current).context("remove current dir failed at line 112")?;
+            std::fs::remove_dir_all(&current).context("remove current dir failed at line 112")?;
         }
 
         if is_broken_symlink(&current)? {
             log::debug!("{} is a broken symlink, removing it", &current);
-            std::fs::remove_dir(&current) // can't use remove_file here
+            std::fs::remove_dir_all(&current) // can't use remove_file here
                 .context("remove current dir failed at line 116")?;
         }
         fs::symlink_dir(target, &current)

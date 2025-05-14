@@ -13,7 +13,7 @@ use regex::Regex;
 use reqwest::get;
 use serde_json;
 use std::fs::{
-    create_dir_all, metadata, read_dir, remove_dir, remove_dir_all, remove_file, rename, File,
+    create_dir_all, metadata, read_dir, remove_dir_all, remove_file, rename, File,
 };
 use std::io;
 use std::io::{BufReader, Write};
@@ -237,7 +237,7 @@ impl Buckets {
                   .context(format!("Failed to rename file: {} at line 236", entry.display()))?
             }
         }
-        remove_dir(&current_dir)
+      remove_dir_all(&current_dir)
           .context(format!("Failed to remove directory: {} at line 240", current_dir.display()))?;
         Ok("下载成功!!!".dark_green().bold().to_string())
     }
