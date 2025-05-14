@@ -4,6 +4,7 @@ from Crypto.Protocol.KDF import PBKDF2
 import base64
 import getpass
 
+
 def encrypt_string(plaintext, password):
     salt = get_random_bytes(16)
     key = PBKDF2(password, salt, dkLen=32, count=100000)
@@ -18,6 +19,7 @@ def encrypt_string(plaintext, password):
     ciphertext = cipher.encrypt(padded_data)
 
     return base64.b64encode(salt + iv + ciphertext).decode()
+
 
 def decrypt_string(encrypted_data, password):
     data = base64.b64decode(encrypted_data)
@@ -38,7 +40,7 @@ def decrypt_string(encrypted_data, password):
     return plaintext.decode()
 
 
-def  crypt():
+def crypt():
     plaintext = input("str : ")
     password = getpass.getpass("password: ")
     #    superwindcloudhhh
@@ -51,18 +53,18 @@ def base64_encode():
     encoded = base64.b64encode(plaintext.encode()).decode()
     print(f"\nbase64编码后的字符串: {encoded}")
 
+
 def decrypt():
-    encrypted =r"yKX0imv/ANekKy1AbKeTiSJSuaqfyhe4KuK+bgarq4eCTK9X2XNYl0Rzher9mPxyS11J855OIb3KcLTDAU0jworRCnTKDrUM3pR9ExClfvc="
+    encrypted = r"yKX0imv/ANekKy1AbKeTiSJSuaqfyhe4KuK+bgarq4eCTK9X2XNYl0Rzher9mPxyS11J855OIb3KcLTDAU0jworRCnTKDrUM3pR9ExClfvc="
     decrypted = decrypt_string(encrypted, password)
     print(f"\n解密后的字符串: {decrypted}")
 
 
-def  hex_str():
+def hex_str():
     plaintext = input("str : ")
     hex_str = plaintext.encode().hex()
     print(f"\n十六进制字符串: {hex_str}")
 
+
 if __name__ == "__main__":
-     hex_str()
-
-
+    hex_str()

@@ -69,4 +69,8 @@ count :
 
 compress:
     rm target/release/hp_upx.exe  &&  upx target/release/hp.exe  -o target/release/hp_upx.exe
+    just upload_upx_hp
+
+upload_upx_hp:
+     cd script  &&    uv run  publish.py  -u
 
