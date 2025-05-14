@@ -25,7 +25,7 @@ pub fn execute_shim_command(
             }
             ShimSubCommand::List(args) => {
                 if args.regex.is_some() {
-                    list_shims_by_regex(args.regex.unwrap(), args.global);
+                    list_shims_by_regex(args.regex.unwrap(), args.global)? ;
                 } else {
                     list_all_shims(args.global)?;
                 }

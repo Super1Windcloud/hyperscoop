@@ -6,10 +6,14 @@ use crate::install::{
     exclude_scoop_self_scripts,
 };
 use anyhow::{bail, Context};
+use comfy_table::modifiers::UTF8_ROUND_CORNERS;
+use comfy_table::presets::UTF8_BORDERS_ONLY;
+use comfy_table::{Attribute, Cell, Color, ContentArrangement, Table};
 use crossterm::style::Stylize;
 use std::path::{Path, PathBuf};
+use crate::info::validate_app_name;
 
-pub fn list_all_shims(global: bool) -> Result<(), anyhow::Error> {
+pub fn list_all_shims(global: bool) -> anyhow::Result<Vec<(String, String, String)>> {
     let shim_path = if global {
         get_shims_root_dir_global()
     } else {
@@ -22,9 +26,9 @@ pub fn list_all_shims(global: bool) -> Result<(), anyhow::Error> {
     let mut shims = vec![];
     for entry in shim_path
         .read_dir()
-        .context("Failed to read  shim root dir at line 24")?
+        .context("Failed to read  shim root dir at line 28")?
     {
-        let entry = entry.context("Failed to read  shim root dir at line 26")?;
+        let entry = entry.context("Failed to read  shim root dir at line 30")?;
         let file_name = entry.file_type()?;
         let path = entry.path();
         if !file_name.is_file() {
@@ -34,35 +38,86 @@ pub fn list_all_shims(global: bool) -> Result<(), anyhow::Error> {
         if !file_name.ends_with(".exe") && !file_name.ends_with(".cmd") {
             continue;
         }
-        let (shim_name, suffix) = if file_name.ends_with(".exe") {
+        let (file_name, suffix) = if file_name.ends_with(".exe") {
             (file_name.replace(".exe", ""), "exe")
         } else {
             (file_name.replace(".cmd", ""), "cmd")
         };
 
         let shim_file_path = if suffix == "exe" {
-            path.to_str().unwrap().to_owned().replace(".exe", ".shim")
+            path.to_str().unwrap().replace(".exe", ".shim")
         } else {
             path.to_str().unwrap().to_owned()
         };
 
-        let shim_source = std::fs::read_to_string(&shim_file_path)
-            .context("Failed to read shim file content at line 48")?
-            .replace("path =", "");
-        shims.push((shim_name, path.to_str().unwrap().to_owned(), shim_source));
+        let shim_source = if suffix == "cmd" {
+            let content = extract_rem_comments(path.to_str().unwrap());
+            content.trim().to_owned()
+        } else {
+            let content = std::fs::read_to_string(&shim_file_path)
+                .context("Failed to read shim file content at line 57")?;
+            let first_line = content.lines().next().unwrap().trim();
+            first_line
+                .replace("path =", "")
+                .replace("\"", "")
+                .trim()
+                .to_owned()
+        };
+        let ps1_script = path.to_str().unwrap().replace(".cmd", ".ps1");
+        let ps1_script = Path::new(&ps1_script);
+        if ps1_script != path.as_path() && ps1_script.exists() {
+            shims.push((
+                file_name,
+                ps1_script.to_str().unwrap().to_owned(),
+                shim_source,
+            ));
+        } else {
+            shims.push((file_name, path.to_str().unwrap().to_owned(), shim_source));
+        }
     }
 
-    for (name, path, source) in shims {
-        println!(
-            "Names: {:<15}  Path: {:<30} \nSource: {:<30}",
-            name, path, source
-        );
-    }
+    let count = shims.len();
+    println!(
+        "{}{}",
+        "\tFound shims count: ".dark_green().bold(),
+        count.to_string().dark_green().bold()
+    );
 
-    Ok(())
+    let shims_vec = shims
+        .iter()
+        .map(|(name, path, source)| vec![name, path, source])
+        .collect::<Vec<_>>();
+
+    let mut table = Table::new();
+    table
+        .load_preset(UTF8_BORDERS_ONLY)
+        .apply_modifier(UTF8_ROUND_CORNERS)
+        .set_content_arrangement(ContentArrangement::Dynamic)
+        .set_header(vec![
+            Cell::new("ShimName")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::DarkCyan),
+            Cell::new("Path")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::DarkCyan),
+            Cell::new("Source")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::DarkCyan),
+        ])
+        .add_rows(shims_vec.as_slice());
+
+    log::debug!(
+        "{:?}",
+        shims
+            .get(0)
+            .unwrap_or(&(String::new(), String::new(), String::new()))
+    );
+    println!("{table}");
+
+    Ok(shims)
 }
 
-pub fn list_shims_by_regex(regex: String, global: bool) {
+pub fn list_shims_by_regex(regex: String, global: bool) -> anyhow::Result<()> {
     log::info!("list_shims_by_regex {}", regex);
     let shim_path = if global {
         get_shims_root_dir_global()
@@ -71,9 +126,12 @@ pub fn list_shims_by_regex(regex: String, global: bool) {
     };
     let shim_path = Path::new(&shim_path);
     let mut shims = vec![];
-    for entry in shim_path.read_dir().unwrap() {
-        let entry = entry.unwrap();
-        let file_type = entry.file_type().unwrap();
+    for entry in shim_path
+        .read_dir()
+        .context("Failed to read  shim root dir at line 75")?
+    {
+        let entry = entry?;
+        let file_type = entry.file_type()?;
         let path = entry.path();
         if !file_type.is_file() {
             continue;
@@ -88,28 +146,101 @@ pub fn list_shims_by_regex(regex: String, global: bool) {
         } else {
             (file_name.replace(".cmd", ""), "cmd")
         };
-        let re = regex::Regex::new(&regex).unwrap();
+        let re = regex::Regex::new(&regex)?;
         let cap = re.captures(&file_name);
         if cap.is_none() {
             continue;
         }
         let shim_file_path = if suffix == "exe" {
-            path.to_str().unwrap().to_owned().replace(".exe", ".shim")
+            path.to_str().unwrap().replace(".exe", ".shim")
         } else {
             path.to_str().unwrap().to_owned()
         };
-        let shim_source = std::fs::read_to_string(&shim_file_path)
-            .unwrap()
-            .replace("path =", "");
-        shims.push((file_name, path.to_str().unwrap().to_owned(), shim_source));
-    }
 
-    for (name, path, source) in shims {
-        println!(
-            "Names: {:<15}  Path: {:<30} \nSource: {:<30}",
-            name, path, source
-        );
+        let shim_source = if suffix == "cmd" {
+            let content = extract_rem_comments(path.to_str().unwrap());
+            content.trim().to_owned()
+        } else {
+            let content = std::fs::read_to_string(&shim_file_path)
+                .context("Failed to read shim file content at line 165")?;
+            let first_line = content.lines().next().unwrap().trim();
+            first_line
+                .replace("path =", "")
+                .replace("\"", "")
+                .trim()
+                .to_owned()
+        };
+        let ps1_script = path.to_str().unwrap().replace(".cmd", ".ps1");
+        let ps1_script = Path::new(&ps1_script);
+        if ps1_script != path.as_path() && ps1_script.exists() {
+            shims.push((
+                file_name,
+                ps1_script.to_str().unwrap().to_owned(),
+                shim_source,
+            ));
+        } else {
+            shims.push((file_name, path.to_str().unwrap().to_owned(), shim_source));
+        }
     }
+    let count = shims.len();
+    if count == 0 {
+        println!(
+            "{}{}",
+            "No shims found for regex: ".dark_green().bold(),
+            regex.dark_green().bold()
+        );
+        return Ok(());
+    }
+    println!(
+        "{}{}",
+        "\tFound shims count: ".dark_green().bold(),
+        count.to_string().dark_green().bold()
+    );
+
+    let shims_vec = shims
+        .iter()
+        .map(|(name, path, source)| vec![name, path, source])
+        .collect::<Vec<_>>();
+
+    let mut table = Table::new();
+    table
+        .load_preset(UTF8_BORDERS_ONLY)
+        .apply_modifier(UTF8_ROUND_CORNERS)
+        .set_content_arrangement(ContentArrangement::Dynamic)
+        .set_header(vec![
+            Cell::new("ShimName")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::DarkCyan),
+            Cell::new("Path")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::DarkCyan),
+            Cell::new("Source")
+                .add_attribute(Attribute::Bold)
+                .fg(Color::DarkCyan),
+        ])
+        .add_rows(shims_vec.as_slice());
+
+    log::debug!("{:?}", shims.get(0).unwrap());
+
+    println!("{table}");
+
+    Ok(())
+}
+
+fn extract_rem_comments(file_path: &str) -> String {
+    let content = std::fs::read_to_string(file_path).expect("Failed to read file");
+    content
+        .lines()
+        .filter_map(|line| {
+            let trimmed = line.trim();
+            if trimmed.starts_with("@rem") {
+                Some(trimmed[4..].trim_start().to_string()) // 提取 "@rem" 后的内容
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<String>>()
+        .join(" ")
 }
 
 pub fn list_shim_info(name: Option<String>, global: bool) -> anyhow::Result<()> {
@@ -145,7 +276,7 @@ pub fn list_shim_info(name: Option<String>, global: bool) -> anyhow::Result<()> 
         {
             continue;
         }
-        let  app_type = if file_name.ends_with(".exe") {
+        let app_type = if file_name.ends_with(".exe") {
             "Application"
         } else {
             "ExternalScript"
@@ -166,13 +297,19 @@ pub fn list_shim_info(name: Option<String>, global: bool) -> anyhow::Result<()> 
             "Source ",
             shim_name.clone().dark_green().bold()
         );
-        println!("{:<10} : {}", "Type ",app_type.dark_green().bold());
-        println!("{:<10} : {}", "IsGlobal ", if global { "True" } else { "False" }.dark_green().bold());
+        println!("{:<10} : {}", "Type ", app_type.dark_green().bold());
+        println!(
+            "{:<10} : {}",
+            "IsGlobal ",
+            if global { "True" } else { "False" }.dark_green().bold()
+        );
         println!("{:<10} : {}", "IsHidden ", "False".dark_green().bold());
+        return Ok(());
     }
+
     println!(
         "{}{}",
-        "No shim found for name: ".red().bold(),
+        "No shim found for app: ".dark_red().bold(),
         shim_name.dark_cyan().bold()
     );
 
@@ -188,8 +325,14 @@ pub fn execute_add_shim(
     if command_path.is_none() {
         bail!("Command path is must required");
     }
-    let shim_name = shim_name.unwrap();
-    let target_path = command_path.unwrap();
+    let shim_name = shim_name.unwrap(); 
+  
+    validate_app_name(&shim_name)?;
+    let target_path = command_path.unwrap().trim().to_string(); 
+    if  target_path.is_empty() { 
+      bail!("Command path is empty");
+    }
+    
     let shim_path = if global {
         get_shims_root_dir_global()
     } else {
@@ -236,7 +379,7 @@ pub fn create_shims<'a>(
         bail!("hp 不能作为 shim 名称")
     }
     if !Path::new(target_path).exists() {
-        bail!(format!("链接目标文件 {target_path} 不存在"))
+        bail!(format!("链接目标路径 {target_path} 不存在"))
     };
     if suffix == "exe" || suffix == "com" {
         if !args.is_empty() {
@@ -367,8 +510,8 @@ pub fn remove_shim(name: Option<String>, global: bool) -> anyhow::Result<()> {
     if !shim_path.exists() {
         bail!("{} is not exist", shim_path.display());
     }
-    let shim_dir = std::fs::read_dir(&shim_path)
-      .context("Failed to read  shim root dir at line 366")?;
+    let shim_dir =
+        std::fs::read_dir(&shim_path).context("Failed to read  shim root dir at line 366")?;
     let matched_shims = shim_dir
         .filter_map(|entry| {
             let entry = entry.ok()?;
@@ -394,4 +537,43 @@ pub fn remove_shim(name: Option<String>, global: bool) -> anyhow::Result<()> {
         std::fs::remove_file(shim_path).unwrap();
     });
     Ok(())
+}
+
+mod test_shim {
+    #[allow(unused_imports)]
+    use super::*;
+    #[test]
+    fn test_shim_count() {
+        use std::collections::HashSet;
+        let shim_root_dir = get_shims_root_dir();
+        let shim_root_dir = Path::new(&shim_root_dir);
+        let mut set = HashSet::new();
+
+        for entry in shim_root_dir.read_dir().unwrap() {
+            let entry = entry.ok().unwrap();
+            let file_type = entry.file_type().ok().unwrap();
+            let path = entry.path();
+            if !file_type.is_file() {
+                continue;
+            }
+
+            let file_name = path.file_stem().unwrap().to_str().unwrap();
+            if file_name.starts_with("scoop-") {
+                continue;
+            }
+            set.insert(file_name.to_string());
+        }
+
+        let shims = list_all_shims(false).unwrap();
+        let shim_names = shims.iter().map(|s| s.0.clone()).collect::<Vec<String>>();
+
+        let diff: Vec<_> = set
+            .iter()
+            .filter(|item| !shim_names.contains(item))
+            .collect();
+
+        println!("shims count: {:?}", shim_names.len());
+        println!("set count {}", set.len());
+        println!("diff   {:?}", diff);
+    }
 }

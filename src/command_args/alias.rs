@@ -14,11 +14,10 @@ use command_util_lib::utils::system::{is_admin, request_admin};
 #[clap(author, version, about="🎉\t\t创建Window终端命令的别名",  long_about = None)]
 #[command(arg_required_else_help = true, subcommand_negates_reqs = true)]
 #[command(after_help = r#"
-Available subcommands: add, rm, list.
-Aliases are custom hp subcommands that can be created to make common tasks easier.
 To add an alias:       hp alias add <name> <command> [<description>], 自动生成一个hp-<name>的别名
 To rm an alias:        hp alias rm <name> , 删除时别名名称必须以hp-开头
 To list all aliases:   hp alias list  , 包含name, command , description 字段
+
 示例:  hp alias add rm 'hp uninstall $args[0]' 'Uninstall an app' [描述内容可选]
       alias_name创建之后, 运行hp-<alias> ,例如运行hp-rm 就可以替代 hp uninstall命令进行操作
 "#)]
@@ -70,7 +69,7 @@ pub struct AddArgs {
 #[command(about = "列出所有alias的ps1脚本 ")]
 pub struct ListArgs {}
 
-pub fn execute_alias_command(args: AliasArgs) -> anyhow::Result<()> { 
+pub fn execute_alias_command(args: AliasArgs) -> anyhow::Result<()> {
     if args.global && !is_admin()? {
       let args =env::args().skip(1). collect::<Vec<String>>();
       let  args_str= args.join(" ");
@@ -78,7 +77,7 @@ pub fn execute_alias_command(args: AliasArgs) -> anyhow::Result<()> {
       request_admin( args_str.as_str())?;
       return Ok(());
     }
-  
+
     let shim_root_dir = if args.global {
         get_shims_root_dir_global()
     } else {

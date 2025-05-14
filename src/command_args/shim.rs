@@ -4,24 +4,19 @@ use command_util_lib::utils::utility::clap_args_to_lowercase;
 #[derive(Args, Debug)]
 #[clap(author, version, about="🐼\t\t管理所有的shim快捷方式", long_about = None)]
 #[command(arg_required_else_help = true)]
-#[command(after_help = "Available subcommands: add, rm, list, info, alter.
-To add a custom shim, use the 'add' subcommand:
-    hp shim add <shim_name> <command_path> [<args>...]
-To remove shims, use the 'rm' subcommand: (CAUTION: this could remove shims added by an app manifest)
-    hp shim rm <shim_name> [<shim_name>...]
-To list all shims or matching shims, use the 'list' subcommand:
-    hp shim list [<regex_pattern>...]
-To show a shim's information, use the 'info' subcommand:
-    hp shim info <shim_name>
+#[command(after_help = " 
+Add : hp shim add <shim_name> <command_path> [<args>...]
+Rm  : hp shim rm <shim_name> 
+List: hp shim list [<regex_pattern>...]
+Info: hp shim info <shim_name>
 Options:
   -g, --global       Manipulate global shim(s)
-
-Example Usage:
+示例用法:  参数可选
     hp shim add myapp 'A:\\path\\myapp.exe'  --arguments  myapp_args")]
 pub struct ShimArgs {
     #[clap(subcommand)]
-    pub(crate) command: Option<ShimSubCommand>, 
-  
+    pub(crate) command: Option<ShimSubCommand>,
+
     #[arg(from_global)]
     pub global: bool,
 }
@@ -36,7 +31,7 @@ pub struct AddArgs {
     #[arg(help = "shim的路径", required = false)]
     pub(crate) path: Option<String>,
 
-    #[arg(short, long, help = "shim的命令参数", required = false)]
+    #[arg(short, long, help = "shim的命令参数,参数可选", required = false)]
     pub(crate) arguments: Option<String>,
     #[arg(from_global)]
     pub global: bool,
@@ -45,12 +40,15 @@ pub struct AddArgs {
 
 #[derive(Debug, Args)]
 #[clap(author, version, about="删除一个shim快捷方式", long_about = None)]
+#[clap(arg_required_else_help = true)]
 pub struct RmArgs {
     #[clap(help = "shim的名称", value_parser = clap_args_to_lowercase)]
     pub(crate) name: Option<String>,
     #[arg(from_global)]
     pub global: bool,
 }
+
+
 #[derive(Debug, Subcommand)]
 pub enum ShimSubCommand {
     Add(AddArgs),
@@ -82,6 +80,7 @@ pub struct ListArgs {
 
 #[derive(Args, Debug)]
 #[clap(author, version,  about="显示指定Shim 的的信息", long_about = None)]
+#[clap(arg_required_else_help = true)]
 pub struct InfoArgs {
     #[clap(help = "APP的名称", value_parser = clap_args_to_lowercase)]
     pub(crate) name: Option<String>,
