@@ -691,7 +691,7 @@ impl<'a> DownloadManager<'a> {
         log::info!("input  file: {}", input_file);
         aria2c.set_input_file(input_file);
         aria2c.set_scoop_cache_dir(scoop_cache_dir);
-        aria2c.set_download_urls(self.get_download_urls().as_slice()); 
+        aria2c.set_download_urls(self.get_download_urls().as_slice());
         if self.options.contains(&ForceDownloadNoInstallOverrideCache)
             || self.options.contains(&NoUseDownloadCache)
         {
@@ -751,10 +751,10 @@ impl<'a> DownloadManager<'a> {
                     .context("failed to remove aria2 input file at line 735")?;
             }
             return Ok(());
-        } 
-        // !!only not exist cache file 
+        }
+        // !!only not exist cache file
         aria2c.init_aria2c_config()?;
-      
+
         let output = aria2c.invoke_aria2c_download();
 
         match output {
@@ -892,6 +892,7 @@ impl<'a> DownloadManager<'a> {
         _7z.set_target_alias_name(binding);
         _7z.set_archive_format(self.get_archive_files_format());
         _7z.init();
+        _7z.set_final_cache_file_name(self.get_cache_file_name()); 
         let extract_dir = if architecture.is_some() {
             let arch = architecture.clone().unwrap();
             let system_arch = self.get_install_arch().as_ref();
@@ -1022,6 +1023,19 @@ impl<'a> DownloadManager<'a> {
             current_dir.dark_green().bold(),
             version_dir.dark_green().bold()
         );
+        if self.options.contains(&NoUseDownloadCache) {
+            let cache_file_path = self
+                .get_cache_file_name()
+                .iter()
+                .map(|name| format!("{}\\{}", self.get_scoop_cache_dir(), name))
+                .collect::<Vec<String>>();
+            cache_file_path.iter().for_each(|path| {
+                if Path::new(path).exists() {
+                    std::fs::remove_file(path).expect("failed to remove cache file at line 1033");
+                }
+            });
+        }
+
         Ok(())
     }
 }
@@ -1093,8 +1107,8 @@ mod test_download_manager {
 
     #[test]
     fn test_powershell_hash() {
-        let temp_file = std::env::temp_dir().join("hash_test.bin"); 
-        let temp_file = Path::new(r"A:\Scoop\cache\goreleaser#2.9.0#c9688c4.zip") ; 
+        let _temp_file = std::env::temp_dir().join("hash_test.bin");
+        let temp_file = Path::new(r"A:\Scoop\cache\goreleaser#2.9.0#c9688c4.zip");
         use std::process::Command;
         let start = std::time::Instant::now();
         let output = Command::new("powershell")
@@ -1102,7 +1116,7 @@ mod test_download_manager {
                 "-Command",
                 &format!(
                     "(Get-FileHash -Path '{}' -Algorithm {}).Hash",
-                     temp_file.to_str().unwrap(),
+                    temp_file.to_str().unwrap(),
                     "sha256"
                 ),
             ])

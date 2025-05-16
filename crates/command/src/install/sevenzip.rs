@@ -1,4 +1,7 @@
-use crate::init_env::{get_shims_root_dir, get_shims_root_dir_global};
+use crate::init_env::{
+    get_cache_dir_path, get_cache_dir_path_global, get_shims_root_dir, get_shims_root_dir_global,
+};
+use crate::install::InstallOptions::NoUseDownloadCache;
 use crate::install::{install_app, ArchiveFormat, InstallOptions};
 use crate::manifest::manifest_deserialize::StringArrayOrString;
 use crate::utils::system::{is_broken_symlink, kill_processes_using_app};
@@ -25,6 +28,8 @@ pub struct SevenZipStruct<'a> {
     app_manifest_path: String,
     target_alias_name: Box<[String]>,
     options: &'a [InstallOptions<'a>],
+    cache_root_dir: String,
+    final_cache_file_name: Box<[String]>,
 }
 
 impl<'a> SevenZipStruct<'a> {
@@ -32,6 +37,31 @@ impl<'a> SevenZipStruct<'a> {
         &self.app_manifest_path
     }
 
+    pub fn set_final_cache_file_name(&mut self, final_cache_file_name: &[String]) {
+        self.final_cache_file_name = final_cache_file_name.to_vec().into_boxed_slice();
+    }
+
+    pub fn get_final_cache_file_name(&self) -> Vec<String> {
+        self.final_cache_file_name.clone().to_vec()
+    }
+
+    pub fn get_cache_root_dir(&self) -> &str {
+        &self.cache_root_dir
+    }
+
+    pub fn set_cache_root_dir(&mut self) {
+        let global = if self.get_options().contains(&InstallOptions::Global) {
+            true
+        } else {
+            false
+        };
+        let dir = if global {
+            get_cache_dir_path_global()
+        } else {
+            get_cache_dir_path()
+        };
+        self.cache_root_dir = dir
+    }
     pub fn get_options(&self) -> &[InstallOptions<'a>] {
         self.options
     }
@@ -61,6 +91,7 @@ impl<'a> SevenZipStruct<'a> {
 
     pub fn init(&mut self) {
         self.set_target_app_version_dir();
+        self.set_cache_root_dir();
     }
 
     pub fn new() -> Self {
@@ -75,6 +106,8 @@ impl<'a> SevenZipStruct<'a> {
             app_manifest_path: "".to_string(),
             target_alias_name: Box::new([]),
             options: &[],
+            cache_root_dir: "".to_string(),
+            final_cache_file_name: Box::new([]),
         }
     }
 
@@ -522,6 +555,18 @@ Expand-InnoArchive "{inno_file}" "{target_dir}"  -Removal
                 kill_processes_using_app(app_name);
             }
             self.link_current_target_version_dir()?;
+        }
+        if self.options.contains(&NoUseDownloadCache) {
+            let cache_file_path = self
+                .get_final_cache_file_name()
+                .iter()
+                .map(|name| format!("{}\\{}", self.get_cache_root_dir(), name))
+                .collect::<Vec<String>>();
+            cache_file_path.iter().for_each(|path| {
+                if Path::new(path).exists() {
+                    std::fs::remove_file(path).expect("failed to remove cache file at line 568");
+                }
+            });
         }
         Ok(())
     }
