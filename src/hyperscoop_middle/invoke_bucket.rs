@@ -1,32 +1,53 @@
-﻿use std::env;
-use crate::command::BucketArgs;
+﻿use crate::command::BucketArgs;
 use crate::command_args::bucket_args::BucketSubcommands;
 use crate::hyperscoop_middle::invoke_update::update_buckets_parallel;
 use anyhow::anyhow;
 use command_util_lib::buckets::Buckets;
-use crossterm::style::Stylize;
 use command_util_lib::utils::system::{is_admin, request_admin};
+use command_util_lib::utils::utility::{
+    get_official_bucket_urls, get_official_with_social_bucket_urls,
+};
+use crossterm::style::Stylize;
+use std::env;
 
 pub fn execute_bucket_command(args: BucketArgs) -> Result<(), anyhow::Error> {
     let buckets = Buckets::new()?;
     let global = args.global;
-    let args = args.command; 
-    if  global && !is_admin()? {
-      let args =env::args().skip(1). collect::<Vec<String>>();
-      let  args_str= args.join(" ");
-      log::warn!("Global command arguments: {}", args_str.clone().dark_yellow());
-      request_admin( args_str.as_str())?;
-      return Ok(());
+
+    if global && !is_admin()? {
+        let args = env::args().skip(1).collect::<Vec<String>>();
+        let args_str = args.join(" ");
+        log::warn!(
+            "Global command arguments: {}",
+            args_str.clone().dark_yellow()
+        );
+        request_admin(args_str.as_str())?;
+        return Ok(());
     }
-    let bucket_args = args.as_ref().expect("bucket_args cannot be none");
+    execute_init_bucket_command(&args, &buckets, global)?;
+
+    if args.command.is_none() {
+        return Ok(());
+    }
+    let command = args.command;
+
+    let bucket_args = command.as_ref().expect("bucket_args cannot be none");
     match bucket_args {
         BucketSubcommands::Add(add_args) => {
             match (add_args.name.is_some(), add_args.repo_url.is_some()) {
                 (true, true) => {
                     if add_args.global {
-                        buckets.add_buckets(&add_args.name, &add_args.repo_url, true)?
+                        buckets.add_buckets(
+                            add_args.name.clone(),
+                            add_args.repo_url.clone(),
+                            true,
+                        )?
                     } else {
-                        buckets.add_buckets(&add_args.name, &add_args.repo_url, false)?
+                        buckets.add_buckets(
+                            add_args.name.clone(),
+                            add_args.repo_url.clone(),
+                            false,
+                        )?
                     }
                 }
                 (true, false) => {
@@ -34,15 +55,15 @@ pub fn execute_bucket_command(args: BucketArgs) -> Result<(), anyhow::Error> {
                     if buckets.is_valid_url(&first) {
                         let url = first;
                         if add_args.global {
-                            buckets.add_buckets(&None, &Some(url), true)?
+                            buckets.add_buckets(None, Some(url), true)?
                         } else {
-                            buckets.add_buckets(&None, &Some(url), false)?
+                            buckets.add_buckets(None, Some(url), false)?
                         }
                     } else {
                         if add_args.global {
-                            buckets.add_buckets(&add_args.name, &None, true)?
+                            buckets.add_buckets(add_args.name.clone(), None, true)?
                         } else {
-                            buckets.add_buckets(&add_args.name, &None, false)?
+                            buckets.add_buckets(add_args.name.clone(), None, false)?
                         }
                     }
                 }
@@ -71,5 +92,64 @@ pub fn execute_bucket_command(args: BucketArgs) -> Result<(), anyhow::Error> {
             update_buckets_parallel()?;
         }
     }
+    Ok(())
+}
+
+fn execute_init_bucket_command(
+    args: &BucketArgs,
+    bucket: &Buckets,
+    global: bool,
+) -> anyhow::Result<()> {
+    if args.init_office_bucket {
+        if args.init_official_bucket_with_social {
+            let official_with_social_bucket_urls = get_official_with_social_bucket_urls();
+            let result = official_with_social_bucket_urls
+                .into_iter()
+                .try_for_each(|url| {
+                    if global {
+                        bucket.add_buckets(None, Some(url.into()), true)?;
+                    } else {
+                        bucket.add_buckets(None, Some(url.into()), false)?;
+                    }
+                    Ok(())
+                }) as anyhow::Result<()>;
+            if result.is_err() {
+                return Err(anyhow!("Failed to init official bucket at line 103")
+                    .context(result.unwrap_err()));
+            }
+        } else {
+            let official_bucket_urls = get_official_bucket_urls();
+            let result = official_bucket_urls.into_iter().try_for_each(|url| {
+                if global {
+                    bucket.add_buckets(None, Some(url.into()), true)?;
+                } else {
+                    bucket.add_buckets(None, Some(url.into()), false)?;
+                }
+                Ok(())
+            }) as anyhow::Result<()>;
+            if result.is_err() {
+                return Err(anyhow!("Failed to init official bucket at line 125")
+                    .context(result.unwrap_err()));
+            }
+        }
+    } else if args.init_official_bucket_with_social {
+        let official_with_social_bucket_urls = get_official_with_social_bucket_urls();
+        let result = official_with_social_bucket_urls
+            .into_iter()
+            .try_for_each(|url| {
+                if global {
+                    bucket.add_buckets(None, Some(url.into()), true)?;
+                } else {
+                    bucket.add_buckets(None, Some(url.into()), false)?;
+                }
+                Ok(())
+            }) as anyhow::Result<()>;
+        if result.is_err() {
+            return Err(
+                anyhow!("Failed to init official bucket at line 141").context(result.unwrap_err())
+            );
+        }
+    }
+
     Ok(())
 }

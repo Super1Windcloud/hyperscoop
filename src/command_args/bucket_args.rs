@@ -12,6 +12,11 @@ pub struct BucketArgs {
 
     #[arg(from_global)]
     pub global: bool,
+
+    #[arg(short, long, help = "初始化自动添加官方所有bucket")]
+    pub init_office_bucket: bool,
+    #[arg( long, help = "初始化自动添加官方所有bucket,包括社区桶(scoopbucket,DEV-tools,ScoopMaster)")]
+    pub init_official_bucket_with_social: bool,
 }
 
 #[derive(Subcommand, Debug, Clone)]
@@ -25,8 +30,7 @@ pub enum BucketSubcommands {
     List(ListArgs),
     Known(KnownArgs),
     Rm(RmArgs),
-    Update(UpdateArgs), 
- 
+    Update(UpdateArgs),
 }
 
 #[derive(Args, Debug, Clone)]

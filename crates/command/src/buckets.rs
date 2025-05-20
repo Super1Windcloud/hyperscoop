@@ -96,8 +96,8 @@ impl Buckets {
 impl Buckets {
     pub fn add_buckets(
         &self,
-        name: &Option<String>,
-        url: &Option<String>,
+        name: Option<String>,
+        url: Option<String>,
         is_global: bool,
     ) -> Result<(), anyhow::Error> {
         let bucket_name = name
