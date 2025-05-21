@@ -41,7 +41,7 @@
 ## CLI Features
 --- 
 ![img](./img/cmd1.png)
-[//]: # ![cmd](https://s1.imagehub.cc/images/2025/05/21/6f39fd471bad23c23d610cdb2daab6a4.png)
+<!-- ![cmd](https://s1.imagehub.cc/images/2025/05/21/6f39fd471bad23c23d610cdb2daab6a4.png) --> 
 --- 
 ## ☑️ TODO (功能全部完成, 尽情使用)
 - [x]  Alias
