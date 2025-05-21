@@ -26,7 +26,7 @@
 ###   2.  下载[exe](https://github.com/Super1Windcloud/hyperscoop/releases)使用,并添加到 `$env:Path`
 
 ## 使用前提
->  `hp b k` 查看官方的bucket列表, 'hp b -i' 添加所有bucket ,hp  i  7zip 用于生命周期脚本
+>  `hp b k` 查看官方的bucket列表, `hp b -i` 添加所有bucket ,`hp i 7zip` 用于生命周期脚本
 
 ## Bucket Demo 
 
@@ -40,7 +40,8 @@
 
 ## CLI Features
 --- 
-![img](./img/cmd.png)
+![img](./img/cmd1.png)
+![img](./resources/cmd1.png)
 --- 
 ## ☑️ TODO (功能全部完成, 尽情使用)
 - [x]  Alias
