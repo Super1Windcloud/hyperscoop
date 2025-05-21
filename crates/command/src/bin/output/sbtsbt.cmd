@@ -1,2 +1,2 @@
-@rem A:\Scoop\apps\sbt\current\bin\\sbt.bat
-@"A:\Scoop\apps\sbt\current\bin\\sbt.bat" %*
+@rem A:\Scoop\apps\sbt\current\bin\\sbt.bat
+@"A:\Scoop\apps\sbt\current\bin\\sbt.bat" %*
