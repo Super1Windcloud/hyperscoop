@@ -41,7 +41,6 @@
 ## CLI Features
 --- 
 ![img](./img/cmd1.png)
-![img](./resources/cmd1.png)
 --- 
 ## ☑️ TODO (功能全部完成, 尽情使用)
 - [x]  Alias
