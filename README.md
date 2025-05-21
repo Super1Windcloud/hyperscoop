@@ -40,8 +40,6 @@
 
 ## CLI Features
 --- 
-![pinpix.png](https://imgfans.com/_oONbC)
-[//]: # (![cmd.png]&#40;https://imgfans.com/_s0giY&#41;)
 ![img](./img/cmd.png)
 --- 
 ## ☑️ TODO (功能全部完成, 尽情使用)
