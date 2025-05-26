@@ -35,7 +35,7 @@ arm64 :
 update_hash:
     python  script/hash.py
     cd  hyperscoop_source_bucket  &&  just  update
-    git add -A  && git commit -m ":panda_face:  publish and update hash " && git push repo   master  && git push github  master:dev  &&  git  push github master:main
+    git add -A  && git commit -m ":panda_face: 优化hash计算速度 " && git push repo   master  && git push github  master:dev  &&  git  push github master:main
 
 
 no_commit_update_hash:
@@ -75,3 +75,6 @@ compress:
 upload_upx_hp:
      cd script  &&    uv run  publish.py  -u
 
+
+build_hash :
+    cargo br -p  hash

@@ -54,7 +54,7 @@ pub fn reset_latest_version(
         }
         println!(
             "{} {} => {}",
-            format!("Resetting '{name}' successfully")
+            format!("Resetting '{name}' successfully!")
                 .dark_blue()
                 .bold(),
             app_current_path.display().to_string().dark_green().bold(),

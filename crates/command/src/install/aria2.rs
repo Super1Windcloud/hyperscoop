@@ -458,7 +458,7 @@ impl<'a> Aria2C<'a> {
         }
         let status = child.wait()?; // 等待子进程结束
         let result = if status.success() {
-            Ok("Aria2c download completed successfully"
+            Ok("Aria2c download completed successfully!"
                 .dark_green()
                 .bold()
                 .to_string())

@@ -613,7 +613,6 @@ dependencies = [
  "crossterm",
  "dashmap",
  "dialoguer",
- "digest",
  "encoding",
  "flate2",
  "futures",
@@ -2295,6 +2294,9 @@ dependencies = [
 [[package]]
 name = "hash"
 version = "4.0.7"
+dependencies = [
+ "sha2",
+]
 
 [[package]]
 name = "hashbrown"

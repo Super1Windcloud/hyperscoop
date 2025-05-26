@@ -7,8 +7,7 @@ use crossterm::style::Stylize;
 use std::env;
 use std::path::Path;
 
-
-pub   fn execute_uninstall_command(args: UninstallArgs) -> Result<(), anyhow::Error> {
+pub fn execute_uninstall_command(args: UninstallArgs) -> Result<(), anyhow::Error> {
     if let Some(app_name) = args.app_name {
         if args.global && !is_admin()? {
             let args = env::args().skip(1).collect::<Vec<String>>();
@@ -20,7 +19,7 @@ pub   fn execute_uninstall_command(args: UninstallArgs) -> Result<(), anyhow::Er
             request_admin(args_str.as_str())?;
             return Ok(());
         }
-      
+
         if args.purge {
             log::info!("purging app {}", &app_name);
             let result = uninstall_app_with_purge(&app_name, args.global);
@@ -29,9 +28,7 @@ pub   fn execute_uninstall_command(args: UninstallArgs) -> Result<(), anyhow::Er
                     println!(
                         "'{}' {}",
                         app_name.dark_cyan().bold(),
-                        "has been purge uninstalled successfully"
-                            .dark_green()
-                            .bold()
+                        "was purge uninstalled successfully!".dark_green().bold()
                     );
                 }
                 Err(e) => {
@@ -47,7 +44,7 @@ pub   fn execute_uninstall_command(args: UninstallArgs) -> Result<(), anyhow::Er
                     println!(
                         "'{}' {}",
                         app_name.dark_cyan().bold(),
-                        "has been uninstalled successfully".dark_green().bold()
+                        "was already uninstalled successfully!".dark_green().bold()
                     );
                 }
                 Err(e) => {
@@ -62,7 +59,7 @@ pub   fn execute_uninstall_command(args: UninstallArgs) -> Result<(), anyhow::Er
                             println!(
                                 "'{}' {}",
                                 app_name.dark_cyan().bold(),
-                                "has been uninstalled successfully".dark_green().bold()
+                                "has been uninstalled successfully!".dark_green().bold()
                             );
                             std::fs::remove_dir_all(app_dir).context(format!(
                                 "Failed to remove app directory {}",

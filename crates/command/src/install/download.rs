@@ -13,12 +13,12 @@ use crate::utils::system::{compute_hash_by_powershell, get_system_default_arch};
 use crate::utils::utility::{assume_yes_to_cover_folder, get_parse_url_query, is_valid_url};
 use anyhow::{bail, Context};
 use crossterm::style::Stylize;
-use digest::Digest;
 use hex;
 use sha1::Sha1;
+use sha2::Digest;
 use sha2::{Sha256, Sha512};
 use std::borrow::Cow;
-use std::io::{BufReader, Read, Write};
+use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::vec;
 use windows_sys::Win32::System::Registry::{HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE};
@@ -790,47 +790,34 @@ impl<'a> DownloadManager<'a> {
             .zip(hash_values)
             .zip(origin_names)
             .try_for_each(|(((file, format), hash_value), origin_name)| {
-                let open_file = std::fs::File::open(file)
+                let mut open_file = std::fs::File::open(file)
                     .context(format!("failed to open cache file {file} at line 787"))?;
-                let mut reader = BufReader::new(open_file);
-                let mut buffer = [0; 1024 * 64]; // 一次性读取64KB到缓冲区性能最好
-
+                let mut buffer = vec![];
+                // let mut reader = std::io::BufReader::new(&open_file);
                 let caculate_hash = match format {
                     HashFormat::SHA1 => {
                         let mut hasher = Sha1::new();
-                        loop {
-                            let count = reader.read(&mut buffer)?;
-                            if count == 0 {
-                                break;
-                            }
-                            hasher.update(&buffer[..count]);
-                        }
+                        open_file.read_to_end(&mut buffer).unwrap();
+                        hasher.update(buffer.as_slice());
                         let caculate_hash = hasher.finalize();
+
                         let caculate_hash = hex::encode(caculate_hash);
                         caculate_hash
                     }
                     HashFormat::SHA512 => {
                         let mut hasher = Sha512::new();
-                        loop {
-                            let count = reader.read(&mut buffer)?;
-                            if count == 0 {
-                                break;
-                            }
-                            hasher.update(&buffer[..count]);
-                        }
+
+                        open_file.read_to_end(&mut buffer).unwrap();
+                        hasher.update(buffer.as_slice());
                         let caculate_hash = hasher.finalize();
                         let caculate_hash = hex::encode(caculate_hash);
                         caculate_hash
                     }
                     HashFormat::SHA256 => {
                         let mut hasher = Sha256::new();
-                        loop {
-                            let count = reader.read(&mut buffer)?;
-                            if count == 0 {
-                                break;
-                            }
-                            hasher.update(&buffer[..count]);
-                        }
+
+                        open_file.read_to_end(&mut buffer).unwrap();
+                        hasher.update(buffer.as_slice());
                         let caculate_hash = hasher.finalize();
                         let caculate_hash = hex::encode(caculate_hash);
                         caculate_hash

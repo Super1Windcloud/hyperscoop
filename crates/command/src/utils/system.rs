@@ -77,7 +77,7 @@ pub fn set_global_env_var(var_key: &str, var_value: &str) -> Result<(), anyhow::
         .output()?;
 
     if output.status.success() {
-        println!("Successfully added system environment variable.");
+        println!("Successfully added system environment variable!");
     } else {
         eprintln!("Failed to add system environment variable.");
         eprintln!("Error: {}", String::from_utf8_lossy(&output.stderr));

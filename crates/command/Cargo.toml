@@ -55,7 +55,6 @@ os_info = "3.10.0"
 zip = "2.6.1"
 windows-sys = "0.59.0"
 sha1 = "0.10.6"
-digest = "0.10.7"
 shortcuts-rs = "1.1.1"
 sysinfo =  { version = "0.34.2" , features = ["system", "windows"] }
 comfy-table =  {workspace = true}

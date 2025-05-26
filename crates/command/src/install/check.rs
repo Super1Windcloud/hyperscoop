@@ -133,7 +133,7 @@ pub fn check_before_install(
 
             println!(
                 "{}",
-                format!("'{name}' was already uninstalled successfully")
+                format!("'{name}' was already uninstalled successfully!")
                     .dark_green()
                     .bold(),
             );
@@ -167,7 +167,7 @@ pub fn check_before_install(
             check_child_directory(&app_dir)?;
             println!(
                 "{}",
-                format!("'{name}' was already uninstalled successfully")
+                format!("'{name}' was already uninstalled successfully!")
                     .dark_green()
                     .bold(),
             );
@@ -231,7 +231,7 @@ pub fn check_before_install(
             check_child_directory(&app_dir)?;
             println!(
                 "{}",
-                format!("'{name}' was already uninstalled successfully")
+                format!("'{name}' was already uninstalled successfully!")
                     .dark_green()
                     .bold(),
             );
