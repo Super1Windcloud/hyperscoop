@@ -363,6 +363,8 @@ impl<'a> SevenZipStruct<'a> {
                         "Extracting archive".dark_blue().bold(),
                         archive_name.clone().dark_cyan().bold()
                     );
+                    std::io::stdout().flush().unwrap(); // 不刷新缓冲区会等待换行
+
                     if *archive_format == ArchiveFormat::EXE
                         || *archive_format == ArchiveFormat::Other
                     {
@@ -603,6 +605,7 @@ Expand-InnoArchive "{inno_file}" "{target_dir}"  -Removal
                         "Extracting archive".dark_blue().bold(),
                         archive_name.clone().dark_cyan().bold()
                     );
+                    std::io::stdout().flush().unwrap(); // 不刷新缓冲区会等待换行
 
                     if *archive_format == ArchiveFormat::EXE
                         || *archive_format == ArchiveFormat::Other
@@ -730,7 +733,6 @@ Expand-InnoArchive "{inno_file}" "{target_dir}"  -Removal
             if !Path::new(target_dir).exists() {
                 std::fs::create_dir_all(target_dir).expect("Failed to create target directory");
             };
-            log::debug!("created target dir is {}", target_dir);
             println!(
                 "{}",
                 format!("Extracting to {}", target_dir).dark_blue().bold()
@@ -747,6 +749,8 @@ Expand-InnoArchive "{inno_file}" "{target_dir}"  -Removal
                         "Extracting archive".dark_blue().bold(),
                         archive_name.clone().dark_cyan().bold()
                     );
+                    std::io::stdout().flush().unwrap(); // 不刷新缓冲区会等待换行
+
                     if *archive_format == ArchiveFormat::EXE
                         || *archive_format == ArchiveFormat::Other
                     {
@@ -834,6 +838,8 @@ Expand-InnoArchive "{inno_file}" "{target_dir}"  -Removal
                         "Extracting archive".dark_blue().bold(),
                         archive_name.clone().dark_cyan().bold()
                     );
+                    std::io::stdout().flush().unwrap(); // 不刷新缓冲区会等待换行
+
                     let target = format!("-o{}", dest);
                     let output = Command::new(&_7z)
                         .arg("x")
@@ -952,5 +958,4 @@ mod test_7z {
     fn test_extract_7z() {
         let _zip = SevenZipStruct::new();
     }
-
 }

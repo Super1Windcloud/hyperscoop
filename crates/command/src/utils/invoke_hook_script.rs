@@ -152,7 +152,8 @@ pub fn invoke_hook_script(
         // 输出提示信息
         print!("Running {:?} script...", hook_type);
         log::info!("{}", script);
-        io::stdout().flush()?;
+        io::stdout().flush()?; 
+      
 
         let output = Command::new("powershell") 
            .arg("-NoProfile")
@@ -166,6 +167,7 @@ pub fn invoke_hook_script(
 
         if output.status.success() {
             print!("\n{}", String::from_utf8(output.stdout).unwrap());
+            io::stdout().flush().unwrap(); // 手动刷新
         } else {
             eprintln!("failed.");
             eprintln!("Error: {}", String::from_utf8_lossy(&output.stderr));

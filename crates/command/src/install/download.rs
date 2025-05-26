@@ -795,6 +795,7 @@ impl<'a> DownloadManager<'a> {
                     "Checking hash of".dark_blue().bold(),
                     origin_name.to_string().dark_cyan().bold(),
                 );
+               std::io::stdout().flush().unwrap(); // 不刷新缓冲区会等待换行
 
                 let mut open_file = std::fs::File::open(file)
                     .context(format!("failed to open cache file {file} at line 787"))?;
@@ -979,6 +980,8 @@ impl<'a> DownloadManager<'a> {
             "Extracting archive".dark_blue().bold(),
             cache_file.dark_cyan().bold()
         );
+       std::io::stdout().flush()?; // 不刷新缓冲区会等待换行
+      
         std::fs::copy(cache_path.as_str(), target)
             .context("failed to copy cache file to app target at line 992")?;
 
