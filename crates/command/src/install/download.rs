@@ -790,8 +790,8 @@ impl<'a> DownloadManager<'a> {
             .zip(hash_values)
             .zip(origin_names)
             .try_for_each(|(((file, format), hash_value), origin_name)| {
-                let open_file =
-                    std::fs::File::open(file).context("failed to open cache file at line 787")?;
+                let open_file = std::fs::File::open(file)
+                    .context(format!("failed to open cache file {file} at line 787"))?;
                 let mut reader = BufReader::new(open_file);
                 let mut buffer = [0; 1024 * 64]; // 一次性读取64KB到缓冲区性能最好
 
@@ -892,7 +892,7 @@ impl<'a> DownloadManager<'a> {
         _7z.set_target_alias_name(binding);
         _7z.set_archive_format(self.get_archive_files_format());
         _7z.init();
-        _7z.set_final_cache_file_name(self.get_cache_file_name()); 
+        _7z.set_final_cache_file_name(self.get_cache_file_name());
         let extract_dir = if architecture.is_some() {
             let arch = architecture.clone().unwrap();
             let system_arch = self.get_install_arch().as_ref();

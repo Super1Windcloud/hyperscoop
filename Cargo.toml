@@ -86,7 +86,7 @@ path = "src/main.rs"
 
 
 [workspace]
-members = ["crates/command", ".", "crates/hscoop_macro", "crates/shim"]  # 显式把src根目录也一并添加到工作区
+members = ["crates/command", ".", "crates/hscoop_macro", "crates/shim", "crates/hash"]  # 显式把src根目录也一并添加到工作区
 resolver = "2"
 
 

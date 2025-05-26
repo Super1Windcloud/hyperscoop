@@ -185,11 +185,8 @@ pub struct InstallManifest {
     pub homepage: Option<String>,
 
     ///  与installer相同的选项，但运行文件/脚本来卸载应用程序。在scoop uninstall和scoop update期间调用
-    #[serde(skip)]
     pub uninstaller: Option<InstallerUninstallerStruct>,
-    #[serde(skip)]
     pub pre_uninstall: Option<StringArrayOrString>, // 卸载前执行的命令
-    #[serde(skip)]
     pub post_uninstall: Option<StringArrayOrString>, // 卸载后执行的命令
     /**
     序的软件许可证的字符串或哈希值。对于知名许可证，请使用https://spdx.org/licenses中找到的标识符。
