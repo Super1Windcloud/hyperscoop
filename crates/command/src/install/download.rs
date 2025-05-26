@@ -790,6 +790,12 @@ impl<'a> DownloadManager<'a> {
             .zip(hash_values)
             .zip(origin_names)
             .try_for_each(|(((file, format), hash_value), origin_name)| {
+                print!(
+                    "{} {}......",
+                    "Checking hash of".dark_blue().bold(),
+                    origin_name.to_string().dark_cyan().bold(),
+                );
+
                 let mut open_file = std::fs::File::open(file)
                     .context(format!("failed to open cache file {file} at line 787"))?;
                 let mut buffer = vec![];
@@ -815,7 +821,6 @@ impl<'a> DownloadManager<'a> {
                     }
                     HashFormat::SHA256 => {
                         let mut hasher = Sha256::new();
-
                         open_file.read_to_end(&mut buffer).unwrap();
                         hasher.update(buffer.as_slice());
                         let caculate_hash = hasher.finalize();
@@ -836,12 +841,7 @@ impl<'a> DownloadManager<'a> {
                         caculate_hash
                     )
                 } else {
-                    println!(
-                        "{} {}......{}",
-                        "Checking hash of".dark_blue().bold(),
-                        origin_name.to_string().dark_cyan().bold(),
-                        "✅"
-                    );
+                    println!("✅");
                     Ok(())
                 }
             }) as anyhow::Result<()>;

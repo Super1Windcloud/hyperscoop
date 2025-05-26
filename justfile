@@ -8,6 +8,10 @@ release:
     just  upload
     just  compress
 
+release_no_upx :
+    cargo  br
+    just  update_hash
+    just upload
 
 publish_release:
     just  update_hash
