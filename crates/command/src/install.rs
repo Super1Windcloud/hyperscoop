@@ -200,9 +200,11 @@ pub fn install_app_from_local_manifest_file<P: AsRef<Path>>(
     if options.contains(&InstallOptions::OnlyDownloadNoInstall) {
         return Ok(());
     }
-    //  * 提取 cache 中的zip 到 app dir
+    //  * 提取 cache 中的zip 到 app dir 
+    log::debug!("start extract cache file to app dir");
     let senvenzip =
-        download_manager.invoke_7z_extract(extract_dir, extract_to, architecture.clone())?;
+        download_manager.invoke_7z_extract(extract_dir, extract_to, architecture.clone())?; 
+  
     // !  parse    pre_install
     parse_lifecycle_scripts(
         LifecycleScripts::PreInstall,
