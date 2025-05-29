@@ -2,9 +2,7 @@
 use crate::crypto::decrypt_gitee;
 #[allow(unused_imports)]
 use crate::crypto::decrypt_github;
-use crate::Cli;
 use anyhow::{anyhow, bail, Context};
-use clap::CommandFactory;
 use command_util_lib::buckets::get_hp_bucket_repo_path;
 use command_util_lib::config::get_config_value_no_print;
 use command_util_lib::init_env::{
@@ -51,11 +49,10 @@ pub fn get_app_old_version(app_name: &str, options: &[UpdateOptions]) -> anyhow:
 }
 
 pub async fn auto_check_hp_update(old_version: Option<&str>) -> anyhow::Result<bool> {
-    let cmd = Cli::command();
-    let version = if old_version.is_some() {
-        old_version.unwrap()
+    let version = if old_version.is_none() {
+        String::new()
     } else {
-        cmd.get_version().ok_or(anyhow!("hp version is empty"))?
+        old_version.unwrap().to_string()
     };
     let latest_github_version = get_latest_version_from_github()
         .await
@@ -67,8 +64,12 @@ pub async fn auto_check_hp_update(old_version: Option<&str>) -> anyhow::Result<b
     } else {
         latest_github_version
     };
-
-    if version.to_string() < latest_version || hash_changed() {
+    log::debug!(
+        "latest version: {} , current version: {}",
+        latest_version,
+        version
+    );
+    if version < latest_version || hash_changed() {
         println!("{}", format!("发现hp版本变更 {latest_version}, `hp u hp` or `hp u -f -k hp`  \n请访问https://github.com/Super1Windcloud/hp/releases").dark_cyan().bold());
         let hp_repo = get_hp_bucket_repo_path("hp")?;
         if hp_repo.is_none() {
@@ -82,25 +83,33 @@ pub async fn auto_check_hp_update(old_version: Option<&str>) -> anyhow::Result<b
     }
 }
 
-use sha2::{Digest, Sha256};
 use command_util_lib::manifest::manifest::get_latest_manifest_from_local_bucket;
+use sha2::{Digest, Sha256};
 
 pub fn hash_changed() -> bool {
-    let hp_manifest = get_latest_manifest_from_local_bucket("hp").unwrap(); 
+    let hp_manifest = get_latest_manifest_from_local_bucket("hp").unwrap();
     let hp_current = get_app_current_dir("hp");
-    let content = std::fs::read_to_string(&hp_manifest).unwrap();
-    let manifest: serde_json::Value = serde_json::from_str(&content).unwrap();
-    let hash = manifest.get("hash").unwrap().as_str().unwrap();
     let exe_path = Path::new(&hp_current).join("hp.exe");
+    if !exe_path.exists() {
+        return true;
+    }
+
+    let content = std::fs::read_to_string(&hp_manifest);
+    if content.is_err() {
+        return true;
+    };
+    let manifest: serde_json::Value = serde_json::from_str(&content.unwrap_or_default()).unwrap();
+    let hash = manifest.get("hash").unwrap().as_str().unwrap();
+
     let mut hasher = Sha256::new();
     let buffer = std::fs::read(&exe_path).unwrap();
     hasher.update(&buffer);
     let hash_result = hasher.finalize();
     let old_hash = hex::encode(hash_result);
     if hash.to_lowercase() != old_hash.to_lowercase() {
-        true 
+        true
     } else {
-        false 
+        false
     }
 }
 

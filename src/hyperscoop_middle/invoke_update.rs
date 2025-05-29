@@ -167,7 +167,6 @@ pub async fn update_hp(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
         );
         return Ok(());
     }
-    let app_old_version_dir = get_app_version_dir("hp", old_version.as_str());
 
     let version = install_and_replace_hp(install_options.as_slice())
         .await
@@ -176,8 +175,16 @@ pub async fn update_hp(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
     if update_options.contains(&ForceUpdateOverride) {
         launch_update_script(global, "", true).expect("update hp script failed");
     } else {
-        launch_update_script(global, app_old_version_dir.as_str(), false)
-            .map_err(|e| anyhow::anyhow!("launch_update_script failed: \n{}", e))?;
+        if old_version.is_empty() {
+            launch_update_script(global, "", true).expect("update hp script failed");
+        } else if old_version != version {
+            let app_old_version_dir = get_app_version_dir("hp", old_version.as_str());
+            log::debug!("app_old_version_dir: {}", app_old_version_dir);
+            launch_update_script(global, app_old_version_dir.as_str(), false)
+                .map_err(|e| anyhow::anyhow!("launch_update_script failed: \n{}", e))?;
+        } else { 
+            launch_update_script(global, "", true).expect("update hp script failed"); 
+        }
     }
     println!(
         "{}",
@@ -213,11 +220,7 @@ if not errorlevel 1 (
 )
 
 
-if "{old_version_dir}" == "" (
-    exit /b 0
-)
-
-if exist "{old_version_dir}" (
+if exist "{old_version_dir}"   (
     rmdir  /S /Q "{old_version_dir}"
     if exist "{old_version_dir}"  (
         echo ERROR: Directory still exists after deletion.
@@ -242,6 +245,7 @@ if exist "hp_updater.exe" (
     echo ERROR: hp_updater.exe 不存在！
     exit /b 1
 )
+
 if not exist "hp.exe" (
     echo ERROR: Failed to rename hp_updater.exe to hp.exe.
     exit /b 1
