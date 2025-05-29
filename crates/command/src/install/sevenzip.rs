@@ -660,7 +660,7 @@ Expand-InnoArchive "{inno_file}" "{target_dir}"  -Removal
                             .expect("Failed to move child dir to root");
                         Ok(())
                     } else {
-                        let target = format!("-o{}", target_dir);
+                        let target = format!("-o{}", target_dir); 
                         let output = Command::new(&_7z)
                             .arg("x")
                             .arg(path)
@@ -676,8 +676,12 @@ Expand-InnoArchive "{inno_file}" "{target_dir}"  -Removal
                             bail!("7z command failed: {}", error)
                         } else {
                             let child_dir = format!("{}\\{}", target_dir, child_dir);
+                            log::debug!("Child dir is {}" , target_dir);
+                            log::debug!("Target dir is {}" , target_dir);
+
                             self.move_child_dir_to_root(&child_dir, target_dir)
-                                .expect("Failed to move child dir to root");
+                                .expect("Failed to move child dir to root"); 
+                            
                             println!("✅");
 
                             Ok(())

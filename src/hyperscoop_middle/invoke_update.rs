@@ -37,11 +37,11 @@ pub async fn execute_update_command(update_args: UpdateArgs) -> Result<(), anyho
         update_all_apps(&options)?;
         return Ok(());
     }
-  
+
     if update_args.app_name.is_none() {
         return Ok(());
     }
-  
+
     if update_args.global {
         if !is_admin()? {
             let args = env::args().skip(1).collect::<Vec<String>>();
@@ -50,7 +50,7 @@ pub async fn execute_update_command(update_args: UpdateArgs) -> Result<(), anyho
                 "Global command arguments: {}",
                 args_str.clone().dark_yellow()
             );
-            request_admin(args_str.as_str())?; 
+            request_admin(args_str.as_str())?;
             return Ok(());
         }
     }
@@ -135,18 +135,19 @@ pub async fn update_hp(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
             );
             return Ok(());
         }
-        get_app_old_version("hp", update_options).expect("get app old version failed")
+        get_app_old_version("hp", update_options).unwrap_or_default()
     } else {
-        let old_version =
-            get_app_old_version("hp", update_options).expect("get app old version failed");
+        let old_version = get_app_old_version("hp", update_options).unwrap_or_default();
         if old_version.is_empty() {
             let hp_exe = get_app_current_bin_path("hp", "hp.exe", install_options.as_slice());
-            let output = Command::new(hp_exe)
-                .arg("--version")
-                .output()
-                .expect("failed to get hp version");
-            let version = String::from_utf8(output.stdout).expect("failed to parse hp version");
-            version.trim().to_string()
+            let output = Command::new(hp_exe).arg("--version").output();
+            if output.is_err() {
+                String::new()
+            } else {
+                let output = output?;
+                let version = String::from_utf8(output.stdout).expect("failed to parse hp version");
+                version.trim().to_string()
+            }
         } else {
             old_version
         }
