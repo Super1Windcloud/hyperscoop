@@ -2,13 +2,13 @@ set shell :=   ["pwsh.exe", "-NoProfile", "-c"]
 
 
 
-release:
+release_with_upx:
     cargo  br
     just  update_hash
     just  upload
     just  compress
 
-release_no_upx :
+release :
     cargo  br
     just  update_hash
     just upload

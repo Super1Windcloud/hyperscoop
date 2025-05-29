@@ -83,9 +83,10 @@ pub async fn auto_check_hp_update(old_version: Option<&str>) -> anyhow::Result<b
 }
 
 use sha2::{Digest, Sha256};
+use command_util_lib::manifest::manifest::get_latest_manifest_from_local_bucket;
 
 pub fn hash_changed() -> bool {
-    let hp_manifest = get_app_dir_manifest_json("hp");
+    let hp_manifest = get_latest_manifest_from_local_bucket("hp").unwrap(); 
     let hp_current = get_app_current_dir("hp");
     let content = std::fs::read_to_string(&hp_manifest).unwrap();
     let manifest: serde_json::Value = serde_json::from_str(&content).unwrap();
