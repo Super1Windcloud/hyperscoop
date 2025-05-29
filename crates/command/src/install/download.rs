@@ -795,7 +795,7 @@ impl<'a> DownloadManager<'a> {
                     "Checking hash of".dark_blue().bold(),
                     origin_name.to_string().dark_cyan().bold(),
                 );
-               std::io::stdout().flush().unwrap(); // 不刷新缓冲区会等待换行
+                std::io::stdout().flush().unwrap(); // 不刷新缓冲区会等待换行
 
                 let mut open_file = std::fs::File::open(file)
                     .context(format!("failed to open cache file {file} at line 787"))?;
@@ -881,16 +881,18 @@ impl<'a> DownloadManager<'a> {
         _7z.set_archive_format(self.get_archive_files_format());
         _7z.init();
         _7z.set_final_cache_file_name(self.get_cache_file_name());
+
         let extract_dir = if architecture.is_some() {
             let arch = architecture.clone().unwrap();
             let system_arch = self.get_install_arch().as_ref();
             let arch = arch.get_specific_architecture(system_arch);
             if arch.is_some() {
                 let arch = arch.unwrap();
-                let extract_dir = arch.extract_dir.clone();
-                if extract_dir.is_some() {
-                    let extract_dir = extract_dir.unwrap();
-                    Some(extract_dir)
+                let _extract_dir = arch.extract_dir.clone();
+                log::info!("architecture extract_dir: {:?}", _extract_dir);
+                if _extract_dir.is_some() {
+                    let _extract_dir = _extract_dir.unwrap();
+                    Some(_extract_dir)
                 } else {
                     extract_dir
                 }
@@ -906,10 +908,11 @@ impl<'a> DownloadManager<'a> {
             let arch = arch.get_specific_architecture(system_arch);
             if arch.is_some() {
                 let arch = arch.unwrap();
-                let extract_to = arch.extract_to.clone();
-                if extract_to.is_some() {
-                    let extract_to = extract_to.unwrap();
-                    Some(extract_to)
+                let _extract_to = arch.extract_to.clone();
+                log::info!("architecture extract_to: {:?}", _extract_to);
+                if _extract_to.is_some() {
+                    let _extract_to = _extract_to.unwrap();
+                    Some(_extract_to)
                 } else {
                     extract_to
                 }
@@ -919,9 +922,13 @@ impl<'a> DownloadManager<'a> {
         } else {
             extract_to
         };
+        log::debug!(
+            "extract_dir: {:?}, extract_to: {:?}",
+            extract_dir,
+            extract_to
+        );
         _7z.invoke_7z_command(extract_dir, extract_to)
             .expect("extract zip failed");
-
         Ok(_7z.clone())
     }
 
@@ -980,8 +987,8 @@ impl<'a> DownloadManager<'a> {
             "Extracting archive".dark_blue().bold(),
             cache_file.dark_cyan().bold()
         );
-       std::io::stdout().flush()?; // 不刷新缓冲区会等待换行
-      
+        std::io::stdout().flush()?; // 不刷新缓冲区会等待换行
+
         std::fs::copy(cache_path.as_str(), target)
             .context("failed to copy cache file to app target at line 992")?;
 

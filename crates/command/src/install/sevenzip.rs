@@ -660,7 +660,7 @@ Expand-InnoArchive "{inno_file}" "{target_dir}"  -Removal
                             .expect("Failed to move child dir to root");
                         Ok(())
                     } else {
-                        let target = format!("-o{}", target_dir); 
+                        let target = format!("-o{}", target_dir);
                         let output = Command::new(&_7z)
                             .arg("x")
                             .arg(path)
@@ -676,12 +676,12 @@ Expand-InnoArchive "{inno_file}" "{target_dir}"  -Removal
                             bail!("7z command failed: {}", error)
                         } else {
                             let child_dir = format!("{}\\{}", target_dir, child_dir);
-                            log::debug!("Child dir is {}" , target_dir);
-                            log::debug!("Target dir is {}" , target_dir);
+                            log::debug!("Child dir is {}", target_dir);
+                            log::debug!("Target dir is {}", target_dir);
 
                             self.move_child_dir_to_root(&child_dir, target_dir)
-                                .expect("Failed to move child dir to root"); 
-                            
+                                .expect("Failed to move child dir to root");
+
                             println!("✅");
 
                             Ok(())
@@ -880,6 +880,7 @@ Expand-InnoArchive "{inno_file}" "{target_dir}"  -Removal
                 .expect("extract archive to target directory");
             Ok(())
         } else if extract_dir.is_none() && extract_to.is_some() {
+            log::debug!("extract zip to child of target version dir");
             let target_dir = self.get_target_app_version_dir();
             let extract_to = extract_to.unwrap();
 
@@ -904,6 +905,7 @@ Expand-InnoArchive "{inno_file}" "{target_dir}"  -Removal
             }
             Ok(())
         } else if extract_dir.is_some() && extract_to.is_none() {
+            log::debug!("extract zip child dir to target version dir");
             let extract_dir = extract_dir.unwrap();
             let extract_dir = match extract_dir {
                 StringArrayOrString::StringArray(extract_dir) => extract_dir,
@@ -917,6 +919,7 @@ Expand-InnoArchive "{inno_file}" "{target_dir}"  -Removal
                 bail!("Parse Error : extract_dir is empty ")
             }
         } else if extract_dir.is_some() && extract_to.is_some() {
+            log::debug!("extract zip child dir to child of target version dir");
             let extract_dir = extract_dir.unwrap();
             let extract_dir = match extract_dir {
                 StringArrayOrString::StringArray(extract_dir) => extract_dir,
