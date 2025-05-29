@@ -294,8 +294,8 @@ impl<'a> Aria2C<'a> {
             "--summary-interval=0",                 // 不频繁输出日志减少IO
             "--auto-save-interval=1",               //  自动保存间隔
             "--disable-ipv6=true",                  // 禁用 IPv6（如果不需要）
-            "--no-file-allocation-limit=500M",      // 大文件不预分配（SSD 可启用）
             "--async-dns=true",                     // 异步 DNS 解析
+            "--allow-piece-length-change=true",     // 允许分块大小变化
         ];
         args.push(split);
         args.push(max_server);
@@ -373,12 +373,14 @@ impl<'a> Aria2C<'a> {
         let input_file = self.get_input_file();
         let user_agent = self.get_scoop_user_agent();
         let cache_dir = self.get_scoop_cache_dir();
+        let  prefix_config= self.get_aria2c_download_config();
+        log::info!("aria2 download config : {:?}", prefix_config) ;
         let child = Command::new(&aria2_exe)
             .arg(format!("--dir={}", &cache_dir))
             .arg(format!("--user-agent={}", user_agent))
             .arg(format!("--all-proxy={proxy}"))
             .arg(format!("--input-file={input_file}"))
-            .args(self.get_aria2c_download_config())
+            .args( prefix_config )
             .stdout(Stdio::inherit()) // 将标准输出重定向到父进程终端
             .output()?; // 阻塞进程
 
