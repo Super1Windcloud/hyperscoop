@@ -48,7 +48,7 @@ winreg = "0.55.0"
 thiserror = "1.0.66"
 which = { workspace = true }
 qrcode = "0.14.1"
-
+hex = {workspace = true }
 
 
 
@@ -78,6 +78,7 @@ sha1 = "0.10.6"
 line-ending = "1.5.1"
 comfy-table = "7.1.4"
 which = "7.0.3"
+hex = "0.4.3"
 
 
 [[bin]]

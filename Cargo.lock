@@ -2374,6 +2374,7 @@ dependencies = [
  "criterion",
  "crossterm",
  "env_logger",
+ "hex",
  "indicatif",
  "line-ending",
  "log",

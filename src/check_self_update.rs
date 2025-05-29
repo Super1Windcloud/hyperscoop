@@ -1,4 +1,3 @@
-use std::env;
 #[allow(unused_imports)]
 use crate::crypto::decrypt_gitee;
 #[allow(unused_imports)]
@@ -8,7 +7,9 @@ use anyhow::{anyhow, bail, Context};
 use clap::CommandFactory;
 use command_util_lib::buckets::get_hp_bucket_repo_path;
 use command_util_lib::config::get_config_value_no_print;
-use command_util_lib::init_env::{get_app_dir_manifest_json, get_app_dir_manifest_json_global};
+use command_util_lib::init_env::{
+    get_app_current_dir, get_app_dir_manifest_json, get_app_dir_manifest_json_global,
+};
 use command_util_lib::install::UpdateOptions;
 use command_util_lib::list::VersionJSON;
 use command_util_lib::utils::git::pull_special_local_repo;
@@ -16,6 +17,7 @@ use command_util_lib::utils::utility::is_valid_url;
 use crossterm::style::Stylize;
 use reqwest::{header, Client};
 use serde::{Deserialize, Serialize};
+use std::env;
 use std::path::Path;
 
 #[allow(clippy::unsafe_derive_deserialize)]
@@ -29,7 +31,7 @@ struct GiteeRelease {
 }
 
 pub fn get_app_old_version(app_name: &str, options: &[UpdateOptions]) -> anyhow::Result<String> {
-    let  old_install_manifest = if options.contains(&UpdateOptions::Global) {
+    let old_install_manifest = if options.contains(&UpdateOptions::Global) {
         get_app_dir_manifest_json_global(app_name)
     } else {
         get_app_dir_manifest_json(app_name)
@@ -37,11 +39,10 @@ pub fn get_app_old_version(app_name: &str, options: &[UpdateOptions]) -> anyhow:
     if !Path::new(&old_install_manifest).exists() {
         bail!("not found {} install manifest file", app_name)
     }
-    let content = std::fs::read_to_string(&old_install_manifest).context(
-        "failed to read old install manifest file",
-    )?;
-    let version: VersionJSON = serde_json::from_str(content.as_str()).
-      context("failed to parse old install manifest file")?;
+    let content = std::fs::read_to_string(&old_install_manifest)
+        .context("failed to read old install manifest file")?;
+    let version: VersionJSON = serde_json::from_str(content.as_str())
+        .context("failed to parse old install manifest file")?;
     let version = version.version;
     if version.is_none() {
         bail!("not found version in old install manifest file")
@@ -57,7 +58,8 @@ pub async fn auto_check_hp_update(old_version: Option<&str>) -> anyhow::Result<b
         cmd.get_version().ok_or(anyhow!("hp version is empty"))?
     };
     let latest_github_version = get_latest_version_from_github()
-        .await.map_err(|e| anyhow!("failed to get latest github version: {}", e))?;
+        .await
+        .map_err(|e| anyhow!("failed to get latest github version: {}", e))?;
     let latest_version = if latest_github_version.is_empty() {
         get_latest_version_from_gitee()
             .await
@@ -65,9 +67,9 @@ pub async fn auto_check_hp_update(old_version: Option<&str>) -> anyhow::Result<b
     } else {
         latest_github_version
     };
-  
-    if version.to_string() < latest_version {
-        println!("{}", format!("发现hp新版本 {latest_version}, `hp u hp` or `hp u -f -k hp`  \n请访问https://github.com/Super1Windcloud/hp/releases").dark_cyan().bold());
+
+    if version.to_string() < latest_version || hash_changed() {
+        println!("{}", format!("发现hp版本变更 {latest_version}, `hp u hp` or `hp u -f -k hp`  \n请访问https://github.com/Super1Windcloud/hp/releases").dark_cyan().bold());
         let hp_repo = get_hp_bucket_repo_path("hp")?;
         if hp_repo.is_none() {
             bail!("hp bucket repository  is empty");
@@ -77,6 +79,27 @@ pub async fn auto_check_hp_update(old_version: Option<&str>) -> anyhow::Result<b
         Ok(true)
     } else {
         Ok(false)
+    }
+}
+
+use sha2::{Digest, Sha256};
+
+pub fn hash_changed() -> bool {
+    let hp_manifest = get_app_dir_manifest_json("hp");
+    let hp_current = get_app_current_dir("hp");
+    let content = std::fs::read_to_string(&hp_manifest).unwrap();
+    let manifest: serde_json::Value = serde_json::from_str(&content).unwrap();
+    let hash = manifest.get("hash").unwrap().as_str().unwrap();
+    let exe_path = Path::new(&hp_current).join("hp.exe");
+    let mut hasher = Sha256::new();
+    let buffer = std::fs::read(&exe_path).unwrap();
+    hasher.update(&buffer);
+    let hash_result = hasher.finalize();
+    let old_hash = hex::encode(hash_result);
+    if hash.to_lowercase() != old_hash.to_lowercase() {
+        true 
+    } else {
+        false 
     }
 }
 
@@ -92,8 +115,7 @@ async fn get_latest_version_from_github() -> anyhow::Result<String> {
     if token.is_empty() {
         bail!("GITHUB_TOKEN environment variable is empty");
     }
-  
-  
+
     let owner = "super1windcloud";
     let repo = "hp";
     let url = format!(
@@ -114,33 +136,36 @@ async fn get_latest_version_from_github() -> anyhow::Result<String> {
         } else {
             format!("http://{}", proxy_url)
         };
-      let proxy_url = if proxy_url.is_empty() {
-        env::var_os("HTTPS_PROXY")
-          .ok_or(env::var_os("HTTP_PROXY"))
-          .unwrap_or_default()
-          .to_str()
-          .unwrap()
-          .to_string()
-      } else {
-        proxy_url
-      };
-       if  !is_valid_url(&proxy_url){ 
-           bail!("invalid proxy url: {}", proxy_url); 
-       };
-        let proxy = reqwest::Proxy::https(proxy_url)
-          .context("failed to create proxy")?;
+        let proxy_url = if proxy_url.is_empty() {
+            env::var_os("HTTPS_PROXY")
+                .ok_or(env::var_os("HTTP_PROXY"))
+                .unwrap_or_default()
+                .to_str()
+                .unwrap()
+                .to_string()
+        } else {
+            proxy_url
+        };
+        if !is_valid_url(&proxy_url) {
+            bail!("invalid proxy url: {}", proxy_url);
+        };
+        let proxy = reqwest::Proxy::https(proxy_url).context("failed to create proxy")?;
         Client::builder().proxy(proxy).build()?
     } else {
         Client::builder().build()?
     };
 
-    let response = client.get(&url).headers(headers).send().await.context(
-      format!("failed to fetch GitHub-API-REQUEST {}", url),
-    )?;
+    let response = client
+        .get(&url)
+        .headers(headers)
+        .send()
+        .await
+        .context(format!("failed to fetch GitHub-API-REQUEST {}", url))?;
 
-    let tags: GithubRelease = response.json().await .context(
-      format!("failed to parse response data from {}", url),
-    )?;
+    let tags: GithubRelease = response
+        .json()
+        .await
+        .context(format!("failed to parse response data from {}", url))?;
     Ok(tags.tag_name)
 }
 
@@ -270,17 +295,15 @@ mod test_auto_update {
         let old_version = get_app_old_version("hp", &vec![]).unwrap();
         println!("{}", old_version);
     }
-  
-  
-  #[test]
-  fn test_context_throw(){  
-    
-    fn  read_file(path: &str) -> anyhow::Result<String> {
-       let result =   std::fs::read_to_string(path).context(format!("failed to read file {}", path))?; 
-       Ok(result)
+
+    #[test]
+    fn test_context_throw() {
+        fn read_file(path: &str) -> anyhow::Result<String> {
+            let result =
+                std::fs::read_to_string(path).context(format!("failed to read file {}", path))?;
+            Ok(result)
+        }
+
+        let _result = read_file("not_exist_file").expect("not found file exception");
     }
-    
-     let _result = read_file("not_exist_file").expect("not found file exception");
-    
-  }
 }

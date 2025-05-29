@@ -50,7 +50,7 @@ bat = { workspace = true }
 flate2 = { workspace = true }
 url = { workspace = true }
 sha2 = { workspace = true }
-hex = "0.4.3"
+hex = {workspace = true}
 os_info = "3.10.0"
 zip = "2.6.1"
 windows-sys = "0.59.0"
