@@ -53,11 +53,11 @@ pub fn parse_lifecycle_scripts(
         .expect("Failed to read manifest file on parse_lifecycle_scripts");
     let manifest_obj: InstallManifest = serde_json::from_str(&content)
         .expect("Failed to parse manifest file on parse_lifecycle_scripts");
+
     let version = manifest_obj.version;
     if version.is_none() {
         bail!("Manifest file does not have version")
     }
-    let manifest_str = serde_json::to_string(&manifest_path).unwrap_or(String::new());
 
     let global = if options.contains(&InstallOptions::Global) {
         true
@@ -135,7 +135,7 @@ pub fn parse_lifecycle_scripts(
                     app_version.as_str(),
                     install_arch.as_str(),
                     global,
-                    manifest_str.as_str(),
+                    content.as_str(),
                 )
                 .expect("Failed to execute pre_install script");
             }
@@ -199,7 +199,7 @@ pub fn parse_lifecycle_scripts(
                     app_version.as_str(),
                     install_arch.as_str(),
                     global,
-                    manifest_str.as_str(),
+                    content.as_str(),
                 )
                 .expect("Failed to execute post_install script");
             }
@@ -263,7 +263,7 @@ pub fn parse_lifecycle_scripts(
                     app_name,
                     app_version.as_str(),
                     global,
-                    manifest_str.as_str(),
+                    content.as_str(),
                 )
                 .expect("Failed to execute installer script");
             }
@@ -327,7 +327,7 @@ pub fn parse_lifecycle_scripts(
                     app_name,
                     app_version.as_str(),
                     global,
-                    manifest_str.as_str(),
+                    content.as_str(),
                 )
                 .expect("Failed to execute uninstaller script");
             }
@@ -347,7 +347,7 @@ pub fn parse_lifecycle_scripts(
                     app_version.as_str(),
                     install_arch.as_str(),
                     global,
-                    manifest_str.as_str(),
+                    content.as_str(),
                 )
                 .expect("Failed to execute pre_uninstall script");
             }
@@ -367,7 +367,7 @@ pub fn parse_lifecycle_scripts(
                     app_version.as_str(),
                     install_arch.as_str(),
                     global,
-                    manifest_str.as_str(),
+                    content.as_str(),
                 )
                 .expect("Failed to execute post_uninstall script");
             }
@@ -457,8 +457,10 @@ fn installer_uninstaller_parser(
 
             let keep = keep.unwrap_or(false);
             if !keep {
-                std::fs::remove_file(&prog_path)
-                  .context(format!("Failed to remove program file {}", prog_path.display()))?;
+                std::fs::remove_file(&prog_path).context(format!(
+                    "Failed to remove program file {}",
+                    prog_path.display()
+                ))?;
             }
         }
     }
@@ -525,7 +527,7 @@ fn invoke_ps_scripts(
     };
     if result.is_err() {
         eprintln!("{}: {}", "Error".red().bold(), result.unwrap_err());
-        install_app("7zip" ,options.as_slice())?;
+        install_app("7zip", options.as_slice())?;
     }
     print!(
         "{}",
@@ -543,23 +545,36 @@ fn invoke_ps_scripts(
 
     let core_script = include_str!("../../../../asset_scripts/core.ps1");
     let decompress_script = include_str!("../../../../asset_scripts/decompress.ps1");
+    let manifest_script = include_str!("../../../../asset_scripts/manifest.ps1");
     let temp = std::env::temp_dir();
     let core_path = temp.join("core.ps1");
     let decompress_path = temp.join("decompress.ps1");
+    let manifest_path = temp.join("manifest.ps1");
     let temp_str = temp.to_str().unwrap();
     if !core_path.exists() {
-        std::fs::write(&core_path, core_script)
-          .context(format!("Failed to write core.ps1 file {} at line 522", core_path.display()))?;
+        std::fs::write(&core_path, core_script).context(format!(
+            "Failed to write core.ps1 file {} at line 522",
+            core_path.display()
+        ))?;
     }
     if !decompress_path.exists() {
-        std::fs::write(&decompress_path, decompress_script)
-          .context(format!("Failed to write decompress file {} at line 556", decompress_path.display()))?;
+        std::fs::write(&decompress_path, decompress_script).context(format!(
+            "Failed to write decompress file {} at line 556",
+            decompress_path.display()
+        ))?;
+    }
+    if !manifest_path.exists() {
+        std::fs::write(&manifest_path, manifest_script).context(format!(
+            "Failed to write manifest file {} at line 568",
+            manifest_path.display()
+        ))?;
     }
     let old_scoop_dir = get_old_scoop_dir();
     let cfg_path = get_scoop_cfg_path();
-
+    // ! @''@用于转义Json字符串中的单引号 
     let manifest_obj = format!(
-        "$json =  '{}'; $manifest = $json | ConvertFrom-Json; $obj | ConvertTo-Json -Depth 10",
+        "$json =  @'\n{}\n'@;
+        $manifest = $json | ConvertFrom-Json; $manifest | ConvertTo-Json -Depth 10;",
         manifest_str
     );
 
@@ -586,12 +601,15 @@ fn invoke_ps_scripts(
       $bucketsdir  = "{scoop_home}\buckets";
       $persist_dir  = "{scoop_home}\persist\$app";
       $cfgpath   ="{cfg_path}" ;
+      $urls = @(script:url $manifest $architecture);
+      $fname = $urls.ForEach({{ url_filename $_ }});
   "#
     );
 
     let include_header = format!(
         r#". "{temp_str}core.ps1";
 . "{temp_str}decompress.ps1";
+. "{temp_str}manifest.ps1"
  "#
     );
     let ps_script = format!(
@@ -600,11 +618,10 @@ fn invoke_ps_scripts(
 {}
 {}
 {}
-Get-Command Expand-7ZipArchive -ErrorAction SilentlyContinue | Out-Null
 "#,
         include_header, manifest_obj, injects_var, scripts
     );
-    // log::debug!("script: {}", &ps_script);
+    // println!("script: {}", &ps_script);
     let output = Command::new("powershell.exe")
         .args(&["-NoProfile", "-Command"])
         .arg(ps_script)
@@ -683,5 +700,30 @@ mod test_parse_lifecycle_scripts {
     #[test]
     fn test_7z_check() {
         check_7zip_installed().unwrap();
+    }
+
+    #[test]
+    fn test_parse_gdu() {
+        let manifest_path = Path::new(r"A:\Scoop\buckets\main\bucket\gdu.json");
+        // let str = "Rename-Item \"$dir\\$($fname -replace '\\.zip$')\" 'gdu.exe'";
+        let manifest_str = std::fs::read_to_string(manifest_path).unwrap();
+        let manifest_obj: InstallManifest = serde_json::from_str(&manifest_str).unwrap();
+        let pre_install = manifest_obj.pre_install.unwrap_or_default();
+        let str = match pre_install {
+            StringArrayOrString::StringArray(_) => String::new(),
+            StringArrayOrString::Null => String::new(),
+            StringArrayOrString::String(script) => script,
+        };
+        let str = StringArrayOrString::String(str.into());
+        invoke_ps_scripts(
+            str,
+            "pre_install",
+            "gdu",
+            "5.30.1",
+            "64bit",
+            false,
+            &manifest_str,
+        )
+        .unwrap();
     }
 }

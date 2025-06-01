@@ -201,10 +201,9 @@ pub fn install_app_from_local_manifest_file<P: AsRef<Path>>(
         return Ok(());
     }
     //  * 提取 cache 中的zip 到 app dir 
-    log::debug!("start extract cache file to app dir");
     let senvenzip =
-        download_manager.invoke_7z_extract(extract_dir, extract_to, architecture.clone())?; 
-  
+        download_manager.invoke_7z_extract(extract_dir, extract_to, architecture.clone())?;
+    senvenzip.link_current()?;
     // !  parse    pre_install
     parse_lifecycle_scripts(
         LifecycleScripts::PreInstall,
@@ -226,7 +225,7 @@ pub fn install_app_from_local_manifest_file<P: AsRef<Path>>(
     .expect("parse installer scripts failed");
 
     //  ? linking   app current dir to app version dir
-    senvenzip.link_current()?;
+    // senvenzip.link_current()?;
     //*create_shims
     //*create_startmenu_shortcuts
     create_shim_or_shortcuts(manifest_path, &app_name, &options)
@@ -516,8 +515,7 @@ pub async fn install_and_replace_hp(options: &[InstallOptions<'_>]) -> Result<St
         manifest_path.as_path(),
         options.to_vec(),
         Some(source_bucket),
-    )
-    .expect("hp new version install failed");
+    )?;
     if version.version.is_none() {
         bail!("hp version is empty")
     }

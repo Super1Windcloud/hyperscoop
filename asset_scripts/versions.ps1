@@ -1,4 +1,5 @@
-function Get-LatestVersion {
+function Get-LatestVersion
+{
   <#
     .SYNOPSIS
         Get latest version of app from manifest
@@ -28,7 +29,9 @@ function Get-LatestVersion {
   }
 }
 
-function Select-CurrentVersion { # 'manifest.ps1'
+function Select-CurrentVersion
+{
+# 'manifest.ps1'
   <#
     .SYNOPSIS
         Select current version of installed app, from 'current\manifest.json' or modified time of version directory
@@ -49,18 +52,24 @@ function Select-CurrentVersion { # 'manifest.ps1'
     $Global
   )
   process {
-    $currentPath = "$(appdir $AppName $Global)\current"
-    if (!(get_config NO_JUNCTION)) {
+    $currentPath = "$( appdir $AppName $Global )\current"
+    if (!(get_config NO_JUNCTION))
+    {
       $currentVersion = (parse_json "$currentPath\manifest.json").version
-      if ($currentVersion -eq 'nightly') {
+      if ($currentVersion -eq 'nightly')
+      {
         $currentVersion = (Get-Item $currentPath).Target | Split-Path -Leaf
       }
     }
-    if ($null -eq $currentVersion) {
+    if ($null -eq $currentVersion)
+    {
       $installedVersion = Get-InstalledVersion -AppName $AppName -Global:$Global
-      if ($installedVersion) {
+      if ($installedVersion)
+      {
         $currentVersion = @($installedVersion)[-1]
-      } else {
+      }
+      else
+      {
         $currentVersion = $null
       }
     }
@@ -68,7 +77,8 @@ function Select-CurrentVersion { # 'manifest.ps1'
   }
 }
 
-function Get-InstalledVersion {
+function Get-InstalledVersion
+{
   <#
     .SYNOPSIS
         Get all installed version of app, by checking version directories' 'install.json'
@@ -93,10 +103,13 @@ function Get-InstalledVersion {
   )
   process {
     $appPath = appdir $AppName $Global
-    if (Test-Path $appPath) {
+    if (Test-Path $appPath)
+    {
       $versions = @((Get-ChildItem "$appPath\*\install.json" | Sort-Object -Property LastWriteTimeUtc).Directory.Name)
       return $versions | Where-Object { ($_ -ne 'current') -and ($_ -notlike '_*.old*') }
-    } else {
+    }
+    else
+    {
       return @()
     }
   }
@@ -104,7 +117,8 @@ function Get-InstalledVersion {
   # sort_versions (Get-ChildItem $appPath -dir -attr !reparsePoint | Where-Object { $null -ne $(Get-ChildItem $_.FullName) } | ForEach-Object { $_.Name })
 }
 
-function Compare-Version {
+function Compare-Version
+{
   <#
     .SYNOPSIS
         Compare versions, mainly according to SemVer's rules
@@ -139,7 +153,8 @@ function Compare-Version {
     $ReferenceVersion, $DifferenceVersion = @($ReferenceVersion, $DifferenceVersion) -replace '\+', '-'
 
     # Return 0 if versions are equal
-    if ($DifferenceVersion -eq $ReferenceVersion) {
+    if ($DifferenceVersion -eq $ReferenceVersion)
+    {
       return 0
     }
 
@@ -148,76 +163,103 @@ function Compare-Version {
     $splitDifferenceVersion = @(SplitVersion -Version $DifferenceVersion -Delimiter $Delimiter)
 
     # Nightly versions are always equal unless UPDATE_NIGHTLY is $true
-    if ($splitReferenceVersion[0] -eq 'nightly' -and $splitDifferenceVersion[0] -eq 'nightly') {
-      if (get_config UPDATE_NIGHTLY) {
+    if ($splitReferenceVersion[0] -eq 'nightly' -and $splitDifferenceVersion[0] -eq 'nightly')
+    {
+      if (get_config UPDATE_NIGHTLY)
+      {
         # nightly versions will be compared by date if UPDATE_NIGHTLY is $true
-        if ($null -eq $splitReferenceVersion[1]) {
+        if ($null -eq $splitReferenceVersion[1])
+        {
           $splitReferenceVersion += Get-Date -Format 'yyyyMMdd'
         }
-        if ($null -eq $splitDifferenceVersion[1]) {
+        if ($null -eq $splitDifferenceVersion[1])
+        {
           $splitDifferenceVersion += Get-Date -Format 'yyyyMMdd'
         }
         return [Math]::Sign($splitDifferenceVersion[1] - $splitReferenceVersion[1])
-      } else {
+      }
+      else
+      {
         return 0
       }
     }
 
     for ($i = 0; $i -lt [Math]::Max($splitReferenceVersion.Length, $splitDifferenceVersion.Length); $i++) {
       # '1.1-alpha' is less then '1.1'
-      if ($i -ge $splitReferenceVersion.Length) {
-        if ($splitDifferenceVersion[$i] -match 'alpha|beta|rc|pre') {
+      if ($i -ge $splitReferenceVersion.Length)
+      {
+        if ($splitDifferenceVersion[$i] -match 'alpha|beta|rc|pre')
+        {
           return -1
-        } else {
+        }
+        else
+        {
           return 1
         }
       }
       # '1.1' is greater then '1.1-beta'
-      if ($i -ge $splitDifferenceVersion.Length) {
-        if ($splitReferenceVersion[$i] -match 'alpha|beta|rc|pre') {
+      if ($i -ge $splitDifferenceVersion.Length)
+      {
+        if ($splitReferenceVersion[$i] -match 'alpha|beta|rc|pre')
+        {
           return 1
-        } else {
+        }
+        else
+        {
           return -1
         }
       }
 
       # If some parts of versions have '.', compare them with delimiter '.'
-      if (($splitReferenceVersion[$i] -match '\.') -or ($splitDifferenceVersion[$i] -match '\.')) {
+      if (($splitReferenceVersion[$i] -match '\.') -or ($splitDifferenceVersion[$i] -match '\.'))
+      {
         $Result = Compare-Version -ReferenceVersion $splitReferenceVersion[$i] -DifferenceVersion $splitDifferenceVersion[$i] -Delimiter '.'
         # If the parts are equal, continue to next part, otherwise return
-        if ($Result -ne 0) {
+        if ($Result -ne 0)
+        {
           return $Result
-        } else {
+        }
+        else
+        {
           continue
         }
       }
 
       # If some parts of versions have '_', compare them with delimiter '_'
-      if (($splitReferenceVersion[$i] -match '_') -or ($splitDifferenceVersion[$i] -match '_')) {
+      if (($splitReferenceVersion[$i] -match '_') -or ($splitDifferenceVersion[$i] -match '_'))
+      {
         $Result = Compare-Version -ReferenceVersion $splitReferenceVersion[$i] -DifferenceVersion $splitDifferenceVersion[$i] -Delimiter '_'
         # If the parts are equal, continue to next part, otherwise return
-        if ($Result -ne 0) {
+        if ($Result -ne 0)
+        {
           return $Result
-        } else {
+        }
+        else
+        {
           continue
         }
       }
 
       # Don't try to compare [Long] to [String]
-      if ($null -ne $splitReferenceVersion[$i] -and $null -ne $splitDifferenceVersion[$i]) {
-        if ($splitReferenceVersion[$i] -is [String] -and $splitDifferenceVersion[$i] -isnot [String]) {
-          $splitDifferenceVersion[$i] = "$($splitDifferenceVersion[$i])"
+      if ($null -ne $splitReferenceVersion[$i] -and $null -ne $splitDifferenceVersion[$i])
+      {
+        if ($splitReferenceVersion[$i] -is [String] -and $splitDifferenceVersion[$i] -isnot [String])
+        {
+          $splitDifferenceVersion[$i] = "$( $splitDifferenceVersion[$i] )"
         }
-        if ($splitDifferenceVersion[$i] -is [String] -and $splitReferenceVersion[$i] -isnot [String]) {
-          $splitReferenceVersion[$i] = "$($splitReferenceVersion[$i])"
+        if ($splitDifferenceVersion[$i] -is [String] -and $splitReferenceVersion[$i] -isnot [String])
+        {
+          $splitReferenceVersion[$i] = "$( $splitReferenceVersion[$i] )"
         }
       }
 
       # Compare [String] or [Long]
-      if ($splitDifferenceVersion[$i] -gt $splitReferenceVersion[$i]) {
+      if ($splitDifferenceVersion[$i] -gt $splitReferenceVersion[$i])
+      {
         return 1
       }
-      if ($splitDifferenceVersion[$i] -lt $splitReferenceVersion[$i]) {
+      if ($splitDifferenceVersion[$i] -lt $splitReferenceVersion[$i])
+      {
         return -1
       }
     }
@@ -225,7 +267,8 @@ function Compare-Version {
 }
 
 # Helper function
-function SplitVersion {
+function SplitVersion
+{
   <#
     .SYNOPSIS
         Split version by Delimiter, convert number string to number, and separate letters from numbers
@@ -246,16 +289,30 @@ function SplitVersion {
   )
   process {
     $Version = $Version -replace '[a-zA-Z]+', "$Delimiter$&$Delimiter"
-    return ($Version -split [Regex]::Escape($Delimiter) -ne '' | ForEach-Object { if ($_ -match '^\d+$') { [Long]$_ } else { $_ } })
+    return ($Version -split [Regex]::Escape($Delimiter) -ne '' | ForEach-Object { if ($_ -match '^\d+$')
+    {
+      [Long]$_
+    }
+    else
+    {
+      $_
+    } })
   }
 }
 
 # Deprecated
 # Not used anymore in scoop core
-function qsort($ary, $fn) {
+function qsort($ary, $fn)
+{
   warn '"qsort" is deprecated. Please avoid using it anymore.'
-  if ($null -eq $ary) { return @() }
-  if (!($ary -is [array])) { return @($ary) }
+  if ($null -eq $ary)
+  {
+    return @()
+  }
+  if (!($ary -is [array]))
+  {
+    return @($ary)
+  }
 
   $pivot = $ary[0]
   $rem = $ary[1..($ary.length - 1)]
@@ -267,30 +324,93 @@ function qsort($ary, $fn) {
   return @() + $lesser + @($pivot) + $greater
 }
 
-# Deprecated
-# Not used anymore in scoop core
-function sort_versions($versions) {
+
+function sort_versions($versions)
+{
   warn '"sort_versions" is deprecated. Please avoid using it anymore.'
   qsort $versions Compare-Version
 }
 
-function compare_versions($a, $b) {
+function compare_versions($a, $b)
+{
   Show-DeprecatedWarning $MyInvocation 'Compare-Version'
   # Please note the parameters' sequence
   return Compare-Version -ReferenceVersion $b -DifferenceVersion $a
 }
 
-function latest_version($app, $bucket, $url) {
+function latest_version($app, $bucket, $url)
+{
   Show-DeprecatedWarning $MyInvocation 'Get-LatestVersion'
   return Get-LatestVersion -AppName $app -Bucket $bucket -Uri $url
 }
 
-function current_version($app, $global) {
+function current_version($app, $global)
+{
   Show-DeprecatedWarning $MyInvocation 'Select-CurrentVersion'
   return Select-CurrentVersion -AppName $app -Global:$global
 }
 
-function versions($app, $global) {
+function versions($app, $global)
+{
   Show-DeprecatedWarning $MyInvocation 'Get-InstalledVersion'
   return Get-InstalledVersion -AppName $app -Global:$global
 }
+
+
+function fname($path)
+{
+  split-path $path -leaf
+}
+
+. "$PSScriptRoot\manifest.ps1" ;
+. "$PSScriptRoot\core.ps1";
+
+
+$json = @'
+{
+  "version": "5.30.1",
+  "description": "A Fast Console Disk Usage Analyzer",
+  "homepage": "https://github.com/dundee/gdu",
+  "license": "MIT",
+  "architecture": {
+    "64bit": {
+      "url": "https://github.com/dundee/gdu/releases/download/v5.30.1/gdu_windows_amd64.exe.zip",
+      "hash": "f5f2c0e2da339775918a9890a79c54962d8f2e5a24b95db9e016c5b946b09b8c"
+    }
+  },
+  "pre_install": "Rename-Item \"$dir\\$($fname -replace '\\.zip$')\" 'gdu.exe'",
+  "bin": "gdu.exe",
+  "checkver": "github",
+  "autoupdate": {
+    "architecture": {
+      "64bit": {
+        "url": "https://github.com/dundee/gdu/releases/download/v$version/gdu_windows_amd64.exe.zip"
+      }
+    },
+    "hash": {
+      "url": "$baseurl/sha256sums.txt"
+    }
+  }
+}
+'@;
+
+$manifest = $json | ConvertFrom-Json; $manifest | ConvertTo-Json -Depth 10; 
+$architecture = '64bit' ;
+$dir = "A:\scoop\apps\gdu\current" ;
+
+$urls = @(script:url $manifest $architecture) ;
+
+if ($urls.Count -eq 0){
+    write-host "No URL found"
+    exit 1
+}
+
+write-host $urls
+
+
+$fname = $urls.ForEach({ url_filename $_ })
+
+write-host $fname ;
+
+Rename-Item "$dir\$( $fname -replace '\.zip$' )" 'gdu.exe'
+
