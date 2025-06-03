@@ -272,7 +272,6 @@ pub fn assume_yes_to_cover_shortcuts(path: &str) -> anyhow::Result<bool> {
     }
 }
 
-#[must_use]
 pub fn assume_yes_to_cover_folder(path: &str) -> anyhow::Result<bool> {
     use dialoguer::Confirm;
     let message = format!("该目录'{path}'已存在,建议检查,是否进行删除?(y/n)")
@@ -355,7 +354,7 @@ pub fn get_parse_url_query(url: &str) -> anyhow::Result<String> {
         let last_equal_item = query.rsplit('=').next().unwrap();
         Ok(last_equal_item.to_string())
     } else {
-        bail!("url query is empty");
+      Ok(url.path().split('/').last().unwrap().to_string())
     }
 }
 

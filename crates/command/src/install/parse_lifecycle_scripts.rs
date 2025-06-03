@@ -571,7 +571,7 @@ fn invoke_ps_scripts(
     }
     let old_scoop_dir = get_old_scoop_dir();
     let cfg_path = get_scoop_cfg_path();
-    // ! @''@用于转义Json字符串中的单引号 
+    // ! @''@用于转义Json字符串中的单引号
     let manifest_obj = format!(
         "$json =  @'\n{}\n'@;
         $manifest = $json | ConvertFrom-Json; $manifest | ConvertTo-Json -Depth 10;",
@@ -725,5 +725,11 @@ mod test_parse_lifecycle_scripts {
             &manifest_str,
         )
         .unwrap();
+    }
+    #[test]
+    fn output_temp_dir() {
+        let temp = std::env::temp_dir();
+        let temp_str = temp.to_str().unwrap();
+        println!("TEMP DIR: {}", temp_str);
     }
 }
