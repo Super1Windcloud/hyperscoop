@@ -298,6 +298,11 @@ pub fn assume_yes_to_cover_folder(path: &str) -> anyhow::Result<bool> {
 
 pub fn write_utf8_file(path: &str, content: &str, option: &[InstallOptions]) -> anyhow::Result<()> {
     // 文件存在, 进行覆盖警告
+    log::info!("shim content :{}", content);
+    if content.is_empty() {
+        bail!("shim content is empty");
+    }
+
     if Path::new(&path).exists() && option.contains(&InteractiveInstall) {
         let result = assume_yes_to_cover_shim(path)?;
         if !result {
@@ -348,15 +353,26 @@ pub fn nightly_version() -> anyhow::Result<String> {
     Ok(format!("nightly-{}", date))
 }
 
+/// 判断URl是否存在query参数
 pub fn get_parse_url_query(url: &str) -> anyhow::Result<String> {
     let url = Url::parse(url).context(format!("Failed to parse '{}' as a URL", url))?;
     if let Some(query) = url.query() {
         let last_equal_item = query.rsplit('=').next().unwrap();
         Ok(last_equal_item.to_string())
     } else {
-      Ok(url.path().split('/').last().unwrap().to_string())
+        Ok(url.path().split('/').last().unwrap().to_string())
     }
 }
+
+pub fn strip_extended_prefix(path: &Path) -> String {
+  let s = path.display().to_string();
+  if s.starts_with(r"\\?\") {
+    s[4..].to_string()
+  } else {
+    s
+  }
+}
+
 
 pub fn clap_args_to_lowercase(s: &str) -> Result<String, String> {
     Ok(s.to_lowercase())
@@ -385,5 +401,14 @@ mod tests {
     #[test]
     fn test_log_file() {
         write_into_log_file_append_mode("git2_clone.txt", "superwindcloud".to_string());
+    }
+
+    #[test]
+    fn test_path_to_str() {
+        let path = r"A:\Scoop\apps\mise\current\bin/mise.exe";
+        match fs::canonicalize(Path::new(path)) {
+        Ok(standardized) => println!("标准路径: {}", standardized.display()),
+        Err(e) => eprintln!("错误: {}", e),
+      }
     }
 }

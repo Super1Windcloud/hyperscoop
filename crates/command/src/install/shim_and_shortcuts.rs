@@ -6,7 +6,9 @@ use crate::manifest::manifest_deserialize::{
     ArrayOrDoubleDimensionArray, StringOrArrayOrDoubleDimensionArray,
 };
 use crate::utils::system::get_system_default_arch;
-use crate::utils::utility::{assume_yes_to_cover_shortcuts, write_utf8_file};
+use crate::utils::utility::{
+    assume_yes_to_cover_shortcuts, strip_extended_prefix, write_utf8_file,
+};
 use anyhow::{bail, Context};
 use crossterm::style::Stylize;
 use shortcuts_rs::ShellLink;
@@ -293,8 +295,11 @@ pub fn create_start_menu_shortcuts(
                 let scoop_link_home = PathBuf::from(&scoop_link_home);
                 if scoop_link_home.exists() {
                     let start_menu_link_path = scoop_link_home.join(&shortcut_name);
-                    let target_path =
-                        get_app_current_bin_path(app_name.as_str(), &bin_name_with_extension, options );
+                    let target_path = get_app_current_bin_path(
+                        app_name.as_str(),
+                        &bin_name_with_extension,
+                        options,
+                    );
                     if !Path::new(&target_path).exists() {
                         bail!(format!("链接目标文件 {target_path} 不存在"))
                     };
@@ -349,8 +354,7 @@ pub fn start_create_shortcut<P: AsRef<Path>>(
     let shell_link = ShellLink::new(link_target_path, args, None, None)?;
     let parent = start_menu_path.as_ref().parent().unwrap();
     if !parent.exists() {
-        fs::create_dir_all(parent)
-          .context("Failed to create link parent directory at line 353")?;
+        fs::create_dir_all(parent).context("Failed to create link parent directory at line 353")?;
     };
     shell_link
         .create_lnk(start_menu_path)
@@ -373,6 +377,11 @@ pub fn create_alias_shim_name_file(
     // log::debug!("Origin file type {}", suffix);
 
     let target_path = get_app_current_bin_path(app_name.into(), &exe_name, options);
+    let target_path = fs::canonicalize(&target_path).context(format!(
+        "Failed to get canonicalize target_path {target_path} at line 377"
+    ))?;
+    let target_path = strip_extended_prefix(target_path.as_path());
+
     if !out_dir.exists() {
         bail!(format!("shim 目录 {shim_dir} 不存在"));
     }
@@ -449,6 +458,10 @@ pub fn create_default_shim_name_file(
         bail!(format!("shim 文件名 {exe_name} 后缀为空 WTF?"))
     }
     let target_path = get_app_current_bin_path(app_name.into(), &exe_name, options);
+    let target_path = fs::canonicalize(&target_path).context(format!(
+        "Failed to get canonicalize target_path {target_path} at line 459"
+    ))?;
+    let target_path = strip_extended_prefix(target_path.as_path());
     if !out_dir.exists() {
         bail!(format!("shim 目录 {shim_dir} 不存在"));
     }
@@ -877,8 +890,7 @@ pub fn create_exe_type_shim_file_and_shim_bin<P1: AsRef<Path>, P2: AsRef<Path>>(
     let shim_path = output_dir.join(&shim_name);
     let shim_path2 = output_dir.join(&shim_name2);
     if !shim_path.exists() {
-        fs::create_dir_all(&output_dir)
-          .context("failed create output_dir at line 880")?;
+        fs::create_dir_all(&output_dir).context("failed create output_dir at line 880")?;
     }
 
     let crlf_content = content.replace(LineEnding::LF.as_str(), LineEnding::CRLF.as_str());
@@ -907,8 +919,7 @@ pub fn create_exe_type_shim_file_and_shim_bin<P1: AsRef<Path>, P2: AsRef<Path>>(
         let output_shim_exe = output_dir.join(&exe_name);
         let parent_dir = output_shim_exe.parent().unwrap();
         if !parent_dir.exists() {
-            fs::create_dir_all(&parent_dir)
-              .context("failed create parent_dir at line 910")?;
+            fs::create_dir_all(&parent_dir).context("failed create parent_dir at line 910")?;
         }
         if output_shim_exe.exists() {
             return Ok(());
@@ -973,7 +984,8 @@ mod test_shim {
         let app_name = "sbt".to_string();
         let exe_name = r"bin\\sbt.bat".to_string();
         let options = vec![InstallOptions::Global];
-        let target_path = get_app_current_bin_path(app_name.as_str(), &exe_name,options.as_slice() );
+        let target_path =
+            get_app_current_bin_path(app_name.as_str(), &exe_name, options.as_slice());
         if Path::new(&target_path).exists() {
             println!("target {target_path}");
         }
@@ -997,7 +1009,8 @@ mod test_shim {
         let app_name = "composer".to_string();
         let exe_name = r"composer.ps1".to_string();
         let options = vec![InstallOptions::Global];
-        let target_path = get_app_current_bin_path(app_name.as_str(), &exe_name, options.as_slice() );
+        let target_path =
+            get_app_current_bin_path(app_name.as_str(), &exe_name, options.as_slice());
         if Path::new(&target_path).exists() {
             println!("target {target_path}");
         }
