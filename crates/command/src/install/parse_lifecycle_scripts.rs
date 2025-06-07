@@ -546,10 +546,13 @@ fn invoke_ps_scripts(
     let core_script = include_str!("../../../../asset_scripts/core.ps1");
     let decompress_script = include_str!("../../../../asset_scripts/decompress.ps1");
     let manifest_script = include_str!("../../../../asset_scripts/manifest.ps1");
+    let  system_script = include_str!("../../../../asset_scripts/system.ps1"); 
+  
     let temp = std::env::temp_dir();
     let core_path = temp.join("core.ps1");
     let decompress_path = temp.join("decompress.ps1");
     let manifest_path = temp.join("manifest.ps1");
+    let system_path = temp.join("system.ps1");
     let temp_str = temp.to_str().unwrap();
     if !core_path.exists() {
         std::fs::write(&core_path, core_script).context(format!(
@@ -567,6 +570,12 @@ fn invoke_ps_scripts(
         std::fs::write(&manifest_path, manifest_script).context(format!(
             "Failed to write manifest file {} at line 568",
             manifest_path.display()
+        ))?;
+    }
+    if  !system_path.exists() {
+        std::fs::write(&system_path, system_script).context(format!(
+            "Failed to write system file {} at line 580",
+            system_path.display()
         ))?;
     }
     let old_scoop_dir = get_old_scoop_dir();
@@ -610,6 +619,7 @@ fn invoke_ps_scripts(
         r#". "{temp_str}core.ps1";
 . "{temp_str}decompress.ps1";
 . "{temp_str}manifest.ps1"
+. "{temp_str}system.ps1"
  "#
     );
     let ps_script = format!(

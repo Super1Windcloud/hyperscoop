@@ -193,12 +193,16 @@ fn ensure_in_psmodulepath(psmodule_root_dir: &str, global: bool) -> anyhow::Resu
     } else {
         get_user_env_var("PSModulePath")?
     };
+
     let path = if path.is_empty() && !global {
         let home = std::env::var("USERPROFILE")?;
         format!("{home}\\Documents\\WindowsPowerShell\\Modules")
     } else {
         path
     };
+    if path.contains(&psmodule_root_dir) {
+        return Ok(());
+    }
     let re = Regex::new(&regex::escape(&psmodule_root_dir))?;
     if !re.is_match(&path) {
         println!(
