@@ -137,7 +137,7 @@ pub fn parse_lifecycle_scripts(
                     global,
                     content.as_str(),
                 )
-                .expect("Failed to execute pre_install script");
+                .context("Failed to execute pre_install script")?;
             }
         }
         LifecycleScripts::PostInstall => {
@@ -201,7 +201,7 @@ pub fn parse_lifecycle_scripts(
                     global,
                     content.as_str(),
                 )
-                .expect("Failed to execute post_install script");
+                .context("Failed to execute post_install script")?;
             }
         }
         LifecycleScripts::Installer => {
@@ -329,7 +329,7 @@ pub fn parse_lifecycle_scripts(
                     global,
                     content.as_str(),
                 )
-                .expect("Failed to execute uninstaller script");
+                .context("Failed to execute uninstaller script")?;
             }
         }
         LifecycleScripts::PreUninstall => {
@@ -349,7 +349,7 @@ pub fn parse_lifecycle_scripts(
                     global,
                     content.as_str(),
                 )
-                .expect("Failed to execute pre_uninstall script");
+                .context("Failed to execute pre_uninstall script")?;
             }
         }
         LifecycleScripts::PostUninstall => {
@@ -369,7 +369,7 @@ pub fn parse_lifecycle_scripts(
                     global,
                     content.as_str(),
                 )
-                .expect("Failed to execute post_uninstall script");
+                .context("Failed to execute post_uninstall script")?;
             }
         }
     }
@@ -435,7 +435,7 @@ fn installer_uninstaller_parser(
             false
         };
         if prog_path.extension().map_or(false, |ext| ext == "ps1") {
-            // Execute PowerShell script
+            log::info!("Executing builtin  uninstaller.exe");
             let status = Command::new("powershell")
                 .arg("-NoProfile")
                 .arg("-Command")
@@ -475,7 +475,7 @@ fn installer_uninstaller_parser(
             global,
             manifest_str,
         )
-        .expect("Failed to execute installer/uninstaller script");
+        .context("Failed to execute installer/uninstaller script")?;
     }
     Ok(())
 }
@@ -546,8 +546,8 @@ fn invoke_ps_scripts(
     let core_script = include_str!("../../../../asset_scripts/core.ps1");
     let decompress_script = include_str!("../../../../asset_scripts/decompress.ps1");
     let manifest_script = include_str!("../../../../asset_scripts/manifest.ps1");
-    let  system_script = include_str!("../../../../asset_scripts/system.ps1"); 
-  
+    let system_script = include_str!("../../../../asset_scripts/system.ps1");
+
     let temp = std::env::temp_dir();
     let core_path = temp.join("core.ps1");
     let decompress_path = temp.join("decompress.ps1");
@@ -572,7 +572,7 @@ fn invoke_ps_scripts(
             manifest_path.display()
         ))?;
     }
-    if  !system_path.exists() {
+    if !system_path.exists() {
         std::fs::write(&system_path, system_script).context(format!(
             "Failed to write system file {} at line 580",
             system_path.display()
@@ -631,20 +631,28 @@ fn invoke_ps_scripts(
 "#,
         include_header, manifest_obj, injects_var, scripts
     );
-    // println!("script: {}", &ps_script);
-    let output = Command::new("powershell.exe")
-        .args(&["-NoProfile", "-Command"])
-        .arg(ps_script)
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped())
-        .output()
-        .expect("Failed to execute powershell script");
+    #[cfg(debug_assertions)]
+    println!("\nscript: {}", scripts);
+    let output = if scripts.contains("Start-Process") {
+        Command::new("powershell.exe")
+            .args(&["-NoProfile", "-Command"])
+            .arg(ps_script)
+            .output()
+            .context("Failed to execute powershell script")?
+    } else {
+        Command::new("powershell.exe")
+            .args(&["-NoProfile", "-Command"])
+            .arg(ps_script)
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .output()
+            .context("Failed to execute powershell script")?
+    };
     if output.status.success() {
         println!("✅!")
     } else {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        println!("❌\n{}", stderr);
-        bail!("Failed to execute powershell script")
+        bail!("❌ Stderr: \n{}", stderr);
     }
     Ok(())
 }
