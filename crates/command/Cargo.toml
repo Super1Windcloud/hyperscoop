@@ -60,6 +60,7 @@ sysinfo =  { version = "0.34.2" , features = ["system", "windows"] }
 comfy-table =  {workspace = true}
 which = {workspace = true}
 futures = "0.3.31"
+wait-timeout = "0.2.1"
 
 
 

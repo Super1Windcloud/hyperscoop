@@ -9,7 +9,9 @@ use std::fs::File;
 use std::io::{BufRead, BufReader, Read, Write};
 use std::path::Path;
 use std::process::{Command, Stdio};
+use std::time::Duration;
 use std::{env, fs};
+use wait_timeout::ChildExt;
 use which::which;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -141,30 +143,46 @@ impl<'a> Aria2C<'a> {
         if curl_result.is_some() {
             let result = urls.iter().try_for_each(|url| {
                 log::info!("Get file size by curl: {}", url);
-                let output = Command::new("curl")
+                let mut child = Command::new("curl")
                     .arg("-sIL")
                     // **-I 表示 HEAD 请求, -s 表示静默模式, -L 表示跟随重定向
                     .arg(url)
-                    .output()?;
-                if !output.status.success() {
-                    bail!(
-                        "Failed to get file size: {}",
-                        String::from_utf8_lossy(&output.stderr)
-                    )
-                }
-                let stdout = String::from_utf8_lossy(&output.stdout);
-                for line in stdout.lines() {
-                    if line.to_lowercase().starts_with("content-length:") {
-                        let size = line["content-length:".len()..]
-                            .trim()
-                            .parse::<u64>()
-                            .context("Failed to parse content-length: at line 115")?;
-                        let size_mb = size / 1024 / 1024;
-                        log::debug!("File size: {} MB", size_mb);
-                        max_size = max_size.max(size_mb);
+                    .stdout(Stdio::piped())
+                    .stderr(Stdio::piped())
+                    .spawn()
+                    .context("Failed to spawn curl command")?;
+                let timeout = Duration::from_secs(3);
+                match child.wait_timeout(timeout)? {
+                    Some(status) if status.success() => {
+                        let output = child.wait_with_output()?;
+                        let stdout = String::from_utf8_lossy(&output.stdout);
+                        for line in stdout.lines() {
+                            if line.to_lowercase().starts_with("content-length:") {
+                                let size = line["content-length:".len()..]
+                                    .trim()
+                                    .parse::<u64>()
+                                    .context("Failed to parse content-length: at line 115")?;
+                                let size_mb = size / 1024 / 1024;
+                                log::debug!("File size: {} MB", size_mb);
+                                max_size = max_size.max(size_mb);
+                            }
+                        }
+                        Ok(())
+                    }
+                    Some(_) => {
+                        let output = child.wait_with_output()?;
+                        bail!(
+                            "curl failed for {}: {}",
+                            url,
+                            String::from_utf8_lossy(&output.stderr)
+                        );
+                    }
+                    None => {
+                        child.kill()?;
+                        child.wait()?;
+                        bail!("curl timed out after 3s for {}", url);
                     }
                 }
-                Ok(())
             });
             if result.is_err() {
                 bail!(result.unwrap_err());
@@ -254,7 +272,12 @@ impl<'a> Aria2C<'a> {
     }
 
     pub fn init_aria2c_config(&mut self) -> anyhow::Result<()> {
-        let max_file_size = self.request_download_file_size_by_external_command()?;
+        let max_file_size = self
+            .request_download_file_size_by_external_command()
+            .unwrap_or_else(|e| {
+                println!("Error: {}", e.to_string().dark_red().bold());
+                0
+            });
         let threshold = 100;
         let split = if max_file_size > threshold {
             "--split=16"
@@ -286,22 +309,21 @@ impl<'a> Aria2C<'a> {
             "--check-certificate=true",             // 证书验证
             // "--max-connection-per-server=16",    // 单服务器最大连接数
             // "--split=16",                        // 分片数
-            "--console-log-level=warn",             // 日志级别
-            "--follow-metalink=true",               // 支持 Metalink 下载
+            "--console-log-level=warn", // 日志级别
+            "--follow-metalink=true",   // 支持 Metalink 下载
             // "--min-split-size=5M",               // 最小分片大小
-            "--continue=true",                      // 断点续传
-            "--file-allocation=trunc",              // windows下文件预分配磁盘空间（SSD推荐）
-            "--summary-interval=0",                 // 不频繁输出日志减少IO
-            "--auto-save-interval=1",               //  自动保存间隔
-            "--disable-ipv6=true",                  // 禁用 IPv6（如果不需要）
-            "--async-dns=true",                     // 异步 DNS 解析
-            "--allow-piece-length-change=true",     // 允许分块大小变化
+            "--continue=true",                  // 断点续传
+            "--file-allocation=trunc",          // windows下文件预分配磁盘空间（SSD推荐）
+            "--summary-interval=0",             // 不频繁输出日志减少IO
+            "--auto-save-interval=1",           //  自动保存间隔
+            "--disable-ipv6=true",              // 禁用 IPv6（如果不需要）
+            "--async-dns=true",                 // 异步 DNS 解析
+            "--allow-piece-length-change=true", // 允许分块大小变化
         ];
         args.push(split);
         args.push(max_server);
         args.push(min_split_size);
         self.aria2c_download_config = args;
-
         Ok(())
     }
 
@@ -373,14 +395,14 @@ impl<'a> Aria2C<'a> {
         let input_file = self.get_input_file();
         let user_agent = self.get_scoop_user_agent();
         let cache_dir = self.get_scoop_cache_dir();
-        let  prefix_config= self.get_aria2c_download_config();
-        log::info!("aria2 download config : {:?}", prefix_config) ;
+        let prefix_config = self.get_aria2c_download_config();
+        log::info!("aria2 download config : {:?}", prefix_config);
         let child = Command::new(&aria2_exe)
             .arg(format!("--dir={}", &cache_dir))
             .arg(format!("--user-agent={}", user_agent))
             .arg(format!("--all-proxy={proxy}"))
             .arg(format!("--input-file={input_file}"))
-            .args( prefix_config )
+            .args(prefix_config)
             .stdout(Stdio::inherit()) // 将标准输出重定向到父进程终端
             .output()?; // 阻塞进程
 
