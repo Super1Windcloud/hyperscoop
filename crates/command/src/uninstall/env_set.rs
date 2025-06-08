@@ -131,14 +131,16 @@ pub fn env_path_var_rm(
         log::debug!("\n 当前用户的 PATH: {}", user_path);
         let mut paths: Vec<PathBuf> = std::env::split_paths(&user_path).collect();
         paths.retain(|p| p != &path_var);
-        let user_path = paths
+        let  new_user_path = paths
             .iter()
             .map(|p| p.to_string_lossy().into_owned())
             .collect::<Vec<String>>()
             .join(";");
-        log::debug!("\n 更新后的用户的 PATH: {}", user_path);
-
-        // environment_key.set_value("PATH", &user_path)?;
+        if  user_path.eq(new_user_path.as_str()) {
+            return Ok(()); 
+        }
+        log::debug!("\n 更新后的用户的 PATH: {}", new_user_path);
+      
         let script = if is_global {
             format!(
                 r#"[System.Environment]::SetEnvironmentVariable("PATH","{user_path}", "Machine")"#
