@@ -188,9 +188,19 @@ pub fn install_app_from_local_manifest_file<P: AsRef<Path>>(
 
     if !depends.is_none() && !options.contains(&InstallOptions::NoAutoDownloadDepends) {
         let depend = depends.unwrap();
-        let future = handle_depends(depend.as_str(), options.as_ref());
-        future?;
+        match depend {
+            StringArrayOrString::StringArray(array) => {
+                for depend in array {
+                    handle_depends(depend, options.as_ref())?;
+                }
+            }
+            StringArrayOrString::String(_depend) => {
+                handle_depends(_depend, options.as_ref())?;
+            }
+            StringArrayOrString::Null => {}
+        }
     }
+  
     //   **invoke aria2  to  download  file to cache
     let download_manager = DownloadManager::new(&options, &manifest_path, bucket_source);
     download_manager.start_download()?;
@@ -200,7 +210,7 @@ pub fn install_app_from_local_manifest_file<P: AsRef<Path>>(
     if options.contains(&InstallOptions::OnlyDownloadNoInstall) {
         return Ok(());
     }
-    //  * 提取 cache 中的zip 到 app dir 
+    //  * 提取 cache 中的zip 到 app dir
     let senvenzip =
         download_manager.invoke_7z_extract(extract_dir, extract_to, architecture.clone())?;
     senvenzip.link_current()?;

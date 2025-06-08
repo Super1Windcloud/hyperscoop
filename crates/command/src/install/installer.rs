@@ -74,7 +74,7 @@ pub fn show_notes(notes: StringArrayOrString) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub fn handle_depends(depends: &str, options: &[InstallOptions<'_>]) -> anyhow::Result<()> {
+pub fn handle_depends(depends: String , options: &[InstallOptions<'_>]) -> anyhow::Result<()> {
     if depends.contains('/') {
         let arr = depends.split('/').collect::<Vec<&str>>();
         if arr.len() != 2 {

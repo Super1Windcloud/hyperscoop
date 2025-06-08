@@ -76,7 +76,7 @@ pub struct InstallManifest {
     ///定义如何自动更新清单。
 
     ///将自动安装的应用程序的运行时依赖项。另请参阅suggest （如下）
-    pub depends: Option<String>,
+    pub depends: Option<StringArrayOrString>,
 
     /**
     显示一条消息，建议提供补充功能的可选应用程序。请参阅ant的示例。
