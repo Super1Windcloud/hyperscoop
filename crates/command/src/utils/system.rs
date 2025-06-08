@@ -282,12 +282,11 @@ pub fn kill_processes_using_app(app_name: &str) {
         if exe.is_none() {
             continue;
         }
-        let exe = exe.unwrap().to_str().unwrap();
-        if !exe.contains(app_name) {
+        let exe = exe.unwrap().to_str().unwrap().to_lowercase(); // 忽略进程名大小写 
+        if !exe.contains(app_name) || exe ==app_name  {
             continue;
         }
-        #[cfg(debug_assertions)]
-        dbg!(_name, exe);
+        log::debug!("{}: {}", _name, exe);
         process.kill();
         let exit_status = process.wait();
         log::debug!("Pid {pid} exited with: {exit_status:?}");

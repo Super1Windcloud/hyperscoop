@@ -11,7 +11,7 @@ release_with_upx:
 release :
     cargo  br
     just  update_hash
-    just upload
+    just  upload
 
 publish_release:
     just  update_hash

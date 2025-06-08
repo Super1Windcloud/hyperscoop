@@ -7,16 +7,42 @@ mod env_set;
 use env_set::*;
 pub(crate) mod shim_and_shortcuts;
 use crate::init_env::{
-    get_apps_path, get_apps_path_global, get_persist_dir_path, get_persist_dir_path_global,
-    get_psmodules_root_dir, get_psmodules_root_global_dir, get_shims_root_dir,
-    get_shims_root_dir_global,
+    get_app_dir, get_app_dir_global, get_apps_path, get_apps_path_global, get_persist_dir_path,
+    get_persist_dir_path_global, get_psmodules_root_dir, get_psmodules_root_global_dir,
+    get_shims_root_dir, get_shims_root_dir_global,
 };
 use crate::install::LifecycleScripts::{PostUninstall, PreUninstall, Uninstaller};
 use crate::install::{parse_lifecycle_scripts, InstallOptions};
+use crate::utils::system::kill_processes_using_app;
 use shim_and_shortcuts::*;
 
 pub fn uninstall_app_with_purge(app_name: &str, global: bool) -> Result<(), anyhow::Error> {
-    uninstall_app(app_name, global)?;
+    if uninstall_app(app_name, global).is_err() {
+        kill_processes_using_app(app_name);
+        let app_dir = if global {
+            get_app_dir_global(&app_name)
+        } else {
+            get_app_dir(&app_name)
+        };
+        let app_dir = Path::new(&app_dir);
+        if app_dir.exists() {
+            if std::fs::remove_dir_all(app_dir)
+                .context(format!(
+                    "Failed to remove app directory {}",
+                    app_dir.display()
+                ))
+                .is_err()
+            {
+                kill_processes_using_app(&app_name);
+                std::fs::remove_dir_all(app_dir).context(format!(
+                    "Failed to remove app dir  {} at line 38",
+                    app_dir.display()
+                ))?;
+            }
+        } else {
+            bail!("'{app_name}' 并没有安装")
+        }
+    }
     println!(
         "{} '{}'",
         "Removing Persisted data for".to_string().dark_blue().bold(),
@@ -38,12 +64,11 @@ pub fn uninstall_app_with_purge(app_name: &str, global: bool) -> Result<(), anyh
         return Ok(());
     }
     std::fs::remove_dir_all(app_persist_path)
-        .context("Failed to remove app persisted data at line 41")?;
+        .context("Failed to remove app persisted data at line 74")?;
     Ok(())
 }
 
 pub fn uninstall_app(app_name: &str, is_global: bool) -> Result<(), anyhow::Error> {
-   
     let app_path = if is_global {
         get_apps_path_global()
     } else {

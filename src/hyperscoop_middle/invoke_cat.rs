@@ -13,9 +13,8 @@ pub fn execute_cat_command(cat: CatArgs) -> Result<(), anyhow::Error> {
         get_all_global_buckets_dir_path()?
     } else {
         get_all_buckets_dir_path()?
-    };
-    #[cfg(debug_assertions)]
-    dbg!(&app_name);
+    }; 
+  
     log::info!("info : {:?}", &app_name);
     catch_manifest(bucket_paths, app_name)?;
 
