@@ -9,7 +9,9 @@ use std::process::{Command, Stdio};
 use sysinfo::System;
 use windows::core::PCWSTR;
 use windows::Win32::Foundation::HANDLE;
-use windows::Win32::UI::Shell::{IsUserAnAdmin, ShellExecuteExW, ShellExecuteW, SEE_MASK_NOCLOSEPROCESS, SHELLEXECUTEINFOW};
+use windows::Win32::UI::Shell::{
+    IsUserAnAdmin, ShellExecuteExW, ShellExecuteW, SEE_MASK_NOCLOSEPROCESS, SHELLEXECUTEINFOW,
+};
 use windows::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;
 use winreg::enums::*;
 use winreg::RegKey;
@@ -184,11 +186,10 @@ pub fn request_admin(cli_args: &str) -> anyhow::Result<()> {
         );
         if result.0 as u32 <= 32 {
             bail!("提权失败，ShellExecuteW 返回值: {}", result.0 as u32);
-        } 
-      else {
-        Ok(())
-      }
-    } 
+        } else {
+            Ok(())
+        }
+    }
 }
 
 #[cfg(windows)]
@@ -196,34 +197,38 @@ pub fn is_admin() -> anyhow::Result<bool> {
     unsafe { Ok(IsUserAnAdmin().as_bool()) }
 }
 
-
 pub fn request_admin_and_wait(args: &str) {
-  let exe_path = std::env::current_exe().expect("无法获取程序路径");
+    let exe_path = std::env::current_exe().expect("无法获取程序路径");
 
-  let exe_wide: Vec<u16> = exe_path.as_os_str().encode_wide().chain(once(0)).collect();
-  let args_wide: Vec<u16> = OsStr::new(args).encode_wide().chain(once(0)).collect();
+    let exe_wide: Vec<u16> = exe_path.as_os_str().encode_wide().chain(once(0)).collect();
+    let args_wide: Vec<u16> = OsStr::new(args).encode_wide().chain(once(0)).collect();
 
-  let mut info = SHELLEXECUTEINFOW {
-    cbSize: size_of::<SHELLEXECUTEINFOW>() as u32,
-    lpVerb: PCWSTR(OsStr::new("runas").encode_wide().chain(once(0)).collect::<Vec<u16>>().as_ptr()),
-    lpFile: PCWSTR(exe_wide.as_ptr()), 
-    lpParameters: PCWSTR(args_wide.as_ptr()),
-    nShow: SW_SHOWNORMAL.0,
-    fMask: SEE_MASK_NOCLOSEPROCESS,
-    ..Default::default()
-  };
+    let mut info = SHELLEXECUTEINFOW {
+        cbSize: size_of::<SHELLEXECUTEINFOW>() as u32,
+        lpVerb: PCWSTR(
+            OsStr::new("runas")
+                .encode_wide()
+                .chain(once(0))
+                .collect::<Vec<u16>>()
+                .as_ptr(),
+        ),
+        lpFile: PCWSTR(exe_wide.as_ptr()),
+        lpParameters: PCWSTR(args_wide.as_ptr()),
+        nShow: SW_SHOWNORMAL.0,
+        fMask: SEE_MASK_NOCLOSEPROCESS,
+        ..Default::default()
+    };
 
-  let success = unsafe { ShellExecuteExW(&mut info) };  
-  if  success.is_err()  {
-    panic!("提权失败 {}" ,success.unwrap_err());
-  }
+    let success = unsafe { ShellExecuteExW(&mut info) };
+    if success.is_err() {
+        panic!("提权失败 {}", success.unwrap_err());
+    }
 
-  let handle: HANDLE = info.hProcess;
-  unsafe {
-    windows::Win32::System::Threading::WaitForSingleObject(handle, u32::MAX);
-  }
+    let handle: HANDLE = info.hProcess;
+    unsafe {
+        windows::Win32::System::Threading::WaitForSingleObject(handle, u32::MAX);
+    }
 }
-
 
 pub fn compute_hash_by_powershell(file_path: &str, algorithm: &str) -> anyhow::Result<String> {
     let cmd = format!(
@@ -272,7 +277,7 @@ pub fn kill_processes_using_app(app_name: &str) {
     for process in system.processes() {
         let process = process.1;
         let pid = process.pid().as_u32();
-        let name = process.name().to_str().unwrap();
+        let _name = process.name().to_str().unwrap();
         let exe = process.exe();
         if exe.is_none() {
             continue;
@@ -281,7 +286,8 @@ pub fn kill_processes_using_app(app_name: &str) {
         if !exe.contains(app_name) {
             continue;
         }
-        dbg!(name, exe);
+        #[cfg(debug_assertions)]
+        dbg!(_name, exe);
         process.kill();
         let exit_status = process.wait();
         log::debug!("Pid {pid} exited with: {exit_status:?}");

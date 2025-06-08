@@ -5,8 +5,8 @@ use crate::Cli;
 use crossterm::style::{force_color_output, Stylize};
 use command_util_lib::utils::system::{is_admin, request_admin};
 
-pub fn init_logger(x: &Cli) {
-    if cfg!(debug_assertions) || x.debug {
+pub unsafe fn init_logger(x: &Cli) {
+    if  (cfg!(debug_assertions) || x.debug ) && !x.error  {
         env::set_var("RUST_LOG", "debug");
     } else {
         env::set_var("RUST_LOG", "error");

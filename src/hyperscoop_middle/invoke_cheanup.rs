@@ -1,10 +1,11 @@
 use crate::command_args::cleanup::CleanupArgs;
-use anyhow::{anyhow, Context};
 use anyhow::bail;
+use anyhow::{anyhow, Context};
 use command_util_lib::init_env::{
     get_app_dir, get_app_dir_global, get_app_version_dir, get_app_version_dir_global,
     get_apps_path, get_apps_path_global,
 };
+use command_util_lib::utils::system::kill_processes_using_app;
 use command_util_lib::utils::utility::compare_versions;
 use crossterm::style::Stylize;
 use rayon::prelude::*;
@@ -20,9 +21,10 @@ pub fn execute_cleanup_command(args: CleanupArgs) -> Result<(), anyhow::Error> {
         } else {
             clean_specific_old_version(name, args.global)?
         }
-    }
-    if args.all {
-        clean_all_old_versions(args.global)?
+    } else {
+        if args.all {
+            clean_all_old_versions(args.global)?
+        }
     }
     Ok(())
 }
@@ -41,10 +43,10 @@ fn clean_specific_old_version(app_name: Vec<String>, is_global: bool) -> anyhow:
         .collect::<Vec<_>>();
     let result = app_dirs.iter().try_for_each(|dir| {
         let dir = Path::new(dir);
+        let app_name = dir.file_stem().unwrap().to_str().unwrap();
         let child_dirs = dir
-            .read_dir().context(
-                format!("Failed to read directory: {}", dir.display()),
-        )?
+            .read_dir()
+            .context(format!("Failed to read directory: {}", dir.display()))?
             .filter_map(|dir| {
                 let dir = dir.unwrap();
                 let binding = dir.file_name();
@@ -70,8 +72,13 @@ fn clean_specific_old_version(app_name: Vec<String>, is_global: bool) -> anyhow:
         let result = child_dirs.par_iter().try_for_each(|dir| {
             if dir != retain_dir {
                 log::info!("Removing old version: {}", dir.display());
-                std::fs::remove_dir_all(dir).context("Failed to remove old version")?;
+                let result = std::fs::remove_dir_all(dir).context("Failed to remove old version");
                 *flag.lock().unwrap() = true;
+                if result.is_err() {
+                    kill_processes_using_app(app_name);
+                    std::fs::remove_dir_all(dir)
+                        .context("Failed to remove old version at line 80")?;
+                }
             }
             Ok(())
         });
@@ -94,15 +101,17 @@ fn clean_all_old_versions(is_global: bool) -> anyhow::Result<()> {
         get_apps_path()
     };
 
-    let apps_dir = std::fs::read_dir(apps_dir)
-      .context("Failed to read apps  root directory at line 96")?;
+    let apps_dir =
+        std::fs::read_dir(apps_dir).context("Failed to read apps  root directory at line 96")?;
     let mut versions_with_name = HashMap::new();
 
     for app_dir in apps_dir {
         let mut dir_count = 0;
         let mut versions_max = String::new();
 
-        let path = app_dir.expect("Failed to read app directory").path();
+        let path = app_dir
+            .context("Failed to read app directory at line 105")?
+            .path();
         let app_name = path
             .clone()
             .file_name()
@@ -111,8 +120,11 @@ fn clean_all_old_versions(is_global: bool) -> anyhow::Result<()> {
             .unwrap()
             .to_string();
         if path.is_dir() {
-            for entry in path.read_dir().expect("Failed to read app directory") {
-                let entry = entry.expect("Failed to read app directory entry");
+            for entry in path
+                .read_dir()
+                .context("Failed to read app directory at line 118")?
+            {
+                let entry = entry?;
                 if entry.path().is_dir() {
                     dir_count += 1;
                 }
@@ -120,16 +132,15 @@ fn clean_all_old_versions(is_global: bool) -> anyhow::Result<()> {
             if dir_count <= 2 {
                 continue;
             }
-            for version_dir in path.read_dir().expect("Failed to read version directory") {
+            for version_dir in path
+                .read_dir()
+                .context("Failed to read version directory at line 130")?
+            {
                 let version_path = version_dir
-                    .expect("Failed to read version directory")
+                    .context("Failed to read version directory at line 133")?
                     .path();
                 if version_path.is_dir() {
-                    let version_name = version_path
-                        .file_name()
-                        .expect("Failed to get version name")
-                        .to_str()
-                        .expect("Failed to convert version name to string");
+                    let version_name = version_path.file_name().unwrap().to_str().unwrap();
                     if version_name == "current" {
                         continue;
                     }
@@ -161,28 +172,51 @@ fn clean_all_old_versions(is_global: bool) -> anyhow::Result<()> {
         };
         log::info!("{:?}", dir);
         if exclude_path.exists() {
-            for entry in std::fs::read_dir(dir).expect("Failed to read app directory") {
-                let entry = entry.expect("Failed to read app directory entry");
+            for entry in
+                std::fs::read_dir(dir).context("Failed to read app directory at line 169")?
+            {
+                let entry = entry?;
                 if entry.path().is_dir() {
                     if entry.path() == exclude_path {
                         continue;
                     }
-                    let name = entry
-                        .path()
-                        .file_name()
-                        .unwrap()
-                        .to_str()
-                        .unwrap()
-                        .to_string();
-                    if name == "current" {
+                    let path = entry.path();
+                    let version = path.file_name().unwrap().to_str().unwrap();
+                    if version == "current" {
                         continue;
                     }
-                    log::info!("Removing old version: {}", entry.path().display());
-                    std::fs::remove_dir_all(entry.path()).expect("Failed to remove old version");
+                    log::info!("Removing old version: {}", path.display());
+                    if std::fs::remove_dir_all(path.as_path())
+                        .context("Failed to remove old version at line 188")
+                        .is_err()
+                    {
+                        kill_processes_using_app(&app_name);
+                        std::fs::remove_dir_all(path.as_path())
+                            .context("Failed to remove old version at line 195")?;
+                    }
                 }
             }
         }
     }
 
     Ok(())
+}
+
+mod tests {
+
+    #[test]
+    fn test_file_stem() {
+        use std::path::Path;
+        let path =
+            Path::new("C:\\Users\\Administrator\\scoop\\apps\\rustup\\current\\bin\\rustup.exe");
+        let app_name = path.file_stem().unwrap().to_str().unwrap();
+        let bin_name = path.file_name().unwrap().to_str().unwrap();
+        assert_eq!(bin_name, "rustup.exe");
+        assert_eq!(app_name, "rustup");
+        let dir = Path::new("C:\\Users\\Administrator\\scoop\\apps\\rustup\\current");
+        let app_name = dir.file_stem().unwrap().to_str().unwrap();
+        let file_name = dir.file_name().unwrap().to_str().unwrap();
+        assert_eq!(file_name, "current");
+        assert_eq!(app_name, "current");
+    }
 }

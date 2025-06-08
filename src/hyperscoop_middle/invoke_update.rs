@@ -170,7 +170,7 @@ pub async fn update_hp(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
 
     let version = install_and_replace_hp(install_options.as_slice())
         .await
-        .expect("install_and_replace_hp  failed");
+        .context("install_and_replace_hp  failed at line 173")?;
 
     if update_options.contains(&ForceUpdateOverride) {
         launch_update_script(global, "", true).expect("update hp script failed");
@@ -182,8 +182,8 @@ pub async fn update_hp(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
             log::debug!("app_old_version_dir: {}", app_old_version_dir);
             launch_update_script(global, app_old_version_dir.as_str(), false)
                 .map_err(|e| anyhow::anyhow!("launch_update_script failed: \n{}", e))?;
-        } else { 
-            launch_update_script(global, "", true).expect("update hp script failed"); 
+        } else {
+            launch_update_script(global, "", true).expect("update hp script failed");
         }
     }
     println!(

@@ -20,6 +20,7 @@ use crate::utils::progrees_bar::{
     style, Message,
 };
 use crate::utils::request::get_git_repo_remote_url;
+use crate::utils::system::kill_processes_using_app;
 use crate::utils::utility::get_official_bucket_path;
 #[allow(unused_imports)]
 use anyhow::bail;
@@ -41,7 +42,7 @@ pub fn update_all_apps(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
             }
             Err(err) => {
                 eprintln!("{}", err.to_string().dark_red().bold());
-                let  app_current = if options.contains(&Global) {
+                let app_current = if options.contains(&Global) {
                     get_app_current_dir_global(&app)
                 } else {
                     get_app_current_dir(&app)
@@ -63,12 +64,22 @@ pub fn remove_old_version(app_name: &str, options: &[UpdateOptions]) -> anyhow::
         get_app_current_dir(app_name)
     };
     let target_version_path = fs::read_link(app_current_dir)
-        .context(format!("failed to read link of {} at line 51", app_name))?;
+        .context(format!("failed to read link of {} at line 67", app_name))?;
     log::debug!("target_version_path: {:?}", target_version_path);
-    fs::remove_dir_all(target_version_path).context(format!(
-        "failed to remove target version of {} at line 54",
+    let result = fs::remove_dir_all(&target_version_path).context(format!(
+        "failed to remove target version of {} at line 70",
         app_name
-    ))?;
+    ));
+    if result.is_err() {
+        eprintln!(
+            "Remove Failed : {}",
+            result.err().unwrap().to_string().dark_red().bold()
+        );
+        kill_processes_using_app(app_name);
+        fs::remove_dir_all(&target_version_path).context(format!(
+            "failed to remove target version of {app_name} at line 80"
+        ))?
+    }
     Ok(())
 }
 pub fn transform_update_options_to_install(
