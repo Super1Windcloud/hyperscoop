@@ -21,9 +21,8 @@ pub fn delete_env_var(var_key: &str) -> Result<(), anyhow::Error> {
     let environment_key = hkcu.open_subkey_with_flags("Environment", KEY_ALL_ACCESS)?;
     if environment_key.get_value::<String, &str>(var_key).is_ok() {
         environment_key.delete_value(var_key)?;
-        return Ok(());
-    }
-    bail!("Environment variable not  exists");
+    } 
+    Ok(())
 }
 pub fn delete_global_env_var(var_key: &str) -> Result<(), anyhow::Error> {
     let hkcu = RegKey::predef(HKEY_LOCAL_MACHINE);
@@ -32,9 +31,9 @@ pub fn delete_global_env_var(var_key: &str) -> Result<(), anyhow::Error> {
     let environment_key = hkcu.open_subkey_with_flags(key, KEY_ALL_ACCESS)?;
     if environment_key.get_value::<String, &str>(var_key).is_ok() {
         environment_key.delete_value(var_key)?;
-        return Ok(());
     }
-    bail!("Environment variable not  exists");
+    Ok(())
+  
 }
 
 pub fn get_user_env_var(var_key: &str) -> Result<String, anyhow::Error> {

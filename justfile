@@ -1,7 +1,6 @@
 set shell :=   ["pwsh.exe", "-NoProfile", "-c"]
 
 
-
 release_with_upx:
     cargo  br
     just  update_hash
@@ -23,10 +22,7 @@ publish:
        just upload
 
 upload:
-     while ! (cd script  &&    uv run  publish_release.py  -u ); do \
-        echo "Push failed. Retrying in 1 seconds..."; sleep 1; \
-     done
-
+     cd script  &&    uv run  publish_release.py  -u
 
 hp  :
     scoop uninstall hp && scoop install  -u -s -k  hp
@@ -46,10 +42,7 @@ update_hash:
     push_all
 
 push_all:
-    while ! (git push repo master && git push github master:dev && git push github master:main); do \
-        echo "Push failed. Retrying in 1 seconds..."; sleep 1; \
-    done
-
+    git push repo master && git push github master:dev && git push github master:main
 
 no_commit_update_hash:
     python  script/hash.py

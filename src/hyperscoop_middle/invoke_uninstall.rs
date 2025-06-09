@@ -32,6 +32,7 @@ pub fn execute_uninstall_command(args: UninstallArgs) -> Result<(), anyhow::Erro
                     );
                 }
                 Err(e) => {
+                 
                     bail!("Failed to purge app, {}", e)
                 }
             }

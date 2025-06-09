@@ -18,7 +18,6 @@ use shim_and_shortcuts::*;
 
 pub fn uninstall_app_with_purge(app_name: &str, global: bool) -> Result<(), anyhow::Error> {
     if uninstall_app(app_name, global).is_err() {
-        kill_processes_using_app(app_name);
         let app_dir = if global {
             get_app_dir_global(&app_name)
         } else {
