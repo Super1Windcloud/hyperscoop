@@ -62,11 +62,19 @@ pub fn set_user_env_var(var_key: &str, var_value: &str) -> Result<(), anyhow::Er
 
     Ok(())
 }
+ 
 pub fn set_global_env_var(var_key: &str, var_value: &str) -> Result<(), anyhow::Error> {
     if var_key.is_empty() || var_value.is_empty() {
         bail!("Environment variable  can't be empty ");
     }
+    let hkcu = RegKey::predef(HKEY_LOCAL_MACHINE);
+    let key = r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment";
 
+    let environment_key = hkcu.open_subkey_with_flags(key, KEY_ALL_ACCESS)?;
+
+    if( environment_key.set_value(var_key, &var_value) as Result<(), std::io::Error>).is_ok() {
+        return Ok(());
+    }
     let powershell_command = format!(
         "[System.Environment]::SetEnvironmentVariable(\"{}\", \"{}\", \"Machine\")",
         var_key, var_value
@@ -282,8 +290,8 @@ pub fn kill_processes_using_app(app_name: &str) {
         if exe.is_none() {
             continue;
         }
-        let exe = exe.unwrap().to_str().unwrap().to_lowercase(); // 忽略进程名大小写 
-        if !exe.contains(app_name) || exe ==app_name  {
+        let exe = exe.unwrap().to_str().unwrap().to_lowercase(); // 忽略进程名大小写
+        if !exe.contains(app_name) || exe == app_name {
             continue;
         }
         log::debug!("{}: {}", _name, exe);
