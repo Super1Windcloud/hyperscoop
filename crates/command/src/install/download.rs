@@ -364,7 +364,7 @@ impl<'a> DownloadManager<'a> {
         };
         let dir = self.app_current_dir.as_str();
         if env_path.contains(dir) && !dir.is_empty() {
-            bail!("{} 已经存在于 PATH 环境变量中, 请检查", dir)
+            log::warn!("{} 已经存在于 PATH 环境变量中, 请检查", dir)
         }
         Ok(())
     }

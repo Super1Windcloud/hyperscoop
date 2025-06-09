@@ -2,7 +2,7 @@ use crate::init_env::{get_old_scoop_dir, get_scoop_cfg_path, init_scoop_global, 
 use crate::install::InstallOptions;
 use crate::manifest::install_manifest::InstallManifest;
 use crate::manifest::manifest_deserialize::{ManifestObj, StringArrayOrString};
-use crate::utils::system::set_user_env_var;
+use crate::utils::system::{set_global_env_var, set_user_env_var};
 use anyhow::bail;
 use crossterm::style::Stylize;
 use std::path::Path;
@@ -155,12 +155,16 @@ pub fn add_bin_to_path(
         format!("{user_path}{path}")
     } else {
         format!("{user_path};{path}")
-    };
+    }; 
+    
     log::debug!("\n 更新后的用户的 PATH: {}", user_path);
     let script =
         format!(r#"[System.Environment]::SetEnvironmentVariable("PATH","{user_path}", "Machine")"#);
 
     if options.contains(&InstallOptions::Global) {
+        if set_global_env_var("Path", &user_path).is_ok() {
+            return Ok(());
+        }
         let output = Command::new("powershell")
             .arg("-NoProfile")
             .arg("-Command")
