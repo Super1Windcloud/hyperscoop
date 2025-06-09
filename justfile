@@ -23,7 +23,10 @@ publish:
        just upload
 
 upload:
-     cd script  &&    uv run  publish_release.py  -u
+     while ! (cd script  &&    uv run  publish_release.py  -u ); do \
+        echo "Push failed. Retrying in 1 seconds..."; sleep 1; \
+     done
+
 
 hp  :
     scoop uninstall hp && scoop install  -u -s -k  hp
@@ -39,7 +42,13 @@ arm64 :
 update_hash:
     python  script/hash.py
     cd  hyperscoop_source_bucket  &&  just  update
-    git add -A  && git commit -m ":panda_face:  publish hp " && git push repo   master  && git push github  master:dev  &&  git  push github master:main
+    git add -A  && git commit -m ":panda_face:  publish hp "
+    push_all
+
+push_all:
+    while ! (git push repo master && git push github master:dev && git push github master:main); do \
+        echo "Push failed. Retrying in 1 seconds..."; sleep 1; \
+    done
 
 
 no_commit_update_hash:
