@@ -39,7 +39,7 @@ update_hash:
     python  script/hash.py
     cd  hyperscoop_source_bucket  &&  just  update
     git add -A  && git commit -m ":panda_face:  publish hp "
-    push_all
+    just  push_all
 
 push_all:
     git push repo master && git push github master:dev && git push github master:main

@@ -297,8 +297,7 @@ pub fn assume_yes_to_cover_folder(path: &str) -> anyhow::Result<bool> {
 }
 
 pub fn write_utf8_file(path: &str, content: &str, option: &[InstallOptions]) -> anyhow::Result<()> {
-    // 文件存在, 进行覆盖警告
-    log::info!("shim content :{}", content);
+    // log::info!("shim content :{}", content);
     if content.is_empty() {
         bail!("shim content is empty");
     }
