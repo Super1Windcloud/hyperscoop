@@ -67,7 +67,7 @@ fn get_match_name_path(
     let result = paths
         .into_par_iter()
         .filter_map(|path| {
-            let file_name = path.file_stem().unwrap().to_str().unwrap();
+            let file_name = path.file_stem().unwrap().to_str().unwrap().to_lowercase();
             if file_name == query || file_name.contains(&query) {
                 Some((file_name.to_string(), path.clone()))
             } else {

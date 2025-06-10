@@ -64,9 +64,9 @@ struct Cli {
         help = "开启日志调试模式",
         help_heading = "Global Options"
     )]
-    pub debug: bool,   
+    pub debug: bool,
     #[arg(
-        short,
+        short='E' ,
         long,
         required = false,
         global = true,

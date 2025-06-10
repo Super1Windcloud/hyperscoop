@@ -15,3 +15,5 @@ pub struct SearchArgs {
    #[arg(from_global)]
    pub  global: bool,
 }
+
+
