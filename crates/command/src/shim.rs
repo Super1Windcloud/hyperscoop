@@ -539,6 +539,63 @@ pub fn remove_shim(name: Option<String>, global: bool) -> anyhow::Result<()> {
     Ok(())
 }
 
+
+pub fn clear_invalid_shims(global : bool) -> anyhow::Result<()> {
+   let shim_root_dir = if global {
+       get_shims_root_dir_global()
+   } else {
+       get_shims_root_dir()
+   }; 
+   let shim_root_dir = Path::new(&shim_root_dir);
+   let result = shim_root_dir.read_dir()?.try_for_each(|entry| { 
+      let entry = entry.ok().unwrap();
+      let file_type = entry.file_type().ok().unwrap();
+      if !file_type.is_file() {
+          return Ok(());
+      } 
+      let  path = entry.path();  
+      let extension = path.extension().unwrap_or_default().to_str().unwrap();
+      if  extension.is_empty() {
+        return Ok(()); 
+      } 
+      if  extension =="shim" {
+        let content = std::fs::read_to_string(&path).unwrap();
+        let first_line = content.lines().next().unwrap().trim();
+        let  target_path =  first_line
+          .replace("path =", "")
+          .replace("\"", "")
+          .trim()
+          .to_owned(); 
+        let exe_path =  path.with_extension("exe"); 
+        if !Path::new(&target_path).exists() { 
+            println!("{}", format!("Removing invalid shim: {}", path.display()).dark_green().bold()); 
+            println!("{}", format!("Removing invalid shim: {}", exe_path.display()).dark_green().bold());
+            // std::fs::remove_file(&path).unwrap();
+        }
+      }
+      else if extension =="cmd" || extension =="bat" {
+       let content = extract_rem_comments(path.to_str().unwrap());
+        let target_path = content.trim().to_owned(); 
+        let shell_path =  path.with_extension("");
+        if !Path::new(&target_path).exists() {
+            println!("{}", format!("Removing invalid shim: {}", path.display()).dark_green().bold());
+            println!("{}", format!("Removing invalid shim: {}", shell_path.display()).dark_green().bold());
+            // std::fs::remove_file(&path).unwrap();
+        }
+       
+     }
+    
+     Ok(())
+   }) as anyhow::Result<()>;
+
+  if result.is_err() {
+      bail!(result.unwrap_err()); 
+  }
+  Ok(())
+}
+
+
+
 mod test_shim {
     #[allow(unused_imports)]
     use super::*;

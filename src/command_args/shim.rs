@@ -54,7 +54,8 @@ pub enum ShimSubCommand {
     Add(AddArgs),
     Rm(RmArgs),
     List(ListArgs),
-    Info(InfoArgs),
+    Info(InfoArgs), 
+    Clear(ClearArgs),
 }
 
 #[derive(Args, Debug)]
@@ -74,6 +75,13 @@ pub struct ListArgs {
     #[arg(short, long, help = "正则匹配shim名称" , value_parser = clap_args_to_lowercase
      ,required =  false )]
     pub regex: Option<String>,
+    #[arg(from_global)]
+    pub global: bool,
+}
+
+#[derive(Args, Debug)]
+#[clap(author, version, about="清理无效的shim快捷方式", long_about = None)]
+pub struct ClearArgs {
     #[arg(from_global)]
     pub global: bool,
 }

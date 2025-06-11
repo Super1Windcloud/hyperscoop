@@ -862,7 +862,12 @@ pub fn create_exe_type_shim_file_and_shim_bin<P1: AsRef<Path>, P2: AsRef<Path>>(
 ) -> anyhow::Result<()> {
     let target_path = target_path.as_ref().to_str().unwrap();
     let output_dir = output_dir.as_ref().to_path_buf();
+    let parent = Path::new(target_path).parent().unwrap();
+    let version = parent.file_name().unwrap().to_str().unwrap(); //file_stem不能用于目录
+    log::info!("target app version: {}", version);
 
+    let target_link = target_path.replace(version, "current");
+    log::info!("target link: {}", target_link);
     let target_name = if alias_name.is_none() {
         Path::new(target_path)
             .file_stem()
@@ -878,10 +883,10 @@ pub fn create_exe_type_shim_file_and_shim_bin<P1: AsRef<Path>, P2: AsRef<Path>>(
     }
 
     let content = if program_params.is_none() {
-        format!("path = \"{}\"", target_path)
+        format!("path = \"{}\"", target_link)
     } else {
-        let program_params = program_params.unwrap();
-        format!("path = {target_path } \nargs = {program_params}")
+        let program_params = program_params.clone().unwrap();
+        format!("path = \"{target_link}\"\nargs = \"{program_params}\"")
     };
     let target_name = target_name.unwrap();
     // Determine the shim file name
@@ -893,12 +898,12 @@ pub fn create_exe_type_shim_file_and_shim_bin<P1: AsRef<Path>, P2: AsRef<Path>>(
         fs::create_dir_all(&output_dir).context("failed create output_dir at line 880")?;
     }
 
-    let crlf_content = content.replace(LineEnding::LF.as_str(), LineEnding::CRLF.as_str());
-    write_utf8_file(
-        shim_path.as_path().to_str().unwrap(),
-        &crlf_content,
-        options,
-    )?;
+    let crlf_content = if program_params.is_some() {
+        content.clone() 
+    } else {
+        content.replace(LineEnding::LF.as_str(), LineEnding::CRLF.as_str())
+    };
+    write_utf8_file(shim_path.as_path().to_str().unwrap(), crlf_content.as_str(), options)?;
     println!(
         "{} {}",
         "Creating  shim  file => ".to_string().dark_blue().bold(),
