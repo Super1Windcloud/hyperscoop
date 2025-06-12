@@ -12,7 +12,7 @@ use std::cmp::Ordering;
 use std::fs;
 use std::fs::File;
 use std::io::Write;
-use std::path::Path;
+use std::path::{Path};
 use textwrap::LineEnding;
 use url::Url;
 
@@ -364,18 +364,93 @@ pub fn get_parse_url_query(url: &str) -> anyhow::Result<String> {
 }
 
 pub fn strip_extended_prefix(path: &Path) -> String {
-  let s = path.display().to_string();
-  if s.starts_with(r"\\?\") {
-    s[4..].to_string()
-  } else {
-    s
-  }
+    let s = path.display().to_string();
+    if s.starts_with(r"\\?\") {
+        s[4..].to_string()
+    } else {
+        s
+    }
 }
-
 
 pub fn clap_args_to_lowercase(s: &str) -> Result<String, String> {
     Ok(s.to_lowercase())
 }
+
+pub fn target_version_dir_to_current_dir(
+    target_path: &str,
+    options: &[InstallOptions],
+) -> anyhow::Result<String> {
+    let version = if let Some(InstallOptions::CurrentInstallApp { app_version, .. }) =
+        options.iter().find_map(|opt| {
+            if let InstallOptions::CurrentInstallApp {
+                app_name,
+                app_version,
+            } = opt
+            {
+                Some(InstallOptions::CurrentInstallApp {
+                    app_name: app_name.clone(),
+                    app_version: app_version.clone(),
+                })
+            } else {
+                None
+            }
+        }) {
+        app_version
+    } else {
+        "".into()
+    };
+    if version.is_empty() {
+        eprintln!("No version found, will use canonicalize path to replace link dir.")
+    }
+    let symbolic_dir = if version.is_empty() {
+        target_path.to_string()
+    } else {
+        target_path.replace(version.as_str(), "current")
+    };
+    log::info!("target link dir: {}", symbolic_dir);
+    Ok(symbolic_dir)
+}
+
+pub fn exclude_scoop_self_scripts(
+    script_name: &str,
+    alias_name: Option<&str>,
+) -> anyhow::Result<u8> {
+    let split = script_name.split(".").collect::<Vec<&str>>();
+    if split.len() != 2 && split.len() != 1 {
+        bail!("shim target {script_name} 文件名格式错误, WTF?")
+    }
+    if alias_name.is_some() {
+        let script_name = alias_name.unwrap();
+        #[cfg(debug_assertions)]
+        dbg!(script_name);
+        let exclude_list = vec!["scoop", "scoop-pre", "scoop-premake", "scoop-rm_nm"];
+        if exclude_list.contains(&script_name) {
+            return Ok(1);
+        }
+        return Ok(0);
+    }
+    let script_name = split.get(0).unwrap();
+    let exclude_list = vec!["scoop", "scoop-pre", "scoop-premake", "scoop-rm_nm"];
+    if exclude_list.contains(&script_name) {
+        return Ok(1);
+    }
+    Ok(0)
+}
+
+pub fn extract_target_path_from_shell_script(file_path: &str) -> anyhow::Result<String> {
+    let content = fs::read_to_string(file_path)?;
+    let second_line = content.lines().nth(1).unwrap();
+
+    // 移除 # 注释符号和前后空格
+    let path = second_line.trim_start_matches('#').trim();
+
+    if !path.is_empty() {
+        Ok(path.to_string())
+    } else {
+        bail!("脚本文件{}第二行为空", file_path)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     #[allow(unused_imports)]
@@ -406,8 +481,8 @@ mod tests {
     fn test_path_to_str() {
         let path = r"A:\Scoop\apps\mise\current\bin/mise.exe";
         match fs::canonicalize(Path::new(path)) {
-        Ok(standardized) => println!("标准路径: {}", standardized.display()),
-        Err(e) => eprintln!("错误: {}", e),
-      }
+            Ok(standardized) => println!("标准路径: {}", standardized.display()),
+            Err(e) => eprintln!("错误: {}", e),
+        }
     }
 }

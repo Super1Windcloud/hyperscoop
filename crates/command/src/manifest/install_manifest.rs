@@ -186,7 +186,7 @@ pub struct InstallManifest {
 
     ///  与installer相同的选项，但运行文件/脚本来卸载应用程序。在scoop uninstall和scoop update期间调用
     pub uninstaller: Option<InstallerUninstallerStruct>,
-    pub pre_uninstall: Option<StringArrayOrString>,  // 卸载前执行的命令
+    pub pre_uninstall: Option<StringArrayOrString>, // 卸载前执行的命令
     pub post_uninstall: Option<StringArrayOrString>, // 卸载后执行的命令
     /**
     序的软件许可证的字符串或哈希值。对于知名许可证，请使用https://spdx.org/licenses中找到的标识符。
@@ -226,6 +226,7 @@ mod test_manifest_deserialize {
     #[allow(unused_imports)]
     use super::*;
     use crate::install::show_suggest;
+    use crate::manifest::search_manifest::TestManifest;
     #[allow(unused_imports)]
     use rayon::prelude::*;
     use std::path::PathBuf;
@@ -269,17 +270,23 @@ mod test_manifest_deserialize {
             // if find_env_set(_manifest, path, &_count) {
             //     return;
             // }
-            /*    if find_bin_and_shortcuts(_manifest, &path, &_count) {
+
+            let _test_manifest: TestManifest =
+                serde_json::from_str::<TestManifest>(&content).unwrap();
+            if test_shortcuts(_test_manifest, &path, &_count) {
                 return;
-            };*/
+            }
+            // if find_bin_and_shortcuts(_manifest, &path, &_count) {
+            //     return;
+            // };
             // if  find_persist(_manifest, &path, &_count ) { return; };
             // if find_install_and_uninstall(_manifest, path, &_count) {
             //     return;
             // };
 
-            if find_innosetup_exe(_manifest, path, &_count) {
-                return;
-            };
+            // if find_innosetup_exe(_manifest, path, &_count) {
+            //     return;
+            // };
         }
         pub fn find_innosetup_exe(
             _manifest: InstallManifest,
@@ -406,6 +413,50 @@ mod test_manifest_deserialize {
                     ArrayOrDoubleDimensionArray::Null => {
                         println!("shortcuts {:?}", "Null");
                         println!(" path {}", path.display());
+                        *_count.lock().unwrap() += 1;
+                        vec![]
+                    }
+                };
+
+                if *_count.lock().unwrap() >= 2 {
+                    return true;
+                }
+            }
+            false
+        }
+        fn test_shortcuts(
+            _manifest: TestManifest,
+            path: &PathBuf,
+            _count: &Arc<Mutex<i32>>,
+        ) -> bool {
+            let shortcuts = _manifest.shortcuts;
+            if shortcuts.is_some() {
+                let shortcuts = shortcuts.unwrap();
+                let result = match shortcuts {
+                    StringOrStringArrayOrDoubleDimensionArray::StringArray(array) => {
+                        println!("StringOrStringArrayOrDoubleDimensionArray Array shortcuts {:?}", array);
+                        println!(" path {}", path.display());
+                        *_count.lock().unwrap() += 1;
+                        array
+                    }
+                    StringOrStringArrayOrDoubleDimensionArray::DoubleDimensionArray(double_arr) => {
+                        // println!("shortcuts {:?}", &double_arr);
+                        // println!(" path {}", path.display());
+                        double_arr.into_iter().flatten().collect::<Vec<String>>()
+                    }
+                    StringOrStringArrayOrDoubleDimensionArray::String(str) => {
+                        println!(
+                            "StringOrStringArrayOrDoubleDimensionArray String shortcuts {:?}",
+                            str
+                        ); 
+                        println!(" path {}", path.display());
+                        *_count.lock().unwrap() += 1;
+                        vec![str]
+                    }
+                    StringOrStringArrayOrDoubleDimensionArray::Null => {
+                        // println!("StringOrStringArrayOrDoubleDimensionArray shortcuts Null");
+                        // println!(" path {}", path.display());
+                        // *_count.lock().unwrap() += 1;
                         vec![]
                     }
                 };

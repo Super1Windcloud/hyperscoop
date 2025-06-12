@@ -366,7 +366,7 @@ impl<'a> SevenZipStruct<'a> {
                     std::io::stdout().flush().unwrap(); // 不刷新缓冲区会等待换行
 
                     if *archive_format == ArchiveFormat::EXE
-                        || *archive_format == ArchiveFormat::Other
+                        || *archive_format == ArchiveFormat::Other || *archive_format == ArchiveFormat::Shell 
                     {
                         let target_dir = if alias.is_empty() {
                             format!("{}\\{}", target_dir, archive_name)
@@ -608,7 +608,7 @@ Expand-InnoArchive "{inno_file}" "{target_dir}"  -Removal
                     std::io::stdout().flush().unwrap(); // 不刷新缓冲区会等待换行
 
                     if *archive_format == ArchiveFormat::EXE
-                        || *archive_format == ArchiveFormat::Other
+                        || *archive_format == ArchiveFormat::Other || *archive_format == ArchiveFormat::Shell
                     {
                         let target_dir = if alias.is_empty() {
                             format!("{}\\{}", target_dir, archive_name)
@@ -756,7 +756,7 @@ Expand-InnoArchive "{inno_file}" "{target_dir}"  -Removal
                     std::io::stdout().flush().unwrap(); // 不刷新缓冲区会等待换行
 
                     if *archive_format == ArchiveFormat::EXE
-                        || *archive_format == ArchiveFormat::Other
+                        || *archive_format == ArchiveFormat::Other || *archive_format == ArchiveFormat::Shell 
                     {
                         // 复制exe到别名路径
                         let target_dir = if target_alias.is_empty() {

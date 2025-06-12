@@ -93,19 +93,32 @@ pub fn install_app_from_local_manifest_file<P: AsRef<Path>>(
         }
     }
     validate_version(version)?;
+
+    let version = if version == "nightly" {
+        &nightly_version()?
+    } else {
+        version
+    };
+
     let options = if version == "nightly" {
         options
             .to_vec()
             .into_iter()
             .chain(vec![InstallOptions::SkipDownloadHashCheck])
-            .collect()
+            .chain(vec![InstallOptions::CurrentInstallApp {
+                app_name: app_name.to_string(),
+                app_version: version.to_string(),
+            }])
+            .collect::<Box<[InstallOptions]>>()
     } else {
         options
-    };
-    let version = if version == "nightly" {
-        &nightly_version()?
-    } else {
-        version
+            .to_vec()
+            .into_iter()
+            .chain(vec![InstallOptions::CurrentInstallApp {
+                app_name: app_name.to_string(),
+                app_version: version.to_string(),
+            }]) 
+            .collect::<Box<[InstallOptions]>>()
     };
 
     let result = if !options.contains(&InstallOptions::ForceDownloadNoInstallOverrideCache)
@@ -200,7 +213,7 @@ pub fn install_app_from_local_manifest_file<P: AsRef<Path>>(
             StringArrayOrString::Null => {}
         }
     }
-  
+
     //   **invoke aria2  to  download  file to cache
     let download_manager = DownloadManager::new(&options, &manifest_path, bucket_source);
     download_manager.start_download()?;

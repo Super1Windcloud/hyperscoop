@@ -38,7 +38,7 @@ pub fn rm_start_menu_shortcut(
             ArrayOrDoubleDimensionArray::StringArray(shortcut) => {
                 let arg_len = shortcut.len();
                 if arg_len < 2 {
-                    eprintln!(
+                    bail!(
                         "{} ",
                         "Failed to find shortcut, maybe manifest json file format error"
                             .dark_yellow()
@@ -71,7 +71,7 @@ pub fn rm_start_menu_shortcut(
             ArrayOrDoubleDimensionArray::DoubleDimensionArray(shortcut) => {
                 let arg_len = shortcut.len();
                 if arg_len < 1 {
-                    eprintln!(
+                    bail!(
                         "{} ",
                         "Failed to find shortcut, maybe manifest json file format error"
                             .dark_yellow()
@@ -81,7 +81,7 @@ pub fn rm_start_menu_shortcut(
                 for shortcut_item in shortcut {
                     let arg_len = shortcut_item.len();
                     if arg_len < 2 {
-                        eprintln!(
+                        bail!(
                             "{} ",
                             "Failed to find shortcut, maybe manifest json file format error"
                                 .dark_yellow()
@@ -113,8 +113,7 @@ pub fn rm_start_menu_shortcut(
                 }
             }
         }
-    }
-    if let Some(architecture) = architecture {
+    } else if let Some(architecture) = architecture {
         let system_arch = get_system_default_arch()?;
         let x64 = architecture.x64bit;
         let x86 = architecture.x86bit;
@@ -134,7 +133,7 @@ pub fn rm_start_menu_shortcut(
                 ArrayOrDoubleDimensionArray::StringArray(shortcut) => {
                     let arg_len = shortcut.len();
                     if arg_len < 2 {
-                        eprintln!(
+                        bail!(
                             "{} ",
                             "Failed to find shortcut, maybe manifest json file format error"
                                 .dark_yellow()
@@ -167,7 +166,7 @@ pub fn rm_start_menu_shortcut(
                 ArrayOrDoubleDimensionArray::DoubleDimensionArray(shortcut) => {
                     let arg_len = shortcut.len();
                     if arg_len < 1 {
-                        eprintln!(
+                        bail!(
                             "{} ",
                             "Failed to find shortcut, maybe manifest json file format error"
                                 .dark_yellow()
@@ -177,7 +176,7 @@ pub fn rm_start_menu_shortcut(
                     for shortcut_item in shortcut {
                         let arg_len = shortcut_item.len();
                         if arg_len < 2 {
-                            eprintln!(
+                            bail!(
                                 "{} ",
                                 "Failed to find shortcut, maybe manifest json file format error"
                                     .dark_yellow()
@@ -224,7 +223,7 @@ pub fn rm_start_menu_shortcut(
                 ArrayOrDoubleDimensionArray::StringArray(shortcut) => {
                     let arg_len = shortcut.len();
                     if arg_len < 2 {
-                        eprintln!(
+                        bail!(
                             "{} ",
                             "Failed to find shortcut, maybe manifest json file format error"
                                 .dark_yellow()
@@ -257,7 +256,7 @@ pub fn rm_start_menu_shortcut(
                 ArrayOrDoubleDimensionArray::DoubleDimensionArray(shortcut) => {
                     let arg_len = shortcut.len();
                     if arg_len < 1 {
-                        eprintln!(
+                        bail!(
                             "{} ",
                             "Failed to find shortcut, maybe manifest json file format error"
                                 .dark_yellow()
@@ -267,7 +266,7 @@ pub fn rm_start_menu_shortcut(
                     for shortcut_item in shortcut {
                         let arg_len = shortcut_item.len();
                         if arg_len < 2 {
-                            eprintln!(
+                            bail!(
                                 "{} ",
                                 "Failed to find shortcut, maybe manifest json file format error"
                                     .dark_yellow()
@@ -314,7 +313,7 @@ pub fn rm_start_menu_shortcut(
                 ArrayOrDoubleDimensionArray::StringArray(shortcut) => {
                     let arg_len = shortcut.len();
                     if arg_len < 2 {
-                        eprintln!(
+                        bail!(
                             "{} ",
                             "Failed to find shortcut, maybe manifest json file format error"
                                 .dark_yellow()
@@ -347,7 +346,7 @@ pub fn rm_start_menu_shortcut(
                 ArrayOrDoubleDimensionArray::DoubleDimensionArray(shortcut) => {
                     let arg_len = shortcut.len();
                     if arg_len < 1 {
-                        eprintln!(
+                        bail!(
                             "{} ",
                             "Failed to find shortcut, maybe manifest json file format error"
                                 .dark_yellow()
@@ -357,7 +356,7 @@ pub fn rm_start_menu_shortcut(
                     for shortcut_item in shortcut {
                         let arg_len = shortcut_item.len();
                         if arg_len < 2 {
-                            eprintln!(
+                            bail!(
                                 "{} ",
                                 "Failed to find shortcut, maybe manifest json file format error"
                                     .dark_yellow()
@@ -414,11 +413,15 @@ pub fn rm_shim_file(
     if manifest_bin.is_some() {
         match manifest_bin.unwrap() {
             StringOrArrayOrDoubleDimensionArray::String(s) => {
-                rm_default_shim_name_file(s, shim_path)?;
+                if !s.is_empty() {
+                    rm_default_shim_name_file(s, shim_path)?;
+                }
             }
             StringOrArrayOrDoubleDimensionArray::StringArray(a) => {
                 for item in a {
-                    rm_default_shim_name_file(item, shim_path)?;
+                    if !item.is_empty() {
+                        rm_default_shim_name_file(item, shim_path)?;
+                    }
                 }
             }
             StringOrArrayOrDoubleDimensionArray::DoubleDimensionArray(a) => {
@@ -426,8 +429,7 @@ pub fn rm_shim_file(
                     let len = item.len();
                     if len == 1 {
                         rm_default_shim_name_file((&item[0]).to_string(), shim_path)?;
-                    }
-                    if len == 2 || len == 3 {
+                    } else if len == 2 || len == 3 {
                         let exe_name = item[0].clone();
                         let alias_name = item[1].clone();
                         rm_alias_shim_name_file(exe_name, alias_name, shim_path)?;
@@ -438,21 +440,22 @@ pub fn rm_shim_file(
                 for item in a {
                     match item {
                         StringOrArrayOrDoubleDimensionArray::String(s) => {
-                            rm_default_shim_name_file(s, shim_path)?;
+                            if !s.is_empty() {
+                                rm_default_shim_name_file(s, shim_path)?;
+                            }
                         }
                         StringOrArrayOrDoubleDimensionArray::StringArray(item) => {
                             let len = item.len();
                             if len == 1 {
                                 rm_default_shim_name_file((&item[0]).to_string(), shim_path)?;
-                            }
-                            if len == 2 || len == 3 {
+                            } else if len == 2 || len == 3 {
                                 let exe_name = item[0].clone();
                                 let alias_name = item[1].clone();
                                 rm_alias_shim_name_file(exe_name, alias_name, shim_path)?;
                             }
                         }
                         _ => {
-                            println!(" what the fuck bin?   {:?}", item);
+                            println!("at line 462 what the fuck bin?   {:?}", item);
                         }
                     }
                 }
@@ -461,8 +464,7 @@ pub fn rm_shim_file(
                 bail!("WTF? can't parser this bin object type ")
             }
         }
-    }
-    if architecture.is_some() {
+    } else if architecture.is_some() {
         let architecture = architecture.unwrap();
         let system_arch = get_system_default_arch()?;
         let x64 = architecture.x64bit;
@@ -492,11 +494,12 @@ pub fn rm_shim_file(
                         let len = item.len();
                         if len == 1 {
                             rm_default_shim_name_file((&item[0]).to_string(), shim_path)?;
-                        }
-                        if len == 2 || len == 3 {
+                        } else if len == 2 || len == 3 {
                             let exe_name = item[0].clone();
                             let alias_name = item[1].clone();
                             rm_alias_shim_name_file(exe_name, alias_name, shim_path)?;
+                        } else {
+                            println!(" what the fuck bin?   {:?}", item);
                         }
                     }
                 }
@@ -510,11 +513,12 @@ pub fn rm_shim_file(
                                 let len = item.len();
                                 if len == 1 {
                                     rm_default_shim_name_file((&item[0]).to_string(), shim_path)?;
-                                }
-                                if len == 2 || len == 3 {
+                                } else if len == 2 || len == 3 {
                                     let exe_name = item[0].clone();
                                     let alias_name = item[1].clone();
                                     rm_alias_shim_name_file(exe_name, alias_name, shim_path)?;
+                                } else {
+                                    println!(" what the fuck bin?   {:?}", item);
                                 }
                             }
                             _ => {
@@ -551,11 +555,12 @@ pub fn rm_shim_file(
                         let len = item.len();
                         if len == 1 {
                             rm_default_shim_name_file((&item[0]).to_string(), shim_path)?;
-                        }
-                        if len == 2 || len == 3 {
+                        } else if len == 2 || len == 3 {
                             let exe_name = item[0].clone();
                             let alias_name = item[1].clone();
                             rm_alias_shim_name_file(exe_name, alias_name, shim_path)?;
+                        } else {
+                            println!(" what the fuck bin?   {:?}", item);
                         }
                     }
                 }
@@ -569,11 +574,12 @@ pub fn rm_shim_file(
                                 let len = item.len();
                                 if len == 1 {
                                     rm_default_shim_name_file((&item[0]).to_string(), shim_path)?;
-                                }
-                                if len == 2 || len == 3 {
+                                } else if len == 2 || len == 3 {
                                     let exe_name = item[0].clone();
                                     let alias_name = item[1].clone();
                                     rm_alias_shim_name_file(exe_name, alias_name, shim_path)?;
+                                } else {
+                                    println!(" what the fuck bin?   {:?}", item);
                                 }
                             }
                             _ => {
@@ -610,11 +616,12 @@ pub fn rm_shim_file(
                         let len = item.len();
                         if len == 1 {
                             rm_default_shim_name_file((&item[0]).to_string(), shim_path)?;
-                        }
-                        if len == 2 || len == 3 {
+                        } else if len == 2 || len == 3 {
                             let exe_name = item[0].clone();
                             let alias_name = item[1].clone();
                             rm_alias_shim_name_file(exe_name, alias_name, shim_path)?;
+                        } else {
+                            println!(" what the fuck bin?   {:?}", item);
                         }
                     }
                 }
@@ -628,11 +635,12 @@ pub fn rm_shim_file(
                                 let len = item.len();
                                 if len == 1 {
                                     rm_default_shim_name_file((&item[0]).to_string(), shim_path)?;
-                                }
-                                if len == 2 || len == 3 {
+                                } else if len == 2 || len == 3 {
                                     let exe_name = item[0].clone();
                                     let alias_name = item[1].clone();
                                     rm_alias_shim_name_file(exe_name, alias_name, shim_path)?;
+                                } else {
+                                    println!(" what the fuck bin?   {:?}", item);
                                 }
                             }
                             _ => {
@@ -655,6 +663,15 @@ fn rm_alias_shim_name_file(
     alias_name: String,
     shim_path: &Path,
 ) -> anyhow::Result<()> {
+    if exe_name.is_empty() || alias_name.is_empty() {
+        eprintln!("exe_name  or alias_name cannot be empty");
+        return Ok(());
+    }
+    let alias_name = if alias_name.contains(".") {
+        alias_name.split(".").next().unwrap().to_string()
+    } else {
+        alias_name
+    };
     let mut s = exe_name.clone();
     if s.contains(r"\") {
         let split = s.split(r"\").collect::<Vec<&str>>();
@@ -665,7 +682,7 @@ fn rm_alias_shim_name_file(
         s = split.last().unwrap().to_string();
     }
 
-    let suffix = s.split(".").last().unwrap();
+    let suffix = s.split(".").last().unwrap().to_lowercase();
     let prefix = alias_name.trim();
 
     let shim_file = shim_path.join(prefix);
@@ -689,7 +706,7 @@ fn rm_alias_shim_name_file(
                 shim_file.display().to_string().dark_green().bold()
             );
             std::fs::remove_file(&shim_file)
-              .context("failed to remove exe shim file at line 692")?;
+                .context("failed to remove exe shim file at line 692")?;
         }
         let shim = prefix.to_string() + ".shim";
         let shim_file = shim_path.join(shim);
@@ -701,10 +718,8 @@ fn rm_alias_shim_name_file(
             "Removing shim file".dark_blue().bold(),
             shim_file.display().to_string().dark_green().bold()
         );
-        std::fs::remove_file(shim_file)
-          .context("failed to remove shim file at line 705")?;
-    }
-    if suffix == "bat" || suffix == "cmd" {
+        std::fs::remove_file(shim_file).context("failed to remove shim file at line 705")?;
+    } else if suffix == "bat" || suffix == "cmd" {
         if shim_file.exists() {
             println!(
                 "{} {}",
@@ -712,7 +727,7 @@ fn rm_alias_shim_name_file(
                 shim_file.display().to_string().dark_green().bold()
             );
             std::fs::remove_file(&shim_file)
-              .context("failed to remove sh shim file at line 715")?;
+                .context("failed to remove sh shim file at line 715")?;
         }
         let cmd_str = prefix.to_string() + ".cmd";
         let cmd_file = shim_path.join(cmd_str);
@@ -724,11 +739,9 @@ fn rm_alias_shim_name_file(
                 cmd_file.display().to_string().dark_green().bold()
             );
             std::fs::remove_file(&cmd_file)
-              .context("failed to remove cmd bat shim file at line 727")?;
+                .context("failed to remove cmd bat shim file at line 727")?;
         }
-    }
-
-    if suffix == "ps1" {
+    } else if suffix == "ps1" {
         let ps_file = prefix.to_string() + ".ps1";
         let shim_file = shim_path.join(ps_file);
 
@@ -739,7 +752,7 @@ fn rm_alias_shim_name_file(
                 shim_file.display().to_string().dark_green().bold()
             );
             std::fs::remove_file(&shim_file)
-              .context("failed to remove ps1 shim file at line 742")?;
+                .context("failed to remove ps1 shim file at line 742")?;
         }
         let cmd_str = prefix.to_string() + ".cmd";
         let shell_file = shim_path.join(prefix);
@@ -751,7 +764,7 @@ fn rm_alias_shim_name_file(
                 shell_file.display().to_string().dark_green().bold()
             );
             std::fs::remove_file(&shell_file)
-              .context("failed to remove sh shim file at line 754")?;
+                .context("failed to remove sh shim file at line 754")?;
         }
         if cmd_file.exists() {
             println!(
@@ -760,35 +773,51 @@ fn rm_alias_shim_name_file(
                 cmd_file.display().to_string().dark_green().bold()
             );
             std::fs::remove_file(&cmd_file)
-              .context("failed to remove cmd shim file at line 763")?;
+                .context("failed to remove cmd shim file at line 763")?;
         }
+    } else {
+        let extensions = ["ps1", "bat", "cmd", "exe", "jar", "py", "com", ""];
+        let origin_path = shim_path.join(alias_name);
+        extensions.iter().for_each(|ext| {
+            let path = origin_path.with_extension(ext);
+            if path.exists() {
+                println!(
+                    "Removing shim file: {}",
+                    path.display().to_string().dark_green().bold()
+                );
+                std::fs::remove_file(&path).unwrap();
+            }
+        })
     }
     Ok(())
 }
 
-fn rm_default_shim_name_file(s: String, shim_path: &Path) -> anyhow::Result<()> {
-    let mut s = s.clone();
-
-    if s.contains('\\') {
-        let split = s.split(r"\").collect::<Vec<&str>>();
-        s = split.last().unwrap().to_string();
+fn rm_default_shim_name_file(exe_name: String, shim_path: &Path) -> anyhow::Result<()> {
+    if exe_name.is_empty() {
+        eprintln!("exe_name  cannot be empty");
+        return Ok(());
     }
-    if s.contains('/') {
-        let split = s.split(r"/").collect::<Vec<&str>>();
-        s = split.last().unwrap().to_string();
+    let mut exe_name = exe_name.clone();
+
+    if exe_name.contains('\\') {
+        let split = exe_name.split(r"\").collect::<Vec<&str>>();
+        exe_name = split.last().unwrap().to_string();
+    }
+    if exe_name.contains('/') {
+        let split = exe_name.split(r"/").collect::<Vec<&str>>();
+        exe_name = split.last().unwrap().to_string();
     }
 
-    let suffix = s.split(".").last().unwrap();
-    let prefix = s.split(".").next().unwrap();
-    let shim_file = shim_path.join(s.clone());
+    let suffix = exe_name.split(".").last().unwrap().to_lowercase();
+    let prefix = exe_name.split(".").next().unwrap();
+    let shim_file = shim_path.join(exe_name.clone());
     if shim_file.exists() && suffix == "exe" {
         println!(
             "{} {}",
             "Removing shim file".dark_blue().bold(),
             shim_file.display().to_string().dark_green().bold()
         );
-        std::fs::remove_file(&shim_file)
-          .context("failed to remove exe shim file at line 791")?;
+        std::fs::remove_file(&shim_file).context("failed to remove exe shim file at line 791")?;
         let shim = prefix.to_string() + ".shim";
         let shim_file = shim_path.join(shim);
         if !shim_file.exists() {
@@ -799,10 +828,8 @@ fn rm_default_shim_name_file(s: String, shim_path: &Path) -> anyhow::Result<()> 
             "Removing shim file".dark_blue().bold(),
             shim_file.display().to_string().dark_green().bold()
         );
-        std::fs::remove_file(shim_file)
-          .context("failed to remove shim file at line 803")?;
-    }
-    if suffix == "bat" || suffix == "cmd" {
+        std::fs::remove_file(shim_file).context("failed to remove shim file at line 803")?;
+    } else if suffix == "bat" || suffix == "cmd" {
         if shim_file.exists() {
             println!(
                 "{} {}",
@@ -810,7 +837,7 @@ fn rm_default_shim_name_file(s: String, shim_path: &Path) -> anyhow::Result<()> 
                 shim_file.display().to_string().dark_green().bold()
             );
             std::fs::remove_file(&shim_file)
-              .context("failed to remove cmd bat file at line 813")?;
+                .context("failed to remove cmd bat file at line 813")?;
         }
         let cmd_str = prefix.to_string() + ".cmd";
         let shell_file = shim_path.join(prefix);
@@ -821,8 +848,7 @@ fn rm_default_shim_name_file(s: String, shim_path: &Path) -> anyhow::Result<()> 
                 "Removing shim file".dark_blue().bold(),
                 shell_file.display().to_string().dark_green().bold()
             );
-            std::fs::remove_file(&shell_file)
-              .context("failed to remove sh file at line 825")?;
+            std::fs::remove_file(&shell_file).context("failed to remove sh file at line 825")?;
         }
         if cmd_file.exists() {
             println!(
@@ -830,19 +856,15 @@ fn rm_default_shim_name_file(s: String, shim_path: &Path) -> anyhow::Result<()> 
                 "Removing shim file".dark_blue().bold(),
                 cmd_file.display().to_string().dark_green().bold()
             );
-            std::fs::remove_file(&cmd_file)
-              .context("failed to remove cmd file at line 834")?;
+            std::fs::remove_file(&cmd_file).context("failed to remove cmd file at line 834")?;
         }
-    }
-
-    if shim_file.exists() && suffix == "ps1" {
+    } else if shim_file.exists() && suffix == "ps1" {
         println!(
             "{} {}",
             "Removing shim file".dark_blue().bold(),
             shim_file.display().to_string().dark_green().bold()
         );
-        std::fs::remove_file(&shim_file)
-          .context("failed to remove ps1 shim file at line 845")?;
+        std::fs::remove_file(&shim_file).context("failed to remove ps1 shim file at line 845")?;
 
         let cmd_str = prefix.to_string() + ".cmd";
         let shell_file = shim_path.join(prefix);
@@ -854,7 +876,7 @@ fn rm_default_shim_name_file(s: String, shim_path: &Path) -> anyhow::Result<()> 
                 shell_file.display().to_string().dark_green().bold()
             );
             std::fs::remove_file(&shell_file)
-              .context("failed to remove sh shim file at line 857")?;
+                .context("failed to remove sh shim file at line 857")?;
         }
         if cmd_file.exists() {
             println!(
@@ -863,10 +885,22 @@ fn rm_default_shim_name_file(s: String, shim_path: &Path) -> anyhow::Result<()> 
                 cmd_file.display().to_string().dark_green().bold()
             );
             std::fs::remove_file(&cmd_file)
-              .context("failed to remove cmd shim file at line 866")?;
+                .context("failed to remove cmd shim file at line 866")?;
         }
+    } else {
+        let extensions = ["ps1", "bat", "cmd", "exe", "jar", "py", "com", ""];
+        let origin_path = shim_path.join(prefix);
+        extensions.iter().for_each(|ext| {
+            let path = origin_path.with_extension(ext);
+            if path.exists() {
+                println!(
+                    "Removing shim file: {}",
+                    path.display().to_string().dark_green().bold()
+                );
+                std::fs::remove_file(&path).unwrap();
+            }
+        })
     }
-
     Ok(())
 }
 
@@ -897,5 +931,16 @@ mod tests {
     fn test_username() {
         let username = std::env::var("USERNAME").unwrap();
         println!("username is {username}");
+    }
+
+    #[test]
+    fn test_with_extension() {
+        let path = Path::new("A:/Scoop/shims/foo.bat");
+        let path1 = path.with_file_name("superwindcloud");
+        let path2 = path.with_extension("exe");
+        let path3 = path.with_extension("");
+        println!("path1 is {path1:?}");
+        println!("path2 is {path2:?}");
+        println!("path3 is {path3:?}");
     }
 }

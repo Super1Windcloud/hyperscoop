@@ -626,11 +626,14 @@ impl<'a> DownloadManager<'a> {
             .iter()
             .map(|url| {
                 let last_item = url.split('/').last().unwrap();
-                let file_extension = last_item.split('.').last().unwrap();
+                let file_extension = if last_item.contains('.') {
+                    last_item.split('.').last().unwrap()
+                } else {
+                    ""
+                };
                 file_extension
             })
             .collect::<Vec<&str>>();
-
         let archive_formats = extensions
             .iter()
             .map(|extension| match extension.to_lowercase().as_str() {
@@ -650,6 +653,7 @@ impl<'a> DownloadManager<'a> {
                 }
                 "msi" => ArchiveFormat::MSI,
                 "tar" => ArchiveFormat::TAR,
+                "" => ArchiveFormat::Shell,
                 _ => ArchiveFormat::Other,
             })
             .collect::<Vec<_>>();
@@ -678,7 +682,9 @@ impl<'a> DownloadManager<'a> {
                 let file_name = format!("{}#{}", file_names_prefix, suffix);
                 file_name
             })
-            .collect::<Vec<String>>();
+            .collect::<Vec<String>>();  
+        #[cfg(debug_assertions)]
+        dbg!(&final_file_names);
         self.cache_file_name = final_file_names;
         Ok(())
     }

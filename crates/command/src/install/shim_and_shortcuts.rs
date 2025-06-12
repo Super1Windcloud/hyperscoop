@@ -7,7 +7,8 @@ use crate::manifest::manifest_deserialize::{
 };
 use crate::utils::system::get_system_default_arch;
 use crate::utils::utility::{
-    assume_yes_to_cover_shortcuts, strip_extended_prefix, write_utf8_file,
+    assume_yes_to_cover_shortcuts, exclude_scoop_self_scripts, strip_extended_prefix,
+    target_version_dir_to_current_dir, write_utf8_file,
 };
 use anyhow::{bail, Context};
 use crossterm::style::Stylize;
@@ -138,15 +139,13 @@ pub fn create_shims_file(
                         app_name,
                         options,
                     )?;
-                }
-                if len == 2 {
+                } else if len == 2 {
                     let exe_name = item[0].clone();
                     let alias_name = item[1].clone();
                     create_alias_shim_name_file(
                         exe_name, alias_name, &shim_path, app_name, None, options,
                     )?;
-                }
-                if len == 3 {
+                } else if len == 3 {
                     let exe_name = item[0].clone();
                     let alias_name = item[1].clone();
                     let params = item[2].clone();
@@ -158,6 +157,8 @@ pub fn create_shims_file(
                         Some(params),
                         options,
                     )?;
+                } else {
+                    eprintln!(" what the fuck bin?   {:?}", item)
                 }
             }
         }
@@ -176,15 +177,13 @@ pub fn create_shims_file(
                                 app_name,
                                 options,
                             )?;
-                        }
-                        if len == 2 {
+                        } else if len == 2 {
                             let exe_name = item[0].clone();
                             let alias_name = item[1].clone();
                             create_alias_shim_name_file(
                                 exe_name, alias_name, &shim_path, app_name, None, options,
                             )?;
-                        }
-                        if len == 3 {
+                        } else if len == 3 {
                             let exe_name = item[0].clone();
                             let alias_name = item[1].clone();
                             let params = item[2].clone();
@@ -196,6 +195,8 @@ pub fn create_shims_file(
                                 Some(params),
                                 options,
                             )?;
+                        } else {
+                            eprintln!("what the fuck bin?   {:?}", item)
                         }
                     }
                     _ => {
@@ -372,15 +373,19 @@ pub fn create_alias_shim_name_file(
     options: &[InstallOptions],
 ) -> anyhow::Result<()> {
     let out_dir = PathBuf::from(shim_dir);
-    let temp = exe_name.clone();
-    let suffix = temp.split('.').last().unwrap();
-    // log::debug!("Origin file type {}", suffix);
+    let suffix = if exe_name.contains(".") {
+        exe_name.split('.').last().unwrap().to_lowercase()
+    } else {
+        "".to_string()
+    };
 
     let target_path = get_app_current_bin_path(app_name.into(), &exe_name, options);
+
     let target_path = fs::canonicalize(&target_path).context(format!(
         "Failed to get canonicalize target_path {target_path} at line 377"
     ))?;
     let target_path = strip_extended_prefix(target_path.as_path());
+    let target_path = target_version_dir_to_current_dir(&target_path, options)?;
 
     if !out_dir.exists() {
         bail!(format!("shim 目录 {shim_dir} 不存在"));
@@ -388,6 +393,8 @@ pub fn create_alias_shim_name_file(
     if !Path::new(&target_path).exists() {
         bail!(format!("链接目标文件 {target_path} 不存在"))
     };
+    log::info!("origin name {}, alias name {}", exe_name, alias_name);
+
     if suffix == "exe" || suffix == "com" {
         create_exe_type_shim_file_and_shim_bin(
             target_path,
@@ -397,7 +404,7 @@ pub fn create_alias_shim_name_file(
             options,
         )?;
     } else if suffix == "cmd" || "bat" == suffix {
-        let result = exclude_scoop_self_scripts(&exe_name, None)?;
+        let result = exclude_scoop_self_scripts(&exe_name, Some(alias_name.as_str()))?;
         if result != 0 {
             bail!("Origin 二进制名或者该二进制别名 '{exe_name}' 与scoop 内置脚本的shim 冲突, 禁止覆盖")
         }
@@ -409,7 +416,7 @@ pub fn create_alias_shim_name_file(
             options,
         )?;
     } else if suffix == "ps1" {
-        let result = exclude_scoop_self_scripts(&exe_name, None)?;
+        let result = exclude_scoop_self_scripts(&exe_name, Some(alias_name.as_str()))?;
         if result != 0 {
             bail!("Origin 二进制名或者该二进制别名 '{exe_name}' 与scoop 内置脚本的shim 冲突, 禁止覆盖")
         }
@@ -436,6 +443,19 @@ pub fn create_alias_shim_name_file(
             program_args,
             options,
         )?;
+    } else if suffix.is_empty() {
+        // shell script file name , no extension
+        let result = exclude_scoop_self_scripts(&exe_name, Some(alias_name.as_str()))?;
+        if result != 0 {
+            bail!("Origin 二进制名或者该二进制别名 '{exe_name}' 与scoop 内置脚本的shim 冲突, 禁止覆盖")
+        }
+       create_shell_shim_scripts(
+            target_path.as_str(),
+            out_dir,
+            Some(alias_name),
+            program_args,
+            options,
+        )?;
     } else {
         bail!(format!(" 后缀{suffix}类型文件不支持, WTF?"))
     }
@@ -451,17 +471,19 @@ pub fn create_default_shim_name_file(
     options: &[InstallOptions],
 ) -> anyhow::Result<()> {
     let out_dir = PathBuf::from(shim_dir);
-    let temp = exe_name.clone();
-    let suffix = temp.split('.').last().unwrap();
-    // log::debug!("Origin file type {}", suffix);
-    if suffix.is_empty() {
-        bail!(format!("shim 文件名 {exe_name} 后缀为空 WTF?"))
-    }
+    let suffix = if !exe_name.contains(".") {
+        "".into()
+    } else {
+        exe_name.split('.').last().unwrap().to_lowercase()
+    };
+
     let target_path = get_app_current_bin_path(app_name.into(), &exe_name, options);
     let target_path = fs::canonicalize(&target_path).context(format!(
         "Failed to get canonicalize target_path {target_path} at line 459"
     ))?;
     let target_path = strip_extended_prefix(target_path.as_path());
+    let target_path = target_version_dir_to_current_dir(&target_path, options)?;
+
     if !out_dir.exists() {
         bail!(format!("shim 目录 {shim_dir} 不存在"));
     }
@@ -486,6 +508,13 @@ pub fn create_default_shim_name_file(
         create_jar_shim_scripts(&target_path, out_dir, None, None, options)?;
     } else if suffix == "py" {
         create_py_shim_scripts(&target_path, out_dir, None, None, options)?;
+    } else if suffix.is_empty() {
+        // shell script file name , no extension
+        let result = exclude_scoop_self_scripts(&exe_name, None)?;
+        if result != 0 {
+            bail!("Origin 二进制名或者该二进制别名 '{exe_name}' 与scoop 内置脚本的shim 冲突, 禁止覆盖")
+        }
+        create_shell_shim_scripts(target_path.as_str(), out_dir, None, None, options)?;
     } else {
         bail!(format!(" 后缀{suffix}类型文件不支持, WTF?"))
     }
@@ -505,7 +534,13 @@ pub fn create_py_shim_scripts(
             .and_then(|s| s.to_str().and_then(|s| Some(s.to_lowercase())))
             .ok_or("Invalid target executable name")
     } else {
-        Ok(alias_name.unwrap().to_string())
+        let alias_name = alias_name.unwrap();
+        Ok(if alias_name.contains('.') {
+            eprintln!("alias_name {} 包含 . 字符, 自动去除扩展名", alias_name);
+            alias_name.split('.').next().unwrap().to_string()
+        } else {
+            alias_name
+        })
     };
     if target_name.is_err() {
         let target_name = target_name.unwrap();
@@ -580,7 +615,13 @@ pub fn create_jar_shim_scripts(
             .and_then(|s| s.to_str().and_then(|s| Some(s.to_lowercase())))
             .ok_or("Invalid target executable name")
     } else {
-        Ok(alias_name.unwrap().to_string())
+        let alias_name = alias_name.unwrap();
+        Ok(if alias_name.contains('.') {
+            eprintln!("alias_name {} 包含 . 字符, 自动去除扩展名", alias_name);
+            alias_name.split('.').next().unwrap().to_string()
+        } else {
+            alias_name
+        })
     };
     if target_name.is_err() {
         let target_name = target_name.unwrap();
@@ -629,7 +670,7 @@ pub fn create_jar_shim_scripts(
     );
 
     // 生成 Unix shell 脚本
-    let sh_content = if program_args.is_some() {
+    let sh_content = if program_args.is_none() {
         format!(
             r#"#!/bin/sh
 # {}
@@ -643,7 +684,7 @@ java.exe -jar "{}"  "$@""#,
             target_path, parent_dir, parent_dir, target_path
         )
     } else {
-        let arg = program_args.unwrap();
+        let jar_args  =  program_args.unwrap_or_default();  
         format!(
             r#"#!/bin/sh
 # {}
@@ -654,7 +695,7 @@ else
   cd $(cygpath -u '{}')
 fi
 java.exe -jar "{}" {} "$@""#,
-            target_path, parent_dir, parent_dir, target_path, arg
+            target_path, parent_dir, parent_dir, target_path, jar_args
         )
     };
     write_utf8_file(&shim_shell_script, &sh_content, options)?;
@@ -675,7 +716,13 @@ pub fn create_ps1_shim_scripts(
             .and_then(|s| s.to_str().and_then(|s| Some(s.to_lowercase())))
             .ok_or("Invalid target executable name")
     } else {
-        Ok(alias_name.unwrap().to_string())
+        let alias_name = alias_name.unwrap();
+        Ok(if alias_name.contains('.') {
+            eprintln!("alias_name {} 包含 . 字符, 自动去除扩展名", alias_name);
+            alias_name.split('.').next().unwrap().to_string()
+        } else {
+            alias_name
+        })
     };
     if target_name.is_err() {
         let target_name = target_name.unwrap();
@@ -760,30 +807,6 @@ fi
     Ok(())
 }
 
-pub fn exclude_scoop_self_scripts(
-    script_name: &str,
-    alias_name: Option<&str>,
-) -> anyhow::Result<u8> {
-    let split = script_name.split(".").collect::<Vec<&str>>();
-    if split.len() != 2 {
-        bail!("shim target {script_name} 文件名格式错误, WTF?")
-    }
-    if alias_name.is_some() {
-        let script_name = alias_name.unwrap();
-        let exclude_list = vec!["scoop", "scoop-pre", "scoop-premake", "scoop-rm_nm"];
-        if exclude_list.contains(&script_name) {
-            return Ok(1);
-        }
-        return Ok(0);
-    }
-    let script_name = split.get(0).unwrap();
-    let exclude_list = vec!["scoop", "scoop-pre", "scoop-premake", "scoop-rm_nm"];
-    if exclude_list.contains(&script_name) {
-        return Ok(1);
-    }
-    Ok(0)
-}
-
 pub fn create_cmd_or_bat_shim_scripts(
     target_path: &str,
     out_shim_dir: PathBuf,
@@ -797,7 +820,13 @@ pub fn create_cmd_or_bat_shim_scripts(
             .and_then(|s| s.to_str().and_then(|s| Some(s.to_lowercase())))
             .ok_or("Invalid target executable name")
     } else {
-        Ok(alias_name.unwrap().to_string())
+        let alias_name = alias_name.unwrap();
+        Ok(if alias_name.contains('.') {
+            eprintln!("alias_name {} 包含 . 字符, 自动去除扩展名", alias_name);
+            alias_name.split('.').next().unwrap().to_string()
+        } else {
+            alias_name
+        })
     };
     if target_name.is_err() {
         let target_name = target_name.unwrap();
@@ -853,6 +882,88 @@ pub fn create_cmd_or_bat_shim_scripts(
     Ok(())
 }
 
+pub fn create_shell_shim_scripts(
+    target_path: &str,
+    out_shim_dir: PathBuf,
+    alias_name: Option<String>,
+    program_args: Option<String>,
+    options: &[InstallOptions],
+) -> anyhow::Result<()> {
+    let target_name = if alias_name.is_none() {
+        Path::new(&target_path)
+            .file_stem()
+            .and_then(|s| s.to_str().and_then(|s| Some(s.to_lowercase())))
+            .ok_or("Invalid target executable name")
+    } else {
+        let alias_name = alias_name.unwrap();
+        Ok(if alias_name.contains('.') {
+            eprintln!("alias_name {} 包含 . 字符, 自动去除扩展名", alias_name);
+            alias_name.split('.').next().unwrap().to_string()
+        } else {
+            alias_name
+        })
+    };
+    if target_name.is_err() {
+        let target_name = target_name.unwrap();
+        bail!("Invalid target executable name {target_path} \n Error TargetName :{target_name}")
+    }
+    if !out_shim_dir.exists() {
+        fs::create_dir_all(&out_shim_dir)?;
+    }
+    let out_shim_dir = out_shim_dir.to_str().unwrap();
+    let target_name = target_name.unwrap();
+
+    let shim_cmd_path = format!("{out_shim_dir}\\{target_name}.cmd");
+    println!(
+        "{} {}",
+        "Creating  shim  proxy launcher =>".dark_blue().bold(),
+        &shim_cmd_path.to_string().dark_green().bold()
+    );
+    let shell_args = program_args.unwrap_or(String::new());
+    let cmd_lines = vec![
+        format!("@rem {}", target_path),
+        format!(
+            r#"@bash "$(wslpath -u '{}')" {} %* 2>nul"#,
+            target_path, shell_args
+        ),
+        "@if %errorlevel% neq 0 (".to_string(),
+        format!(
+            r#"  @bash "$(cygpath -u '{}')" {} %* 2>nul"#,
+            target_path, shell_args
+        ),
+        ")".to_string(),
+    ];
+    let cmd_content = cmd_lines.join("\r\n");
+
+    write_utf8_file(shim_cmd_path.as_str(), &cmd_content, &options)?;
+
+    let shim_shell_path = format!("{out_shim_dir}\\{target_name}");
+    println!(
+        "{} {}",
+        "Creating  shim  proxy launcher =>".dark_blue().bold(),
+        &shim_shell_path.to_string().dark_green().bold()
+    );
+    let sh_lines = vec![
+        "#!/bin/sh".to_string(),
+        format!("# {}", target_path),
+        "if [ $WSL_INTEROP ]".to_string(),
+        "then".to_string(),
+        format!(
+            r#"  "$(wslpath -u '{}')" {} "$@""#,
+            target_path, shell_args
+        ),
+        "else".to_string(),
+        format!(
+            r#"  "$(cygpath -u '{}')" {} "$@""#,
+            target_path, shell_args
+        ),
+        "fi".to_string(),
+    ];
+    let sh_content = sh_lines.join("\n");
+    write_utf8_file(&shim_shell_path, &sh_content, &options)?;
+    Ok(())
+}
+
 pub fn create_exe_type_shim_file_and_shim_bin<P1: AsRef<Path>, P2: AsRef<Path>>(
     target_path: P1,
     output_dir: P2,
@@ -862,19 +973,20 @@ pub fn create_exe_type_shim_file_and_shim_bin<P1: AsRef<Path>, P2: AsRef<Path>>(
 ) -> anyhow::Result<()> {
     let target_path = target_path.as_ref().to_str().unwrap();
     let output_dir = output_dir.as_ref().to_path_buf();
-    let parent = Path::new(target_path).parent().unwrap();
-    let version = parent.file_name().unwrap().to_str().unwrap(); //file_stem不能用于目录
-    log::info!("target app version: {}", version);
 
-    let target_link = target_path.replace(version, "current");
-    log::info!("target link: {}", target_link);
     let target_name = if alias_name.is_none() {
         Path::new(target_path)
             .file_stem()
             .and_then(|s| s.to_str().and_then(|s| Some(s.to_lowercase())))
             .ok_or("Invalid target executable name")
     } else {
-        Ok(alias_name.unwrap().to_string())
+        let alias_name = alias_name.unwrap();
+        Ok(if alias_name.contains('.') {
+            eprintln!("alias_name {} 包含 . 字符, 自动去除扩展名", alias_name);
+            alias_name.split('.').next().unwrap().to_string()
+        } else {
+            alias_name
+        })
     };
 
     if target_name.is_err() {
@@ -883,10 +995,10 @@ pub fn create_exe_type_shim_file_and_shim_bin<P1: AsRef<Path>, P2: AsRef<Path>>(
     }
 
     let content = if program_params.is_none() {
-        format!("path = \"{}\"", target_link)
+        format!("path = \"{}\"", target_path)
     } else {
         let program_params = program_params.clone().unwrap();
-        format!("path = \"{target_link}\"\nargs = \"{program_params}\"")
+        format!("path = \"{target_path}\"\nargs = \"{program_params}\"")
     };
     let target_name = target_name.unwrap();
     // Determine the shim file name
@@ -894,16 +1006,20 @@ pub fn create_exe_type_shim_file_and_shim_bin<P1: AsRef<Path>, P2: AsRef<Path>>(
     let shim_name2 = format!("{}.exe", target_name);
     let shim_path = output_dir.join(&shim_name);
     let shim_path2 = output_dir.join(&shim_name2);
-    if !shim_path.exists() {
+    if !output_dir.exists() {
         fs::create_dir_all(&output_dir).context("failed create output_dir at line 880")?;
     }
 
     let crlf_content = if program_params.is_some() {
-        content.clone() 
+        content.clone()
     } else {
         content.replace(LineEnding::LF.as_str(), LineEnding::CRLF.as_str())
     };
-    write_utf8_file(shim_path.as_path().to_str().unwrap(), crlf_content.as_str(), options)?;
+    write_utf8_file(
+        shim_path.as_path().to_str().unwrap(),
+        crlf_content.as_str(),
+        options,
+    )?;
     println!(
         "{} {}",
         "Creating  shim  file => ".to_string().dark_blue().bold(),
@@ -911,8 +1027,8 @@ pub fn create_exe_type_shim_file_and_shim_bin<P1: AsRef<Path>, P2: AsRef<Path>>(
     );
     println!(
         "{} {}",
-        "Creating  shim  file => ".to_string().dark_blue().bold(),
-        shim_path2.to_str().unwrap().dark_green().bold()
+        "Creating  shim  proxy launcher =>".dark_blue().bold(),
+        &shim_path2.display().to_string().dark_green().bold()
     );
 
     if DRIVER_SHIM_BYTES.is_empty() {
@@ -920,21 +1036,10 @@ pub fn create_exe_type_shim_file_and_shim_bin<P1: AsRef<Path>, P2: AsRef<Path>>(
     }
     #[cfg(windows)]
     {
-        let exe_name = format!("{}.exe", target_name);
-        let output_shim_exe = output_dir.join(&exe_name);
-        let parent_dir = output_shim_exe.parent().unwrap();
-        if !parent_dir.exists() {
-            fs::create_dir_all(&parent_dir).context("failed create parent_dir at line 910")?;
-        }
-        if output_shim_exe.exists() {
+        if shim_path2.exists() {
             return Ok(());
         }
-        println!(
-            "{} {}",
-            "Creating  shim  proxy launcher =>".dark_blue().bold(),
-            &output_shim_exe.display().to_string().dark_green().bold()
-        );
-        fs::write(&output_shim_exe, DRIVER_SHIM_BYTES)
+        fs::write(&shim_path2, DRIVER_SHIM_BYTES)
             .expect("failed create shim.exe, maybe process is running");
     }
     Ok(())

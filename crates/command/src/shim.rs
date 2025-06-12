@@ -1,17 +1,17 @@
+use crate::info::validate_app_name;
 use crate::init_env::{get_shims_root_dir, get_shims_root_dir_global};
 use crate::init_hyperscoop;
 use crate::install::{
     create_cmd_or_bat_shim_scripts, create_exe_type_shim_file_and_shim_bin,
     create_jar_shim_scripts, create_ps1_shim_scripts, create_py_shim_scripts,
-    exclude_scoop_self_scripts,
 };
+use crate::utils::utility::{exclude_scoop_self_scripts, extract_target_path_from_shell_script};
 use anyhow::{bail, Context};
 use comfy_table::modifiers::UTF8_ROUND_CORNERS;
 use comfy_table::presets::UTF8_BORDERS_ONLY;
 use comfy_table::{Attribute, Cell, Color, ContentArrangement, Table};
 use crossterm::style::Stylize;
 use std::path::{Path, PathBuf};
-use crate::info::validate_app_name;
 
 pub fn list_all_shims(global: bool) -> anyhow::Result<Vec<(String, String, String)>> {
     let shim_path = if global {
@@ -325,14 +325,14 @@ pub fn execute_add_shim(
     if command_path.is_none() {
         bail!("Command path is must required");
     }
-    let shim_name = shim_name.unwrap(); 
-  
+    let shim_name = shim_name.unwrap();
+
     validate_app_name(&shim_name)?;
-    let target_path = command_path.unwrap().trim().to_string(); 
-    if  target_path.is_empty() { 
-      bail!("Command path is empty");
+    let target_path = command_path.unwrap().trim().to_string();
+    if target_path.is_empty() {
+        bail!("Command path is empty");
     }
-    
+
     let shim_path = if global {
         get_shims_root_dir_global()
     } else {
@@ -539,62 +539,105 @@ pub fn remove_shim(name: Option<String>, global: bool) -> anyhow::Result<()> {
     Ok(())
 }
 
-
-pub fn clear_invalid_shims(global : bool) -> anyhow::Result<()> {
-   let shim_root_dir = if global {
-       get_shims_root_dir_global()
-   } else {
-       get_shims_root_dir()
-   }; 
-   let shim_root_dir = Path::new(&shim_root_dir);
-   let result = shim_root_dir.read_dir()?.try_for_each(|entry| { 
-      let entry = entry.ok().unwrap();
-      let file_type = entry.file_type().ok().unwrap();
-      if !file_type.is_file() {
-          return Ok(());
-      } 
-      let  path = entry.path();  
-      let extension = path.extension().unwrap_or_default().to_str().unwrap();
-      if  extension.is_empty() {
-        return Ok(()); 
-      } 
-      if  extension =="shim" {
-        let content = std::fs::read_to_string(&path).unwrap();
-        let first_line = content.lines().next().unwrap().trim();
-        let  target_path =  first_line
-          .replace("path =", "")
-          .replace("\"", "")
-          .trim()
-          .to_owned(); 
-        let exe_path =  path.with_extension("exe"); 
-        if !Path::new(&target_path).exists() { 
-            println!("{}", format!("Removing invalid shim: {}", path.display()).dark_green().bold()); 
-            println!("{}", format!("Removing invalid shim: {}", exe_path.display()).dark_green().bold());
-            // std::fs::remove_file(&path).unwrap();
+pub fn clear_invalid_shims(global: bool) -> anyhow::Result<()> {
+    let shim_root_dir = if global {
+        get_shims_root_dir_global()
+    } else {
+        get_shims_root_dir()
+    };
+    let shim_root_dir = Path::new(&shim_root_dir);
+    let result = shim_root_dir.read_dir()?.try_for_each(|entry| {
+        let entry = entry.ok().unwrap();
+        let file_type = entry.file_type().ok().unwrap();
+        if !file_type.is_file() {
+            return Ok(());
         }
-      }
-      else if extension =="cmd" || extension =="bat" {
-       let content = extract_rem_comments(path.to_str().unwrap());
-        let target_path = content.trim().to_owned(); 
-        let shell_path =  path.with_extension("");
-        if !Path::new(&target_path).exists() {
-            println!("{}", format!("Removing invalid shim: {}", path.display()).dark_green().bold());
-            println!("{}", format!("Removing invalid shim: {}", shell_path.display()).dark_green().bold());
-            // std::fs::remove_file(&path).unwrap();
+        let path = entry.path();
+        let extension = path.extension().unwrap_or_default().to_str().unwrap();
+        if extension.is_empty() {
+            return Ok(());
         }
-       
-     }
-    
-     Ok(())
-   }) as anyhow::Result<()>;
+        if extension == "shim" {
+            let content = std::fs::read_to_string(&path).unwrap();
+            let first_line = content.lines().next().unwrap().trim();
+            let target_path = first_line
+                .replace("path =", "")
+                .replace("\"", "")
+                .trim()
+                .to_owned();
+            let exe_path = path.with_extension("exe");
+            if !Path::new(&target_path).exists() {
+                println!(
+                    "{}",
+                    format!("Removing invalid shim: {}", path.display())
+                        .dark_green()
+                        .bold()
+                );
+                println!(
+                    "{}",
+                    format!("Removing invalid shim: {}", exe_path.display())
+                        .dark_green()
+                        .bold()
+                );
+                std::fs::remove_file(&path).unwrap();
+                if exe_path.exists() {
+                    std::fs::remove_file(&exe_path).unwrap();
+                }
+            }
+        } else if extension == "cmd" || extension == "bat" {
+            let content = extract_rem_comments(path.to_str().unwrap());
+            let target_path = content.trim().to_owned();
+            let shell_path = path.with_extension("");
+            if !Path::new(&target_path).exists() {
+                println!(
+                    "{}",
+                    format!("Removing invalid shim: {}", path.display())
+                        .dark_green()
+                        .bold()
+                );
+                println!(
+                    "{}",
+                    format!("Removing invalid shim: {}", shell_path.display())
+                        .dark_green()
+                        .bold()
+                );
+                std::fs::remove_file(&path).unwrap();
+                if !shell_path.exists() {
+                    return Ok(());
+                }
+                std::fs::remove_file(&shell_path).unwrap();
+            }
+        } else if extension.is_empty() {
+            log::info!("Current app is shell script of running with wsl");
+            let target_path = extract_target_path_from_shell_script(path.to_str().unwrap())?;
+            let cmd_path = path.with_extension("cmd");
 
-  if result.is_err() {
-      bail!(result.unwrap_err()); 
-  }
-  Ok(())
+            if !Path::new(&target_path).exists() {
+                println!(
+                    "{}",
+                    format!("Removing invalid shim: {}", path.display())
+                        .dark_green()
+                        .bold()
+                );
+
+                println!(
+                    "{}",
+                    format!("Removing invalid shim: {}", cmd_path.display())
+                        .dark_green()
+                        .bold()
+                );
+                std::fs::remove_file(&path).unwrap();
+                std::fs::remove_file(&cmd_path).unwrap();
+            }
+        }
+        Ok(())
+    }) as anyhow::Result<()>;
+
+    if result.is_err() {
+        bail!(result.unwrap_err());
+    }
+    Ok(())
 }
-
-
 
 mod test_shim {
     #[allow(unused_imports)]

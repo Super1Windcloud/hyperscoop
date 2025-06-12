@@ -12,9 +12,14 @@ pub enum InstallOptions<'a> {
     Global,
     ForceInstallOverride,
     UpdateTransaction,
-    InteractiveInstall, 
-    InstallSpecialVersionApp , 
-    InstallSpecialBucketApp 
+    InteractiveInstall,
+    InstallSpecialVersionApp,
+    InstallSpecialBucketApp, // 单元变体（无数据）
+    CurrentInstallApp {
+        app_name: String,
+        app_version: String,
+    }, // 结构体变体
+    AppName(Option<String>), //元组变体
 }
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -46,6 +51,7 @@ pub enum ArchiveFormat {
     MSI,
     TAR,
     Other,
+    Shell,
 }
 
 #[derive(Clone, Debug)]

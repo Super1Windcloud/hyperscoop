@@ -146,8 +146,18 @@ pub enum ObjectOrString {
 #[serde(untagged, deny_unknown_fields)]
 pub enum ArrayOrDoubleDimensionArray {
     #[default]
-    Null,
-    StringArray(Vec<String>),
+    Null, //存在该键 ,任何一个空变体皆满足
+    StringArray(Vec<String>), 
+    DoubleDimensionArray(Vec<Vec<String>>),
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(untagged, deny_unknown_fields)]
+pub enum StringOrStringArrayOrDoubleDimensionArray {
+    #[default]
+    Null,  
+    StringArray(Vec<String>), 
+    String(String),
     DoubleDimensionArray(Vec<Vec<String>>),
 }
 
