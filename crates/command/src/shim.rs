@@ -533,7 +533,7 @@ pub fn remove_shim(name: Option<String>, global: bool) -> anyhow::Result<()> {
             eprintln!("{} is not exist", shim_path.display());
             return;
         }
-        println!("Removing shim: {} ", shim_path.display());
+        println!("{}", format!("Removing shim: {} ", shim_path.display()).dark_green().bold());
         std::fs::remove_file(shim_path).unwrap();
     });
     Ok(())

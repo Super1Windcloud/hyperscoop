@@ -782,7 +782,7 @@ fn rm_alias_shim_name_file(
             let path = origin_path.with_extension(ext);
             if path.exists() {
                 println!(
-                    "Removing shim file: {}",
+                    "{}{}","Removing shim file: ".dark_blue().bold(), 
                     path.display().to_string().dark_green().bold()
                 );
                 std::fs::remove_file(&path).unwrap();
@@ -894,7 +894,7 @@ fn rm_default_shim_name_file(exe_name: String, shim_path: &Path) -> anyhow::Resu
             let path = origin_path.with_extension(ext);
             if path.exists() {
                 println!(
-                    "Removing shim file: {}",
+                    "{}{}","Removing shim file: ".dark_blue().bold(),
                     path.display().to_string().dark_green().bold()
                 );
                 std::fs::remove_file(&path).unwrap();
