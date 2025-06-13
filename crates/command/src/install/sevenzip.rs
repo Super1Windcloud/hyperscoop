@@ -334,6 +334,24 @@ impl<'a> SevenZipStruct<'a> {
         if !self.target_is_valid() {
             bail!("Target directory is not in scoop child tree.")
         }
+        let extract_dir_count = extract_dir.len();
+        let extract_to_count = extract_to.len();
+        let archive_count = archive_paths.len();
+        let extract_dir = if extract_dir_count < archive_count {
+            let size = archive_count - extract_dir_count;
+            let empty_array = vec![String::new(); size];
+            [extract_dir, empty_array].concat()
+        } else {
+            extract_dir
+        };
+        let extract_to = if extract_to_count < archive_count {
+            let size = archive_count - extract_to_count;
+            let current_dir = vec![String::new(); size];
+            [extract_to, current_dir].concat();
+            vec![]
+        } else {
+            extract_to
+        };
 
         let target_dir = self.get_target_app_version_dir();
         if !Path::new(target_dir).exists() {
@@ -366,7 +384,8 @@ impl<'a> SevenZipStruct<'a> {
                     std::io::stdout().flush().unwrap(); // 不刷新缓冲区会等待换行
 
                     if *archive_format == ArchiveFormat::EXE
-                        || *archive_format == ArchiveFormat::Other || *archive_format == ArchiveFormat::Shell 
+                        || *archive_format == ArchiveFormat::Other
+                        || *archive_format == ArchiveFormat::Shell
                     {
                         let target_dir = if alias.is_empty() {
                             format!("{}\\{}", target_dir, archive_name)
@@ -583,6 +602,18 @@ Expand-InnoArchive "{inno_file}" "{target_dir}"  -Removal
             bail!("No archive files found.");
         }
         let _7z: String = self.load_7z_to_temp_dir()?;
+        let archive_counts = archive_items.len();
+        let extract_dir_counts = archive_child_dir.len();
+        let archive_child_dir = if extract_dir_counts < archive_counts {
+            let size = archive_counts - extract_dir_counts;
+            let empty_array = vec![String::new(); size];
+            [archive_child_dir, empty_array].concat()
+        } else if extract_dir_counts == archive_counts {
+            archive_child_dir
+        } else {
+            log::warn!("Archive folder count mismatch, exist invalid extract_dir string");
+            archive_child_dir
+        };
         if !self.target_is_valid() {
             bail!("Target directory is not in scoop child tree.")
         }
@@ -608,7 +639,8 @@ Expand-InnoArchive "{inno_file}" "{target_dir}"  -Removal
                     std::io::stdout().flush().unwrap(); // 不刷新缓冲区会等待换行
 
                     if *archive_format == ArchiveFormat::EXE
-                        || *archive_format == ArchiveFormat::Other || *archive_format == ArchiveFormat::Shell
+                        || *archive_format == ArchiveFormat::Other
+                        || *archive_format == ArchiveFormat::Shell
                     {
                         let target_dir = if alias.is_empty() {
                             format!("{}\\{}", target_dir, archive_name)
@@ -725,6 +757,7 @@ Expand-InnoArchive "{inno_file}" "{target_dir}"  -Removal
         if archive_items.is_empty() || archive_paths.is_empty() {
             bail!("No archive files found.");
         }
+
         let _7z: String = self.load_7z_to_temp_dir().expect("Failed to load 7z.exe");
         if !self.target_is_valid() {
             bail!("Target directory is not in scoop child tree.")
@@ -754,79 +787,42 @@ Expand-InnoArchive "{inno_file}" "{target_dir}"  -Removal
                         archive_name.clone().dark_cyan().bold()
                     );
                     std::io::stdout().flush().unwrap(); // 不刷新缓冲区会等待换行
-
-                    if *archive_format == ArchiveFormat::EXE
-                        || *archive_format == ArchiveFormat::Other || *archive_format == ArchiveFormat::Shell 
-                    {
-                        // 复制exe到别名路径
-                        let target_dir = if target_alias.is_empty() {
-                            format!("{}\\{}", target_dir, archive_name)
-                        } else {
-                            format!("{}\\{}", target_dir, target_alias)
-                        };
-                        // println!("target alias dir {target_dir}");
-                        std::fs::copy(path, target_dir).expect("Failed to copy archive");
-                        println!("✅");
-                        Ok(())
-                    } else if *archive_format == ArchiveFormat::INNO {
-                        println!("✅");
-
-                        let output = Command::new("innounp").output();
-                        if output.is_err() {
-                            install_app("innounp", vec![].as_ref())
-                                .expect("Failed to install innounp");
-                        } else {
-                            let output = output.unwrap();
-                            if !output.status.success() {
-                                install_app("innounp", vec![].as_ref())
-                                    .expect("Failed to install innounp");
-                            }
-                        }
-                        self.invoke_innounp_extract(target_dir, path.as_str())
-                            .expect("Failed to extract inno archive");
-
-                        Ok(())
-                    } else if *archive_format == ArchiveFormat::MSI {
-                        println!("✅");
-
-                        let output = Command::new("lessmsi").arg("h").output();
-                        if output.is_err() {
-                            install_app("lessmsi", vec![].as_ref())
-                                .expect("Failed to lessmsi innonounp");
-                        } else {
-                            let output = output.unwrap();
-                            if !output.status.success() {
-                                install_app("lessmsi", vec![].as_ref())
-                                    .expect("Failed to install lessmsi");
-                            }
-                        }
-                        self.invoke_lessmsi_extract(target_dir, path.as_str())
-                            .expect("Failed to extract msi archive");
-
-                        Ok(())
-                    } else {
-                        log::debug!("file is archive , invoke external command");
-                        let target = format!("-o{}", target_dir);
-                        let output = Command::new(&_7z)
-                            .arg("x")
-                            .arg(path)
-                            .arg(target)
-                            .arg("-aoa") // *!自动覆盖同名文件
-                            .output()?;
-                        if !output.status.success() {
-                            let error = String::from_utf8_lossy(&output.stderr);
-                            bail!("7z command failed: {}", error)
-                        } else {
-                            println!("✅");
-                            Ok(())
-                        }
-                    }
+                    let result = self.extract_archive_by_format(
+                        target_dir,
+                        path,
+                        archive_name,
+                        archive_format,
+                        target_alias,
+                        _7z.as_str(),
+                    );
+                    return result;
                 });
             if result.is_err() {
                 bail!("Failed to extract archive: {}", result.unwrap_err());
             }
         } else {
             let target_dirs = target_dir.unwrap();
+            let target_count = target_dirs.len();
+            let archive_count = archive_paths.len();
+
+            let target_current_dir = self.get_target_app_version_dir();
+            if !Path::new(target_current_dir).exists() {
+                std::fs::create_dir_all(target_current_dir)
+                    .expect("Failed to create target directory");
+            };
+
+            let target_dirs = if target_count < archive_count {
+                let size = archive_count - target_count;
+                let current_dir = vec![String::from(target_current_dir); size];
+                [target_dirs, current_dir].concat()
+            } else if target_count == archive_count {
+                target_dirs
+            } else {
+                eprintln!("Target dir count mismatch, exist invalid extract_to  string");
+                target_dirs
+            };
+            log::debug!("auto fill new target_dirs {:?}", target_dirs);
+
             target_dirs.iter().for_each(|target_dir| {
                 if !Path::new(target_dir).exists() {
                     std::fs::create_dir_all(target_dir).unwrap();
@@ -836,31 +832,27 @@ Expand-InnoArchive "{inno_file}" "{target_dir}"  -Removal
                 .iter()
                 .zip(archive_paths)
                 .zip(target_dirs)
-                .try_for_each(|((archive_name, archive_path), dest)| {
-                    print!(
-                        "{}  {}......",
-                        "Extracting archive".dark_blue().bold(),
-                        archive_name.clone().dark_cyan().bold()
-                    );
-                    std::io::stdout().flush().unwrap(); // 不刷新缓冲区会等待换行
-
-                    let target = format!("-o{}", dest);
-                    let output = Command::new(&_7z)
-                        .arg("x")
-                        .arg(archive_path)
-                        .arg(target)
-                        .arg("-aoa") // *!自动覆盖同名文件
-                        .stdout(Stdio::piped())
-                        .stderr(Stdio::piped())
-                        .output()?;
-                    if !output.status.success() {
-                        let error = String::from_utf8_lossy(&output.stderr);
-                        bail!("7z command failed: {}", error)
-                    } else {
-                        println!("✅");
-                        Ok(())
-                    }
-                });
+                .zip(archive_formats)
+                .zip(target_alias_names)
+                .try_for_each(
+                    |((((archive_name, archive_path), dest), archive_format), target_alias)| {
+                        print!(
+                            "{}  {}......",
+                            "Extracting archive".dark_blue().bold(),
+                            archive_name.clone().dark_cyan().bold()
+                        );
+                        std::io::stdout().flush().unwrap(); // 不刷新缓冲区会等待换行
+                        let result = self.extract_archive_by_format(
+                            dest.as_str(),
+                            archive_path,
+                            archive_name,
+                            archive_format,
+                            target_alias,
+                            _7z.as_str(),
+                        );
+                        return result;
+                    },
+                );
             if result.is_err() {
                 bail!("Failed to extract archive: {}", result.unwrap_err());
             }
@@ -932,7 +924,6 @@ Expand-InnoArchive "{inno_file}" "{target_dir}"  -Removal
                 StringArrayOrString::StringArray(extract_to) => extract_to,
                 StringArrayOrString::String(extract_to) => Vec::from([extract_to]),
             };
-
             if extract_dir.is_empty() || extract_to.is_empty() {
                 eprintln!("Empty Error ,check dir {}", self.get_app_manifest_path());
                 bail!("Parse Error : extract_dir or extract_to is empty ")
@@ -956,6 +947,81 @@ Expand-InnoArchive "{inno_file}" "{target_dir}"  -Removal
             true
         }
     }
+    pub fn extract_archive_by_format(
+        &self,
+        target_dir: &str,
+        path: String,
+        archive_name: &str,
+        archive_format: &ArchiveFormat,
+        target_alias: &str,
+        _7z: &str,
+    ) -> anyhow::Result<()> {
+        let result = if *archive_format == ArchiveFormat::EXE
+            || *archive_format == ArchiveFormat::Other
+            || *archive_format == ArchiveFormat::Shell
+        {
+            // 复制exe到别名路径
+            let target_dir = if target_alias.is_empty() {
+                format!("{}\\{}", target_dir, archive_name)
+            } else {
+                format!("{}\\{}", target_dir, target_alias)
+            };
+            // println!("target alias dir {target_dir}");
+            std::fs::copy(path, target_dir).expect("Failed to copy archive");
+            println!("✅");
+            Ok(())
+        } else if *archive_format == ArchiveFormat::INNO {
+            println!("✅");
+
+            let output = Command::new("innounp").output();
+            if output.is_err() {
+                install_app("innounp", vec![].as_ref()).expect("Failed to install innounp");
+            } else {
+                let output = output?;
+                if !output.status.success() {
+                    install_app("innounp", vec![].as_ref()).expect("Failed to install innounp");
+                }
+            }
+            self.invoke_innounp_extract(target_dir, path.as_str())
+                .expect("Failed to extract inno archive");
+
+            Ok(())
+        } else if *archive_format == ArchiveFormat::MSI {
+            println!("✅");
+
+            let output = Command::new("lessmsi").arg("h").output();
+            if output.is_err() {
+                install_app("lessmsi", vec![].as_ref()).expect("Failed to lessmsi innonounp");
+            } else {
+                let output = output?;
+                if !output.status.success() {
+                    install_app("lessmsi", vec![].as_ref()).expect("Failed to install lessmsi");
+                }
+            }
+            self.invoke_lessmsi_extract(target_dir, path.as_str())
+                .expect("Failed to extract msi archive");
+
+            Ok(())
+        } else {
+            log::debug!("file is archive , invoke external command");
+            let target = format!("-o{}", target_dir);
+            let output = Command::new(_7z)
+                .arg("x")
+                .arg(path)
+                .arg(target)
+                .arg("-aoa") // *!自动覆盖同名文件
+                .output()?;
+            if !output.status.success() {
+                let error = String::from_utf8_lossy(&output.stderr);
+                bail!("7z command failed: {}", error)
+            } else {
+                println!("✅");
+                Ok(())
+            }
+        };
+
+        result
+    }
 }
 
 mod test_7z {
@@ -964,5 +1030,12 @@ mod test_7z {
     #[test]
     fn test_extract_7z() {
         let _zip = SevenZipStruct::new();
+    }
+
+    #[test]
+    fn test_path_plus() {
+        let target_dir = "A:\\Scoop\\apps";
+        let child_dir = format!("{}\\{}", target_dir, "");
+        println!("{}", child_dir);
     }
 }
