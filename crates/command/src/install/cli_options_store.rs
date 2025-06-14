@@ -52,6 +52,7 @@ pub enum ArchiveFormat {
     TAR,
     Other,
     Shell,
+    NUPKG,
 }
 
 #[derive(Clone, Debug)]
