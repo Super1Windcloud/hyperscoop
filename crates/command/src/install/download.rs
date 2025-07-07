@@ -479,7 +479,17 @@ impl<'a> DownloadManager<'a> {
 
         let hash = serde_obj.hash;
 
-        self.set_hash_format(hash, architecture.clone())?;
+        if self
+            .options
+            .contains(&InstallOptions::SkipDownloadHashCheck)
+        {
+            let result = self.set_hash_format(hash, architecture.clone());
+            if let Err(e) = result {
+                eprintln!("{}", e.to_string().dark_red().bold());
+            }
+        } else {
+            self.set_hash_format(hash, architecture.clone())?;
+        }
 
         let url = serde_obj.url;
         if url.is_some() {

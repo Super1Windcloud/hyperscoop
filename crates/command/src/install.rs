@@ -117,8 +117,18 @@ pub fn install_app_from_local_manifest_file<P: AsRef<Path>>(
             .chain(vec![InstallOptions::CurrentInstallApp {
                 app_name: app_name.to_string(),
                 app_version: version.to_string(),
-            }]) 
+            }])
             .collect::<Box<[InstallOptions]>>()
+    };
+
+    let hash = serde_obj.hash;
+    let architecture = serde_obj.architecture;
+    let options = if validate_hash_exists(hash.clone(), architecture.clone())? {
+        options
+    } else {
+        let mut new_options = options.to_vec();
+        new_options.push(InstallOptions::SkipDownloadHashCheck);
+        new_options.into_boxed_slice()
     };
 
     let result = if !options.contains(&InstallOptions::ForceDownloadNoInstallOverrideCache)
@@ -186,10 +196,8 @@ pub fn install_app_from_local_manifest_file<P: AsRef<Path>>(
     let env_set = serde_obj.env_set;
     let env_add_path = serde_obj.env_add_path;
     // let url = serde_obj.url;
-    // let hash = serde_obj.hash;
     // let installer = serde_obj.installer;
     // let shortcuts = serde_obj.shortcuts;
-    let architecture = serde_obj.architecture;
     // let bin = serde_obj.bin;
     let extract_dir = serde_obj.extract_dir;
     let extract_to = serde_obj.extract_to;

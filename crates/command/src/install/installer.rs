@@ -10,7 +10,7 @@ use crate::install::{
 };
 use crate::manifest::install_manifest::{SuggestObj, SuggestObjValue};
 use crate::manifest::manifest_deserialize::{
-    PSModuleStruct, StringArrayOrString, StringOrArrayOrDoubleDimensionArray,
+    ArchitectureObject, PSModuleStruct, StringArrayOrString, StringOrArrayOrDoubleDimensionArray,
 };
 use crate::utils::system::{
     get_system_default_arch, get_system_env_str, get_system_env_var, get_user_env_str,
@@ -74,7 +74,7 @@ pub fn show_notes(notes: StringArrayOrString) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub fn handle_depends(depends: String , options: &[InstallOptions<'_>]) -> anyhow::Result<()> {
+pub fn handle_depends(depends: String, options: &[InstallOptions<'_>]) -> anyhow::Result<()> {
     if depends.contains('/') {
         let arr = depends.split('/').collect::<Vec<&str>>();
         if arr.len() != 2 {
@@ -448,6 +448,33 @@ pub fn install_app_from_url(
     }
     Ok(())
 }
+
+pub fn validate_hash_exists(
+    hash: Option<StringArrayOrString>,
+    architecture: Option<ArchitectureObject>,
+) -> anyhow::Result<bool> {
+    if hash.is_some() {
+        Ok(true)
+    } else if architecture.is_some() {
+        let architecture = architecture.unwrap();
+        let arch = get_system_default_arch()?;
+        let result = architecture.get_specific_architecture(arch.as_str());
+        if result.is_some() {
+            let result = result.unwrap();
+            let hash = result.hash.clone();
+            if hash.is_some() {
+                Ok(true)
+            } else {
+                Ok(false)
+            }
+        } else {
+            Ok(false)
+        }
+    } else {
+        Ok(false)
+    }
+}
+
 mod test_installer {
     #[allow(unused)]
     use super::*;
