@@ -224,6 +224,7 @@ pub fn install_app_from_local_manifest_file<P: AsRef<Path>>(
 
     //   **invoke aria2  to  download  file to cache
     let download_manager = DownloadManager::new(&options, &manifest_path, bucket_source);
+    log::trace!("init download manager success!");
     download_manager.start_download()?;
     if !options.contains(&InstallOptions::SkipDownloadHashCheck) {
         download_manager.check_cache_file_hash()?

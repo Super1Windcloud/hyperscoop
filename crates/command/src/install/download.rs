@@ -332,7 +332,6 @@ impl<'a> DownloadManager<'a> {
 
         let mut file = std::fs::File::create(self.get_input_file())
             .context("Failed to create input file at line 321")?;
-        log::debug!("create input file {}", self.get_input_file());
         let urls = self.get_download_urls();
         let result =
             urls.iter()
@@ -346,11 +345,15 @@ impl<'a> DownloadManager<'a> {
         if result.is_err() {
             bail!("创建缓存输入文件{}失败", self.get_input_file())
         }
+      log::debug!("create input file {}", self.get_input_file());
+      
         Ok(())
     }
 
     pub fn create_aria2c_instance(&self) -> Aria2C {
+        log::trace!("create_aria2c_instance start");
         let aria2c = Aria2C::new();
+        log::trace!("create_aria2c_instance end");
         aria2c
     }
 
