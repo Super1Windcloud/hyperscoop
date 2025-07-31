@@ -30,7 +30,6 @@
 
 ## Bucket Demo 
 
-![bucket.png](https://imgfans.com/_Ww0K4)
 ![bucket.png](./img/bucket.png)
 
 ## 🏗 Project Status   (Completed🍻🎉🐉)
