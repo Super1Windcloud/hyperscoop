@@ -45,7 +45,7 @@ pub fn get_all_config() -> Value {
 }
 
 pub fn get_config_value(name: &str) {
-    let  name =name.to_lowercase(); 
+    let name = name.to_lowercase();
     let config_path = get_user_config_path();
     let config_path = Path::new(&config_path);
     if config_path.exists() {
@@ -70,8 +70,8 @@ pub fn get_config_value(name: &str) {
                     println!("{}", str.dark_yellow().bold());
                 }
                 Value::Object(obj) => {
-                      let str = serde_json::to_string_pretty(&obj).unwrap();
-                     println!("{}", str.dark_yellow().bold());
+                    let str = serde_json::to_string_pretty(&obj).unwrap();
+                    println!("{}", str.dark_yellow().bold());
                 }
             }
         } else {
@@ -86,12 +86,16 @@ pub fn get_config_value(name: &str) {
 }
 
 pub fn get_config_value_no_print(name: &str) -> String {
-    let name = name.trim().to_lowercase(); 
+    let name = name.trim().to_lowercase();
     let config_path = get_user_config_path();
 
     let config_path = Path::new(&config_path);
     if config_path.exists() {
         let config_file = std::fs::File::open(config_path).unwrap();
+        let content = std::fs::read_to_string(config_path).unwrap();
+        if content.is_empty() {
+            return String::new();
+        }
         let config_json: Value = serde_json::from_reader(config_file).unwrap();
         if let Some(value) = config_json.get(name) {
             match value {
