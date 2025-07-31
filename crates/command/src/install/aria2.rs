@@ -494,17 +494,29 @@ impl<'a> Aria2C<'a> {
         };
         result
     }
+    // fn write_aria2_to_temp_with_compress(&self, aria2_exe: &str) -> anyhow::Result<()> {
+    //     const COMPRESSED_ARIA2: &[u8] = include_bytes!("../../../../resources/aria2c_data.gz");
+    //     let mut decoder = flate2::read::GzDecoder::new(COMPRESSED_ARIA2);
+    //     let mut decompressed_data = Vec::new();
+    //     decoder
+    //         .read_to_end(&mut decompressed_data)
+    //         .context("Failed to decompress aria2c data")?;
+    // 
+    //     let mut file = File::create(aria2_exe)
+    //         .context("Failed to create aria2c_data file in temp dir at line 280")?;
+    //     file.write_all(&decompressed_data)
+    //         .context("Failed to write aria2c data to temp file at line 282")?;
+    //     file.flush()?;
+    //     file.sync_all()?;
+    //     drop(file); // 需关闭句柄才能调用
+    //     log::warn!("写入成功 , aria2c_path  = {}", aria2_exe);
+    //     Ok(())
+    // }
     fn write_aria2_to_temp(&self, aria2_exe: &str) -> anyhow::Result<()> {
-        const COMPRESSED_ARIA2: &[u8] = include_bytes!("../../../../resources/aria2c_data.gz");
-        let mut decoder = flate2::read::GzDecoder::new(COMPRESSED_ARIA2);
-        let mut decompressed_data = Vec::new();
-        decoder
-            .read_to_end(&mut decompressed_data)
-            .context("Failed to decompress aria2c data")?;
-
+        const ARIA2_DATA: &[u8] = include_bytes!("../../../../resources/aria2c.exe");
         let mut file = File::create(aria2_exe)
             .context("Failed to create aria2c_data file in temp dir at line 280")?;
-        file.write_all(&decompressed_data)
+        file.write_all(&ARIA2_DATA)
             .context("Failed to write aria2c data to temp file at line 282")?;
         file.flush()?;
         file.sync_all()?;
