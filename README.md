@@ -31,8 +31,9 @@
 --- 
 
 ### 2. By  Powershell
-
-` iwr   -useb  https://raw.githubusercontent.com/Super1Windcloud/hyperscoop/refs/heads/main/install.ps1     | iex`
+```powershell
+iwr   -useb  https://raw.githubusercontent.com/Super1Windcloud/hyperscoop/refs/heads/main/install.ps1    | iex
+```
 ---
 
 ### 3. 下载[exe](https://github.com/Super1Windcloud/hyperscoop/releases)使用,并添加到 `$env:Path`
