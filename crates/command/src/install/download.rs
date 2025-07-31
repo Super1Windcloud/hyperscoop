@@ -345,15 +345,13 @@ impl<'a> DownloadManager<'a> {
         if result.is_err() {
             bail!("创建缓存输入文件{}失败", self.get_input_file())
         }
-      log::debug!("create input file {}", self.get_input_file());
-      
+        log::debug!("create input file {}", self.get_input_file());
+
         Ok(())
     }
 
     pub fn create_aria2c_instance(&self) -> Aria2C {
-        log::trace!("create_aria2c_instance start");
         let aria2c = Aria2C::new();
-        log::trace!("create_aria2c_instance end");
         aria2c
     }
 
@@ -508,6 +506,7 @@ impl<'a> DownloadManager<'a> {
         }
 
         let url = serde_obj.url;
+
         if url.is_some() {
             self.set_cache_file_name(app_name, &version, &url.clone().unwrap())?;
             let final_arch = self.get_user_options_arch()?;
