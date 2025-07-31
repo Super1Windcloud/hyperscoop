@@ -8,9 +8,9 @@ try {
   $apiUrl = "https://api.github.com/repos/$repoOwner/$repoName/releases/latest"
   $response = Invoke-RestMethod -Uri $apiUrl -Headers $headers
   $version = $response.tag_name
-  Write-Host "最新版本: $version"
+  Write-Host "Latest version: $version"
 } catch {
-  Write-Error "获取版本失败: $_"
+  Write-Error "Get latest version failed: $_"
   exit 1
 }
 
@@ -22,11 +22,11 @@ if (-not (Test-Path -Path $installDir)) {
 
 $targetPath = Join-Path $installDir $exeName
 try {
-  Write-Host "下载中: $downloadUrl"
+  Write-Host "Downloading: $downloadUrl"
   Invoke-WebRequest -Uri $downloadUrl -OutFile $targetPath
-  Write-Host "下载完成: $targetPath"
+  Write-Host "Download complete: $targetPath"
 } catch {
-  Write-Error "下载失败: $_"
+  Write-Error "Download failed: $_"
   exit 1
 }
 
@@ -38,9 +38,9 @@ if ($currentPath -notlike "*$installDir*") {
     [Environment]::SetEnvironmentVariable("PATH", $newPath, "User")
     Write-Host "add  user PATH: $installDir"
   } catch {
-    Write-Error "添加 PATH 失败: $_"
+    Write-Error "add user PATH failed: $_"
     exit 1
   }
 } else {
-  Write-Host "路径已存在于用户 PATH 中: $installDir"
+  Write-Host "user PATH already contains: $installDir"
 }
