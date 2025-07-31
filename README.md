@@ -31,6 +31,7 @@
 ## Bucket Demo 
 
 ![bucket.png](https://imgfans.com/_Ww0K4)
+![bucket.png](./img/bucket.png)
 
 ## 🏗 Project Status   (Completed🍻🎉🐉)
 | ![](https://i.giphy.com/media/CwfC5Pv6Rtp66h4coK/giphy.gif) |
