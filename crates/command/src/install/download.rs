@@ -155,6 +155,7 @@ impl<'a> DownloadManager<'a> {
         &mut self,
         hash: Option<StringArrayOrString>,
         architecture: Option<ArchitectureObject>,
+        skip_hash: bool,
     ) -> anyhow::Result<()> {
         let hash_format = if hash.is_some() {
             hash.unwrap()
@@ -163,15 +164,27 @@ impl<'a> DownloadManager<'a> {
             let options_arch = self.get_user_options_arch()?;
             if options_arch == "64bit" {
                 let x64 = arch.x64bit.unwrap();
-                let hash = x64.hash.unwrap();
+                let hash = if skip_hash {
+                    bail!("hash str is empty")
+                } else {
+                    x64.hash.unwrap()
+                };
                 hash
             } else if options_arch == "32bit" {
                 let x86 = arch.x86bit.unwrap();
-                let hash = x86.hash.unwrap();
+                let hash = if skip_hash {
+                    bail!("hash str is empty")
+                } else {
+                    x86.hash.unwrap()
+                };
                 hash
             } else if options_arch == "arm64" {
                 let arm64 = arch.arm64.unwrap();
-                let hash = arm64.hash.unwrap();
+                let hash = if skip_hash {
+                    bail!("hash str is empty")
+                } else {
+                    arm64.hash.unwrap()
+                };
                 hash
             } else {
                 bail!("Unsupported architecture");
@@ -483,12 +496,12 @@ impl<'a> DownloadManager<'a> {
             .options
             .contains(&InstallOptions::SkipDownloadHashCheck)
         {
-            let result = self.set_hash_format(hash, architecture.clone());
+            let result = self.set_hash_format(hash, architecture.clone(), true);
             if let Err(e) = result {
                 eprintln!("{}", e.to_string().dark_red().bold());
             }
         } else {
-            self.set_hash_format(hash, architecture.clone())?;
+            self.set_hash_format(hash, architecture.clone(), false)?;
         }
 
         let url = serde_obj.url;
