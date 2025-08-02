@@ -170,7 +170,7 @@ pub async fn update_hp(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
 
     let version = install_and_replace_hp(install_options.as_slice())
         .await
-        .context("install_and_replace_hp  failed at line 173")?;
+        .expect("hp update failed");
 
     if update_options.contains(&ForceUpdateOverride) {
         launch_update_script(global, "", true).expect("update hp script failed");
