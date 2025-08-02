@@ -44,3 +44,6 @@ if ($currentPath -notlike "*$installDir*") {
 } else {
   Write-Host "user PATH already contains: $installDir"
 }
+
+
+#  创建启动前安装所有依赖的程序
