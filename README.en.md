@@ -2,11 +2,7 @@
 > [!IMPORTANT]
 > ##  Latest Release [Github](https://github.com/Super1Windcloud/hyperscoop/releases)
 
-> [!NOTE]
-> ##  Upx compressed shelled exe has been provided, which greatly reduces the binary volume. Upx loads stubs into memory. Most domestic soft-killing reports are poisonous. See Release or
-`hp i https://github.com/Super1Windcloud/hyperscoop/releases/download/4.0.6/hp_upx.exe -A hpu`
-
->[!TIP]
+>[!IMPORTANT]
 > ##  Please turn off domestic antivirus software before running, except for Kaspersky in Europe and the United States, Langton and other things.
 ------ 
 # HYPERSCOOP(hp)
@@ -14,11 +10,20 @@
 ## 🐼 A faster, stronger, and more exquisite windows package manager, By Rust (inherited from scoop)
 
 ## Quick Start 
-###  1.  By Powershell or cmd
--  `scoop bucket add hp https://gitee.com/SuperWindcloud/hyperscoop_bucket.git`
--  `scoop  install  -u  -s   hp/hp`
+### 1. By Scoop
+
+- `scoop bucket add hp https://gitee.com/SuperWindcloud/hyperscoop_bucket.git`
+- `scoop  install  -u  -s   hp/hp`
+
 --- 
-###   2.  Download [exe](https://github.com/Super1Windcloud/hyperscoop/releases) to use ,add to `$env:Path`
+
+### 2. By  Powershell
+```powershell
+iwr   -useb  https://raw.githubusercontent.com/Super1Windcloud/hyperscoop/refs/heads/main/install.ps1    | iex
+```
+---
+
+###   3.  Download [exe](https://github.com/Super1Windcloud/hyperscoop/releases) to use ,add to `$env:Path`
 
 
 ## 使用前提
