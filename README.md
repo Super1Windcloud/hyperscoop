@@ -2,11 +2,7 @@
 > [!IMPORTANT]
 > ## Latest Release 请到 [Github](https://github.com/Super1Windcloud/hyperscoop/releases), [English Readme](./README.en.md)
 
-> [!NOTE]
-> ## 已提供upx压缩加壳的exe, 大幅度减少二进制的体积, upx加载存根到内存,绝大部分国产杀软报毒, 见Release 或
-`hp i https://github.com/Super1Windcloud/hyperscoop/releases/download/4.0.7/hp_upx.exe -A hpu`
-
-> [!TIP]
+> [!IMPORTANT]
 > ## 运行前请关闭国产杀毒软件 ,欧美的卡巴斯基,兰顿什么的除外
 ------ 
 
@@ -40,7 +36,7 @@ iwr   -useb  https://raw.githubusercontent.com/Super1Windcloud/hyperscoop/refs/h
 
 ## 使用前提
 
-> `hp b k` 查看官方的bucket列表, `hp b -i` 添加所有bucket ,`hp i 7zip` 用于生命周期脚本
+> `hp b k` 查看官方的bucket列表, `hp b -i` 添加所有bucket ,`hp i 7zip` 用于生命周期脚本 , `hp i aria2` 安装在本地
 
 ## Bucket Demo
 
