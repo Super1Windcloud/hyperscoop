@@ -3,7 +3,7 @@
 > ## Latest Release 请到 [Github](https://github.com/Super1Windcloud/hyperscoop/releases), [English Readme](./README.en.md)
 
 > [!IMPORTANT]
-> ## 运行前请关闭国产杀毒软件 ,欧美的卡巴斯基,兰顿什么的除外
+> ## 运行前请关闭国产杀毒软件 ,微软等各种电脑自带的管家(卡巴斯基除外)
 ------ 
 
 # HYPERSCOOP(hp)
@@ -27,9 +27,11 @@
 --- 
 
 ### 2. By  Powershell
+
 ```powershell
 iwr   -useb  https://raw.githubusercontent.com/Super1Windcloud/hyperscoop/refs/heads/main/install.ps1    | iex
 ```
+
 ---
 
 ### 3. 下载[exe](https://github.com/Super1Windcloud/hyperscoop/releases)使用,并添加到 `$env:Path`
