@@ -1,35 +1,64 @@
+use crate::init_env::{
+    get_all_buckets_dir_child_bucket_path, get_all_global_buckets_dir_child_bucket_path,
+};
 use anyhow::Context;
 use bat::PrettyPrinter;
-
-pub fn catch_manifest(bucket_paths: Vec<String>, app_name: String) -> anyhow::Result<()> {
-    for bucket_path in bucket_paths.iter() {
-        let manifest_path = bucket_path.clone() + "\\bucket";
-        for file in std::fs::read_dir(&manifest_path).context(format!(
-            "Failed to read directory {} as line 8",
-            &manifest_path
-        ))? {
-            let entry = file.context(format!(
-                "Failed to read file in directory {} as line 10",
-                &manifest_path
-            ))?;
-            let file_type = entry.file_type()?;
-            let file = entry.path();
-            let file_str = file.as_path().display().to_string();
-            if file_type.is_file() && file_str.ends_with(".json") {
-                let file_name = file.file_stem().unwrap().to_str().unwrap();
-                if file_name.to_lowercase() != app_name {
-                    continue;
+use rayon::prelude::*;
+use std::fs;
+use std::path::{Path, PathBuf};
+fn get_all_files(dir: &Path) -> Vec<PathBuf> {
+    let mut files = Vec::new();
+    if dir.is_dir() {
+        if let Ok(entries) = fs::read_dir(dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                let file_type = entry.file_type().unwrap();
+                if file_type.is_file() {
+                    files.push(path);
                 }
-                let content = std::fs::read_to_string(file)
-                    .context(format!("Failed to read file {} as line 15", &file_str))?;
-                let buffer = content.as_bytes();
-                PrettyPrinter::new()
-                    .input_from_bytes(buffer)
-                    .language("json")
-                    .print()?;
-                return Ok(());
             }
         }
     }
+    files
+}
+
+pub fn catch_manifest(global: bool, app_name: String) -> anyhow::Result<()> {
+    let bucket_paths = if global {
+        get_all_global_buckets_dir_child_bucket_path()?
+    } else {
+        get_all_buckets_dir_child_bucket_path()?
+    };
+
+    let manifest_path = bucket_paths
+        .par_iter()
+        .flat_map(|bucket_path| {
+            let path = Path::new(bucket_path);
+            get_all_files(path).into_par_iter()
+        })
+        .collect::<Vec<PathBuf>>();
+
+
+    for bucket_path in &manifest_path {
+        if Path::new(bucket_path)
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .map(|s| s.to_lowercase())
+            .unwrap_or_default()
+            != app_name.to_lowercase()
+        {
+            continue;
+        }
+
+        let content = fs::read_to_string(bucket_path)
+            .context(format!("Failed to read file {} as line 15", bucket_path.display()))?;
+        let buffer = content.as_bytes();
+
+        PrettyPrinter::new()
+            .input_from_bytes(buffer)
+            .language("json")
+            .print()?;
+        std::process::exit(0);
+    }
+
     Ok(())
 }
