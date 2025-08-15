@@ -288,12 +288,15 @@ impl<'a> SevenZipStruct<'a> {
                 self.output_current_exe(seven_zip_dir.clone(), shim_root_dir.as_str())?;
             let parent = Path::new(&exe_current).parent().unwrap();
 
-            let dll_path = format!("{}\\7z.dll", parent.to_str().unwrap());
-
-            if !Path::new(&dll_path).exists() {
-                bail!("7z.dll not found in 7zip dir , please install 7zip and try again.")
+            if parent.file_stem().unwrap().to_str().unwrap() == "shims" {
+                self.get_temp_7z_dll_path()
+            } else {
+                let dll_path = format!("{}\\7z.dll", parent.to_str().unwrap());
+                if !Path::new(&dll_path).exists() {
+                    bail!("7z.dll not found in 7zip dir , please install 7zip and try again.")
+                }
+                dll_path
             }
-            dll_path
         } else {
             self.get_temp_7z_dll_path()
         };
