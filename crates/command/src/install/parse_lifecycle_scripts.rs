@@ -547,12 +547,14 @@ fn invoke_ps_scripts(
     let decompress_script = include_str!("../../../../asset_scripts/decompress.ps1");
     let manifest_script = include_str!("../../../../asset_scripts/manifest.ps1");
     let system_script = include_str!("../../../../asset_scripts/system.ps1");
+    let buckets_script = include_str!("../../../../asset_scripts/buckets.ps1");
 
     let temp = std::env::temp_dir();
     let core_path = temp.join("core.ps1");
     let decompress_path = temp.join("decompress.ps1");
     let manifest_path = temp.join("manifest.ps1");
     let system_path = temp.join("system.ps1");
+    let buckets_path = temp.join("buckets.ps1");
     let temp_str = temp.to_str().unwrap();
     if !core_path.exists() {
         std::fs::write(&core_path, core_script).context(format!(
@@ -576,6 +578,13 @@ fn invoke_ps_scripts(
         std::fs::write(&system_path, system_script).context(format!(
             "Failed to write system file {} at line 580",
             system_path.display()
+        ))?;
+    }
+
+    if !buckets_path.exists() {
+        std::fs::write(&buckets_path, buckets_script).context(format!(
+            "Failed to write system file {} at line 586",
+            buckets_path.display()
         ))?;
     }
     let old_scoop_dir = get_old_scoop_dir();
