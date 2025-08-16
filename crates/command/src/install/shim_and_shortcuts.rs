@@ -476,7 +476,6 @@ pub fn create_default_shim_name_file(
     } else {
         exe_name.split('.').last().unwrap().to_lowercase()
     };
-
     if app_name == "hp" {
         return Ok(());
     }
