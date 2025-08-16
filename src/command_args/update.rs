@@ -37,7 +37,7 @@ pub struct UpdateArgs {
     )]
     pub no_auto_download_dependencies: bool,
 
-    #[arg(short = 'r', long, help = "删除旧的App的安装目录,默认会保留旧版本目录")]
+    #[arg(short = 'r', long, help = "删除旧的App的安装版本,默认会保留旧版本目录")]
     pub remove_old_app: bool,
 
     #[arg(
@@ -49,8 +49,8 @@ pub struct UpdateArgs {
 
     #[arg(short='S' , long, help = "启用串行更新,默认并行更新", required = false)]
     pub  serial_update: bool,
-  
-  
+
+
     #[arg(short = 'I', long, help = "交互式安装,默认不开启\n", required = false)]
     pub interactive: bool,
 

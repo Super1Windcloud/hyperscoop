@@ -449,7 +449,7 @@ pub fn create_alias_shim_name_file(
         if result != 0 {
             bail!("Origin 二进制名或者该二进制别名 '{exe_name}' 与scoop 内置脚本的shim 冲突, 禁止覆盖")
         }
-       create_shell_shim_scripts(
+        create_shell_shim_scripts(
             target_path.as_str(),
             out_dir,
             Some(alias_name),
@@ -477,6 +477,9 @@ pub fn create_default_shim_name_file(
         exe_name.split('.').last().unwrap().to_lowercase()
     };
 
+    if app_name == "hp" {
+        return Ok(());
+    }
     let target_path = get_app_current_bin_path(app_name.into(), &exe_name, options);
     let target_path = fs::canonicalize(&target_path).context(format!(
         "Failed to get canonicalize target_path {target_path} at line 459"
@@ -684,7 +687,7 @@ java.exe -jar "{}"  "$@""#,
             target_path, parent_dir, parent_dir, target_path
         )
     } else {
-        let jar_args  =  program_args.unwrap_or_default();  
+        let jar_args = program_args.unwrap_or_default();
         format!(
             r#"#!/bin/sh
 # {}
@@ -948,15 +951,9 @@ pub fn create_shell_shim_scripts(
         format!("# {}", target_path),
         "if [ $WSL_INTEROP ]".to_string(),
         "then".to_string(),
-        format!(
-            r#"  "$(wslpath -u '{}')" {} "$@""#,
-            target_path, shell_args
-        ),
+        format!(r#"  "$(wslpath -u '{}')" {} "$@""#, target_path, shell_args),
         "else".to_string(),
-        format!(
-            r#"  "$(cygpath -u '{}')" {} "$@""#,
-            target_path, shell_args
-        ),
+        format!(r#"  "$(cygpath -u '{}')" {} "$@""#, target_path, shell_args),
         "fi".to_string(),
     ];
     let sh_content = sh_lines.join("\n");
