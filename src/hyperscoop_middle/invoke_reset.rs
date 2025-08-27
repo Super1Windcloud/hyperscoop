@@ -3,7 +3,6 @@ use anyhow::bail;
 use command_util_lib::reset::*;
 use regex::Regex;
 
-
 pub fn execute_reset_command(args: ResetArgs) -> Result<(), anyhow::Error> {
     if let Some(name) = args.name {
         if name.contains('@') {
@@ -24,9 +23,9 @@ pub fn execute_reset_command(args: ResetArgs) -> Result<(), anyhow::Error> {
                     name
                 ));
             }
-            reset_specific_version(app_name, app_version, args.global , args.shim_reset)?
+            reset_specific_version(app_name, app_version, args.global, args.shim_reset)?
         } else {
-            reset_latest_version(name.as_str(), args.global , args.shim_reset)?
+            reset_latest_version(name.as_str(), args.global, args.shim_reset)?
         }
     }
 

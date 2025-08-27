@@ -1,4 +1,4 @@
-﻿use crate::config::get_config_value_no_print;
+use crate::config::get_config_value_no_print;
 use anyhow::{bail, Context};
 use crossterm::style::Stylize;
 use dialoguer::theme::ColorfulTheme;
@@ -7,7 +7,7 @@ use git2::{FetchOptions, Progress, ProxyOptions, RemoteCallbacks, Repository};
 use indicatif::{ProgressBar, ProgressDrawTarget, ProgressStyle};
 use regex::Regex;
 use reqwest::get;
-use std::fs::{create_dir_all, read_dir,  remove_dir_all, remove_file, rename, File};
+use std::fs::{create_dir_all, read_dir, remove_dir_all, remove_file, rename, File};
 use std::io::{copy, Read, Write};
 use std::path::Path;
 use std::process::{Command, Stdio};

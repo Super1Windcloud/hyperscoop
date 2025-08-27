@@ -12,7 +12,7 @@ use std::cmp::Ordering;
 use std::fs;
 use std::fs::File;
 use std::io::Write;
-use std::path::{Path};
+use std::path::Path;
 use textwrap::LineEnding;
 use url::Url;
 
@@ -112,7 +112,7 @@ pub fn get_official_bucket_urls<'a>() -> Vec<&'a str> {
         "https://github.com/ScoopInstaller/Nonportable",
         "https://github.com/ScoopInstaller/Java",
         "https://github.com/Calinou/scoop-games",
-        "https://gitee.com/SuperWindcloud/hyperscoop_bucket.git"
+        "https://gitee.com/SuperWindcloud/hyperscoop_bucket.git",
     ]
 }
 

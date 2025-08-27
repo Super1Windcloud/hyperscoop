@@ -13,7 +13,7 @@ pub async fn execute_install_command(args: InstallArgs) -> Result<(), anyhow::Er
     if args.app_name.is_none() {
         return Ok(());
     }
-  
+
     let app_name = args.app_name.clone().unwrap();
     if args.global && !is_admin()? {
         let args = env::args().skip(1).collect::<Vec<String>>();

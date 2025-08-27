@@ -21,7 +21,7 @@ pub fn delete_env_var(var_key: &str) -> Result<(), anyhow::Error> {
     let environment_key = hkcu.open_subkey_with_flags("Environment", KEY_ALL_ACCESS)?;
     if environment_key.get_value::<String, &str>(var_key).is_ok() {
         environment_key.delete_value(var_key)?;
-    } 
+    }
     Ok(())
 }
 pub fn delete_global_env_var(var_key: &str) -> Result<(), anyhow::Error> {
@@ -33,7 +33,6 @@ pub fn delete_global_env_var(var_key: &str) -> Result<(), anyhow::Error> {
         environment_key.delete_value(var_key)?;
     }
     Ok(())
-  
 }
 
 pub fn get_user_env_var(var_key: &str) -> Result<String, anyhow::Error> {
@@ -61,7 +60,7 @@ pub fn set_user_env_var(var_key: &str, var_value: &str) -> Result<(), anyhow::Er
 
     Ok(())
 }
- 
+
 pub fn set_global_env_var(var_key: &str, var_value: &str) -> Result<(), anyhow::Error> {
     if var_key.is_empty() || var_value.is_empty() {
         bail!("Environment variable  can't be empty ");
@@ -71,7 +70,7 @@ pub fn set_global_env_var(var_key: &str, var_value: &str) -> Result<(), anyhow::
 
     let environment_key = hkcu.open_subkey_with_flags(key, KEY_ALL_ACCESS)?;
 
-    if( environment_key.set_value(var_key, &var_value) as Result<(), std::io::Error>).is_ok() {
+    if (environment_key.set_value(var_key, &var_value) as Result<(), std::io::Error>).is_ok() {
         return Ok(());
     }
     let powershell_command = format!(

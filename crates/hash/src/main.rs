@@ -1,6 +1,6 @@
 use sha2::Digest;
 use sha2::Sha256;
-use std::io::{ Read};
+use std::io::Read;
 use std::process::Command;
 
 fn calculate_sha256(input: &str) -> String {

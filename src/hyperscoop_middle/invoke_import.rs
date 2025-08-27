@@ -3,7 +3,7 @@ use anyhow::Context;
 use command_util_lib::import::*;
 use serde_json::{Map, Value};
 
-pub    fn execute_import_command(args: ImportArgs) -> Result<(), anyhow::Error> {
+pub fn execute_import_command(args: ImportArgs) -> Result<(), anyhow::Error> {
     if let Some(path) = args.path {
         log::info!("{:?}", &path);
         let contents = std::fs::read_to_string(&path).context("文件编码格式错误或路径错误")?;

@@ -1,4 +1,4 @@
-﻿use clap::{Args, Subcommand};
+use clap::{Args, Subcommand};
 use command_util_lib::utils::utility::clap_args_to_lowercase;
 
 #[derive(Args, Debug)]
@@ -37,7 +37,6 @@ pub struct AddArgs {
     pub global: bool,
 }
 
-
 #[derive(Debug, Args)]
 #[clap(author, version, about="删除一个shim快捷方式", long_about = None)]
 #[clap(arg_required_else_help = true)]
@@ -48,13 +47,12 @@ pub struct RmArgs {
     pub global: bool,
 }
 
-
 #[derive(Debug, Subcommand)]
 pub enum ShimSubCommand {
     Add(AddArgs),
     Rm(RmArgs),
     List(ListArgs),
-    Info(InfoArgs), 
+    Info(InfoArgs),
     Clear(ClearArgs),
 }
 

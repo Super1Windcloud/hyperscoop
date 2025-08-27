@@ -1,4 +1,4 @@
-﻿use clap::{Args};
+use clap::Args;
 use command_util_lib::utils::utility::clap_args_to_lowercase;
 
 #[derive(Args, Debug)]
@@ -12,8 +12,6 @@ pub struct SearchArgs {
     #[clap(short, long, help = "默认模糊匹配 ,开启选项则精确匹配")]
     pub(crate) exact_match_option: bool,
 
-   #[arg(from_global)]
-   pub  global: bool,
+    #[arg(from_global)]
+    pub global: bool,
 }
-
-

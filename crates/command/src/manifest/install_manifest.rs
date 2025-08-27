@@ -1,4 +1,4 @@
-﻿use crate::manifest::manifest_deserialize::*;
+use crate::manifest::manifest_deserialize::*;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
@@ -434,7 +434,10 @@ mod test_manifest_deserialize {
                 let shortcuts = shortcuts.unwrap();
                 let result = match shortcuts {
                     StringOrStringArrayOrDoubleDimensionArray::StringArray(array) => {
-                        println!("StringOrStringArrayOrDoubleDimensionArray Array shortcuts {:?}", array);
+                        println!(
+                            "StringOrStringArrayOrDoubleDimensionArray Array shortcuts {:?}",
+                            array
+                        );
                         println!(" path {}", path.display());
                         *_count.lock().unwrap() += 1;
                         array
@@ -448,7 +451,7 @@ mod test_manifest_deserialize {
                         println!(
                             "StringOrStringArrayOrDoubleDimensionArray String shortcuts {:?}",
                             str
-                        ); 
+                        );
                         println!(" path {}", path.display());
                         *_count.lock().unwrap() += 1;
                         vec![str]

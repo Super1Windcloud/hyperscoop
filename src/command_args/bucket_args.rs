@@ -1,4 +1,4 @@
-﻿use clap::{Args, Subcommand};
+use clap::{Args, Subcommand};
 use command_util_lib::utils::utility::clap_args_to_lowercase;
 
 #[derive(Args, Debug, Clone)]
@@ -15,7 +15,10 @@ pub struct BucketArgs {
 
     #[arg(short, long, help = "初始化自动添加官方所有bucket")]
     pub init_office_bucket: bool,
-    #[arg( long, help = "初始化自动添加官方所有bucket,包括社区桶(scoopbucket,DEV-tools,ScoopMaster)")]
+    #[arg(
+        long,
+        help = "初始化自动添加官方所有bucket,包括社区桶(scoopbucket,DEV-tools,ScoopMaster)"
+    )]
     pub init_official_bucket_with_social: bool,
 }
 

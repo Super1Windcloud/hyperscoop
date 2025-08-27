@@ -1,4 +1,4 @@
-﻿use clap::Args;
+use clap::Args;
 use command_util_lib::utils::utility::clap_args_to_lowercase;
 
 #[derive(Args, Debug)]
@@ -15,7 +15,7 @@ pub struct ResetArgs {
     pub(crate) name: Option<String>,
 
     #[arg(required = false, short, long, help = "是否一并重置shim")]
-    pub  shim_reset : bool,
+    pub shim_reset: bool,
     #[arg(from_global)]
     pub global: bool,
 }

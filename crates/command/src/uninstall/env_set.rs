@@ -121,8 +121,8 @@ pub fn env_path_var_rm(
             current.clone()
         } else {
             current.join(env_add_path_str)
-        }; 
-        log::debug!("\n 要移除的路径变量: {}", path_var.to_string_lossy()); 
+        };
+        log::debug!("\n 要移除的路径变量: {}", path_var.to_string_lossy());
         let hkcu = RegKey::predef(HKEY_CURRENT_USER);
         let environment_key = if is_global {
             hkcu.open_subkey(r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment")?
@@ -204,14 +204,13 @@ pub fn env_path_var_rm(
             log::debug!("\n 没有需要移除的路径变量");
             return Ok(());
         }
-         log::debug!("\n 更新后的用户的 PATH: {}", user_path);
+        log::debug!("\n 更新后的用户的 PATH: {}", user_path);
 
         if is_global {
             set_global_env_var("Path", user_path.as_str())?;
         } else {
             set_user_env_var("Path", user_path.as_str())?;
         }
-      
     }
     Ok(())
 }

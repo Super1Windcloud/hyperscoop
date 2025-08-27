@@ -147,10 +147,14 @@ pub fn get_best_app_version_from_local_bucket_global(app_name: &str) -> anyhow::
     if !Path::new(&better_manifest).exists() {
         bail!("Manifest {}does not exist", better_manifest.display());
     }
-    let content = std::fs::read_to_string(&better_manifest)
-      .context(format!("Failed to read global manifest file: {} at line 151", better_manifest.display()))?;
-    let version: VersionJSON = serde_json::from_str(&content)
-      .context(format!("Failed to parse global manifest file: {} at line 153", better_manifest.display()))?;
+    let content = std::fs::read_to_string(&better_manifest).context(format!(
+        "Failed to read global manifest file: {} at line 151",
+        better_manifest.display()
+    ))?;
+    let version: VersionJSON = serde_json::from_str(&content).context(format!(
+        "Failed to parse global manifest file: {} at line 153",
+        better_manifest.display()
+    ))?;
     if version.version.is_none() {
         bail!("该App没有找到版本信息,manifest.json格式错误")
     }
@@ -162,10 +166,14 @@ pub fn get_latest_app_version_from_local_bucket_global(app_name: &str) -> anyhow
     if !Path::new(&better_manifest).exists() {
         bail!("Manifest {}does not exist", better_manifest.display());
     }
-    let content = std::fs::read_to_string(&better_manifest)
-      .context(format!("Failed to read global manifest file: {} at line 166", better_manifest.display()))?;
-    let version: VersionJSON = serde_json::from_str(&content)
-      .context(format!("Failed to parse global manifest file: {} at line 168", better_manifest.display()))?;
+    let content = std::fs::read_to_string(&better_manifest).context(format!(
+        "Failed to read global manifest file: {} at line 166",
+        better_manifest.display()
+    ))?;
+    let version: VersionJSON = serde_json::from_str(&content).context(format!(
+        "Failed to parse global manifest file: {} at line 168",
+        better_manifest.display()
+    ))?;
     if version.version.is_none() {
         bail!("该App没有找到版本信息,manifest.json格式错误")
     }

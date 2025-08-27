@@ -83,7 +83,7 @@ pub fn export_config_to_current_dir(file_name: String) -> anyhow::Result<()> {
         .context("Failed to write to JSON file a line 27")?;
 
     println!("成功导出配置文件到 {}", path.display());
-  
+
     Ok(())
 }
 
@@ -242,8 +242,8 @@ pub fn export_config_to_current_dir_with_config(file_name: String) -> anyhow::Re
     file.write_all(pretty_json.as_bytes())
         .context("Failed to write to JSON file a line 254")?;
 
-     println!("成功导出配置文件到 {}", path.display());
-  
+    println!("成功导出配置文件到 {}", path.display());
+
     Ok(())
 }
 

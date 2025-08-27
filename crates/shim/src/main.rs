@@ -1,10 +1,10 @@
-use std::ffi::{ OsString};
+use std::ffi::OsString;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::os::windows::prelude::*;
 use std::path::PathBuf;
 use std::process::Command;
-use windows::core::{s, BOOL, PCWSTR, PWSTR};
+use windows::core::{BOOL, PCWSTR, PWSTR};
 use windows::Win32::Foundation::*;
 use windows::Win32::Storage::FileSystem::FILE_FLAGS_AND_ATTRIBUTES;
 use windows::Win32::System::Console::*;
@@ -12,13 +12,12 @@ use windows::Win32::System::JobObjects::CreateJobObjectW;
 use windows::Win32::System::JobObjects::*;
 use windows::Win32::System::LibraryLoader::*;
 use windows::Win32::UI::Shell::{
-    PathUnquoteSpacesW, SHGetFileInfoW, ShellExecuteW, SEE_MASK_NOCLOSEPROCESS, SHFILEINFOW,
-    SHGFI_EXETYPE,
+    PathUnquoteSpacesW, SHGetFileInfoW, SEE_MASK_NOCLOSEPROCESS, SHFILEINFOW, SHGFI_EXETYPE,
 };
 
 use windows::Win32::UI::WindowsAndMessaging::SW_SHOW;
 use windows::Win32::{
-    Foundation::{HANDLE },
+    Foundation::HANDLE,
     UI::Shell::{ShellExecuteExW, SHELLEXECUTEINFOW},
 };
 
@@ -94,16 +93,15 @@ fn is_elevation_required(error: &std::io::Error) -> bool {
     }
 }
 
-
-fn  remove_extra_quotes ( str: &str ) -> String {
-  str .trim_matches(|c| c == '\'' || c == '"').to_string()
+fn remove_extra_quotes(str: &str) -> String {
+    str.trim_matches(|c| c == '\'' || c == '"').to_string()
 }
 fn make_process(info: &ShimInfo) -> Option<std::process::Child> {
-    let path = info.path.as_ref()?; 
-   let  path = remove_extra_quotes(path);
-    let args = info.args.as_ref()?.to_string(); 
-   let  args = remove_extra_quotes(&args); 
-    let  args_split = args.split_whitespace().collect::<Vec<_>>().join(" ");
+    let path = info.path.as_ref()?;
+    let path = remove_extra_quotes(path);
+    let args = info.args.as_ref()?.to_string();
+    let args = remove_extra_quotes(&args);
+    let args_split = args.split_whitespace().collect::<Vec<_>>().join(" ");
     let process = Command::new(&path).args(args.split_whitespace()).spawn();
     match process {
         Ok(child) => Some(child),
@@ -221,7 +219,7 @@ fn is_windows_gui_app(exe_path: &str) -> bool {
             PWSTR(wide_path.as_mut_ptr()),
             dw_file_attributes,
             Some(&mut sfi),
-            std::mem::size_of::<SHFILEINFOW>() as u32,
+            size_of::<SHFILEINFOW>() as u32,
             SHGFI_EXETYPE,
         )
     };
@@ -275,19 +273,17 @@ fn main() -> color_eyre::Result<()> {
     }
 }
 
-
-
 #[test]
-fn test_create_process(){ 
-  let path = r#""A:\Scoop\apps\zigmod\current\zigmod.exe""#; 
-  println!("{}", path);
-    let result   =Command::new(path).spawn(); 
-      match result {
+fn test_create_process() {
+    let path = r#""A:\Scoop\apps\zigmod\current\zigmod.exe""#;
+    println!("{}", path);
+    let result = Command::new(path).spawn();
+    match result {
         Ok(child) => {
             println!("Process started successfully. PID: {}", child.id());
         }
         Err(e) => {
             eprintln!("Failed to start process: {}", e);
         }
-      }  
+    }
 }

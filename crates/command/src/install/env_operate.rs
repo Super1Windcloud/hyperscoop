@@ -155,8 +155,8 @@ pub fn add_bin_to_path(
         format!("{user_path}{path}")
     } else {
         format!("{user_path};{path}")
-    }; 
-    
+    };
+
     log::debug!("\n 更新后的用户的 PATH: {}", user_path);
     let script =
         format!(r#"[System.Environment]::SetEnvironmentVariable("PATH","{user_path}", "Machine")"#);

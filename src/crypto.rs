@@ -12,7 +12,7 @@ fn h_t_s(hex: &str) -> Result<String, String> {
     String::from_utf8(bytes).map_err(|e| format!("UTF-8 解码失败: {}", e))
 }
 
-pub fn encrypt() -> anyhow::Result<String > {
+pub fn encrypt() -> anyhow::Result<String> {
     let str = "3166626136396461326633346437623062343263363831323135336436643132";
     let mc = new_magic_crypt!("superwindcloud", 256);
     let str = mc.encrypt_str_to_base64(h_t_s(str).unwrap());
@@ -20,12 +20,12 @@ pub fn encrypt() -> anyhow::Result<String > {
     Ok(str)
 }
 
-pub fn encrypt_ex() -> anyhow::Result<String > {
+pub fn encrypt_ex() -> anyhow::Result<String> {
     let str = "6768705f58776773357858324c5148746945546567636b4a666a633144764759517234364a435738";
-   let mc = new_magic_crypt!("superwindcloud", 256);
-   let str = mc.encrypt_str_to_base64(h_t_s(str).unwrap());
-   println!("{}", str);
-  Ok(str)
+    let mc = new_magic_crypt!("superwindcloud", 256);
+    let str = mc.encrypt_str_to_base64(h_t_s(str).unwrap());
+    println!("{}", str);
+    Ok(str)
 }
 
 pub fn decrypt_gitee() -> anyhow::Result<String> {
@@ -34,18 +34,17 @@ pub fn decrypt_gitee() -> anyhow::Result<String> {
     let str = mc.decrypt_base64_to_string(str).expect("decryption failed");
     Ok(str)
 }
-pub fn decrypt_github () -> anyhow::Result<String> {
+pub fn decrypt_github() -> anyhow::Result<String> {
     let str = "/7n4lBYa4lMhzd3QEnmCbzEaP3QbSpwdf8aDXokE3ItoZ758ZSEtlk8J2etPnSXt";
     let mc = new_magic_crypt!("superwindcloud", 256);
     let str = mc.decrypt_base64_to_string(str).expect("decryption failed");
     Ok(str)
 }
 
-
 mod test_crypto {
     use crate::crypto::*;
     #[test]
     fn test_encrypt() {
-      decrypt_github().unwrap();
+        decrypt_github().unwrap();
     }
 }

@@ -37,7 +37,6 @@ pub fn catch_manifest(global: bool, app_name: String) -> anyhow::Result<()> {
         })
         .collect::<Vec<PathBuf>>();
 
-
     for bucket_path in &manifest_path {
         if Path::new(bucket_path)
             .file_stem()
@@ -49,8 +48,10 @@ pub fn catch_manifest(global: bool, app_name: String) -> anyhow::Result<()> {
             continue;
         }
 
-        let content = fs::read_to_string(bucket_path)
-            .context(format!("Failed to read file {} as line 15", bucket_path.display()))?;
+        let content = fs::read_to_string(bucket_path).context(format!(
+            "Failed to read file {} as line 15",
+            bucket_path.display()
+        ))?;
         let buffer = content.as_bytes();
 
         PrettyPrinter::new()

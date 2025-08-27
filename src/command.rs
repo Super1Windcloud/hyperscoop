@@ -1,4 +1,4 @@
-﻿use crate::check_self_update::auto_check_hp_update;
+use crate::check_self_update::auto_check_hp_update;
 use crate::command_args::alias::AliasArgs;
 use crate::command_args::cat::CatArgs;
 use crate::command_args::checkup::CheckupArgs;
@@ -113,7 +113,8 @@ pub fn add_key_value_to_json(
     let data = std::fs::read_to_string(file_path)
         .context(format!("Failed to read file: {} at line 114", file_path))?;
 
-    let mut json_data: Value = serde_json::from_str(&data).context("Failed to parse JSON data at line 116")?;
+    let mut json_data: Value =
+        serde_json::from_str(&data).context("Failed to parse JSON data at line 116")?;
 
     if let Value::Object(ref mut map) = json_data {
         if map.get(new_key).is_some() {
@@ -129,9 +130,8 @@ pub fn add_key_value_to_json(
     } else {
         bail!("Invalid JSON: Expected an object");
     }
-    std::fs::write(file_path, serde_json::to_string_pretty(&json_data)?).context(
-      format!("Failed to write file: {}", file_path),
-    )?;
+    std::fs::write(file_path, serde_json::to_string_pretty(&json_data)?)
+        .context(format!("Failed to write file: {}", file_path))?;
     Ok(())
 }
 
@@ -181,11 +181,11 @@ pub fn execute_hold_command(hold_args: HoldArgs) -> anyhow::Result<()> {
 }
 
 pub fn unhold_locked_apps(app_name: &str, install_json_file: &str) -> anyhow::Result<()> {
-    let data = std::fs::read_to_string(install_json_file).
-      context(format!("Failed to read file: {}", install_json_file))?;
+    let data = std::fs::read_to_string(install_json_file)
+        .context(format!("Failed to read file: {}", install_json_file))?;
 
-    let mut json_data: Value = serde_json::from_str(&data)
-      .context("Failed to parse JSON data in unhold_locked_apps")?;
+    let mut json_data: Value =
+        serde_json::from_str(&data).context("Failed to parse JSON data in unhold_locked_apps")?;
 
     if let Value::Object(ref mut map) = json_data {
         if map.get("hold").is_none() {
@@ -202,7 +202,7 @@ pub fn unhold_locked_apps(app_name: &str, install_json_file: &str) -> anyhow::Re
         bail!("Invalid JSON: Expected an object");
     }
     std::fs::write(install_json_file, serde_json::to_string_pretty(&json_data)?)
-      .context(format!("Failed to write file: {}", install_json_file))?;
+        .context(format!("Failed to write file: {}", install_json_file))?;
     Ok(())
 }
 

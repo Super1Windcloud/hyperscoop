@@ -47,9 +47,13 @@ pub struct UpdateArgs {
     )]
     pub force_update_override: bool,
 
-    #[arg(short='S' , long, help = "启用串行更新,默认并行更新", required = false)]
-    pub  serial_update: bool,
-
+    #[arg(
+        short = 'S',
+        long,
+        help = "启用串行更新,默认并行更新",
+        required = false
+    )]
+    pub serial_update: bool,
 
     #[arg(short = 'I', long, help = "交互式安装,默认不开启\n", required = false)]
     pub interactive: bool,

@@ -1,48 +1,51 @@
-﻿
 use clap::{Args, Subcommand};
 
 #[derive(Debug, Clone, Args)]
-#[command( about  = "设置配置选项, config set <name> <value>")]
+#[command(about = "设置配置选项, config set <name> <value>")]
 pub struct SetArgs {
-  pub name: String,
-  pub value: String,
+    pub name: String,
+    pub value: String,
 }
 
 #[derive(Args, Debug)]
-#[command( about  = "获取指定配置, config get <name>")]
+#[command(about = "获取指定配置, config get <name>")]
 pub struct GetArgs {
-  pub name: String,
+    pub name: String,
 }
 #[derive(Args, Debug)]
-#[command( about  = "显示所有配置, config show")]
+#[command(about = "显示所有配置, config show")]
 
 pub struct ShowArgs {}
 
 #[derive(Args, Debug)]
-#[command( about  = "删除指定配置, config rm <name> ")]
+#[command(about = "删除指定配置, config rm <name> ")]
 
 pub struct RmArgs {
-  pub name: String,
+    pub name: String,
 }
-#[derive(Debug , Subcommand )]
+#[derive(Debug, Subcommand)]
 pub(crate) enum ConfigSubcommand {
-  Show( ShowArgs),
-  Set(SetArgs),
-  Get(GetArgs),
-  Rm (RmArgs),
+    Show(ShowArgs),
+    Set(SetArgs),
+    Get(GetArgs),
+    Rm(RmArgs),
 }
 #[derive(Args, Debug)]
-#[clap(author, version, about="🐼\t\t获取或设置配置文件", arg_required_else_help = true) ]
-pub struct ConfigArgs  {
-  #[clap(subcommand)]
-  pub(crate) command: Option<ConfigSubcommand>,
+#[clap(
+    author,
+    version,
+    about = "🐼\t\t获取或设置配置文件",
+    arg_required_else_help = true
+)]
+pub struct ConfigArgs {
+    #[clap(subcommand)]
+    pub(crate) command: Option<ConfigSubcommand>,
 
-  #[clap(short, long ,help ="显示配置帮助信息")]
-  pub config_help  : bool,
-
+    #[clap(short, long, help = "显示配置帮助信息")]
+    pub config_help: bool,
 }
 
-pub const STR : &str =  r#"
+pub const STR: &str = r#"
 You Can  Set $SCOOP  to change the default directory for Scoop. 
 The scoop configuration file is saved at ~/.config/scoop/config.json.
 
@@ -88,4 +91,4 @@ global_path: $Env:ProgramData\\scoop
 cache_path:
       For downloads, defaults to 'cache' folder under Scoop root directory.
  ate limits and download from private repositories.
-"# ;
+"#;

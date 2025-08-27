@@ -1,4 +1,4 @@
-﻿use crate::config::get_config_value_no_print;
+use crate::config::get_config_value_no_print;
 use crate::install::InstallOptions;
 use anyhow::Context;
 use rayon::prelude::*;
@@ -578,9 +578,9 @@ mod test_path {
     #[test]
     fn get_current_bin_path() {
         let app_name = "zigmod";
-        let exe_name = "zig/zig.exe"; 
+        let exe_name = "zig/zig.exe";
         let vec = vec![InstallOptions::Global];
-        let path = get_app_current_bin_path(app_name, &exe_name , &vec );
+        let path = get_app_current_bin_path(app_name, &exe_name, &vec);
         if Path::new(&path).exists() {
             println!("{}", path);
         }

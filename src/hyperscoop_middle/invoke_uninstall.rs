@@ -32,7 +32,6 @@ pub fn execute_uninstall_command(args: UninstallArgs) -> Result<(), anyhow::Erro
                     );
                 }
                 Err(e) => {
-                 
                     bail!("Failed to purge app, {}", e)
                 }
             }
@@ -48,7 +47,7 @@ pub fn execute_uninstall_command(args: UninstallArgs) -> Result<(), anyhow::Erro
                         "was already uninstalled successfully!".dark_green().bold()
                     );
                 }
-                Err(_ ) => {
+                Err(_) => {
                     let app_dir = if args.global {
                         get_app_dir_global(&app_name)
                     } else {

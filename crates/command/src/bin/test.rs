@@ -1,13 +1,12 @@
 #[allow(dead_code)]
 fn main() {
-  use human_panic::setup_panic;
+    use human_panic::setup_panic;
 
-  fn main() {
-    setup_panic!();
+    fn main() {
+        setup_panic!();
 
-    println!("A normal log message");
-    panic!("OMG EVERYTHING IS ON FIRE!!!")
-  }  
-  main();
+        println!("A normal log message");
+        panic!("OMG EVERYTHING IS ON FIRE!!!")
+    }
+    main();
 }
-

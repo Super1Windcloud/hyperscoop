@@ -8,7 +8,6 @@ pub fn execute_cat_command(cat: CatArgs) -> Result<(), anyhow::Error> {
     }
     let app_name = cat.app_name.clone();
 
-
     log::info!("info : {:?}", &app_name);
     catch_manifest(cat.global, app_name)?;
     Ok(())

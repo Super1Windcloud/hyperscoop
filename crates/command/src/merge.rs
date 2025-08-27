@@ -1,4 +1,4 @@
-﻿use crate::buckets::{get_buckets_name, get_buckets_path};
+use crate::buckets::{get_buckets_name, get_buckets_path};
 use crate::manifest::search_manifest::SearchManifest;
 use crate::utils::request::get_git_repo_remote_url;
 use crate::utils::utility::{remove_bom_and_control_chars_from_utf8_file, LARGE_COMMUNITY_BUCKET};
@@ -15,7 +15,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
-#[derive(Debug, Eq, PartialEq, Hash, Clone)]  
+#[derive(Debug, Eq, PartialEq, Hash, Clone)]
 pub struct Merge {
     pub app_name: String,
     pub app_version: String,
@@ -105,7 +105,7 @@ fn load_bucket_info(
     );
     let entries = path
         .read_dir()
-        .context( "read bucket dir error at line 109")?
+        .context("read bucket dir error at line 109")?
         .par_bridge()
         .collect::<Result<Vec<_>, _>>()?;
     let result = entries
@@ -316,8 +316,8 @@ fn merge_same_latest_version(
         .with_prefix(format!("🐎 {:<10}", "ProgressBar"))
         .with_message("Remove Redundant Manifests")
         .with_finish(ProgressFinish::WithMessage("Done 🎉".into()));
-   pb.set_draw_target(ProgressDrawTarget::stdout());
-  
+    pb.set_draw_target(ProgressDrawTarget::stdout());
+
     // 并行处理文件
     let _ = same_latest_version_manifests
         .into_par_iter()
@@ -476,7 +476,10 @@ fn rm_err_manifest_unit(
     let bucket_path = Path::new(bucket_path);
     let manifests = bucket_path
         .read_dir()
-        .context( format!("read bucket dir error at line 479 {}", bucket_path.display()))?
+        .context(format!(
+            "read bucket dir error at line 479 {}",
+            bucket_path.display()
+        ))?
         .par_bridge()
         .filter_map(|path| Some(path.ok()))
         .collect::<Vec<_>>();
@@ -618,8 +621,8 @@ fn finebars(file_finish_count: u64, total_file_count: u64) {
                     .unwrap()
                     .progress_chars(s.1),
             );
-           pb.set_draw_target(ProgressDrawTarget::stdout());
-            
+            pb.set_draw_target(ProgressDrawTarget::stdout());
+
             pb.set_prefix(s.0);
             let wait = Duration::from_millis(thread_rng().gen_range(10..20));
             thread::spawn(move || {

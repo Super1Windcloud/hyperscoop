@@ -152,11 +152,10 @@ pub fn invoke_hook_script(
         // 输出提示信息
         print!("Running {:?} script...", hook_type);
         log::info!("{}", script);
-        io::stdout().flush()?; 
-      
+        io::stdout().flush()?;
 
-        let output = Command::new("powershell") 
-           .arg("-NoProfile")
+        let output = Command::new("powershell")
+            .arg("-NoProfile")
             .arg("-Command")
             .arg(cfg_obj)
             .arg(manifest_obj)

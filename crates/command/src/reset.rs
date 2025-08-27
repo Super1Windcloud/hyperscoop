@@ -190,7 +190,7 @@ mod test_reset {
         use std::path::Path;
         let _current1 = Path::new(r"A:\Scoop\apps\gping\current");
         let current2 = Path::new(r"A:\Scoop\apps\gh\current");
-  
+
         if current2.exists() {
             std::fs::remove_dir_all(current2).unwrap()
         }

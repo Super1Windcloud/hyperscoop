@@ -5,6 +5,6 @@ use clap::Args;
 #[command(arg_required_else_help = false, subcommand_negates_reqs = true)]
 #[command(no_binary_name = true)]
 pub struct StatusArgs {
-  #[arg(from_global )]
-  pub  global : bool,
+    #[arg(from_global)]
+    pub global: bool,
 }

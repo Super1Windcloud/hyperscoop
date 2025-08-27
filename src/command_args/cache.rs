@@ -1,7 +1,5 @@
-﻿use clap::{Args, Subcommand};
+use clap::{Args, Subcommand};
 use command_util_lib::utils::utility::clap_args_to_lowercase;
-
-
 
 #[derive(Clone, Subcommand, Debug)]
 pub enum CacheSubcommand {

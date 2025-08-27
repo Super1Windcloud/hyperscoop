@@ -2,13 +2,13 @@ use anyhow::{bail, Context};
 use clap::ArgAction;
 use clap::{Args, Subcommand};
 use command_util_lib::init_env::{get_shims_root_dir, get_shims_root_dir_global};
+use command_util_lib::utils::system::{is_admin, request_admin};
 use command_util_lib::utils::utility::clap_args_to_lowercase;
 use crossterm::style::Stylize;
 use rayon::prelude::*;
 use std::cmp::max;
 use std::env;
 use std::path::Path;
-use command_util_lib::utils::system::{is_admin, request_admin};
 
 #[derive(Debug, Clone, Args)]
 #[clap(author, version, about="🎉\t\t创建Window终端命令的别名",  long_about = None)]
@@ -71,11 +71,14 @@ pub struct ListArgs {}
 
 pub fn execute_alias_command(args: AliasArgs) -> anyhow::Result<()> {
     if args.global && !is_admin()? {
-      let args =env::args().skip(1). collect::<Vec<String>>();
-      let  args_str= args.join(" ");
-      log::warn!("Global command arguments: {}", args_str.clone().dark_yellow());
-      request_admin( args_str.as_str())?;
-      return Ok(());
+        let args = env::args().skip(1).collect::<Vec<String>>();
+        let args_str = args.join(" ");
+        log::warn!(
+            "Global command arguments: {}",
+            args_str.clone().dark_yellow()
+        );
+        request_admin(args_str.as_str())?;
+        return Ok(());
     }
 
     let shim_root_dir = if args.global {
@@ -110,7 +113,7 @@ fn rm_alias(alias_name: Option<String>, shim_root_dir: &str, all: bool) -> anyho
     }
     if all {
         let dirs = std::fs::read_dir(shim_root_dir)
-          .context("Failed to read shim root directory at line 104")?;
+            .context("Failed to read shim root directory at line 104")?;
         for dir in dirs {
             let dir = dir.context("Failed to read directory at line 106")?;
             let child_type = dir.file_type()?;
@@ -144,7 +147,7 @@ fn rm_alias(alias_name: Option<String>, shim_root_dir: &str, all: bool) -> anyho
 
 fn list_alias(shim_root_dir: &str) -> anyhow::Result<()> {
     let dirs = std::fs::read_dir(shim_root_dir)
-      .context("Failed to read shim root directory at line 138")?;
+        .context("Failed to read shim root directory at line 138")?;
 
     let result = dirs
         .par_bridge()

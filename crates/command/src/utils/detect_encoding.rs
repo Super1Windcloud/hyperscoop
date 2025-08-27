@@ -1,4 +1,4 @@
-﻿use anyhow::{bail, Context};
+use anyhow::{bail, Context};
 use crossterm::style::Stylize;
 use encoding::all::{GBK, UTF_16BE, UTF_16LE, UTF_8};
 use encoding::label::encoding_from_whatwg_label;
@@ -188,8 +188,9 @@ pub fn convert_gbk_to_utf8(file_path: &Path) -> Result<(), anyhow::Error> {
     let mut reader = BufReader::new(file);
     let mut content = Vec::new();
     // read_to_end() 方法读取整个文件的内容到缓冲区字节数组中
-    reader.read_to_end(&mut content)
-      .context("Failed to read file content to buffer at line 192")?;
+    reader
+        .read_to_end(&mut content)
+        .context("Failed to read file content to buffer at line 192")?;
     let content = GBK.decode(&content, DecoderTrap::Strict);
     let utf8_content = &content.expect("转换失败");
     // print!("{}", utf8_content);
@@ -200,8 +201,9 @@ pub fn convert_gbk_to_utf8(file_path: &Path) -> Result<(), anyhow::Error> {
         .truncate(true) // 清空文件内容
         .open(file_path)
         .context("Could not open file at line 202")?;
-    output_file.write_all(utf8_content.as_bytes())
-      .context("Failed to write file content from buffer at line 204")?;
+    output_file
+        .write_all(utf8_content.as_bytes())
+        .context("Failed to write file content from buffer at line 204")?;
     println!("GBK file converted to UTF-8 successfully.");
     Ok(())
 }
@@ -212,8 +214,7 @@ pub fn convert_utf8bom_to_utf8(file_path: &Path) -> Result<(), anyhow::Error> {
         return Err(anyhow::anyhow!("不是 UTF-8-BOM编码文件"));
     }
     // 读取原始文件的内容
-    let file = File::open(file_path)
-      .context("Failed to open utf8bom file at line 216")?;
+    let file = File::open(file_path).context("Failed to open utf8bom file at line 216")?;
     let mut reader = BufReader::new(file);
     let mut content = Vec::new();
     // read_to_end() 方法读取整个文件的内容到缓冲区字节数组中

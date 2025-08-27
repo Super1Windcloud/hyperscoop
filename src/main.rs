@@ -66,7 +66,7 @@ struct Cli {
     )]
     pub debug: bool,
     #[arg(
-        short='E' ,
+        short = 'E',
         long,
         required = false,
         global = true,
@@ -98,7 +98,9 @@ async fn main() -> anyhow::Result<()> {
     );
     let cli = Cli::parse();
     init_color_output(cli.no_color);
-    unsafe { init_logger(&cli); }
+    unsafe {
+        init_logger(&cli);
+    }
     color_eyre::install().unwrap();
     // if cli.command.is_some() && cli.global {
     //     invoke_admin_process()?;

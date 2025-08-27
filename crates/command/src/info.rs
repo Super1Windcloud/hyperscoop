@@ -19,7 +19,6 @@ macro_rules! format_key_value {
     };
 }
 
-
 pub fn display_app_info(app_name: String, bucket_paths: Vec<String>) -> anyhow::Result<()> {
     validate_app_name(&app_name)?;
     if let Some((bucket, name)) = app_name.split_once('/') {
@@ -75,7 +74,7 @@ pub fn display_app_info(app_name: String, bucket_paths: Vec<String>) -> anyhow::
     Ok(())
 }
 
-pub  fn validate_app_name(app_name: &str) -> anyhow::Result<()> {
+pub fn validate_app_name(app_name: &str) -> anyhow::Result<()> {
     let re = Regex::new(r"^[a-zA-Z0-9]+([_\-/][a-zA-Z0-9]*)*$")?;
     if !re.is_match(app_name) {
         bail!("Invalid app name: {}", app_name);
@@ -202,10 +201,14 @@ fn process_manifest_file(
     bucket_root_dir: &str,
     app_name: &str,
 ) -> anyhow::Result<Vec<(String, String)>> {
-    let content = fs::read_to_string(file_path)
-      .context(format!("Failed to read file {} at line 207", file_path.display() ))?;
-    let serde_obj: Value = serde_json::from_str(&content)
-      .context(format!("Failed to parse file {} at line 209", file_path.display() ))?;
+    let content = fs::read_to_string(file_path).context(format!(
+        "Failed to read file {} at line 207",
+        file_path.display()
+    ))?;
+    let serde_obj: Value = serde_json::from_str(&content).context(format!(
+        "Failed to parse file {} at line 209",
+        file_path.display()
+    ))?;
 
     let description = serde_obj["description"].as_str().unwrap_or_default();
     let version = serde_obj["version"].as_str().unwrap_or_default();
@@ -461,7 +464,7 @@ fn print_pretty_info(info: DashSet<Vec<(String, String)>>) {
         })
         .max()
         .unwrap_or(0);
-    let   i = 0;
+    let i = 0;
     let terminal_max_width = terminal::size()
         .map(|(width, _)| width as usize)
         .unwrap_or(80);
@@ -469,8 +472,7 @@ fn print_pretty_info(info: DashSet<Vec<(String, String)>>) {
     for vec in info {
         for (key, value) in vec {
             if !value.is_empty() {
-
-                match key.as_str().trim()  {
+                match key.as_str().trim() {
                     "Notes" => {
                         let lines: Vec<&str> = value.split('\n').collect(); /* 包含的\n 会产生空字符串 */
                         let lines = lines.iter().map(|line| line.trim()).collect::<Vec<&str>>();
@@ -534,16 +536,15 @@ fn print_pretty_info(info: DashSet<Vec<(String, String)>>) {
                         }
                         continue;
                     }
-                    "Binary" =>
-                      {format_key_value!(&key, &value, max_key_length, terminal_max_width);
-
-                      },
+                    "Binary" => {
+                        format_key_value!(&key, &value, max_key_length, terminal_max_width);
+                    }
                     "Shortcuts" => {
                         format_key_value!(&key, &value, max_key_length, terminal_max_width)
                     }
 
                     "Description" => {
-                         format_key_value!(&key, &value, max_key_length, terminal_max_width)
+                        format_key_value!(&key, &value, max_key_length, terminal_max_width)
                     }
                     _ => println!(
                         "{}\t{:<width2$}",
@@ -562,21 +563,17 @@ fn print_pretty_info(info: DashSet<Vec<(String, String)>>) {
     }
 }
 
-
-
-
 fn format_and_print(
     key: &str,
     value: &str,
     max_key_length: usize,
     terminal_max_width: usize,
-) -> anyhow::Result<() > {
-
+) -> anyhow::Result<()> {
     let lines: Vec<&str> = value.split('\n').collect();
     let lines: Vec<&str> = lines.iter().map(|line| line.trim()).collect();
 
     if lines.is_empty() {
-       bail!("Empty input value".to_string());
+        bail!("Empty input value".to_string());
     }
 
     let lines_width: Vec<usize> = lines.iter().map(|line| line.len()).collect();
@@ -642,10 +639,14 @@ fn format_and_print(
 }
 
 fn get_file_modified_time(file_path: &str) -> anyhow::Result<String> {
-    let metadata = fs::metadata(file_path)
-      .context(format!("Failed to get metadata of file {} at line 647", file_path))?;
-    let time = metadata.modified()
-      .context(format!("Failed to get modified time of file {} at line 649", file_path))?;
+    let metadata = fs::metadata(file_path).context(format!(
+        "Failed to get metadata of file {} at line 647",
+        file_path
+    ))?;
+    let time = metadata.modified().context(format!(
+        "Failed to get modified time of file {} at line 649",
+        file_path
+    ))?;
     let datetime: DateTime<Local> = time.into();
     Ok(datetime.format("%Y-%m-%d %H:%M:%S").to_string())
 }
