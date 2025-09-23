@@ -95,13 +95,13 @@ resolver = "2"
 [workspace.package]
 version = "4.0.8"
 edition = "2021"
-publish = false  #
+publish = true
 authors = ["superwindcloud<<1178933440@qq.com>"]
 description = "一个更快更强更精美的Windows包管理器 "
 license = "MIT OR Apache-2.0"
-repository = "https://gitee.com/superwindcloud/hyperscoop"
+repository = "https://github.com/super1windcloud/hyperscoop"
 readme = "README.md"
-homepage = "https://gitee.com/superwindcloud"
+homepage = "https://github.com/super1windcloud"
 rust-version = "1.82.0"
 categories = ["command-line-utilities", "development-tools", "command-line-interface"]
 keywords = ["scoop", "windows", "package-manager", "rust", "powerful-tool"]

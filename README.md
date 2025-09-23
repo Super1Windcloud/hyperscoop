@@ -31,10 +31,20 @@
 ```powershell
 iwr   -useb  https://raw.githubusercontent.com/Super1Windcloud/hyperscoop/refs/heads/main/install.ps1    | iex
 ```
+---
+### 3. By Cargo Binstall 
+```bash
+cargo  install  binstall
+cargo  binstall  hp
+```
 
 ---
+### 4. By Cargo
+`cargo  install  hp`
 
-### 3. 下载[exe](https://github.com/Super1Windcloud/hyperscoop/releases)使用,并添加到 `$env:Path`
+
+---
+### 5. 下载[exe](https://github.com/Super1Windcloud/hyperscoop/releases)使用,并添加到 `$env:Path`
 
 ## 使用前提
 
