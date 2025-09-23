@@ -35,12 +35,12 @@ iwr   -useb  https://raw.githubusercontent.com/Super1Windcloud/hyperscoop/refs/h
 ### 3. By Cargo Binstall 
 ```bash
 cargo  install  binstall
-cargo  binstall  hp
+cargo  binstall  hp2
 ```
 
 ---
 ### 4. By Cargo
-`cargo  install  hp`
+`cargo  install  hp2`
 
 
 ---
