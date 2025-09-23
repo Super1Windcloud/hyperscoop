@@ -23,6 +23,10 @@ fn get_github_token_path() -> String {
 }
 
 fn main() {
+    if !cfg!(target_os = "windows") {
+        panic!("This crate can only be built on Windows.");
+    }
+
     let lang = env::var("LANG")
         .or(env::var("LC_ALL"))
         .or(env::var("LC_CTYPE"))
