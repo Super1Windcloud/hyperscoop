@@ -135,12 +135,15 @@ pub async fn update_hp(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
             println!(
                 "{}",
                 format!(
-                    "{} {ver}",
-                    tr(
-                        "Hp latest version ('{ver}') installed successfully! ❤️‍🔥💝🐉🍾🎉",
-                        "Hp 最新版本 ('{ver}') 安装成功！❤️‍🔥💝🐉🍾🎉"
-                    ),
-                    ver = version
+                    "{}",
+                    format!(
+                        "{} {}",
+                        tr(
+                            "Hp latest version ('{ver}') installed successfully! ❤️‍🔥💝🐉🍾🎉",
+                            "Hp 最新版本 ('{ver}') 安装成功！❤️‍🔥💝🐉🍾🎉"
+                        ),
+                        ver = version
+                    )
                 )
                 .dark_green()
                 .bold()
@@ -174,7 +177,7 @@ pub async fn update_hp(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
             "{}",
             format!(
                 "{} {ver}",
-                tr("hp '{ver}' is up to date", "hp '{ver}' 已是最新版本"),
+                tr("hp is up to date for", "hp 已是最新版本"),
                 ver = old_version
             )
             .dark_green()
@@ -204,12 +207,15 @@ pub async fn update_hp(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
     println!(
         "{}",
         format!(
-            "{} {ver}",
-            tr(
-                "Hp latest version ('{ver}') installed successfully! ❤️‍🔥💝🐉🍾🎉",
-                "Hp 最新版本 ('{ver}') 安装成功！❤️‍🔥💝🐉🍾🎉"
+            "{}",
+            format!(
+                "{} {}",
+                tr(
+                    "Hp latest version ('{ver}') installed successfully! ❤️‍🔥💝🐉🍾🎉",
+                    "Hp 最新版本 ('{ver}') 安装成功！❤️‍🔥💝🐉🍾🎉"
+                ),
+                ver = version
             ),
-            ver = version
         )
         .dark_green()
         .bold()
