@@ -123,7 +123,7 @@ and add it to your `$env:Path`.
 > “A gentleman should be flexible like wood and goose, adapting like dragons and snakes.”
 
 <p align="center">
-  <img src="./img/sky2.jpg" width="700" alt="Sky illustration">
+  <img src="./img/canvas.png" width="700" alt="Sky illustration">
 </p>
 
 ---
@@ -132,7 +132,6 @@ and add it to your `$env:Path`.
 
 - ⭐ Star this repo if you like it  
 - 🧩 Submit PRs or issues on [GitHub](https://github.com/Super1Windcloud/hyperscoop/issues)  
-- 📢 Follow for updates on [Gitee](https://gitee.com/SuperWindcloud/hyperscoop_bucket)
 
 ---
 
