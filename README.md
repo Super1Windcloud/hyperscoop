@@ -1,6 +1,6 @@
 <!-- HYPERSCOOP README.md -->
 <p align="center">
-  <img src="https://i.postimg.cc/HVXTGZq6/mmexport1677398873855.jpg" alt="HYPERSCOOP Logo" width="220"/>
+  <img src="./img/tomorrow.jpg" alt="HYPERSCOOP Logo"  height="1312"/>
 </p>
 
 <h1 align="center">✨ HYPERSCOOP (hp)</h1>
@@ -139,3 +139,5 @@ and add it to your `$env:Path`.
 <p align="center">
   <img src="https://capsule-render.vercel.app/api?type=waving&color=0:ff99cc,100:66ccff&height=120&section=footer&text=Made%20with%20💜%20in%20Rust&fontSize=20&fontColor=ffffff&animation=twinkling" />
 </p>
+
+
