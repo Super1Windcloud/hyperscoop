@@ -7,7 +7,7 @@ import base64
 import argparse
 import random
 import string
-
+from publish import create_new_release
 
 def get_version_from_cargo():
     version_toml = r"A:\Rust_Project\hyperscoop\Cargo.toml"
@@ -172,7 +172,7 @@ def main():
     if args.only_upload_attach_files:
         update_release()
         return
-    create_new_release(access_token)
+    create_new_release()
 
 
 #   upload_hp_to_release(access_token)
