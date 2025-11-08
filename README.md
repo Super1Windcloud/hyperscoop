@@ -1,6 +1,6 @@
 <a href='https://postimg.cc/HVXTGZq6' target='_blank'><img src='https://i.postimg.cc/HVXTGZq6/mmexport1677398873855.jpg' border='0' alt='mmexport1677398873855'/></a>
 > [!IMPORTANT]
-> ## Latest Release Please go to [Github](https://github.com/Super1Windcloud/hyperscoop/releases), [English Readme](./README.en.md)
+> ## Latest Release Please go to [Github](https://github.com/Super1Windcloud/hyperscoop/releases), [Chinese  Readme](./README.ch.md)
 
 > [!IMPORTANT]
 > ## Before running, please close domestic antivirus software, various computer built-in guardians (except Kaspersky)
@@ -64,7 +64,7 @@ cargo  binstall  hp2
 
 ## CLI Features
 ---
-![img](./img/cmd1.png)
+![img](./img/en_cli.png)
 <!-- ![cmd](https://s1.imagehub.cc/images/2025/05/21/6f39fd471bad23c23d610cdb2daab6a4.png) -->
 ---
 
