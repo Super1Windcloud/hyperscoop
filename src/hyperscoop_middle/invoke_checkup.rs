@@ -1,3 +1,4 @@
+use crate::i18n::tr;
 use anyhow::Context;
 use color_eyre::owo_colors::OwoColorize;
 use command_util_lib::init_env::{init_scoop_global, init_user_scoop};
@@ -27,6 +28,10 @@ struct CheckupResult {
     passed: bool,
     message: String,
     fix_hint: Option<String>,
+}
+
+fn localized(en: &str, zh: &str) -> String {
+    tr(en, zh).to_string()
 }
 
 pub async fn execute_checkup_command(global: bool) -> anyhow::Result<()> {
@@ -115,19 +120,40 @@ pub async fn execute_checkup_command(global: bool) -> anyhow::Result<()> {
     if total_issues > 0 {
         println!(
             "{}",
-            format!("Found {} potential issues.", total_issues).yellow()
+            format!(
+                tr(
+                    "Found {count} potential issues.",
+                    "发现 {count} 个潜在问题。"
+                ),
+                count = total_issues
+            )
+            .yellow()
         );
     } else if defender_issues > 0 {
         println!(
             "{}",
-            format!("Found {} performance issues.", defender_issues).blue()
+            format!(
+                tr(
+                    "Found {count} performance issues.",
+                    "发现 {count} 个性能问题。"
+                ),
+                count = defender_issues
+            )
+            .blue()
         );
         println!(
             "{}",
-            "Security is more important than performance, in most cases.".yellow()
+            tr(
+                "Security is more important than performance in most cases.",
+                "大多数情况下，安全性比性能更重要。"
+            )
+            .yellow()
         );
     } else {
-        println!("{}", "No problems identified!".green());
+        println!(
+            "{}",
+            tr("No problems identified!", "未发现任何问题。").green()
+        );
     }
 
     Ok(())
@@ -155,13 +181,16 @@ fn check_main_bucket(global: bool) -> anyhow::Result<CheckupResult> {
     if !Path::new(&main_bucket_path).exists() {
         Ok(CheckupResult {
             passed: false,
-            message: "Main bucket is not added".to_string(),
-            fix_hint: Some("Run: hp bucket add main".to_string()),
+            message: localized("Main bucket is not added", "尚未添加 main 桶"),
+            fix_hint: Some(localized(
+                "Run: hp bucket add main",
+                "运行: hp bucket add main",
+            )),
         })
     } else {
         Ok(CheckupResult {
             passed: true,
-            message: "Main bucket is installed".to_string(),
+            message: localized("Main bucket is installed", "Main 桶已安装"),
             fix_hint: None,
         })
     }
@@ -187,8 +216,10 @@ fn check_long_paths() -> anyhow::Result<CheckupResult> {
     {
         return Ok(CheckupResult {
             passed: false,
-            message: "This version of Windows does not support configuration of LongPaths"
-                .to_string(),
+            message: localized(
+                "This version of Windows does not support configuring LongPaths.",
+                "当前 Windows 版本不支持配置 LongPaths。",
+            ),
             fix_hint: None,
         });
     }
@@ -198,16 +229,20 @@ fn check_long_paths() -> anyhow::Result<CheckupResult> {
 
     if long_paths_enabled == 0 {
         Ok(CheckupResult {
-      passed: false,
-      message: "LongPaths support is not enabled".to_string(),
-      fix_hint: Some(
-        "Run: Set-ItemProperty 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\FileSystem' -Name 'LongPathsEnabled' -Value 1".to_string(),
-      ),
-    })
+            passed: false,
+            message: localized(
+                "LongPaths support is not enabled",
+                "LongPaths 支持尚未启用"
+            ),
+            fix_hint: Some(localized(
+                "Run: Set-ItemProperty 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\FileSystem' -Name 'LongPathsEnabled' -Value 1",
+                "运行: Set-ItemProperty 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\FileSystem' -Name 'LongPathsEnabled' -Value 1"
+            )),
+        })
     } else {
         Ok(CheckupResult {
             passed: true,
-            message: "LongPaths support is enabled".to_string(),
+            message: localized("LongPaths support is enabled", "LongPaths 支持已启用"),
             fix_hint: None,
         })
     }
@@ -224,16 +259,22 @@ fn check_developer_mode() -> anyhow::Result<CheckupResult> {
     if dev_mode_enabled == 0 {
         Ok(CheckupResult {
             passed: false,
-            message: "Windows Developer Mode is not enabled".to_string(),
-            fix_hint: Some(
-                "Enable Developer Mode in Settings > Update & Security > For developers"
-                    .to_string(),
+            message: localized(
+                "Windows Developer Mode is not enabled",
+                "Windows 开发者模式未启用",
             ),
+            fix_hint: Some(localized(
+                "Enable Developer Mode in Settings > Update & Security > For developers",
+                "在 设置 > 更新和安全 > 开发人员 中启用开发者模式",
+            )),
         })
     } else {
         Ok(CheckupResult {
             passed: true,
-            message: "Windows Developer Mode is enabled".to_string(),
+            message: localized(
+                "Windows Developer Mode is enabled",
+                "Windows 开发者模式已启用",
+            ),
             fix_hint: None,
         })
     }
@@ -243,14 +284,16 @@ fn check_7zip() -> anyhow::Result<CheckupResult> {
     if which("7z").is_err() {
         Ok(CheckupResult {
             passed: false,
-            message: "'7-Zip' is not installed! It's required for unpacking most programs"
-                .to_string(),
-            fix_hint: Some("Run: hp install 7zip".to_string()),
+            message: localized(
+                "'7-Zip' is not installed. It's required for unpacking most programs.",
+                "'7-Zip' 未安装，很多程序的解压都需要它。",
+            ),
+            fix_hint: Some(localized("Run: hp install 7zip", "运行: hp install 7zip")),
         })
     } else {
         Ok(CheckupResult {
             passed: true,
-            message: "7-Zip is installed".to_string(),
+            message: localized("7-Zip is installed", "7-Zip 已安装"),
             fix_hint: None,
         })
     }
@@ -260,14 +303,16 @@ fn check_aria2c_path() -> anyhow::Result<CheckupResult> {
     if which("aria2c").is_err() {
         Ok(CheckupResult {
             passed: false,
-            message: "'aria2c' is not installed! It's required for downloading some programs"
-                .to_string(),
-            fix_hint: Some("Run: hp install aria2".to_string()),
+            message: localized(
+                "'aria2c' is not installed. It's required for downloading some programs.",
+                "'aria2c' 未安装，部分程序下载需要它。",
+            ),
+            fix_hint: Some(localized("Run: hp install aria2", "运行: hp install aria2")),
         })
     } else {
         Ok(CheckupResult {
             passed: true,
-            message: "aria2c is installed".to_string(),
+            message: localized("aria2c is installed", "aria2c 已安装"),
             fix_hint: None,
         })
     }
@@ -277,14 +322,19 @@ fn check_lessmsi() -> anyhow::Result<CheckupResult> {
     if which("lessmsi").is_err() {
         Ok(CheckupResult {
             passed: false,
-            message: "'lessmsi' is not installed! It's required for unpacking some programs"
-                .to_string(),
-            fix_hint: Some("Run: hp install lessmsi".to_string()),
+            message: localized(
+                "'lessmsi' is not installed. It's required for unpacking some programs.",
+                "'lessmsi' 未安装，部分程序解压需要它。",
+            ),
+            fix_hint: Some(localized(
+                "Run: hp install lessmsi",
+                "运行: hp install lessmsi",
+            )),
         })
     } else {
         Ok(CheckupResult {
             passed: true,
-            message: "lessmsi is installed".to_string(),
+            message: localized("lessmsi is installed", "lessmsi 已安装"),
             fix_hint: None,
         })
     }
@@ -294,14 +344,19 @@ fn check_innounp() -> anyhow::Result<CheckupResult> {
     if which("innounp").is_err() {
         Ok(CheckupResult {
             passed: false,
-            message: "'innounp' is not installed! It's required for unpacking some programs"
-                .to_string(),
-            fix_hint: Some("Run: hp install innounp".to_string()),
+            message: localized(
+                "'innounp' is not installed. It's required for unpacking some programs.",
+                "'innounp' 未安装，部分程序解压需要它。",
+            ),
+            fix_hint: Some(localized(
+                "Run: hp install innounp",
+                "运行: hp install innounp",
+            )),
         })
     } else {
         Ok(CheckupResult {
             passed: true,
-            message: "innounp is installed".to_string(),
+            message: localized("innounp is installed", "innounp 已安装"),
             fix_hint: None,
         })
     }
@@ -318,14 +373,17 @@ async fn check_github() -> anyhow::Result<CheckupResult> {
     if response.status().is_success() {
         Ok(CheckupResult {
             passed: true,
-            message: "GitHub is accessible".to_string(),
+            message: localized("GitHub is accessible", "GitHub 可正常访问"),
             fix_hint: None,
         })
     } else {
         Ok(CheckupResult {
             passed: false,
-            message: "GitHub is not accessible".to_string(),
-            fix_hint: Some("Check your internet connection".to_string()),
+            message: localized("GitHub is not accessible", "GitHub 无法访问"),
+            fix_hint: Some(localized(
+                "Check your internet connection",
+                "请检查网络连接",
+            )),
         })
     }
 }
@@ -334,16 +392,19 @@ fn check_git() -> anyhow::Result<CheckupResult> {
     if which("git").is_err() {
         Ok(CheckupResult {
             passed: false,
-            message: "'git' is not installed! It's required for installing some programs"
-                .to_string(),
-            fix_hint: Some(
-                "Download and install git from https://git-scm.com/download/win".to_string(),
+            message: localized(
+                "'git' is not installed. It's required for installing some programs.",
+                "'git' 未安装，某些程序的安装需要它。",
             ),
+            fix_hint: Some(localized(
+                "Download and install git from https://git-scm.com/download/win",
+                "请从 https://git-scm.com/download/win 下载并安装 git",
+            )),
         })
     } else {
         Ok(CheckupResult {
             passed: true,
-            message: "git is installed".to_string(),
+            message: localized("git is installed", "git 已安装"),
             fix_hint: None,
         })
     }
@@ -353,14 +414,16 @@ fn check_curl_path() -> anyhow::Result<CheckupResult> {
     if which("curl").is_err() {
         Ok(CheckupResult {
             passed: false,
-            message: "'curl' is not installed! It's required for downloading some programs"
-                .to_string(),
-            fix_hint: Some("Run: hp install curl".to_string()),
+            message: localized(
+                "'curl' is not installed. It's required for downloading some programs.",
+                "'curl' 未安装，部分程序下载需要它。",
+            ),
+            fix_hint: Some(localized("Run: hp install curl", "运行: hp install curl")),
         })
     } else {
         Ok(CheckupResult {
             passed: true,
-            message: "curl is installed".to_string(),
+            message: localized("curl is installed", "curl 已安装"),
             fix_hint: None,
         })
     }
@@ -370,13 +433,16 @@ fn check_dark() -> anyhow::Result<CheckupResult> {
     if which("dark").is_err() {
         Ok(CheckupResult {
             passed: false,
-            message: "'dark' is not installed! It's required for some programs".to_string(),
-            fix_hint: Some("Run: hp install dark".to_string()),
+            message: localized(
+                "'dark' is not installed. It's required for some programs.",
+                "'dark' 未安装，部分程序需要它。",
+            ),
+            fix_hint: Some(localized("Run: hp install dark", "运行: hp install dark")),
         })
     } else {
         Ok(CheckupResult {
             passed: true,
-            message: "dark is installed".to_string(),
+            message: localized("dark is installed", "dark 已安装"),
             fix_hint: None,
         })
     }
@@ -395,11 +461,11 @@ fn check_antivirus() -> anyhow::Result<CheckupResult> {
     match health {
         Ok(_) => Ok(CheckupResult {
             passed: true,
-            message: "Antivirus is healthy".to_string(),
+            message: localized("Antivirus is healthy", "杀毒软件状态正常"),
             fix_hint: None,
         }),
         Err(e) => {
-            eprintln!("Error: {}", e.to_string());
+            eprintln!("{}", format!(tr("Error: {}", "错误: {}"), e.to_string()));
             Err(CheckupError::ServiceError.into())
         }
     }
@@ -435,7 +501,10 @@ fn check_common_antivirus() -> anyhow::Result<CheckupResult> {
 
     for process in av_processes {
         if tasklist.contains(process) {
-            issues.push(format!("{} is running", process));
+            issues.push(format!(
+                tr("{name} is running", "{name} 正在运行"),
+                name = process
+            ));
         }
     }
 
@@ -443,12 +512,15 @@ fn check_common_antivirus() -> anyhow::Result<CheckupResult> {
         Ok(CheckupResult {
             passed: false,
             message: issues.join("\n"),
-            fix_hint: Some("Please stop the antivirus and try again".to_string()),
+            fix_hint: Some(localized(
+                "Please stop the antivirus and try again",
+                "请暂时关闭杀毒软件后重试",
+            )),
         })
     } else {
         Ok(CheckupResult {
             passed: true,
-            message: "Antivirus is not running".to_string(),
+            message: localized("Antivirus is not running", "杀毒软件未运行"),
             fix_hint: None,
         })
     }
@@ -478,15 +550,21 @@ fn check_ntfs_volumes() -> anyhow::Result<CheckupResult> {
 
     if !is_ntfs(scoop_drive) {
         issues.push(format!(
-            "hp requires an NTFS volume to work! Current path: {}",
-            scoop_path
+            tr(
+                "hp requires an NTFS volume to work! Current path: {path}",
+                "hp 需要安装在 NTFS 分区上！当前路径: {path}"
+            ),
+            path = scoop_path
         ));
     }
 
     if !is_ntfs(global_drive) {
         issues.push(format!(
-            "hp global requires an NTFS volume to work! Current path: {}",
-            global_path
+            tr(
+                "hp global requires an NTFS volume to work! Current path: {path}",
+                "hp global 需要安装在 NTFS 分区上！当前路径: {path}"
+            ),
+            path = global_path
         ));
     }
 
@@ -494,12 +572,18 @@ fn check_ntfs_volumes() -> anyhow::Result<CheckupResult> {
         Ok(CheckupResult {
             passed: false,
             message: issues.join("\n"),
-            fix_hint: Some("Move hp installation to an NTFS formatted drive".to_string()),
+            fix_hint: Some(localized(
+                "Move hp installation to an NTFS formatted drive",
+                "请将 hp 安装目录迁移到 NTFS 分区",
+            )),
         })
     } else {
         Ok(CheckupResult {
             passed: true,
-            message: "hp directories are on NTFS volumes".to_string(),
+            message: localized(
+                "hp directories are on NTFS volumes",
+                "hp 目录位于 NTFS 分区",
+            ),
             fix_hint: None,
         })
     }

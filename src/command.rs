@@ -20,6 +20,7 @@ use crate::command_args::uninstall::UninstallArgs;
 use crate::command_args::update::UpdateArgs;
 use crate::command_args::which::WhichArgs;
 pub(crate) use crate::command_args::{bucket_args::BucketArgs, cache::CacheArgs};
+use crate::i18n::tr;
 use anyhow::{bail, Context};
 use clap::{Args, Subcommand};
 use command_util_lib::init_env::get_app_dir_install_json;
@@ -67,7 +68,12 @@ pub(crate) enum Commands {
 }
 
 #[derive(Args, Debug)]
-#[clap(author, version, about="💖\t\t显示Credit信息", long_about = None)]
+#[clap(
+    author,
+    version,
+    about = hp_bilingual!("💖\tShow project credits", "💖\t显示 Credits 信息"),
+    long_about = None
+)]
 #[command(arg_required_else_help = false, subcommand_negates_reqs = true)]
 #[command(no_binary_name = true)]
 pub struct CreditsArgs {}
@@ -76,31 +82,51 @@ pub async fn execute_credits_command() -> anyhow::Result<()> {
     if !auto_check_hp_update(None).await? {
         println!(
             "{}",
-            "💖\tNow hp's  version is latest! Please enjoy it!"
-                .dark_cyan()
-                .bold()
+            tr(
+                "💖\tYour hp version is up to date. Enjoy!",
+                "💖\t当前 hp 已是最新版本，尽情使用吧！"
+            )
+            .dark_cyan()
+            .bold()
         );
     };
 
-    let str = "Hp  is created by superwindcloud(https://gitee.com/superwindcloud)(https://github.com/super1windcloud)"
-        .to_string()
-        .dark_blue()
-        .bold();
-    println!("💖\t{str}");
+    let author_line = tr(
+        "Hp is created by superwindcloud (https://gitee.com/superwindcloud | https://github.com/super1windcloud)",
+        "hp 由 superwindcloud 构建 (https://gitee.com/superwindcloud | https://github.com/super1windcloud)"
+    )
+    .to_string()
+    .dark_blue()
+    .bold();
+    println!("💖\t{author_line}");
 
     show_reward_img();
     Ok(())
 }
 
 #[derive(Args, Debug)]
-#[clap(author, version, about="💖\t\t锁定指定APP版本,锁定之后更新所有APP或者检测更新状态将自动跳过", long_about = None)]
+#[clap(
+    author,
+    version,
+    about = hp_bilingual!(
+        "💖\tLock specific app versions so global updates skip them",
+        "💖\t锁定指定 APP 版本，后续更新与检测会跳过"
+    ),
+    long_about = None
+)]
 #[command(arg_required_else_help = true, subcommand_negates_reqs = true)]
 #[command(no_binary_name = true)]
 pub struct HoldArgs {
-    #[arg( required = false,  num_args =1.., help = "要锁定的APP名称,精准匹配,支持多参数"
+    #[arg( required = false,  num_args =1.., help = hp_bilingual!(
+        "Names of the apps to hold (exact match, supports multiple values)",
+        "要锁定的 APP 名称，精确匹配，支持多个参数"
+    )
     ,value_parser = clap_args_to_lowercase)]
     pub app_names: Option<Vec<String>>,
-    #[arg(short = 'u', long, required = false, help = "取消锁定, 支持多参数")]
+    #[arg(short = 'u', long, required = false, help = hp_bilingual!(
+        "Cancel hold for the provided apps",
+        "取消锁定，支持多个 APP"
+    ))]
     pub cancel_hold: bool,
 }
 
@@ -123,9 +149,15 @@ pub fn add_key_value_to_json(
         map.insert(new_key.to_string(), Value::Bool(new_value));
         println!(
             "{}",
-            (name.to_string() + " is now held and can not be updated anymore.")
-                .dark_green()
-                .bold()
+            format!(
+                tr(
+                    "{name} is now held and will be skipped during updates.",
+                    "{name} 已锁定，后续更新将自动跳过。"
+                ),
+                name = name
+            )
+            .dark_green()
+            .bold()
         );
     } else {
         bail!("Invalid JSON: Expected an object");
@@ -146,7 +178,13 @@ pub fn execute_hold_command(hold_args: HoldArgs) -> anyhow::Result<()> {
         .filter_map(|name| {
             let install_json = get_app_dir_install_json(name);
             if !Path::new(&install_json).exists() {
-                eprintln!("{install_json} 不存在");
+                eprintln!(
+                    "{}",
+                    format!(
+                        tr("File {path} does not exist.", "{path} 不存在。"),
+                        path = install_json
+                    )
+                );
                 None
             } else {
                 if hold_args.cancel_hold {
@@ -194,9 +232,15 @@ pub fn unhold_locked_apps(app_name: &str, install_json_file: &str) -> anyhow::Re
         map.remove("hold");
         println!(
             "{}",
-            (app_name.to_string() + " is no longer held and can be updated again.")
-                .dark_green()
-                .bold()
+            format!(
+                tr(
+                    "{name} is no longer held and can be updated again.",
+                    "{name} 已解除锁定，可以再次更新。"
+                ),
+                name = app_name
+            )
+            .dark_green()
+            .bold()
         );
     } else {
         bail!("Invalid JSON: Expected an object");
@@ -222,6 +266,11 @@ pub fn show_reward_img() {
     println!("{}", image);
     println!(
         "{}",
-        "您的支持是我调试人生的 print!   │───┘".dark_cyan().bold()
+        tr(
+            "Your support keeps me debugging through life. print! │───┘",
+            "您的支持是我调试人生的 print! │───┘"
+        )
+        .dark_cyan()
+        .bold()
     );
 }

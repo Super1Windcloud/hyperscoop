@@ -1,4 +1,5 @@
 use crate::command_args::prefix::PrefixArgs;
+use crate::i18n::tr;
 use anyhow::bail;
 use command_util_lib::init_env::{get_app_current_dir, get_app_current_dir_global};
 use crossterm::style::Stylize;
@@ -12,7 +13,15 @@ pub fn execute_prefix_command(prefix: PrefixArgs) -> Result<(), anyhow::Error> {
             get_app_current_dir(name.as_str())
         };
         if !Path::new(&app_path).exists() {
-            bail!("{} 不存在", app_path.red().bold());
+            bail!(
+                "{}",
+                format!(
+                    tr("{path} does not exist", "{path} 不存在"),
+                    path = app_path.as_str()
+                )
+                .red()
+                .bold()
+            );
         }
         println!("{}", app_path.dark_green().bold());
     }

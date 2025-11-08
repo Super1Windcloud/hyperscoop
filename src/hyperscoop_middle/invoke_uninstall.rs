@@ -1,4 +1,5 @@
 use crate::command_args::uninstall::UninstallArgs;
+use crate::i18n::tr;
 use anyhow::{bail, Context};
 use command_util_lib::init_env::{get_app_dir, get_app_dir_global};
 use command_util_lib::uninstall::*;
@@ -28,7 +29,9 @@ pub fn execute_uninstall_command(args: UninstallArgs) -> Result<(), anyhow::Erro
                     println!(
                         "'{}' {}",
                         app_name.dark_cyan().bold(),
-                        "was purge uninstalled successfully!".dark_green().bold()
+                        tr("was purge uninstalled successfully!", "已执行彻底卸载！")
+                            .dark_green()
+                            .bold()
                     );
                 }
                 Err(e) => {
@@ -44,7 +47,9 @@ pub fn execute_uninstall_command(args: UninstallArgs) -> Result<(), anyhow::Erro
                     println!(
                         "'{}' {}",
                         app_name.dark_cyan().bold(),
-                        "was already uninstalled successfully!".dark_green().bold()
+                        tr("was already uninstalled successfully!", "已成功卸载！")
+                            .dark_green()
+                            .bold()
                     );
                 }
                 Err(_) => {
@@ -72,10 +77,18 @@ pub fn execute_uninstall_command(args: UninstallArgs) -> Result<(), anyhow::Erro
                         println!(
                             "'{}' {}",
                             app_name.clone().dark_cyan().bold(),
-                            "has been uninstalled successfully!".dark_green().bold()
+                            tr("has been uninstalled successfully!", "已成功卸载！")
+                                .dark_green()
+                                .bold()
                         );
                     } else {
-                        bail!("'{app_name}' 并没有安装")
+                        bail!(
+                            "{}",
+                            format!(
+                                tr("'{name}' is not installed.", "'{name}' 并没有安装。"),
+                                name = app_name
+                            )
+                        )
                     }
                 }
             }

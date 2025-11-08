@@ -2,6 +2,7 @@
 use crate::crypto::decrypt_gitee;
 #[allow(unused_imports)]
 use crate::crypto::decrypt_github;
+use crate::i18n::tr;
 use anyhow::{anyhow, bail, Context};
 use command_util_lib::buckets::get_hp_bucket_repo_path;
 use command_util_lib::config::get_config_value_no_print;
@@ -70,7 +71,18 @@ pub async fn auto_check_hp_update(old_version: Option<&str>) -> anyhow::Result<b
         version
     );
     if version < latest_version || hash_changed() {
-        println!("{}", format!("发现hp版本变更 {latest_version}, `hp u hp` or `hp u -f -k hp`  \n请访问https://github.com/Super1Windcloud/hp/releases").dark_cyan().bold());
+        println!(
+            "{}",
+            format!(
+                tr(
+                    "hp detected a new version {latest_version}. Run `hp u hp` or `hp u -f -k hp`.\nVisit https://github.com/Super1Windcloud/hp/releases for details.",
+                    "检测到 hp 新版本 {latest_version}。运行 `hp u hp` 或 `hp u -f -k hp`。\n详见 https://github.com/Super1Windcloud/hp/releases。"
+                ),
+                latest_version = latest_version
+            )
+            .dark_cyan()
+            .bold()
+        );
         let hp_repo = get_hp_bucket_repo_path("hp")?;
         if hp_repo.is_none() {
             bail!("hp bucket repository  is empty");
@@ -216,8 +228,17 @@ async fn get_latest_version_from_github() -> anyhow::Result<String> {
     let response = client.get(&url).headers(headers).send().await?;
 
     if !response.status().is_success() {
-        eprintln!("请求失败: {}", response.status());
-        eprintln!("Response: {}", response.text().await?);
+        eprintln!(
+            "{}",
+            format!(tr("Request failed: {}", "请求失败: {}"), response.status())
+        );
+        eprintln!(
+            "{}",
+            format!(
+                tr("Response body: {}", "响应内容: {}"),
+                response.text().await?
+            )
+        );
         return Ok("".into());
     }
     let tags: GithubRelease = response.json().await?;
@@ -238,7 +259,10 @@ async fn get_latest_version_from_gitee() -> anyhow::Result<String> {
         .send()
         .await?;
     if !response.status().is_success() {
-        return Err(anyhow::anyhow!("请求失败: {}", response.status()));
+        return Err(anyhow::anyhow!(
+            "{}",
+            format!(tr("Request failed: {}", "请求失败: {}"), response.status())
+        ));
     }
     let release = response.json::<GiteeRelease>().await?;
     let gitee_tag = release.tag_name;
@@ -257,7 +281,10 @@ async fn get_latest_version_from_gitee() -> anyhow::Result<String> {
         .send()
         .await?;
     if !response.status().is_success() {
-        return Err(anyhow::anyhow!("请求失败: {}", response.status()));
+        return Err(anyhow::anyhow!(
+            "{}",
+            format!(tr("Request failed: {}", "请求失败: {}"), response.status())
+        ));
     }
     let release = response.json::<GiteeRelease>().await?;
     let gitee_tag = release.tag_name;
@@ -294,7 +321,10 @@ mod test_auto_update {
             .unwrap();
 
         if !response.status().is_success() {
-            eprintln!("请求失败: {}", response.status());
+            eprintln!(
+                "{}",
+                format!(tr("Request failed: {}", "请求失败: {}"), response.status())
+            );
         }
         let tags: GithubRelease = response.json().await.unwrap();
         println!("{}", tags.tag_name);

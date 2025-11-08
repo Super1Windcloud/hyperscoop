@@ -1,5 +1,6 @@
 ﻿use crate::check_self_update::{auto_check_hp_update, get_app_old_version};
 use crate::command_args::update::UpdateArgs;
+use crate::i18n::tr;
 use anyhow::Context;
 use command_util_lib::init_env::{
     get_app_current_bin_path, get_app_current_dir, get_app_current_dir_global, get_app_dir,
@@ -22,7 +23,12 @@ pub async fn execute_update_command(update_args: UpdateArgs) -> Result<(), anyho
     let options = inject_update_user_options(&update_args)?;
 
     if update_args.update_self_and_buckets {
-        println!("{}", "开始更新hp和buckets".dark_cyan().bold());
+        println!(
+            "{}",
+            tr("Starting hp and bucket updates", "开始更新 hp 和 buckets")
+                .dark_cyan()
+                .bold()
+        );
 
         if update_args.serial_update {
             update_buckets_serial()?;
@@ -128,10 +134,15 @@ pub async fn update_hp(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
             launch_update_script(global, "", false).expect("update hp script failed");
             println!(
                 "{}",
-                format!("Hp Latest Version('{version}') Update Successfully! ❤️‍🔥💝🐉🍾🎉")
-                    .to_string()
-                    .dark_green()
-                    .bold()
+                format!(
+                    tr(
+                        "Hp latest version ('{ver}') installed successfully! ❤️‍🔥💝🐉🍾🎉",
+                        "Hp 最新版本 ('{ver}') 安装成功！❤️‍🔥💝🐉🍾🎉"
+                    ),
+                    ver = version
+                )
+                .dark_green()
+                .bold()
             );
             return Ok(());
         }
@@ -160,10 +171,12 @@ pub async fn update_hp(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
     if !result {
         println!(
             "{}",
-            format!("hp '{old_version}' are up to date")
-                .to_string()
-                .dark_green()
-                .bold()
+            format!(
+                tr("hp '{ver}' is up to date", "hp '{ver}' 已是最新版本"),
+                ver = old_version
+            )
+            .dark_green()
+            .bold()
         );
         return Ok(());
     }
@@ -188,10 +201,15 @@ pub async fn update_hp(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
     }
     println!(
         "{}",
-        format!("Hp Latest Version('{version}') Update Successfully! ❤️‍🔥💝🐉🍾🎉")
-            .to_string()
-            .dark_green()
-            .bold()
+        format!(
+            tr(
+                "Hp latest version ('{ver}') installed successfully! ❤️‍🔥💝🐉🍾🎉",
+                "Hp 最新版本 ('{ver}') 安装成功！❤️‍🔥💝🐉🍾🎉"
+            ),
+            ver = version
+        )
+        .dark_green()
+        .bold()
     );
     Ok(())
 }

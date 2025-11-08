@@ -10,17 +10,25 @@ use std::cmp::max;
 use std::env;
 use std::path::Path;
 
-#[derive(Debug, Clone, Args)]
-#[clap(author, version, about="🎉\t\t创建Window终端命令的别名",  long_about = None)]
-#[command(arg_required_else_help = true, subcommand_negates_reqs = true)]
-#[command(after_help = r#"
-To add an alias:       hp alias add <name> <command> [<description>], 自动生成一个hp-<name>的别名
-To rm an alias:        hp alias rm <name> , 删除时别名名称必须以hp-开头
-To list all aliases:   hp alias list  , 包含name, command , description 字段
+use crate::i18n::tr;
 
-示例:  hp alias add rm 'hp uninstall $args[0]' 'Uninstall an app' [描述内容可选]
-      alias_name创建之后, 运行hp-<alias> ,例如运行hp-rm 就可以替代 hp uninstall命令进行操作
-"#)]
+#[derive(Debug, Clone, Args)]
+#[clap(
+    author,
+    version,
+    about = hp_bilingual!(
+        "🎉\tCreate Windows terminal aliases",
+        "🎉\t创建 Windows 终端命令别名"
+    ),
+    long_about = None
+)]
+#[command(arg_required_else_help = true, subcommand_negates_reqs = true)]
+#[command(
+    after_help = hp_bilingual!(
+        "Add: hp alias add <name> <command> [description]\nRemove: hp alias rm <name>\nList: hp alias list\nExample: hp alias add rm 'hp uninstall $args[0]' 'Uninstall an app'",
+        "添加: hp alias add <name> <command> [描述]\n删除: hp alias rm <name>\n列出: hp alias list\n示例: hp alias add rm 'hp uninstall $args[0]' '卸载应用'"
+    )
+)]
 pub struct AliasArgs {
     #[command(subcommand)]
     pub(crate) command: Option<AliasSubcommands>,
@@ -39,34 +47,37 @@ pub enum AliasSubcommands {
 }
 
 #[derive(Args, Debug, Clone)]
-#[command(about = "删除一个alias shim")]
+#[command(about = hp_bilingual!("Delete an alias shim", "删除一个 alias shim"))]
 #[command(arg_required_else_help = true, subcommand_negates_reqs = true)]
 pub struct RmArgs {
-    #[arg(required = false, help = "删除的alias名称",
+    #[arg(required = false, help = hp_bilingual!("Alias name to delete", "要删除的 alias 名称"),
     value_parser = clap_args_to_lowercase,)]
     pub(crate) alias_name: Option<String>,
-    #[arg(required = false, short, long, help = "删除所有的alias")]
+    #[arg(required = false, short, long, help = hp_bilingual!("Delete all aliases", "删除所有 alias"))]
     pub all: bool,
 }
 
 #[derive(Args, Debug, Clone)]
-#[command(about = "添加一个alias shim")]
+#[command(about = hp_bilingual!("Create an alias shim", "添加一个 alias shim"))]
 #[command(arg_required_else_help = true, subcommand_negates_reqs = true)]
 pub struct AddArgs {
-    #[arg(required = false, help = "添加的alias名称"
+    #[arg(required = false, help = hp_bilingual!(
+        "Alias name to create",
+        "要创建的 alias 名称"
+    )
         ,value_parser = clap_args_to_lowercase,
         action = ArgAction::Set
     )]
     pub(crate) alias_name: Option<String>,
-    #[arg(required = false, help = "alias的目标命令")]
+    #[arg(required = false, help = hp_bilingual!("Target command for the alias", "alias 的目标命令"))]
     pub(crate) command: Option<String>,
 
-    #[arg(required = false, help = "alias的描述")]
+    #[arg(required = false, help = hp_bilingual!("Alias description", "alias 的描述"))]
     pub(crate) description: Option<String>,
 }
 
 #[derive(Args, Debug, Clone)]
-#[command(about = "列出所有alias的ps1脚本 ")]
+#[command(about = hp_bilingual!("List all alias ps1 scripts", "列出所有 alias 的 ps1 脚本"))]
 pub struct ListArgs {}
 
 pub fn execute_alias_command(args: AliasArgs) -> anyhow::Result<()> {
@@ -123,7 +134,10 @@ fn rm_alias(alias_name: Option<String>, shim_root_dir: &str, all: bool) -> anyho
             let path = dir.path();
             let file_name = path.file_name().unwrap().to_str().unwrap();
             if file_name.starts_with("hp-") && file_name.ends_with(".ps1") {
-                println!("{}", format!("remove file: {}", path.display()).dark_grey());
+                println!(
+                    "{}",
+                    format!(tr("Remove file: {}", "删除文件: {}"), path.display()).dark_grey()
+                );
                 std::fs::remove_file(path).context("Failed to remove ps1 script at line 115")?;
             }
         }
@@ -136,9 +150,15 @@ fn rm_alias(alias_name: Option<String>, shim_root_dir: &str, all: bool) -> anyho
     } else {
         println!(
             "{}",
-            format!("Alias '{alias_name}' is removed successfully!")
-                .dark_green()
-                .bold()
+            format!(
+                tr(
+                    "Alias '{name}' removed successfully!",
+                    "Alias '{name}' 删除成功！"
+                ),
+                name = alias_name
+            )
+            .dark_green()
+            .bold()
         );
         std::fs::remove_file(&shim_ps_script).context("Failed to remove ps1 script at line 131")?;
     }
@@ -195,7 +215,12 @@ fn list_alias(shim_root_dir: &str) -> anyhow::Result<()> {
         .collect::<Vec<_>>();
     let len = result.len();
     if len == 0 {
-        println!("{}", "No alias found".dark_green().bold());
+        println!(
+            "{}",
+            tr("No alias found", "没有找到任何 alias")
+                .dark_green()
+                .bold()
+        );
         return Ok(());
     }
     let alias_width = max(
@@ -233,9 +258,16 @@ fn list_alias(shim_root_dir: &str) -> anyhow::Result<()> {
         if !flag {
             use console::{pad_str, style, Alignment};
 
-            let alias_title = pad_str("Alias_Name", alias_width, Alignment::Left, None);
-            let command_title = pad_str("Command", command_width, Alignment::Left, None);
-            let summary_title = pad_str("Summary", summary_width, Alignment::Left, None);
+            let alias_title = pad_str(
+                tr("Alias_Name", "Alias_名称"),
+                alias_width,
+                Alignment::Left,
+                None,
+            );
+            let command_title =
+                pad_str(tr("Command", "命令"), command_width, Alignment::Left, None);
+            let summary_title =
+                pad_str(tr("Summary", "摘要"), summary_width, Alignment::Left, None);
 
             println!(
                 "{}{}{}",
@@ -245,9 +277,9 @@ fn list_alias(shim_root_dir: &str) -> anyhow::Result<()> {
             );
             println!(
                 "{:width1$}{:<width2$}{:<width3$}",
-                "-".repeat(10),
-                "-".repeat(7),
-                "-".repeat(7),
+                "-".repeat(tr("Alias_Name", "Alias_名称").len()),
+                "-".repeat(tr("Command", "命令").len()),
+                "-".repeat(tr("Summary", "摘要").len()),
                 width1 = alias_width,
                 width2 = command_width,
                 width3 = summary_width
@@ -305,9 +337,15 @@ fn add_alias(
     std::fs::write(&alias_ps_path, alias_ps_content).context("Failed to write ps1 script")?;
     println!(
         "{}",
-        format!("Alias command(hp-{alias_name})  created successfully!")
-            .dark_green()
-            .bold()
+        format!(
+            tr(
+                "Alias command (hp-{name}) created successfully!",
+                "Alias 命令 (hp-{name}) 创建成功！"
+            ),
+            name = alias_name
+        )
+        .dark_green()
+        .bold()
     );
     Ok(())
 }

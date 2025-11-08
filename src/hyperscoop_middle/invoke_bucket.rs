@@ -1,6 +1,7 @@
-﻿use crate::command::BucketArgs;
+use crate::command::BucketArgs;
 use crate::command_args::bucket_args::BucketSubcommands;
 use crate::hyperscoop_middle::invoke_update::update_buckets_parallel;
+use crate::i18n::tr;
 use anyhow::anyhow;
 use command_util_lib::buckets::Buckets;
 use command_util_lib::utils::system::{is_admin, request_admin};
@@ -82,7 +83,9 @@ pub fn execute_bucket_command(args: BucketArgs) -> Result<(), anyhow::Error> {
         BucketSubcommands::Rm(rm_args) => {
             println!(
                 "{} {} ",
-                "准备删除桶:".to_string().blue(),
+                tr("Preparing to delete bucket:", "准备删除桶:")
+                    .to_string()
+                    .blue(),
                 &rm_args.name.clone().dark_green().bold()
             );
 

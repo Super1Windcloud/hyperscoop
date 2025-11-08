@@ -1,6 +1,7 @@
 use crate::check_self_update::auto_check_hp_update;
 use crate::command_args::install::InstallArgs;
 use crate::hyperscoop_middle::invoke_update::{update_buckets_parallel, update_hp};
+use crate::i18n::tr;
 use anyhow::bail;
 use command_util_lib::install::*;
 use command_util_lib::utils::system::{get_system_default_arch, is_admin, request_admin};
@@ -31,7 +32,12 @@ pub async fn execute_install_command(args: InstallArgs) -> Result<(), anyhow::Er
         auto_check_hp_update(None).await?;
     }
     if options.contains(&InstallOptions::UpdateHpAndBuckets) {
-        println!("{}", "开始更新hp和buckets".dark_cyan().bold());
+        println!(
+            "{}",
+            tr("Starting hp and bucket updates", "开始更新 hp 和 buckets")
+                .dark_cyan()
+                .bold()
+        );
         let update_option = create_update_options(&options)?;
         update_buckets_parallel()?;
         update_hp(&update_option).await?;

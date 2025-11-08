@@ -1,4 +1,5 @@
 use crate::command_args::which::WhichArgs;
+use crate::i18n::tr;
 use anyhow::{bail, Context};
 use command_util_lib::init_env::{
     get_app_current_dir, get_app_current_dir_global, get_shims_root_dir, get_shims_root_dir_global,
@@ -36,11 +37,17 @@ pub fn execute_which_command(command: WhichArgs) -> Result<(), anyhow::Error> {
             output_current_exe(path, shim_root_dir.as_str())?;
         } else {
             if !Path::new(&current_dir).exists() {
-                bail!("{current_dir} is not exists")
+                bail!(format!(
+                    tr("{path} does not exist", "{path} 不存在"),
+                    path = current_dir
+                ))
             } else {
                 let manifest_json = format!("{}\\manifest.json", current_dir);
                 if !Path::new(&manifest_json).exists() {
-                    bail!("{manifest_json} is not exists")
+                    bail!(format!(
+                        tr("{path} does not exist", "{path} 不存在"),
+                        path = manifest_json
+                    ))
                 } else {
                     let manifest_json_content =
                         std::fs::read_to_string(&manifest_json).context(format!(
@@ -55,7 +62,10 @@ pub fn execute_which_command(command: WhichArgs) -> Result<(), anyhow::Error> {
 
                     let install_json = format!("{}\\install.json", current_dir);
                     if !Path::new(&install_json).exists() {
-                        bail!("{install_json} is not exists")
+                        bail!(format!(
+                            tr("{path} does not exist", "{path} 不存在"),
+                            path = install_json
+                        ))
                     }
                     let install_json_content = std::fs::read_to_string(&install_json).context(
                         format!("Failed to read install.json file {}", &install_json),
@@ -129,14 +139,20 @@ pub fn output_current_exe(path: PathBuf, shim_root_dir: &str) -> anyhow::Result<
 
     let splits = path.split(".").collect::<Vec<&str>>();
     if splits.len() != 2 {
-        bail!("{path} is not a valid path")
+        bail!(format!(
+            tr("{path} is not a valid path", "{path} 不是有效路径"),
+            path = path
+        ))
     }
     let prefix = splits[0];
     let suffix = splits[1];
     if suffix == "exe" || suffix == "com" {
         let shim_file = format!("{}.shim", prefix);
         if !Path::new(&shim_file).exists() {
-            bail!("{shim_file} is not exists")
+            bail!(format!(
+                tr("{path} does not exist", "{path} 不存在"),
+                path = shim_file
+            ))
         }
         let content = std::fs::read_to_string(&shim_file)
             .context(format!("Failed to read shim file {}", &shim_file))?;
@@ -146,13 +162,22 @@ pub fn output_current_exe(path: PathBuf, shim_root_dir: &str) -> anyhow::Result<
     } else if suffix == "cmd" || suffix == "bat" || suffix == "ps1" {
         let cmd_file = format!("{}.cmd", prefix);
         if !Path::new(&cmd_file).exists() {
-            bail!("{cmd_file} is not exists")
+            bail!(format!(
+                tr("{path} does not exist", "{path} 不存在"),
+                path = cmd_file
+            ))
         }
         let content = extract_rem_comments(cmd_file.as_str());
         println!("{}", content.dark_green().bold());
     } else {
-        eprintln!("Unknown suffix: {}", suffix);
-        bail!("{path} is not a valid path")
+        eprintln!(
+            "{}",
+            format!(tr("Unknown suffix: {}", "未知后缀: {}"), suffix)
+        );
+        bail!(format!(
+            tr("{path} is not a valid path", "{path} 不是有效路径"),
+            path = path
+        ))
     }
 
     Ok(())
@@ -194,7 +219,7 @@ pub fn match_bin_parser(
             }
         }
         StringOrArrayOrDoubleDimensionArray::Null => {
-            println!("bin is  null");
+            println!("{}", tr("bin entry is null", "bin 字段为空"));
         }
         StringOrArrayOrDoubleDimensionArray::NestedStringArray(nested_arr) => {
             for nest_arr in nested_arr {
@@ -214,7 +239,13 @@ pub fn match_bin_parser(
                         }
                     }
                     _ => {
-                        println!(" what the fuck bin?   {:?}", nest_arr);
+                        println!(
+                            "{}",
+                            format!(
+                                tr("Unexpected bin format: {:?}", "无法识别的 bin 格式: {:?}"),
+                                nest_arr
+                            )
+                        );
                     }
                 }
             }
