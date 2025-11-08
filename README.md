@@ -1,4 +1,4 @@
-<!-- HYPERSCOOP README.md  -->
+<!-- HYPERSCOOP README.md -->
 <p align="center">
   <img src="https://i.postimg.cc/HVXTGZq6/mmexport1677398873855.jpg" alt="HYPERSCOOP Logo" width="220"/>
 </p>
@@ -37,63 +37,105 @@ scoop bucket add hp https://gitee.com/SuperWindcloud/hyperscoop_bucket.git
 scoop install -u -s hp/hp
 ```
 
-🧩 Via PowerShell Script
+### 🧩 Via PowerShell Script
+```powershell
 iwr -useb https://raw.githubusercontent.com/Super1Windcloud/hyperscoop/refs/heads/main/install.ps1 | iex
+```
 
-🧩 Via Cargo Binstall
+### 🧩 Via Cargo Binstall
+```bash
 cargo install binstall
 cargo binstall hp2
+```
 
-🧩 Via Cargo
+### 🧩 Via Cargo
+```bash
 cargo install hp2
+```
 
-🧩 Manual Installation
+### 🧩 Manual Installation
+[⬇️ Download the EXE](https://github.com/Super1Windcloud/hyperscoop/releases)  
+and add it to your `$env:Path`.
 
-⬇️ Download the EXE
+---
 
-and add it to your $env:Path.
+## 💎 Features at a Glance
 
-💎 Features at a Glance
-🌟 Feature	⚙️ Description
-🎨 Beautiful CLI	Multi-threaded progress bars, rich colors, auto-completion
-⚡ Adaptive Speed	Dynamically optimizes Aria2 shards & threads
-🌍 Freedom Mode	Supports direct URL installation, no region restrictions
-🧩 Smart Buckets	hp b k to view, hp i aria2 to install dependencies
-💾 Lifecycle Scripts	Full scoop lifecycle integration
-🧠 Rust-Powered Core	Fast, safe, and reliable under the hood
-🏗️ Project Status
-<p align="center"> <img src="https://i.giphy.com/media/CwfC5Pv6Rtp66h4coK/giphy.gif" width="200"><br> <b>✅ Under Active Maintenance</b> </p>
-🧰 CLI Preview
-<p align="center"> <img src="./img/en_cli.png" width="740" alt="CLI Preview"> </p>
-✅ Completed Features
-Command	Description
-✅ alias	Manage command aliases
-✅ bucket	Add / remove / list buckets
-✅ cache	Manage download cache
-✅ checkup	Scan and fix potential problems
-✅ cleanup	Clean unused files and cache
-✅ config	Configure hp settings
-✅ export / import	Backup and restore configs
-✅ hold	Lock apps to prevent updates
-✅ install / uninstall	Full package lifecycle
-✅ update	Update single or all apps
-✅ which	Locate installed binaries
-✅ merge	Combine configurations
-✅ credits	Show project credits
-📦 Bucket Demo
-<p align="center"> <img src="./img/bucket.png" width="700" alt="Bucket Example"> </p>
-🌈 Philosophy
+| 🌟 Feature | ⚙️ Description |
+|-------------|----------------|
+| 🎨 **Beautiful CLI** | Multi-threaded progress bars, rich colors, auto-completion |
+| ⚡ **Adaptive Speed** | Dynamically optimizes Aria2 shards & threads |
+| 🌍 **Freedom Mode** | Supports direct URL installation, no region restrictions |
+| 🧩 **Smart Buckets** | `hp b k` to view, `hp i aria2` to install dependencies |
+| 💾 **Lifecycle Scripts** | Full scoop lifecycle integration |
+| 🧠 **Rust-Powered Core** | Fast, safe, and reliable under the hood |
 
-“Beauty is a choice — a kind of restraint, not greed.”
-“A gentleman should be flexible like wood and goose, adapting like dragons and snakes.”
+---
 
-<p align="center"> <img src="./img/sky2.jpg" width="700" alt="Sky illustration"> </p>
-💖 Support & Contribute
+## 🏗️ Project Status
 
-⭐ Star this repo if you like it
+<p align="center">
+  <img src="https://i.giphy.com/media/CwfC5Pv6Rtp66h4coK/giphy.gif" width="200"><br>
+  <b>✅ Under Active Maintenance</b>
+</p>
 
-🧩 Submit PRs or issues on GitHub
+---
 
-📢 Follow for updates on Gitee
+## 🧰 CLI Preview
 
-<p align="center"> <img src="https://capsule-render.vercel.app/api?type=waving&color=0:ff99cc,100:66ccff&height=120&section=footer&text=Made%20with%20💜%20in%20Rust&fontSize=20&fontColor=ffffff&animation=twinkling" /> </p> ```
+<p align="center">
+  <img src="./img/en_cli.png" width="740" alt="CLI Preview">
+</p>
+
+---
+
+## ✅ Completed Features
+
+| Command | Description |
+|----------|-------------|
+| ✅ alias | Manage command aliases |
+| ✅ bucket | Add / remove / list buckets |
+| ✅ cache | Manage download cache |
+| ✅ checkup | Scan and fix potential problems |
+| ✅ cleanup | Clean unused files and cache |
+| ✅ config | Configure hp settings |
+| ✅ export / import | Backup and restore configs |
+| ✅ hold | Lock apps to prevent updates |
+| ✅ install / uninstall | Full package lifecycle |
+| ✅ update | Update single or all apps |
+| ✅ which | Locate installed binaries |
+| ✅ merge | Combine configurations |
+| ✅ credits | Show project credits |
+
+---
+
+## 📦 Bucket Demo
+
+<p align="center">
+  <img src="./img/bucket.png" width="700" alt="Bucket Example">
+</p>
+
+---
+
+## 🌈 Philosophy
+
+> “Beauty is a choice — a kind of restraint, not greed.”  
+> “A gentleman should be flexible like wood and goose, adapting like dragons and snakes.”
+
+<p align="center">
+  <img src="./img/sky2.jpg" width="700" alt="Sky illustration">
+</p>
+
+---
+
+## 💖 Support & Contribute
+
+- ⭐ Star this repo if you like it  
+- 🧩 Submit PRs or issues on [GitHub](https://github.com/Super1Windcloud/hyperscoop/issues)  
+- 📢 Follow for updates on [Gitee](https://gitee.com/SuperWindcloud/hyperscoop_bucket)
+
+---
+
+<p align="center">
+  <img src="https://capsule-render.vercel.app/api?type=waving&color=0:ff99cc,100:66ccff&height=120&section=footer&text=Made%20with%20💜%20in%20Rust&fontSize=20&fontColor=ffffff&animation=twinkling" />
+</p>
