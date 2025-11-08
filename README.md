@@ -1,109 +1,99 @@
-<a href='https://postimg.cc/HVXTGZq6' target='_blank'><img src='https://i.postimg.cc/HVXTGZq6/mmexport1677398873855.jpg' border='0' alt='mmexport1677398873855'/></a>
-> [!IMPORTANT]
-> ## Latest Release Please go to [Github](https://github.com/Super1Windcloud/hyperscoop/releases), [Chinese  Readme](./README.ch.md)
+<!-- HYPERSCOOP README.md  -->
+<p align="center">
+  <img src="https://i.postimg.cc/HVXTGZq6/mmexport1677398873855.jpg" alt="HYPERSCOOP Logo" width="220"/>
+</p>
+
+<h1 align="center">✨ HYPERSCOOP (hp)</h1>
+
+<p align="center">
+  🐼 <b>A faster, stronger, and more beautiful Windows package manager written in Rust</b><br>
+  <em>Inherited from Scoop — reborn with power and style.</em>
+</p>
+
+<p align="center">
+  <a href="https://github.com/Super1Windcloud/hyperscoop/releases">
+    <img src="https://img.shields.io/github/v/release/Super1Windcloud/hyperscoop?color=blue&label=Latest%20Release&logo=github">
+  </a>
+  <a href="./README.ch.md">
+    <img src="https://img.shields.io/badge/中文文档-点击查看-blue?logo=readme">
+  </a>
+  <img src="https://img.shields.io/badge/Language-Rust-orange?logo=rust">
+  <img src="https://img.shields.io/badge/Platform-Windows-blue?logo=windows">
+  <img src="https://img.shields.io/badge/Maintained-Active-success?logo=githubactions">
+</p>
+
+<hr style="border: 0; height: 2px; background: linear-gradient(to right, #ff99cc, #66ccff);" />
 
 > [!IMPORTANT]
-> ## Before running, please close domestic antivirus software, various computer built-in guardians (except Kaspersky)
-------
-
-# HYPERSCOOP(hp)
-
-## 🐼 A faster, stronger, and more beautiful Windows package manager, written in Rust (inherited from Scoop)
----
-
-## Features
-
-- > **Multiple progress bars, multi-threading, rich colors, command auto-completion......**
-- > **Dynamically select appropriate shards and concurrent threads for Aria2 to achieve maximum download speed, pushing your bandwidth to the limit**
-- > **Support direct URL installation, unrestricted, go anywhere you want**
-
-## Quick Start, Three Methods
-
-### 1. By Scoop
-
-- `scoop bucket add hp https://gitee.com/SuperWindcloud/hyperscoop_bucket.git`
-- `scoop  install  -u  -s   hp/hp`
+> ⚠️ **Before running:** Please close domestic antivirus software and built-in system guardians (except Kaspersky)
 
 ---
 
-### 2. By Powershell
+## 🚀 Quick Start
 
+### 🧩 Via Scoop
 ```powershell
-iwr   -useb  https://raw.githubusercontent.com/Super1Windcloud/hyperscoop/refs/heads/main/install.ps1    | iex
-```
----
-### 3. By Cargo Binstall
-```bash
-cargo  install  binstall
-cargo  binstall  hp2
+scoop bucket add hp https://gitee.com/SuperWindcloud/hyperscoop_bucket.git
+scoop install -u -s hp/hp
 ```
 
----
-### 4. By Cargo
-`cargo  install  hp2`
+🧩 Via PowerShell Script
+iwr -useb https://raw.githubusercontent.com/Super1Windcloud/hyperscoop/refs/heads/main/install.ps1 | iex
 
+🧩 Via Cargo Binstall
+cargo install binstall
+cargo binstall hp2
 
----
-### 5. Download the [exe](https://github.com/Super1Windcloud/hyperscoop/releases) and add it to `$env:Path`
+🧩 Via Cargo
+cargo install hp2
 
-## Prerequisites
+🧩 Manual Installation
 
-> `hp b k` View official bucket list, `hp b -i` Add all buckets, `hp i 7zip` for lifecycle scripts, `hp i aria2` install locally
+⬇️ Download the EXE
 
-## Bucket Demo
+and add it to your $env:Path.
 
-![bucket.png](./img/bucket.png)
+💎 Features at a Glance
+🌟 Feature	⚙️ Description
+🎨 Beautiful CLI	Multi-threaded progress bars, rich colors, auto-completion
+⚡ Adaptive Speed	Dynamically optimizes Aria2 shards & threads
+🌍 Freedom Mode	Supports direct URL installation, no region restrictions
+🧩 Smart Buckets	hp b k to view, hp i aria2 to install dependencies
+💾 Lifecycle Scripts	Full scoop lifecycle integration
+🧠 Rust-Powered Core	Fast, safe, and reliable under the hood
+🏗️ Project Status
+<p align="center"> <img src="https://i.giphy.com/media/CwfC5Pv6Rtp66h4coK/giphy.gif" width="200"><br> <b>✅ Under Active Maintenance</b> </p>
+🧰 CLI Preview
+<p align="center"> <img src="./img/en_cli.png" width="740" alt="CLI Preview"> </p>
+✅ Completed Features
+Command	Description
+✅ alias	Manage command aliases
+✅ bucket	Add / remove / list buckets
+✅ cache	Manage download cache
+✅ checkup	Scan and fix potential problems
+✅ cleanup	Clean unused files and cache
+✅ config	Configure hp settings
+✅ export / import	Backup and restore configs
+✅ hold	Lock apps to prevent updates
+✅ install / uninstall	Full package lifecycle
+✅ update	Update single or all apps
+✅ which	Locate installed binaries
+✅ merge	Combine configurations
+✅ credits	Show project credits
+📦 Bucket Demo
+<p align="center"> <img src="./img/bucket.png" width="700" alt="Bucket Example"> </p>
+🌈 Philosophy
 
-## 🏗 Project Status (Completed🍻🎉🐉)
+“Beauty is a choice — a kind of restraint, not greed.”
+“A gentleman should be flexible like wood and goose, adapting like dragons and snakes.”
 
-| ![](https://i.giphy.com/media/CwfC5Pv6Rtp66h4coK/giphy.gif) |
-|:-----------------------------------------------------------:|
-|                      Under Maintenance                      |
+<p align="center"> <img src="./img/sky2.jpg" width="700" alt="Sky illustration"> </p>
+💖 Support & Contribute
 
----
+⭐ Star this repo if you like it
 
-## CLI Features
----
-![img](./img/en_cli.png)
-<!-- ![cmd](https://s1.imagehub.cc/images/2025/05/21/6f39fd471bad23c23d610cdb2daab6a4.png) -->
----
+🧩 Submit PRs or issues on GitHub
 
-## ☑️ TODO (All features completed, use freely)
+📢 Follow for updates on Gitee
 
-- [x]  Alias
-- [x] Bucket
-- [x] cat
-- [x] cache
-- [x]  checkup
-- [x]  cleanup
-- [x]  config
-- [x]  export
-- [x]  home
-- [x]  import
-- [x]  info
-- [x]  hold
-- [x] install
-- [x] list
-- [x] prefix
-- [x] reset
-- [x] search
-- [x] shim
-- [x] status
-- [x] uninstall
-- [x] update
-- [x] which
-- [x] merge
-- [x] credits
-
----
-
-
-
-[//]: # ([![sky2.jpg]&#40;https://i.postimg.cc/76yfL7XC/sky2.jpg&#41;]&#40;https://postimg.cc/FfD9WYMm&#41;)
-![sky](./img/sky2.jpg)
----
-
-- Beauty is a choice, even a renunciation, rather than greed.
-- A gentleman should be flexible like wood and goose, adapting like dragons and snakes.
-
----
+<p align="center"> <img src="https://capsule-render.vercel.app/api?type=waving&color=0:ff99cc,100:66ccff&height=120&section=footer&text=Made%20with%20💜%20in%20Rust&fontSize=20&fontColor=ffffff&animation=twinkling" /> </p> ```
