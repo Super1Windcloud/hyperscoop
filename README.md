@@ -128,8 +128,8 @@ and add it to your `$env:Path`.
 > “A gentleman should be flexible like wood and goose, adapting like dragons and snakes.”
 
 <p align="center">
-  <img src="./img/flowser.jpg" width="700" alt="Sky illustration">
-  <img src="./img/sea.jpg" width="700" alt="Sky illustration">
+  <img src="./img/flowser.jpg" width="350" alt="Sky illustration">
+  <img src="./img/sea.jpg" width="350" alt="Sky illustration">
 </p>
 
 ---
