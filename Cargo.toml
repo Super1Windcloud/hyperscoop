@@ -53,7 +53,7 @@ hex = {workspace = true }
 
 
 [workspace.dependencies]
-command_util_lib="4.0.8"
+command_util_lib={ path ="./crates/command"}
 human-panic = "2.0.2"
 reqwest = "0.12.9"
 indicatif = "0.17.11"
