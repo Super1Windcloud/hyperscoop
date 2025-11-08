@@ -16,6 +16,7 @@ pub fn execute_prefix_command(prefix: PrefixArgs) -> Result<(), anyhow::Error> {
             bail!(
                 "{}",
                 format!(
+                    "{} {path}",
                     tr("{path} does not exist", "{path} 不存在"),
                     path = app_path.as_str()
                 )

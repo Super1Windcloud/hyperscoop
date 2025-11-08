@@ -12,19 +12,20 @@ use crate::init_env::{
 };
 use crate::install::InstallOptions::UpdateTransaction;
 use crate::install::UpdateOptions::{ForceUpdateOverride, Global, RemoveOldVersionApp};
-use crate::install::{install_app, InstallOptions, UpdateOptions};
+use crate::install::{InstallOptions, UpdateOptions, install_app};
 use crate::list::get_all_installed_apps_name;
-use crate::utils::progrees_bar::{gen_stats_callback, ProgressOptions};
 use crate::utils::progrees_bar::{
+    Message,
     indicatif::{MultiProgress, ProgressBar, ProgressFinish},
-    style, Message,
+    style,
 };
+use crate::utils::progrees_bar::{ProgressOptions, gen_stats_callback};
 use crate::utils::request::get_git_repo_remote_url;
 use crate::utils::system::kill_processes_using_app;
 use crate::utils::utility::get_official_bucket_path;
+use anyhow::Context;
 #[allow(unused_imports)]
 use anyhow::bail;
-use anyhow::Context;
 use crossterm::style::Stylize;
 use indicatif::ProgressDrawTarget;
 pub use update::*;
@@ -84,7 +85,7 @@ pub fn remove_old_version(app_name: &str, options: &[UpdateOptions]) -> anyhow::
 }
 pub fn transform_update_options_to_install(
     update_options: &[UpdateOptions],
-) -> Vec<InstallOptions> {
+) -> Vec<InstallOptions<'_>> {
     let mut options = vec![];
     options.push(UpdateTransaction);
     if update_options.contains(&Global) {

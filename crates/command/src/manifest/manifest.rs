@@ -3,7 +3,7 @@ use crate::init_env::{
 };
 use crate::list::VersionJSON;
 use crate::manifest::manifest_deserialize::ObjectOrString;
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

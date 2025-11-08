@@ -5,8 +5,8 @@ use crate::init_env::{
     get_shims_root_dir_global,
 };
 use crate::install::{
-    create_default_shim_name_file, install_app, install_from_specific_bucket, DownloadManager,
-    InstallOptions,
+    DownloadManager, InstallOptions, create_default_shim_name_file, install_app,
+    install_from_specific_bucket,
 };
 use crate::manifest::install_manifest::{SuggestObj, SuggestObjValue};
 use crate::manifest::manifest_deserialize::{
@@ -16,7 +16,7 @@ use crate::utils::system::{
     get_system_default_arch, get_system_env_str, get_system_env_var, get_user_env_str,
     get_user_env_var, set_global_env_var, set_user_env_var,
 };
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use crossterm::style::Stylize;
 use regex::Regex;
 use std::os::windows::fs;
@@ -462,11 +462,7 @@ pub fn validate_hash_exists(
         if result.is_some() {
             let result = result.unwrap();
             let hash = result.hash.clone();
-            if hash.is_some() {
-                Ok(true)
-            } else {
-                Ok(false)
-            }
+            if hash.is_some() { Ok(true) } else { Ok(false) }
         } else {
             Ok(false)
         }

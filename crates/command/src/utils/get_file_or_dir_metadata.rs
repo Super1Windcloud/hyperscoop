@@ -1,4 +1,4 @@
-﻿use chrono::{DateTime, Local, Utc};
+use chrono::{DateTime, Local, Utc};
 use std::fs::metadata;
 use std::path::Path;
 use std::time::UNIX_EPOCH;
@@ -11,9 +11,9 @@ pub fn get_dir_updated_time(dir_path: &Path) -> String {
         .duration_since(UNIX_EPOCH)
         .expect("Time went backwards");
     let updated_time = UNIX_EPOCH + duration_since_epoch; // 这里得到的是一个`SystemTime`
-                                                          // UTC 是全球标准时间
+    // UTC 是全球标准时间
     let updated_time_utc: DateTime<Utc> = updated_time.into(); // 转换为 `DateTime<Utc>`
-                                                               // 转换为CST 中国北京时间
+    // 转换为CST 中国北京时间
     let updated_time_cst = updated_time_utc.with_timezone(&Local);
     let updated_time_formatted = updated_time_cst.format("%Y-%m-%d %H:%M:%S").to_string();
 
@@ -28,9 +28,9 @@ pub fn get_file_updated_time(file_path: &Path) -> String {
         .duration_since(UNIX_EPOCH)
         .expect("Time went backwards");
     let updated_time = UNIX_EPOCH + duration_since_epoch; // 这里得到的是一个`SystemTime`
-                                                          // UTC 是全球标准时间
+    // UTC 是全球标准时间
     let updated_time_utc: DateTime<Utc> = updated_time.into(); // 转换为 `DateTime<Utc>`
-                                                               // 转换为CST 中国北京时间
+    // 转换为CST 中国北京时间
     let updated_time_cst = updated_time_utc.with_timezone(&Local);
     let updated_time_formatted = updated_time_cst.format("%Y-%m-%d %H:%M:%S").to_string();
 

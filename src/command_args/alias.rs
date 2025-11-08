@@ -1,4 +1,4 @@
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use clap::ArgAction;
 use clap::{Args, Subcommand};
 use command_util_lib::init_env::{get_shims_root_dir, get_shims_root_dir_global};
@@ -6,28 +6,21 @@ use command_util_lib::utils::system::{is_admin, request_admin};
 use command_util_lib::utils::utility::clap_args_to_lowercase;
 use crossterm::style::Stylize;
 use rayon::prelude::*;
+use rust_i18n::*;
 use std::cmp::max;
 use std::env;
 use std::path::Path;
-
-use crate::i18n::tr;
 
 #[derive(Debug, Clone, Args)]
 #[clap(
     author,
     version,
-    about = hp_bilingual!(
-        "🎉\tCreate Windows terminal aliases",
-        "🎉\t创建 Windows 终端命令别名"
-    ),
+    about = "🎉 Create Windows terminal aliases / 🎉 创建 Windows 终端命令别名",
     long_about = None
 )]
 #[command(arg_required_else_help = true, subcommand_negates_reqs = true)]
 #[command(
-    after_help = hp_bilingual!(
-        "Add: hp alias add <name> <command> [description]\nRemove: hp alias rm <name>\nList: hp alias list\nExample: hp alias add rm 'hp uninstall $args[0]' 'Uninstall an app'",
-        "添加: hp alias add <name> <command> [描述]\n删除: hp alias rm <name>\n列出: hp alias list\n示例: hp alias add rm 'hp uninstall $args[0]' '卸载应用'"
-    )
+    after_help = "Add: hp alias add <name> <command> [description] / 添加: hp alias add <name> <command> [描述]\nRemove: hp alias rm <name> / 删除: hp alias rm <name>\nList: hp alias list / 列出: hp alias list\nExample: hp alias add rm 'hp uninstall $args[0]' 'Uninstall an app' / 示例: hp alias add rm 'hp uninstall $args[0]' '卸载应用'"
 )]
 pub struct AliasArgs {
     #[command(subcommand)]
@@ -47,37 +40,47 @@ pub enum AliasSubcommands {
 }
 
 #[derive(Args, Debug, Clone)]
-#[command(about = hp_bilingual!("Delete an alias shim", "删除一个 alias shim"))]
+#[command(about = "Delete an alias shim / 删除一个 alias shim")]
 #[command(arg_required_else_help = true, subcommand_negates_reqs = true)]
 pub struct RmArgs {
-    #[arg(required = false, help = hp_bilingual!("Alias name to delete", "要删除的 alias 名称"),
-    value_parser = clap_args_to_lowercase,)]
+    #[arg(
+        required = false,
+        help = "Alias name to delete / 要删除的 alias 名称",
+        value_parser = clap_args_to_lowercase,
+    )]
     pub(crate) alias_name: Option<String>,
-    #[arg(required = false, short, long, help = hp_bilingual!("Delete all aliases", "删除所有 alias"))]
+    #[arg(
+        required = false,
+        short,
+        long,
+        help = "Delete all aliases / 删除所有 alias"
+    )]
     pub all: bool,
 }
 
 #[derive(Args, Debug, Clone)]
-#[command(about = hp_bilingual!("Create an alias shim", "添加一个 alias shim"))]
+#[command(about = "Create an alias shim / 添加一个 alias shim")]
 #[command(arg_required_else_help = true, subcommand_negates_reqs = true)]
 pub struct AddArgs {
-    #[arg(required = false, help = hp_bilingual!(
-        "Alias name to create",
-        "要创建的 alias 名称"
-    )
-        ,value_parser = clap_args_to_lowercase,
+    #[arg(
+        required = false,
+        help = "Alias name to create / 要创建的 alias 名称",
+        value_parser = clap_args_to_lowercase,
         action = ArgAction::Set
     )]
     pub(crate) alias_name: Option<String>,
-    #[arg(required = false, help = hp_bilingual!("Target command for the alias", "alias 的目标命令"))]
+    #[arg(
+        required = false,
+        help = "Target command for the alias / alias 的目标命令"
+    )]
     pub(crate) command: Option<String>,
 
-    #[arg(required = false, help = hp_bilingual!("Alias description", "alias 的描述"))]
+    #[arg(required = false, help = "Alias description / alias 的描述")]
     pub(crate) description: Option<String>,
 }
 
 #[derive(Args, Debug, Clone)]
-#[command(about = hp_bilingual!("List all alias ps1 scripts", "列出所有 alias 的 ps1 脚本"))]
+#[command(about = "List all alias ps1 scripts / 列出所有 alias 的 ps1 脚本")]
 pub struct ListArgs {}
 
 pub fn execute_alias_command(args: AliasArgs) -> anyhow::Result<()> {
@@ -134,10 +137,7 @@ fn rm_alias(alias_name: Option<String>, shim_root_dir: &str, all: bool) -> anyho
             let path = dir.path();
             let file_name = path.file_name().unwrap().to_str().unwrap();
             if file_name.starts_with("hp-") && file_name.ends_with(".ps1") {
-                println!(
-                    "{}",
-                    format!(tr("Remove file: {}", "删除文件: {}"), path.display()).dark_grey()
-                );
+                println!("{}", t!("alias.remove_file", path = path.display()));
                 std::fs::remove_file(path).context("Failed to remove ps1 script at line 115")?;
             }
         }
@@ -150,15 +150,9 @@ fn rm_alias(alias_name: Option<String>, shim_root_dir: &str, all: bool) -> anyho
     } else {
         println!(
             "{}",
-            format!(
-                tr(
-                    "Alias '{name}' removed successfully!",
-                    "Alias '{name}' 删除成功！"
-                ),
-                name = alias_name
-            )
-            .dark_green()
-            .bold()
+            t!("alias.remove_success", name = alias_name)
+                .dark_green()
+                .bold()
         );
         std::fs::remove_file(&shim_ps_script).context("Failed to remove ps1 script at line 131")?;
     }
@@ -215,12 +209,7 @@ fn list_alias(shim_root_dir: &str) -> anyhow::Result<()> {
         .collect::<Vec<_>>();
     let len = result.len();
     if len == 0 {
-        println!(
-            "{}",
-            tr("No alias found", "没有找到任何 alias")
-                .dark_green()
-                .bold()
-        );
+        println!("{}", t!("alias.none").dark_green().bold());
         return Ok(());
     }
     let alias_width = max(
@@ -256,18 +245,30 @@ fn list_alias(shim_root_dir: &str) -> anyhow::Result<()> {
     let mut flag = false;
     for (alias_name, command, summary) in result {
         if !flag {
-            use console::{pad_str, style, Alignment};
+            use console::{Alignment, pad_str, style};
+
+            let alias_title_text = t!("alias.table.alias_name").to_string();
+            let command_title_text = t!("alias.table.command").to_string();
+            let summary_title_text = t!("alias.table.summary").to_string();
 
             let alias_title = pad_str(
-                tr("Alias_Name", "Alias_名称"),
+                alias_title_text.as_str(),
                 alias_width,
                 Alignment::Left,
                 None,
             );
-            let command_title =
-                pad_str(tr("Command", "命令"), command_width, Alignment::Left, None);
-            let summary_title =
-                pad_str(tr("Summary", "摘要"), summary_width, Alignment::Left, None);
+            let command_title = pad_str(
+                command_title_text.as_str(),
+                command_width,
+                Alignment::Left,
+                None,
+            );
+            let summary_title = pad_str(
+                summary_title_text.as_str(),
+                summary_width,
+                Alignment::Left,
+                None,
+            );
 
             println!(
                 "{}{}{}",
@@ -277,9 +278,9 @@ fn list_alias(shim_root_dir: &str) -> anyhow::Result<()> {
             );
             println!(
                 "{:width1$}{:<width2$}{:<width3$}",
-                "-".repeat(tr("Alias_Name", "Alias_名称").len()),
-                "-".repeat(tr("Command", "命令").len()),
-                "-".repeat(tr("Summary", "摘要").len()),
+                "-".repeat(alias_title_text.len()),
+                "-".repeat(command_title_text.len()),
+                "-".repeat(summary_title_text.len()),
                 width1 = alias_width,
                 width2 = command_width,
                 width3 = summary_width
@@ -337,15 +338,7 @@ fn add_alias(
     std::fs::write(&alias_ps_path, alias_ps_content).context("Failed to write ps1 script")?;
     println!(
         "{}",
-        format!(
-            tr(
-                "Alias command (hp-{name}) created successfully!",
-                "Alias 命令 (hp-{name}) 创建成功！"
-            ),
-            name = alias_name
-        )
-        .dark_green()
-        .bold()
+        t!("alias.created", name = alias_name).dark_green().bold()
     );
     Ok(())
 }

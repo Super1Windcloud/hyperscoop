@@ -1,6 +1,6 @@
 #![allow(dead_code, unused_variables, unused_imports)] // all FIle
 
-use magic_crypt::{new_magic_crypt, MagicCryptTrait};
+use magic_crypt::{MagicCryptTrait, new_magic_crypt};
 
 fn h_t_s(hex: &str) -> Result<String, String> {
     let bytes = (0..hex.len())

@@ -9,7 +9,7 @@ use crate::manifest::manifest::{
     get_latest_app_version_from_local_bucket, get_latest_app_version_from_local_bucket_global,
 };
 use crate::utils::utility::{get_official_bucket_path, get_official_buckets_name};
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use crossterm::style::Stylize;
 use git2::{FetchOptions, ProxyOptions, Repository};
 use rayon::prelude::*;

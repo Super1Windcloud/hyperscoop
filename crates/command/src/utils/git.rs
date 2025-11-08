@@ -1,10 +1,10 @@
 use crate::config::get_config_value_no_print;
 use crate::utils::pull::run_pull;
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use git2::build::RepoBuilder;
 use git2::{BranchType, Cred, ProxyOptions};
 use git2::{FetchOptions, Progress, Remote, RemoteCallbacks, Repository};
-use gix::{remote::ref_map, ObjectId};
+use gix::{ObjectId, remote::ref_map};
 use serde::Deserialize;
 use std::path::Path;
 

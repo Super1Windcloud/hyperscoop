@@ -10,7 +10,7 @@ use crate::utils::utility::{
     assume_yes_to_cover_shortcuts, exclude_scoop_self_scripts, strip_extended_prefix,
     target_version_dir_to_current_dir, write_utf8_file,
 };
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use crossterm::style::Stylize;
 use shortcuts_rs::ShellLink;
 use std::fs;
@@ -406,7 +406,9 @@ pub fn create_alias_shim_name_file(
     } else if suffix == "cmd" || "bat" == suffix {
         let result = exclude_scoop_self_scripts(&exe_name, Some(alias_name.as_str()))?;
         if result != 0 {
-            bail!("Origin 二进制名或者该二进制别名 '{exe_name}' 与scoop 内置脚本的shim 冲突, 禁止覆盖")
+            bail!(
+                "Origin 二进制名或者该二进制别名 '{exe_name}' 与scoop 内置脚本的shim 冲突, 禁止覆盖"
+            )
         }
         create_cmd_or_bat_shim_scripts(
             target_path.as_str(),
@@ -418,7 +420,9 @@ pub fn create_alias_shim_name_file(
     } else if suffix == "ps1" {
         let result = exclude_scoop_self_scripts(&exe_name, Some(alias_name.as_str()))?;
         if result != 0 {
-            bail!("Origin 二进制名或者该二进制别名 '{exe_name}' 与scoop 内置脚本的shim 冲突, 禁止覆盖")
+            bail!(
+                "Origin 二进制名或者该二进制别名 '{exe_name}' 与scoop 内置脚本的shim 冲突, 禁止覆盖"
+            )
         }
         create_ps1_shim_scripts(
             &target_path,
@@ -447,7 +451,9 @@ pub fn create_alias_shim_name_file(
         // shell script file name , no extension
         let result = exclude_scoop_self_scripts(&exe_name, Some(alias_name.as_str()))?;
         if result != 0 {
-            bail!("Origin 二进制名或者该二进制别名 '{exe_name}' 与scoop 内置脚本的shim 冲突, 禁止覆盖")
+            bail!(
+                "Origin 二进制名或者该二进制别名 '{exe_name}' 与scoop 内置脚本的shim 冲突, 禁止覆盖"
+            )
         }
         create_shell_shim_scripts(
             target_path.as_str(),
@@ -497,13 +503,17 @@ pub fn create_default_shim_name_file(
     } else if suffix == "cmd" || "bat" == suffix {
         let result = exclude_scoop_self_scripts(&exe_name, None)?;
         if result != 0 {
-            bail!("Origin 二进制名或者该二进制别名 '{exe_name}' 与scoop 内置脚本的shim 冲突, 禁止覆盖")
+            bail!(
+                "Origin 二进制名或者该二进制别名 '{exe_name}' 与scoop 内置脚本的shim 冲突, 禁止覆盖"
+            )
         }
         create_cmd_or_bat_shim_scripts(target_path.as_str(), out_dir, None, None, options)?;
     } else if suffix == "ps1" {
         let result = exclude_scoop_self_scripts(&exe_name, None)?;
         if result != 0 {
-            bail!("Origin 二进制名或者该二进制别名 '{exe_name}' 与scoop 内置脚本的shim 冲突, 禁止覆盖")
+            bail!(
+                "Origin 二进制名或者该二进制别名 '{exe_name}' 与scoop 内置脚本的shim 冲突, 禁止覆盖"
+            )
         }
         create_ps1_shim_scripts(&target_path, out_dir, None, None, options)?;
     } else if suffix == "jar" {
@@ -514,7 +524,9 @@ pub fn create_default_shim_name_file(
         // shell script file name , no extension
         let result = exclude_scoop_self_scripts(&exe_name, None)?;
         if result != 0 {
-            bail!("Origin 二进制名或者该二进制别名 '{exe_name}' 与scoop 内置脚本的shim 冲突, 禁止覆盖")
+            bail!(
+                "Origin 二进制名或者该二进制别名 '{exe_name}' 与scoop 内置脚本的shim 冲突, 禁止覆盖"
+            )
         }
         create_shell_shim_scripts(target_path.as_str(), out_dir, None, None, options)?;
     } else {

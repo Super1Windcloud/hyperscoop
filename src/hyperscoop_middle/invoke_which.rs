@@ -1,6 +1,6 @@
 use crate::command_args::which::WhichArgs;
 use crate::i18n::tr;
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use command_util_lib::init_env::{
     get_app_current_dir, get_app_current_dir_global, get_shims_root_dir, get_shims_root_dir_global,
 };
@@ -38,6 +38,7 @@ pub fn execute_which_command(command: WhichArgs) -> Result<(), anyhow::Error> {
         } else {
             if !Path::new(&current_dir).exists() {
                 bail!(format!(
+                    "{} {path}",
                     tr("{path} does not exist", "{path} 不存在"),
                     path = current_dir
                 ))
@@ -45,6 +46,7 @@ pub fn execute_which_command(command: WhichArgs) -> Result<(), anyhow::Error> {
                 let manifest_json = format!("{}\\manifest.json", current_dir);
                 if !Path::new(&manifest_json).exists() {
                     bail!(format!(
+                        "{} {path}",
                         tr("{path} does not exist", "{path} 不存在"),
                         path = manifest_json
                     ))
@@ -63,6 +65,7 @@ pub fn execute_which_command(command: WhichArgs) -> Result<(), anyhow::Error> {
                     let install_json = format!("{}\\install.json", current_dir);
                     if !Path::new(&install_json).exists() {
                         bail!(format!(
+                            "{} {path}",
                             tr("{path} does not exist", "{path} 不存在"),
                             path = install_json
                         ))
@@ -140,6 +143,7 @@ pub fn output_current_exe(path: PathBuf, shim_root_dir: &str) -> anyhow::Result<
     let splits = path.split(".").collect::<Vec<&str>>();
     if splits.len() != 2 {
         bail!(format!(
+            "{} {path}",
             tr("{path} is not a valid path", "{path} 不是有效路径"),
             path = path
         ))
@@ -150,6 +154,7 @@ pub fn output_current_exe(path: PathBuf, shim_root_dir: &str) -> anyhow::Result<
         let shim_file = format!("{}.shim", prefix);
         if !Path::new(&shim_file).exists() {
             bail!(format!(
+                "{} {path}",
                 tr("{path} does not exist", "{path} 不存在"),
                 path = shim_file
             ))
@@ -163,6 +168,7 @@ pub fn output_current_exe(path: PathBuf, shim_root_dir: &str) -> anyhow::Result<
         let cmd_file = format!("{}.cmd", prefix);
         if !Path::new(&cmd_file).exists() {
             bail!(format!(
+                "{} {path}",
                 tr("{path} does not exist", "{path} 不存在"),
                 path = cmd_file
             ))
@@ -172,9 +178,10 @@ pub fn output_current_exe(path: PathBuf, shim_root_dir: &str) -> anyhow::Result<
     } else {
         eprintln!(
             "{}",
-            format!(tr("Unknown suffix: {}", "未知后缀: {}"), suffix)
+            format!("{} {}", tr("Unknown suffix: {}", "未知后缀: {}"), suffix)
         );
         bail!(format!(
+            "{} {path}",
             tr("{path} is not a valid path", "{path} 不是有效路径"),
             path = path
         ))
@@ -242,6 +249,7 @@ pub fn match_bin_parser(
                         println!(
                             "{}",
                             format!(
+                                "{} {:?}",
                                 tr("Unexpected bin format: {:?}", "无法识别的 bin 格式: {:?}"),
                                 nest_arr
                             )

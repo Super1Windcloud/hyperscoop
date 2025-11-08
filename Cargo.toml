@@ -18,18 +18,18 @@ default = []  # 默认所有feature禁用
 
 [dependencies]
 # 当依赖被标记为 "可选 optional" 时，意味着它默认不会被编译
-serde = { version = "1.0.213" }
+serde = { version = "1.0.228" }
 log = { workspace = true }
-clap = { version = "4.5.20", features = ["derive", "cargo", "color"] }
+clap = { version = "4.5.51", features = ["derive", "cargo", "color"] }
 crossterm = { workspace = true }
 clap-verbosity-flag = { workspace = true }
 anyhow = { workspace = true }
-env_logger = "0.11.5"
+env_logger = "0.11.8"
 serde_json = { workspace = true }
-command_util_lib = {workspace = true}
-regex = "1.11.1"
-rayon = "1.10.0"
-color-eyre = "0.6.3"
+command_util_lib = { workspace = true }
+regex = "1.12.2"
+rayon = "1.11.0"
+color-eyre = "0.6.5"
 reqwest = { workspace = true }
 tokio = { workspace = true }
 url = { workspace = true }
@@ -43,42 +43,46 @@ comfy-table = { workspace = true }
 indicatif = { workspace = true }
 windows = { version = "0.56.0", features = ["Win32_Foundation",
   "Win32_System_Services", "Win32_System_SystemServices", "Win32_System_Registry",
-  "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_SecurityCenter"] }
+  "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_SecurityCenter", "Wdk",
+  "Win32_System_Diagnostics", "Win32_System_SystemInformation",
+  "Wdk_System", "Win32_System_Diagnostics_Debug", "Wdk_System_SystemServices",
+  "Win32_Globalization", "Win32"] }
 winreg = "0.55.0"
-thiserror = "1.0.66"
+thiserror = "1.0.69"
 which = { workspace = true }
 qrcode = "0.14.1"
-hex = {workspace = true }
-once_cell = "1.20.2"
+hex = { workspace = true }
+once_cell = "1.21.3"
+rust-i18n = "3.1.5"
 
 
 
 [workspace.dependencies]
-command_util_lib={ path ="./crates/command"}
-human-panic = "2.0.2"
-reqwest = "0.12.9"
+command_util_lib = { path = "./crates/command" }
+human-panic = "2.0.4"
+reqwest = "0.12.24"
 indicatif = "0.17.11"
-serde = { version = "1.0.213", features = ["derive"] }
-log = "0.4.22"
-clap = { version = "4.5.20", features = ["derive"] }
+serde = { version = "1.0.228", features = ["derive"] }
+log = "0.4.28"
+clap = { version = "4.5.51", features = ["derive"] }
 crossterm = "0.28.1"
-clap-verbosity-flag = "2.2.2"
-anyhow = "1.0.91"
-serde_json = "1.0.132"
-tokio = { version = "1.44.2", features = ["full", "macros"] }
+clap-verbosity-flag = "2.2.3"
+anyhow = "1.0.100"
+serde_json = "1.0.145"
+tokio = { version = "1.48.0", features = ["full", "macros"] }
 dashmap = "6.1.0"
-quote = "1.0.37"
-syn = "2.0.91"
-color-eyre = "0.6.3"
+quote = "1.0.42"
+syn = "2.0.109"
+color-eyre = "0.6.5"
 bat = { version = "0.25.0", features = ["regex-onig", "regex-fancy"], default-features = false }
-git2 = "0.20.1"
-flate2 = "1.1.1"
-url = "2.5.4"
-sha2 = { version = "0.10.8" }
+git2 = "0.20.2"
+flate2 = "1.1.5"
+url = "2.5.7"
+sha2 = { version = "0.10.9" }
 rand = "0.8.5"
 sha1 = "0.10.6"
 line-ending = "1.5.1"
-comfy-table = "7.1.4"
+comfy-table = "7.2.1"
 which = "7.0.3"
 hex = "0.4.3"
 
@@ -95,8 +99,8 @@ resolver = "2"
 
 
 [workspace.package]
-version = "4.0.8"
-edition = "2021"
+version = "4.0.9"
+edition = "2024"
 publish = true
 authors = ["superwindcloud<<1178933440@qq.com>"]
 description = "一个更快更强更精美的Windows包管理器 "
@@ -104,7 +108,7 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/super1windcloud/hyperscoop"
 readme = "README.md"
 homepage = "https://github.com/super1windcloud"
-rust-version = "1.82.0"
+rust-version = "1.91.0"
 categories = ["command-line-utilities", "development-tools", "command-line-interface"]
 keywords = ["scoop", "windows", "package-manager", "rust", "powerful-tool"]
 exclude = ["target", "hyperscoop_source_bucket", "script", "node_modules"]
@@ -148,7 +152,7 @@ rpath = false
 criterion = "0.5.1"
 
 [target.macos.dependencies]
-core-foundation = "0.10.0"
+core-foundation = "0.10.1"
 
 [target.windows.dependencies]
 windows = "0.60.0"
@@ -191,3 +195,7 @@ name = "hash"
 path = "benches/hash_benchmark.rs"
 harness = false # 必须设置为 false 才能使用 criterion 进行基准测试
 
+
+
+[build-dependencies]
+windows = { version = "0.62.2" ,features = ["Win32_Globalization"] }

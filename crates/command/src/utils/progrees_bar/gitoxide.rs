@@ -2,7 +2,7 @@
 
 use std::sync::atomic::Ordering;
 
-use gix::{progress::MessageLevel, Count, NestedProgress, Progress};
+use gix::{Count, NestedProgress, Progress, progress::MessageLevel};
 
 impl gix::progress::Progress for super::ProgressBar {
     fn init(

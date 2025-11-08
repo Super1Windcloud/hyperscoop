@@ -6,7 +6,7 @@ fn main() {
 
 fn buffer() {
     use console::Term;
-    use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select, Sort};
+    use dialoguer::{Confirm, Input, MultiSelect, Select, Sort, theme::ColorfulTheme};
 
     fn main() {
         let items = &[
@@ -52,8 +52,8 @@ fn buffer() {
 fn multi_tree_ext() {
     use clap::Parser;
     use std::fmt::Debug;
-    use std::sync::atomic::{AtomicUsize, Ordering};
     use std::sync::Arc;
+    use std::sync::atomic::{AtomicUsize, Ordering};
     use std::thread;
     use std::time::Duration;
 
@@ -373,7 +373,7 @@ fn finebars() {
     use std::time::Duration;
 
     use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
-    use rand::{thread_rng, Rng};
+    use rand::{Rng, thread_rng};
     let styles = [
         ("Rough bar:", "█  ", "red"),
         ("Fine bar: ", "█▉▊▋▌▍▎▏  ", "yellow"),
@@ -414,10 +414,10 @@ fn yarnish() {
     use std::thread;
     use std::time::{Duration, Instant};
 
-    use console::{style, Emoji};
+    use console::{Emoji, style};
     use indicatif::{HumanDuration, MultiProgress, ProgressBar, ProgressStyle};
-    use rand::seq::SliceRandom;
     use rand::Rng;
+    use rand::seq::SliceRandom;
     static PACKAGES: &[&str] = &[
         "fs-events",
         "my-awesome-module",

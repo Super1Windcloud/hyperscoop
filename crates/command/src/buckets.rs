@@ -3,7 +3,7 @@ use crate::init_env::{
     get_buckets_root_dir_path_global,
 };
 use crate::utils::request::{get_git_repo_remote_url, request_git_clone_by_git2_with_progress};
-use anyhow::{anyhow, bail, Context};
+use anyhow::{Context, anyhow, bail};
 use chrono::{DateTime, Utc};
 use comfy_table::modifiers::UTF8_ROUND_CORNERS;
 use comfy_table::presets::UTF8_BORDERS_ONLY;
@@ -12,7 +12,7 @@ use crossterm::style::Stylize;
 use regex::Regex;
 use reqwest::get;
 use serde_json;
-use std::fs::{create_dir_all, metadata, read_dir, remove_dir_all, remove_file, rename, File};
+use std::fs::{File, create_dir_all, metadata, read_dir, remove_dir_all, remove_file, rename};
 use std::io;
 use std::io::{BufReader, Write};
 use std::path::Path;

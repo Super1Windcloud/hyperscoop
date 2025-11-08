@@ -3,7 +3,7 @@ use crate::manifest::manifest_deserialize::{
 };
 use crate::manifest::uninstall_manifest::UninstallManifest;
 use crate::utils::system::get_system_default_arch;
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use crossterm::style::Stylize;
 use std::path::{Path, PathBuf};
 

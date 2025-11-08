@@ -3,11 +3,11 @@ use crate::init_env::{
     init_scoop_global, init_user_scoop,
 };
 use crate::install::InstallOptions::ArchOptions;
-use crate::install::{install_app, InstallOptions};
+use crate::install::{InstallOptions, install_app};
 use crate::manifest::install_manifest::InstallManifest;
 use crate::manifest::manifest_deserialize::{InstallerUninstallerStruct, StringArrayOrString};
 use crate::utils::system::get_system_default_arch;
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use crossterm::style::Stylize;
 use regex::Regex;
 use std::collections::HashMap;

@@ -9,8 +9,8 @@ use std::sync::Mutex;
 use std::{
     fmt::Display,
     sync::{
-        atomic::{AtomicUsize, Ordering},
         Arc,
+        atomic::{AtomicUsize, Ordering},
     },
 };
 

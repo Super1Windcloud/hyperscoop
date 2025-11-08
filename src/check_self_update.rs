@@ -2,8 +2,8 @@
 use crate::crypto::decrypt_gitee;
 #[allow(unused_imports)]
 use crate::crypto::decrypt_github;
-use crate::i18n::tr;
-use anyhow::{anyhow, bail, Context};
+use crate::i18n::t;
+use anyhow::{Context, anyhow, bail};
 use command_util_lib::buckets::get_hp_bucket_repo_path;
 use command_util_lib::config::get_config_value_no_print;
 use command_util_lib::init_env::{
@@ -14,7 +14,7 @@ use command_util_lib::list::VersionJSON;
 use command_util_lib::utils::git::pull_special_local_repo;
 use command_util_lib::utils::utility::is_valid_url;
 use crossterm::style::Stylize;
-use reqwest::{header, Client};
+use reqwest::{Client, header};
 use serde::{Deserialize, Serialize};
 use std::env;
 use std::path::Path;
@@ -73,15 +73,9 @@ pub async fn auto_check_hp_update(old_version: Option<&str>) -> anyhow::Result<b
     if version < latest_version || hash_changed() {
         println!(
             "{}",
-            format!(
-                tr(
-                    "hp detected a new version {latest_version}. Run `hp u hp` or `hp u -f -k hp`.\nVisit https://github.com/Super1Windcloud/hp/releases for details.",
-                    "检测到 hp 新版本 {latest_version}。运行 `hp u hp` 或 `hp u -f -k hp`。\n详见 https://github.com/Super1Windcloud/hp/releases。"
-                ),
-                latest_version = latest_version
-            )
-            .dark_cyan()
-            .bold()
+            t!("update.detected", latest_version = latest_version)
+                .dark_cyan()
+                .bold()
         );
         let hp_repo = get_hp_bucket_repo_path("hp")?;
         if hp_repo.is_none() {
@@ -230,14 +224,11 @@ async fn get_latest_version_from_github() -> anyhow::Result<String> {
     if !response.status().is_success() {
         eprintln!(
             "{}",
-            format!(tr("Request failed: {}", "请求失败: {}"), response.status())
+            t!("network.request_failed", status = response.status())
         );
         eprintln!(
             "{}",
-            format!(
-                tr("Response body: {}", "响应内容: {}"),
-                response.text().await?
-            )
+            t!("network.response_body", body = response.text().await?)
         );
         return Ok("".into());
     }
@@ -261,7 +252,7 @@ async fn get_latest_version_from_gitee() -> anyhow::Result<String> {
     if !response.status().is_success() {
         return Err(anyhow::anyhow!(
             "{}",
-            format!(tr("Request failed: {}", "请求失败: {}"), response.status())
+            t!("network.request_failed", status = response.status())
         ));
     }
     let release = response.json::<GiteeRelease>().await?;
@@ -283,7 +274,7 @@ async fn get_latest_version_from_gitee() -> anyhow::Result<String> {
     if !response.status().is_success() {
         return Err(anyhow::anyhow!(
             "{}",
-            format!(tr("Request failed: {}", "请求失败: {}"), response.status())
+            t!("network.request_failed", status = response.status())
         ));
     }
     let release = response.json::<GiteeRelease>().await?;
@@ -323,7 +314,7 @@ mod test_auto_update {
         if !response.status().is_success() {
             eprintln!(
                 "{}",
-                format!(tr("Request failed: {}", "请求失败: {}"), response.status())
+                t!("network.request_failed", status = response.status())
             );
         }
         let tags: GithubRelease = response.json().await.unwrap();

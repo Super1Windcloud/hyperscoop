@@ -1,7 +1,7 @@
 use crate::command_args::cleanup::CleanupArgs;
-use crate::i18n::tr;
+use crate::i18n::t;
 use anyhow::bail;
-use anyhow::{anyhow, Context};
+use anyhow::{Context, anyhow};
 use command_util_lib::init_env::{
     get_app_dir, get_app_dir_global, get_app_version_dir, get_app_version_dir_global,
     get_apps_path, get_apps_path_global,
@@ -86,9 +86,9 @@ fn clean_specific_old_version(app_name: Vec<String>, is_global: bool) -> anyhow:
         if !*flag.lock().unwrap() {
             println!(
                 "{}",
-                format!(
-                    tr("No old versions for '{}'.", "未找到 '{}' 的旧版本。"),
-                    dir.display()
+                t!(
+                    "cleanup.no_old_versions_for",
+                    path = dir.display().to_string()
                 )
             );
         }
@@ -161,11 +161,8 @@ fn clean_all_old_versions(is_global: bool) -> anyhow::Result<()> {
         }
         versions_with_name.insert(app_name, versions_max.clone());
     }
-    if versions_with_name.len() == 0 || versions_with_name.is_empty() {
-        println!(
-            "{}",
-            tr("No old versions found", "没有发现旧版本").green().bold()
-        );
+    if versions_with_name.is_empty() {
+        println!("{}", t!("cleanup.none").as_ref().green().bold());
     }
     log::info!("{:?}", versions_with_name);
     for (app_name, version) in versions_with_name {

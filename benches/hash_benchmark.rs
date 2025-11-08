@@ -1,4 +1,4 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use rand::Rng;
 use sha1::Sha1;
 use sha2::{Digest, Sha256, Sha512};
@@ -7,7 +7,7 @@ use std::process::Command;
 
 fn generate_random_data(size: usize) -> Vec<u8> {
     let mut rng = rand::thread_rng();
-    (0..size).map(|_| rng.gen()).collect()
+    (0..size).map(|_| rng.r#gen()).collect()
 }
 
 fn sha1_benchmark(c: &mut Criterion) {

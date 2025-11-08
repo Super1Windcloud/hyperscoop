@@ -1,5 +1,5 @@
 use crate::init_env::{get_cache_dir_path, get_cache_dir_path_global};
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use crossterm::style::Stylize;
 use std::path::Path;
 

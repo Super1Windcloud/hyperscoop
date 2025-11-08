@@ -1,11 +1,11 @@
 use crate::buckets::{get_buckets_name, get_buckets_path};
 use crate::manifest::search_manifest::SearchManifest;
 use crate::utils::request::get_git_repo_remote_url;
-use crate::utils::utility::{remove_bom_and_control_chars_from_utf8_file, LARGE_COMMUNITY_BUCKET};
-use anyhow::{anyhow, bail, Context};
+use crate::utils::utility::{LARGE_COMMUNITY_BUCKET, remove_bom_and_control_chars_from_utf8_file};
+use anyhow::{Context, anyhow, bail};
 use crossterm::style::Stylize;
 use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressFinish, ProgressStyle};
-use rand::{thread_rng, Rng};
+use rand::{Rng, thread_rng};
 use rayon::prelude::*;
 use std::collections::{HashMap, HashSet};
 use std::fmt::Display;
@@ -426,7 +426,7 @@ pub fn rm_err_manifest() -> Result<(), anyhow::Error> {
 
       pb.set_position(0);
       pb.set_draw_target(ProgressDrawTarget::stdout());
-      
+
       (bucket, pb)
     }).collect::<Vec<_>>();
 

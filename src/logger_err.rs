@@ -7,9 +7,13 @@ use std::env;
 
 pub unsafe fn init_logger(x: &Cli) {
     if (cfg!(debug_assertions) || x.debug) && !x.error {
-        env::set_var("RUST_LOG", "debug");
+        unsafe {
+            env::set_var("RUST_LOG", "debug");
+        }
     } else {
-        env::set_var("RUST_LOG", "error");
+        unsafe {
+            env::set_var("RUST_LOG", "error");
+        }
     }
     init();
 }

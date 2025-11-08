@@ -184,7 +184,7 @@ mod test_env_operate {
 
     #[test] // 默认要执行很多次
     fn test_env_set() {
-        use crate::install::{handle_env_set, InstallOptions};
+        use crate::install::{InstallOptions, handle_env_set};
         use crate::manifest::install_manifest::InstallManifest;
         let global = true;
         let path = r"A:\Scoop\buckets\main\bucket\yazi.json";

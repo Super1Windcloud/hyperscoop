@@ -1,9 +1,9 @@
 use crate::init_env::*;
-use crate::install::{create_shim_or_shortcuts, InstallOptions};
+use crate::install::{InstallOptions, create_shim_or_shortcuts};
 use crate::list::VersionJSON;
 use crate::update::{check_bucket_update_status, update_all_buckets_bar_parallel};
 use crate::utils::utility::update_scoop_config_last_update_time;
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use crossterm::style::Stylize;
 use std::os::windows::fs::symlink_dir;
 use std::path::Path;

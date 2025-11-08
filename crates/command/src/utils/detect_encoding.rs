@@ -1,6 +1,6 @@
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use crossterm::style::Stylize;
-use encoding::all::{GBK, UTF_16BE, UTF_16LE, UTF_8};
+use encoding::all::{GBK, UTF_8, UTF_16BE, UTF_16LE};
 use encoding::label::encoding_from_whatwg_label;
 use encoding::{DecoderTrap, Encoding};
 use log::error;

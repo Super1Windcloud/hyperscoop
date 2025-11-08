@@ -6,12 +6,12 @@ use command_util_lib::utils::detect_encoding::{
     transform_to_only_version_manifest, transform_to_search_manifest_object,
 };
 use command_util_lib::utils::get_file_or_dir_metadata::get_dir_updated_time;
-use command_util_lib::utils::repair_dirty_json::{fix_dirty_json, DEMO_JSON};
+use command_util_lib::utils::repair_dirty_json::{DEMO_JSON, fix_dirty_json};
 use rayon::iter::ParallelBridge;
-use serde_json::{from_str, Value};
+use serde_json::{Value, from_str};
 use std::cell::RefCell;
 use std::fs;
-use std::fs::{read_to_string, File};
+use std::fs::{File, read_to_string};
 use std::io::{BufRead, BufReader, Read};
 use std::path::PathBuf;
 use std::process::exit;

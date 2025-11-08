@@ -1,6 +1,6 @@
 use crate::init_hyperscoop;
 use crate::manifest::uninstall_manifest::UninstallManifest;
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use crossterm::style::Stylize;
 use std::path::Path;
 mod env_set;
@@ -12,7 +12,7 @@ use crate::init_env::{
     get_shims_root_dir, get_shims_root_dir_global,
 };
 use crate::install::LifecycleScripts::{PostUninstall, PreUninstall, Uninstaller};
-use crate::install::{parse_lifecycle_scripts, InstallOptions};
+use crate::install::{InstallOptions, parse_lifecycle_scripts};
 use crate::utils::system::kill_processes_using_app;
 use shim_and_shortcuts::*;
 

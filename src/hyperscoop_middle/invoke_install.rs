@@ -138,7 +138,7 @@ fn create_update_options(option: &[InstallOptions]) -> anyhow::Result<Vec<Update
     Ok(update_options)
 }
 
-pub fn inject_user_options(install_args: &InstallArgs) -> anyhow::Result<Vec<InstallOptions>> {
+pub fn inject_user_options(install_args: &InstallArgs) -> anyhow::Result<Vec<InstallOptions<'_>>> {
     let mut install_options = vec![];
     if let Some(arch) = install_args.arch.as_ref() {
         // as_ref 引用原始数据

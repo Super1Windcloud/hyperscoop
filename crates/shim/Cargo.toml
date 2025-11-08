@@ -16,7 +16,7 @@ include.workspace = true
 version.workspace = true
 
 [dependencies]
-windows = { version = "0.61.1", features = ["Win32",
+windows = { version = "0.61.3", features = ["Win32",
   "Win32_System", "Win32_UI", "Win32_UI_Shell",
   "Win32_UI_WindowsAndMessaging", "Win32_System_JobObjects",
   "Win32_System_Console", "Win32_System_Threading",

@@ -4,7 +4,6 @@ use std::io::{BufRead, BufReader};
 use std::os::windows::prelude::*;
 use std::path::PathBuf;
 use std::process::Command;
-use windows::core::{BOOL, PCWSTR, PWSTR};
 use windows::Win32::Foundation::*;
 use windows::Win32::Storage::FileSystem::FILE_FLAGS_AND_ATTRIBUTES;
 use windows::Win32::System::Console::*;
@@ -12,13 +11,14 @@ use windows::Win32::System::JobObjects::CreateJobObjectW;
 use windows::Win32::System::JobObjects::*;
 use windows::Win32::System::LibraryLoader::*;
 use windows::Win32::UI::Shell::{
-    PathUnquoteSpacesW, SHGetFileInfoW, SEE_MASK_NOCLOSEPROCESS, SHFILEINFOW, SHGFI_EXETYPE,
+    PathUnquoteSpacesW, SEE_MASK_NOCLOSEPROCESS, SHFILEINFOW, SHGFI_EXETYPE, SHGetFileInfoW,
 };
+use windows::core::{BOOL, PCWSTR, PWSTR};
 
 use windows::Win32::UI::WindowsAndMessaging::SW_SHOW;
 use windows::Win32::{
     Foundation::HANDLE,
-    UI::Shell::{ShellExecuteExW, SHELLEXECUTEINFOW},
+    UI::Shell::{SHELLEXECUTEINFOW, ShellExecuteExW},
 };
 
 type WStringOpt = Option<String>;
@@ -208,7 +208,7 @@ pub unsafe extern "system" fn ctrl_handler(_ctrl_type: u32) -> BOOL {
 fn is_windows_gui_app(exe_path: &str) -> bool {
     let mut wide_path: Vec<u16> = OsString::from(exe_path).encode_wide().collect();
     wide_path.push(0); // Null 终止符
-                       // 去除路径中的引号
+    // 去除路径中的引号
     unsafe {
         let _ = PathUnquoteSpacesW(PWSTR(wide_path.as_mut_ptr()));
     }

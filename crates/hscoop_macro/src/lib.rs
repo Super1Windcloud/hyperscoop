@@ -19,14 +19,14 @@ pub fn hello_macro_derive(input: TokenStream) -> TokenStream {
 
 fn impl_hello_macro(ast: &syn::DeriveInput) -> TokenStream {
     let name = &ast.ident;
-    let gen = quote! {
+    let gen1 = quote! {
         impl HelloMacro for #name {
             fn hello_macro() {
                 println!("Hello, Macro!   My name is {}!", stringify!(#name));
             }
         }
     };
-    gen.into()
+    gen1.into()
 }
 
 #[proc_macro]

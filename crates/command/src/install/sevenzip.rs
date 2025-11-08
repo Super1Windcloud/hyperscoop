@@ -2,10 +2,10 @@ use crate::init_env::{
     get_cache_dir_path, get_cache_dir_path_global, get_shims_root_dir, get_shims_root_dir_global,
 };
 use crate::install::InstallOptions::NoUseDownloadCache;
-use crate::install::{install_app, ArchiveFormat, InstallOptions};
+use crate::install::{ArchiveFormat, InstallOptions, install_app};
 use crate::manifest::manifest_deserialize::StringArrayOrString;
 use crate::utils::system::{is_broken_symlink, kill_processes_using_app};
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use crossterm::style::Stylize;
 use std::env;
 use std::fs::File;
@@ -944,11 +944,7 @@ Expand-InnoArchive "{inno_file}" "{target_dir}"  -Removal
         let path = Path::new(&target_dir);
         let parent = path.parent().unwrap();
         let parent_name = parent.file_name().unwrap().to_str().unwrap().to_lowercase();
-        if parent_name != "apps" {
-            false
-        } else {
-            true
-        }
+        if parent_name != "apps" { false } else { true }
     }
     pub fn extract_archive_by_format(
         &self,

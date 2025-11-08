@@ -7,8 +7,8 @@ use crate::utils::system::{
 };
 use anyhow::bail;
 use std::path::PathBuf;
-use winreg::enums::*;
 use winreg::RegKey;
+use winreg::enums::*;
 
 pub fn env_var_rm(manifest: &UninstallManifest, is_global: bool) -> Result<(), anyhow::Error> {
     let env_set = manifest.env_set.clone();
@@ -114,8 +114,8 @@ pub fn env_path_var_rm(
     manifest: &UninstallManifest,
     is_global: bool,
 ) -> Result<(), anyhow::Error> {
-    use winreg::enums::*;
     use winreg::RegKey;
+    use winreg::enums::*;
     if let Some(StringArrayOrString::String(env_add_path_str)) = manifest.env_add_path.clone() {
         let path_var = if env_add_path_str == "." {
             current.clone()

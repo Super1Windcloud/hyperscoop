@@ -2,7 +2,7 @@ use crate::buckets::{get_buckets_path, get_global_all_buckets_dir};
 use crate::info::validate_app_name;
 use crate::list::get_all_installed_apps_name;
 use crate::utils::detect_encoding::transform_to_only_version_manifest;
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use crossterm::style::Stylize;
 use rayon::prelude::*;
 use std::fs::DirEntry;
@@ -254,11 +254,7 @@ fn par_read_bucket_dir(path: Vec<String>) -> anyhow::Result<Vec<PathBuf>> {
         .into_par_iter()
         .filter_map(|item| {
             let path = Path::new(&item).join("bucket");
-            if path.is_dir() {
-                Some(path)
-            } else {
-                None
-            }
+            if path.is_dir() { Some(path) } else { None }
         })
         .collect();
     Ok(path)
@@ -322,11 +318,7 @@ pub fn get_all_manifest_package_name(buckets_path: Vec<String>) -> anyhow::Resul
         .into_par_iter()
         .filter_map(|item| {
             let path = Path::new(&item).join("bucket");
-            if path.is_dir() {
-                Some(path)
-            } else {
-                None
-            }
+            if path.is_dir() { Some(path) } else { None }
         })
         .flat_map(|path| {
             par_read_dir(&path)

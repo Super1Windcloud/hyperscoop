@@ -3,7 +3,7 @@ use crate::install::InstallOptions;
 use crate::install::InstallOptions::InteractiveInstall;
 use crate::merge::Merge;
 use crate::utils::system::get_system_current_time;
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use chrono::Local;
 use crossterm::style::Stylize;
 use regex::Regex;

@@ -1,5 +1,5 @@
 use crate::manifest::install_manifest::InstallManifest;
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use crossterm::style::Stylize;
 use rayon::prelude::*;
 use std::path::Path;

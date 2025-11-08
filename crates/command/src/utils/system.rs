@@ -1,5 +1,5 @@
 use crate::init_env::get_persist_dir_path_global;
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use std::ffi::OsStr;
 use std::fs;
 use std::iter::once;
@@ -7,14 +7,14 @@ use std::os::windows::ffi::OsStrExt;
 use std::path::Path;
 use std::process::{Command, Stdio};
 use sysinfo::System;
-use windows::core::PCWSTR;
 use windows::Win32::Foundation::HANDLE;
 use windows::Win32::UI::Shell::{
-    IsUserAnAdmin, ShellExecuteExW, ShellExecuteW, SEE_MASK_NOCLOSEPROCESS, SHELLEXECUTEINFOW,
+    IsUserAnAdmin, SEE_MASK_NOCLOSEPROCESS, SHELLEXECUTEINFOW, ShellExecuteExW, ShellExecuteW,
 };
 use windows::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;
-use winreg::enums::*;
+use windows::core::PCWSTR;
 use winreg::RegKey;
+use winreg::enums::*;
 
 pub fn delete_env_var(var_key: &str) -> Result<(), anyhow::Error> {
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);

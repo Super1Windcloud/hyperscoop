@@ -1,4 +1,4 @@
-﻿use crate::check_self_update::{auto_check_hp_update, get_app_old_version};
+use crate::check_self_update::{auto_check_hp_update, get_app_old_version};
 use crate::command_args::update::UpdateArgs;
 use crate::i18n::tr;
 use anyhow::Context;
@@ -7,7 +7,7 @@ use command_util_lib::init_env::{
     get_app_version_dir,
 };
 use command_util_lib::install::UpdateOptions::ForceUpdateOverride;
-use command_util_lib::install::{install_and_replace_hp, InstallOptions, UpdateOptions};
+use command_util_lib::install::{InstallOptions, UpdateOptions, install_and_replace_hp};
 use command_util_lib::update::*;
 use command_util_lib::utils::system::{is_admin, request_admin};
 use command_util_lib::utils::utility::update_scoop_config_last_update_time;
@@ -135,6 +135,7 @@ pub async fn update_hp(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
             println!(
                 "{}",
                 format!(
+                    "{} {ver}",
                     tr(
                         "Hp latest version ('{ver}') installed successfully! ❤️‍🔥💝🐉🍾🎉",
                         "Hp 最新版本 ('{ver}') 安装成功！❤️‍🔥💝🐉🍾🎉"
@@ -172,6 +173,7 @@ pub async fn update_hp(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
         println!(
             "{}",
             format!(
+                "{} {ver}",
                 tr("hp '{ver}' is up to date", "hp '{ver}' 已是最新版本"),
                 ver = old_version
             )
@@ -202,6 +204,7 @@ pub async fn update_hp(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
     println!(
         "{}",
         format!(
+            "{} {ver}",
             tr(
                 "Hp latest version ('{ver}') installed successfully! ❤️‍🔥💝🐉🍾🎉",
                 "Hp 最新版本 ('{ver}') 安装成功！❤️‍🔥💝🐉🍾🎉"

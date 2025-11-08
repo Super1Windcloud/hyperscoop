@@ -6,12 +6,12 @@ use crossterm::style::Stylize;
 use std::process::Command;
 use std::{env, path::Path};
 use which::which;
-use windows::core::PCWSTR;
 use windows::Wdk::System::SystemServices::RtlGetVersion;
 use windows::Win32::Storage::FileSystem::GetVolumeInformationW;
 use windows::Win32::System::Diagnostics::Debug::VER_PLATFORM_WIN32_NT;
 use windows::Win32::System::SystemInformation::OSVERSIONINFOW;
-use winreg::{enums::HKEY_LOCAL_MACHINE, RegKey};
+use windows::core::PCWSTR;
+use winreg::{RegKey, enums::HKEY_LOCAL_MACHINE};
 
 #[allow(dead_code)]
 #[derive(Debug, thiserror::Error)]
@@ -121,6 +121,7 @@ pub async fn execute_checkup_command(global: bool) -> anyhow::Result<()> {
         println!(
             "{}",
             format!(
+                "{} {count}",
                 tr(
                     "Found {count} potential issues.",
                     "发现 {count} 个潜在问题。"
@@ -133,6 +134,7 @@ pub async fn execute_checkup_command(global: bool) -> anyhow::Result<()> {
         println!(
             "{}",
             format!(
+                "{} {count}",
                 tr(
                     "Found {count} performance issues.",
                     "发现 {count} 个性能问题。"
@@ -230,13 +232,10 @@ fn check_long_paths() -> anyhow::Result<CheckupResult> {
     if long_paths_enabled == 0 {
         Ok(CheckupResult {
             passed: false,
-            message: localized(
-                "LongPaths support is not enabled",
-                "LongPaths 支持尚未启用"
-            ),
+            message: localized("LongPaths support is not enabled", "LongPaths 支持尚未启用"),
             fix_hint: Some(localized(
                 "Run: Set-ItemProperty 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\FileSystem' -Name 'LongPathsEnabled' -Value 1",
-                "运行: Set-ItemProperty 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\FileSystem' -Name 'LongPathsEnabled' -Value 1"
+                "运行: Set-ItemProperty 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\FileSystem' -Name 'LongPathsEnabled' -Value 1",
             )),
         })
     } else {
@@ -449,7 +448,7 @@ fn check_dark() -> anyhow::Result<CheckupResult> {
 }
 
 use windows::Win32::System::SecurityCenter::{
-    WscGetSecurityProviderHealth, WSC_SECURITY_PROVIDER_ANTIVIRUS, WSC_SECURITY_PROVIDER_HEALTH,
+    WSC_SECURITY_PROVIDER_ANTIVIRUS, WSC_SECURITY_PROVIDER_HEALTH, WscGetSecurityProviderHealth,
 };
 
 fn check_antivirus() -> anyhow::Result<CheckupResult> {
@@ -465,7 +464,10 @@ fn check_antivirus() -> anyhow::Result<CheckupResult> {
             fix_hint: None,
         }),
         Err(e) => {
-            eprintln!("{}", format!(tr("Error: {}", "错误: {}"), e.to_string()));
+            eprintln!(
+                "{}",
+                format!("{} {}", tr("Error: {}", "错误: {}"), e.to_string())
+            );
             Err(CheckupError::ServiceError.into())
         }
     }
@@ -502,6 +504,7 @@ fn check_common_antivirus() -> anyhow::Result<CheckupResult> {
     for process in av_processes {
         if tasklist.contains(process) {
             issues.push(format!(
+                "{} {name}",
                 tr("{name} is running", "{name} 正在运行"),
                 name = process
             ));
@@ -550,6 +553,7 @@ fn check_ntfs_volumes() -> anyhow::Result<CheckupResult> {
 
     if !is_ntfs(scoop_drive) {
         issues.push(format!(
+            "{} {path}",
             tr(
                 "hp requires an NTFS volume to work! Current path: {path}",
                 "hp 需要安装在 NTFS 分区上！当前路径: {path}"
@@ -560,6 +564,7 @@ fn check_ntfs_volumes() -> anyhow::Result<CheckupResult> {
 
     if !is_ntfs(global_drive) {
         issues.push(format!(
+            "{} {path}",
             tr(
                 "hp global requires an NTFS volume to work! Current path: {path}",
                 "hp global 需要安装在 NTFS 分区上！当前路径: {path}"

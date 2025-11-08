@@ -28,9 +28,9 @@ fn calculate_sha256_by_pwsh(input: &str) -> String {
         input
     );
     let script = format!(
-    "& {{ Get-FileHash -Algorithm SHA256 -LiteralPath '{}' | Select-Object -ExpandProperty Hash }}",
-    input.replace('\'', "''")
-  );
+        "& {{ Get-FileHash -Algorithm SHA256 -LiteralPath '{}' | Select-Object -ExpandProperty Hash }}",
+        input.replace('\'', "''")
+    );
 
     dbg!(&script);
     let output = Command::new("powershell")

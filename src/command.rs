@@ -20,8 +20,8 @@ use crate::command_args::uninstall::UninstallArgs;
 use crate::command_args::update::UpdateArgs;
 use crate::command_args::which::WhichArgs;
 pub(crate) use crate::command_args::{bucket_args::BucketArgs, cache::CacheArgs};
-use crate::i18n::tr;
-use anyhow::{bail, Context};
+use crate::i18n::t;
+use anyhow::{Context, bail};
 use clap::{Args, Subcommand};
 use command_util_lib::init_env::get_app_dir_install_json;
 use command_util_lib::utils::utility::clap_args_to_lowercase;
@@ -71,33 +71,18 @@ pub(crate) enum Commands {
 #[clap(
     author,
     version,
-    about = hp_bilingual!("💖\tShow project credits", "💖\t显示 Credits 信息"),
+    about = "💖 Show project credits / 💖 显示 Credits 信息",
     long_about = None
 )]
 #[command(arg_required_else_help = false, subcommand_negates_reqs = true)]
 #[command(no_binary_name = true)]
 pub struct CreditsArgs {}
-
 pub async fn execute_credits_command() -> anyhow::Result<()> {
     if !auto_check_hp_update(None).await? {
-        println!(
-            "{}",
-            tr(
-                "💖\tYour hp version is up to date. Enjoy!",
-                "💖\t当前 hp 已是最新版本，尽情使用吧！"
-            )
-            .dark_cyan()
-            .bold()
-        );
+        println!("{}", t!("credits.up_to_date").dark_cyan().bold());
     };
 
-    let author_line = tr(
-        "Hp is created by superwindcloud (https://gitee.com/superwindcloud | https://github.com/super1windcloud)",
-        "hp 由 superwindcloud 构建 (https://gitee.com/superwindcloud | https://github.com/super1windcloud)"
-    )
-    .to_string()
-    .dark_blue()
-    .bold();
+    let author_line = t!("credits.author_line").to_string().dark_blue().bold();
     println!("💖\t{author_line}");
 
     show_reward_img();
@@ -108,25 +93,25 @@ pub async fn execute_credits_command() -> anyhow::Result<()> {
 #[clap(
     author,
     version,
-    about = hp_bilingual!(
-        "💖\tLock specific app versions so global updates skip them",
-        "💖\t锁定指定 APP 版本，后续更新与检测会跳过"
-    ),
+    about = "💖 Lock specific app versions so global updates skip them / 💖 锁定指定 APP 版本，后续更新与检测会跳过",
     long_about = None
 )]
 #[command(arg_required_else_help = true, subcommand_negates_reqs = true)]
 #[command(no_binary_name = true)]
 pub struct HoldArgs {
-    #[arg( required = false,  num_args =1.., help = hp_bilingual!(
-        "Names of the apps to hold (exact match, supports multiple values)",
-        "要锁定的 APP 名称，精确匹配，支持多个参数"
-    )
-    ,value_parser = clap_args_to_lowercase)]
+    #[arg(
+        required = false,
+        num_args = 1..,
+        help = "Names of the apps to hold (exact match, supports multiple values) / 要锁定的 APP 名称，精确匹配，支持多个参数",
+        value_parser = clap_args_to_lowercase
+    )]
     pub app_names: Option<Vec<String>>,
-    #[arg(short = 'u', long, required = false, help = hp_bilingual!(
-        "Cancel hold for the provided apps",
-        "取消锁定，支持多个 APP"
-    ))]
+    #[arg(
+        short = 'u',
+        long,
+        required = false,
+        help = "Cancel hold for the provided apps / 取消锁定，支持多个 APP"
+    )]
     pub cancel_hold: bool,
 }
 
@@ -147,18 +132,7 @@ pub fn add_key_value_to_json(
             bail!("{name} is already held.");
         }
         map.insert(new_key.to_string(), Value::Bool(new_value));
-        println!(
-            "{}",
-            format!(
-                tr(
-                    "{name} is now held and will be skipped during updates.",
-                    "{name} 已锁定，后续更新将自动跳过。"
-                ),
-                name = name
-            )
-            .dark_green()
-            .bold()
-        );
+        println!("{}", t!("hold.locked", name = name).dark_green().bold());
     } else {
         bail!("Invalid JSON: Expected an object");
     }
@@ -178,29 +152,15 @@ pub fn execute_hold_command(hold_args: HoldArgs) -> anyhow::Result<()> {
         .filter_map(|name| {
             let install_json = get_app_dir_install_json(name);
             if !Path::new(&install_json).exists() {
-                eprintln!(
-                    "{}",
-                    format!(
-                        tr("File {path} does not exist.", "{path} 不存在。"),
-                        path = install_json
-                    )
-                );
+                eprintln!("{}", t!("common.file_not_found", path = install_json));
                 None
             } else {
                 if hold_args.cancel_hold {
                     let result = unhold_locked_apps(&name, &install_json);
-                    if result.is_err() {
-                        Some(result)
-                    } else {
-                        None
-                    }
+                    if result.is_err() { Some(result) } else { None }
                 } else {
                     let result = add_key_value_to_json(&install_json, "hold".as_ref(), true, name);
-                    if result.is_err() {
-                        Some(result)
-                    } else {
-                        None
-                    }
+                    if result.is_err() { Some(result) } else { None }
                 }
             }
         })
@@ -232,15 +192,7 @@ pub fn unhold_locked_apps(app_name: &str, install_json_file: &str) -> anyhow::Re
         map.remove("hold");
         println!(
             "{}",
-            format!(
-                tr(
-                    "{name} is no longer held and can be updated again.",
-                    "{name} 已解除锁定，可以再次更新。"
-                ),
-                name = app_name
-            )
-            .dark_green()
-            .bold()
+            t!("hold.unlocked", name = app_name).dark_green().bold()
         );
     } else {
         bail!("Invalid JSON: Expected an object");
@@ -251,8 +203,8 @@ pub fn unhold_locked_apps(app_name: &str, install_json_file: &str) -> anyhow::Re
 }
 
 pub fn show_reward_img() {
-    use qrcode::render::unicode;
     use qrcode::QrCode;
+    use qrcode::render::unicode;
 
     let url = "https://img.picui.cn/free/2025/05/04/68170e249fdcd.png";
 
@@ -266,11 +218,6 @@ pub fn show_reward_img() {
     println!("{}", image);
     println!(
         "{}",
-        tr(
-            "Your support keeps me debugging through life. print! │───┘",
-            "您的支持是我调试人生的 print! │───┘"
-        )
-        .dark_cyan()
-        .bold()
+        t!("credits.support_message").as_ref().dark_cyan().bold()
     );
 }

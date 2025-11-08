@@ -1,9 +1,9 @@
 use crate::init_env::{get_app_dir, get_app_dir_global};
-use crate::install::{create_shims_file, InstallOptions};
+use crate::install::{InstallOptions, create_shims_file};
 use crate::manifest::install_manifest::InstallManifest;
 use crate::utils::system::get_system_default_arch;
 use crate::utils::utility::compare_versions;
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use crossterm::style::Stylize;
 use std::cmp::Ordering;
 use std::os::windows::fs::symlink_dir;
@@ -24,11 +24,7 @@ pub fn reset_latest_version(
         .filter_map(|entry| {
             let file_type = entry.as_ref().unwrap().file_type().unwrap();
             let path = entry.as_ref().unwrap().path();
-            if file_type.is_dir() {
-                Some(path)
-            } else {
-                None
-            }
+            if file_type.is_dir() { Some(path) } else { None }
         })
         .collect::<Vec<_>>(); // 不包含 current
     let count = child_dirs.len();

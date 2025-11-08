@@ -2,9 +2,9 @@
 
 mod command_args;
 
-use clap::builder::styling::{AnsiColor, Effects};
 use clap::builder::Styles;
-use clap::{command, Parser};
+use clap::builder::styling::{AnsiColor, Effects};
+use clap::{Parser, command};
 use clap_verbosity_flag;
 use crossterm::execute;
 use std::io::stdout;
@@ -17,9 +17,11 @@ use logger_err::init_logger;
 mod check_self_update;
 mod crypto;
 mod i18n;
-use crate::command::{execute_credits_command, execute_hold_command, Commands};
+rust_i18n::i18n!("locales");
+use crate::command::{Commands, execute_credits_command, execute_hold_command};
 use crate::command_args::alias::execute_alias_command;
-use crate::i18n::{init_language, tr, LanguageChoice};
+use crate::i18n::t;
+use crate::i18n::{LanguageChoice, init_language};
 #[allow(unused_imports)]
 use crate::logger_err::{init_color_output, invoke_admin_process};
 use check_self_update::*;
@@ -37,10 +39,7 @@ const WONDERFUL_STYLES: Styles = Styles::styled()
 #[command(
     name = "hp",
     version,
-    about = hp_bilingual!(
-        "Next-generation faster, stronger, and beautiful Windows package manager",
-        "次世代更快、更强、更精美的 Windows 包管理器"
-    ),
+    about = "Next-generation faster, stronger, and beautiful Windows package manager / 次世代更快、更强、更精美的 Windows 包管理器",
     long_about = None
 )]
 #[command(propagate_version = true)] //  版本信息传递
@@ -53,10 +52,7 @@ const WONDERFUL_STYLES: Styles = Styles::styled()
     disable_version_flag = false
 )]
 #[command(
-    after_help = hp_bilingual!(
-        "For more information about a command, run: hp [COMMAND] -h/--help\nYou can set env $SCOOP to change the installation directory.",
-        "查看更多命令信息: hp [COMMAND] -h/--help\n可以设置环境变量 $SCOOP 来调整默认的安装目录。"
-    ),
+    after_help = "For more information about a command, run: hp [COMMAND] -h/--help / 查看更多命令信息: hp [COMMAND] -h/--help\nYou can set env $SCOOP to change the installation directory. / 可以设置环境变量 $SCOOP 来调整默认的安装目录。",
     after_long_help = None
 )]
 #[command(disable_colored_help = false , styles = WONDERFUL_STYLES )]
@@ -68,10 +64,7 @@ struct Cli {
         long,
         required = false,
         global = true,
-        help = hp_bilingual!(
-            "Install into the system-wide directory",
-            "安装到系统目录"
-        ),
+        help = "Install into the system-wide directory / 安装到系统目录",
         help_heading = "Global Options"
     )]
     pub global: bool,
@@ -80,10 +73,7 @@ struct Cli {
         long,
         required = false,
         global = true,
-        help = hp_bilingual!(
-            "Enable verbose log debugging",
-            "开启日志调试模式"
-        ),
+        help = "Enable verbose log debugging / 开启日志调试模式",
         help_heading = "Global Options"
     )]
     pub debug: bool,
@@ -92,10 +82,7 @@ struct Cli {
         long,
         required = false,
         global = true,
-        help = hp_bilingual!(
-            "Force error-only logging",
-            "忽略日志调试模式，仅输出错误"
-        ),
+        help = "Force error-only logging / 忽略日志调试模式，仅输出错误",
         help_heading = "Global Options"
     )]
     pub error: bool,
@@ -107,7 +94,7 @@ struct Cli {
         long,
         required = false,
         global = true,
-        help = hp_bilingual!("Disable colored output", "禁用颜色输出"),
+        help = "Disable colored output / 禁用颜色输出",
         help_heading = "Global Options"
     )]
     pub no_color: bool,
@@ -116,10 +103,7 @@ struct Cli {
         value_enum,
         global = true,
         default_value_t = LanguageChoice::Auto,
-        help = hp_bilingual!(
-            "User-interface language (auto/en/zh)",
-            "界面语言 (auto/en/zh)"
-        ),
+        help = "User-interface language (auto/en/zh) / 界面语言 (auto/en/zh)",
         help_heading = "Global Options"
     )]
     pub lang: LanguageChoice,
@@ -129,15 +113,7 @@ struct Cli {
 async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
     init_language(cli.lang);
-    println!(
-        "\n{}\n",
-        tr(
-            "🦀 Next-generation faster, stronger, and beautiful Windows package manager!",
-            "🦀 次世代更快更强更精美的 Windows 包管理器!"
-        )
-        .dark_magenta()
-        .bold()
-    );
+    println!("\n{}\n", t!("cli.banner").as_ref().dark_magenta().bold());
     init_color_output(cli.no_color);
     unsafe {
         init_logger(&cli);
@@ -151,13 +127,7 @@ async fn main() -> anyhow::Result<()> {
     let result = match cli.command {
         None => {
             auto_check_hp_update(None).await?;
-            eprintln!(
-                "{}",
-                tr(
-                    "No command provided. Run `hp --help` to see available commands!",
-                    "未提供任何命令。运行 `hp --help` 查看可用命令！"
-                )
-            );
+            eprintln!("{}", t!("cli.no_command"));
             Ok(())
         }
         Some(input_command) => match input_command {

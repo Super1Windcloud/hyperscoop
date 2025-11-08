@@ -1,0 +1,34 @@
+zh:
+  cli:
+    banner: "🦀 次世代更快更强更精美的 Windows 包管理器！"
+    no_command: "未提供任何命令。运行 `hp --help` 查看可用命令！"
+  credits:
+    up_to_date: "💖 当前 hp 已是最新版本，尽情使用吧！"
+    author_line: "hp 由 superwindcloud 构建 (https://gitee.com/superwindcloud | https://github.com/super1windcloud)"
+    support_message: "您的支持是我调试人生的 print! │───┘"
+  hold:
+    locked: "%{name} 已锁定，后续更新将自动跳过。"
+    unlocked: "%{name} 已解除锁定，可以再次更新。"
+  common:
+    file_not_found: "%{path} 不存在。"
+  network:
+    request_failed: "请求失败: %{status}"
+    response_body: "响应内容: %{body}"
+  update:
+    detected: "检测到 hp 新版本 %{latest_version}。运行 `hp u hp` 或 `hp u -f -k hp`。\n详见 https://github.com/Super1Windcloud/hp/releases。"
+  alias:
+    remove_file: "删除文件: %{path}"
+    remove_success: "Alias '%{name}' 删除成功！"
+    none: "没有找到任何 alias"
+    created: "Alias 命令 (hp-%{name}) 创建成功！"
+    table:
+      alias_name: "Alias_名称"
+      command: "命令"
+      summary: "摘要"
+  bucket:
+    preparing_delete: "准备删除桶:"
+  cat:
+    no_app: "未提供应用名称。运行 `hp cat --help` 查看用法。"
+  cleanup:
+    no_old_versions_for: "未找到 '%{path}' 的旧版本。"
+    none: "没有发现旧版本"

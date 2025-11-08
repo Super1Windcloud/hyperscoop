@@ -1,8 +1,8 @@
 use crate::config::get_config_value_no_print;
 use crate::utils::utility::is_valid_url;
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use crossterm::style::Stylize;
-use futures::stream::{iter, StreamExt, TryStreamExt};
+use futures::stream::{StreamExt, TryStreamExt, iter};
 use reqwest::Client;
 use std::borrow::Cow;
 use std::fs::File;

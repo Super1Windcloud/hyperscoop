@@ -6,7 +6,7 @@ use crate::install::{
     create_jar_shim_scripts, create_ps1_shim_scripts, create_py_shim_scripts,
 };
 use crate::utils::utility::{exclude_scoop_self_scripts, extract_target_path_from_shell_script};
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use comfy_table::modifiers::UTF8_ROUND_CORNERS;
 use comfy_table::presets::UTF8_BORDERS_ONLY;
 use comfy_table::{Attribute, Cell, Color, ContentArrangement, Table};
@@ -402,7 +402,9 @@ pub fn create_shims<'a>(
     } else if suffix == "cmd" || "bat" == suffix {
         let result = exclude_scoop_self_scripts(target_path, Some(shim_name))?;
         if result != 0 {
-            bail!("Origin 二进制名或者该二进制别名 '{shim_name}' 与scoop 内置脚本的shim 冲突, 禁止覆盖")
+            bail!(
+                "Origin 二进制名或者该二进制别名 '{shim_name}' 与scoop 内置脚本的shim 冲突, 禁止覆盖"
+            )
         }
         if !args.is_empty() {
             create_cmd_or_bat_shim_scripts(
@@ -424,7 +426,9 @@ pub fn create_shims<'a>(
     } else if suffix == "ps1" {
         let result = exclude_scoop_self_scripts(target_path, Some(shim_name))?;
         if result != 0 {
-            bail!("Origin 二进制名或者该二进制别名 '{shim_name}' 与scoop 内置脚本的shim 冲突, 禁止覆盖")
+            bail!(
+                "Origin 二进制名或者该二进制别名 '{shim_name}' 与scoop 内置脚本的shim 冲突, 禁止覆盖"
+            )
         }
         if !args.is_empty() {
             create_ps1_shim_scripts(

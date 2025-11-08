@@ -1,14 +1,14 @@
 use crate::config::get_config_value_no_print;
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use crossterm::style::Stylize;
-use dialoguer::theme::ColorfulTheme;
 use dialoguer::Confirm;
+use dialoguer::theme::ColorfulTheme;
 use git2::{FetchOptions, Progress, ProxyOptions, RemoteCallbacks, Repository};
 use indicatif::{ProgressBar, ProgressDrawTarget, ProgressStyle};
 use regex::Regex;
 use reqwest::get;
-use std::fs::{create_dir_all, read_dir, remove_dir_all, remove_file, rename, File};
-use std::io::{copy, Read, Write};
+use std::fs::{File, create_dir_all, read_dir, remove_dir_all, remove_file, rename};
+use std::io::{Read, Write, copy};
 use std::path::Path;
 use std::process::{Command, Stdio};
 use std::time::Instant;
@@ -170,9 +170,9 @@ pub fn request_download_git_clone(
         // KB/S 或者 MB/S 的下载速度
         return if let Some(speed_caps) = speed_regex.captures(&str) {
             let result = &speed_caps[0].trim(); // 提取下载速度
-                                                // 提取字符串中的数字
-                                                // let result = result.replace("KB/s", ""); // &str 存在栈区会被释放 ,需要返回String
-                                                // let result = result.replace("MiB/s", "").trim().to_string();
+            // 提取字符串中的数字
+            // let result = result.replace("KB/s", ""); // &str 存在栈区会被释放 ,需要返回String
+            // let result = result.replace("MiB/s", "").trim().to_string();
             let result = (|| {
                 return if result.contains("KiB/s") {
                     result

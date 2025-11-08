@@ -1,0 +1,34 @@
+en:
+  cli:
+    banner: "🦀 Next-generation faster, stronger, and beautiful Windows package manager!"
+    no_command: "No command provided. Run `hp --help` to see available commands!"
+  credits:
+    up_to_date: "💖 Your hp version is up to date. Enjoy!"
+    author_line: "hp is created by superwindcloud (https://gitee.com/superwindcloud | https://github.com/super1windcloud)"
+    support_message: "Your support keeps me debugging through life. print! │───┘"
+  hold:
+    locked: "%{name} is now held and will be skipped during updates."
+    unlocked: "%{name} is no longer held and can be updated again."
+  common:
+    file_not_found: "File %{path} does not exist."
+  network:
+    request_failed: "Request failed: %{status}"
+    response_body: "Response body: %{body}"
+  update:
+    detected: "hp detected a new version %{latest_version}. Run `hp u hp` or `hp u -f -k hp`.\nVisit https://github.com/Super1Windcloud/hp/releases for details."
+  alias:
+    remove_file: "Remove file: %{path}"
+    remove_success: "Alias '%{name}' removed successfully!"
+    none: "No alias found"
+    created: "Alias command (hp-%{name}) created successfully!"
+    table:
+      alias_name: "Alias_Name"
+      command: "Command"
+      summary: "Summary"
+  bucket:
+    preparing_delete: "Preparing to delete bucket:"
+  cat:
+    no_app: "No app name provided. Run `hp cat --help` to see usage."
+  cleanup:
+    no_old_versions_for: "No old versions for '%{path}'."
+    none: "No old versions found"

@@ -11,7 +11,7 @@ use crate::manifest::install_manifest::InstallManifest;
 use crate::manifest::manifest_deserialize::{ArchitectureObject, StringArrayOrString};
 use crate::utils::system::{compute_hash_by_powershell, get_system_default_arch};
 use crate::utils::utility::{assume_yes_to_cover_folder, get_parse_url_query, is_valid_url};
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use crossterm::style::Stylize;
 use hex;
 use sha1::Sha1;
@@ -350,7 +350,7 @@ impl<'a> DownloadManager<'a> {
         Ok(())
     }
 
-    pub fn create_aria2c_instance(&self) -> Aria2C {
+    pub fn create_aria2c_instance(&self) -> Aria2C<'_> {
         let aria2c = Aria2C::new();
         aria2c
     }
@@ -359,7 +359,7 @@ impl<'a> DownloadManager<'a> {
         self.options = options;
     }
 
-    pub fn get_options(&self) -> &'a [InstallOptions] {
+    pub fn get_options(&self) -> &'a [InstallOptions<'_>] {
         self.options
     }
 
@@ -890,7 +890,7 @@ impl<'a> DownloadManager<'a> {
         extract_dir: Option<StringArrayOrString>,
         extract_to: Option<StringArrayOrString>,
         architecture: Option<ArchitectureObject>,
-    ) -> anyhow::Result<SevenZipStruct> {
+    ) -> anyhow::Result<SevenZipStruct<'_>> {
         let mut _7z = SevenZipStruct::new();
 
         let cache_files = self.get_final_cache_file_path();

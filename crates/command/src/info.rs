@@ -1,5 +1,5 @@
 use crate::utils::system::get_system_default_arch;
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use chrono::{DateTime, Local};
 use crossterm::style::Stylize;
 use crossterm::terminal;

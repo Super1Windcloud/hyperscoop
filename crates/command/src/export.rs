@@ -1,6 +1,6 @@
 use crate::buckets::get_buckets_path;
 use crate::init_env::{get_apps_path, get_scoop_cfg_path};
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use chrono::{DateTime, Utc};
 use git2::Repository;
 use rayon::prelude::*;

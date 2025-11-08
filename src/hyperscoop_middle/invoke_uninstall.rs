@@ -1,6 +1,6 @@
 use crate::command_args::uninstall::UninstallArgs;
 use crate::i18n::tr;
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use command_util_lib::init_env::{get_app_dir, get_app_dir_global};
 use command_util_lib::uninstall::*;
 use command_util_lib::utils::system::{is_admin, kill_processes_using_app, request_admin};
@@ -85,6 +85,7 @@ pub fn execute_uninstall_command(args: UninstallArgs) -> Result<(), anyhow::Erro
                         bail!(
                             "{}",
                             format!(
+                                "{} {name}",
                                 tr("'{name}' is not installed.", "'{name}' 并没有安装。"),
                                 name = app_name
                             )
