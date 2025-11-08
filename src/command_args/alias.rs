@@ -15,12 +15,18 @@ use std::path::Path;
 #[clap(
     author,
     version,
-    about = "🎉 Create Windows terminal aliases / 🎉 创建 Windows 终端命令别名",
+    about = crate::i18n::tr(
+        "🎉 Create Windows terminal aliases",
+        "🎉 创建 Windows 终端命令别名"
+    ),
     long_about = None
 )]
 #[command(arg_required_else_help = true, subcommand_negates_reqs = true)]
 #[command(
-    after_help = "Add: hp alias add <name> <command> [description] / 添加: hp alias add <name> <command> [描述]\nRemove: hp alias rm <name> / 删除: hp alias rm <name>\nList: hp alias list / 列出: hp alias list\nExample: hp alias add rm 'hp uninstall $args[0]' 'Uninstall an app' / 示例: hp alias add rm 'hp uninstall $args[0]' '卸载应用'"
+    after_help = crate::i18n::tr(
+        "Add: hp alias add <name> <command> [description]\nRemove: hp alias rm <name>\nList: hp alias list\nExample: hp alias add rm 'hp uninstall $args[0]' 'Uninstall an app'",
+        "添加: hp alias add <name> <command> [描述]\n删除: hp alias rm <name>\n列出: hp alias list\n示例: hp alias add rm 'hp uninstall $args[0]' '卸载应用'"
+    )
 )]
 pub struct AliasArgs {
     #[command(subcommand)]
@@ -40,12 +46,18 @@ pub enum AliasSubcommands {
 }
 
 #[derive(Args, Debug, Clone)]
-#[command(about = "Delete an alias shim / 删除一个 alias shim")]
+#[command(about = crate::i18n::tr(
+    "Delete an alias shim",
+    "删除一个 alias shim"
+))]
 #[command(arg_required_else_help = true, subcommand_negates_reqs = true)]
 pub struct RmArgs {
     #[arg(
         required = false,
-        help = "Alias name to delete / 要删除的 alias 名称",
+        help = crate::i18n::tr(
+            "Alias name to delete",
+            "要删除的 alias 名称"
+        ),
         value_parser = clap_args_to_lowercase,
     )]
     pub(crate) alias_name: Option<String>,
@@ -53,34 +65,49 @@ pub struct RmArgs {
         required = false,
         short,
         long,
-        help = "Delete all aliases / 删除所有 alias"
+        help = crate::i18n::tr("Delete all aliases", "删除所有 alias")
     )]
     pub all: bool,
 }
 
 #[derive(Args, Debug, Clone)]
-#[command(about = "Create an alias shim / 添加一个 alias shim")]
+#[command(about = crate::i18n::tr(
+    "Create an alias shim",
+    "添加一个 alias shim"
+))]
 #[command(arg_required_else_help = true, subcommand_negates_reqs = true)]
 pub struct AddArgs {
     #[arg(
         required = false,
-        help = "Alias name to create / 要创建的 alias 名称",
+        help = crate::i18n::tr(
+            "Alias name to create",
+            "要创建的 alias 名称"
+        ),
         value_parser = clap_args_to_lowercase,
         action = ArgAction::Set
     )]
     pub(crate) alias_name: Option<String>,
     #[arg(
         required = false,
-        help = "Target command for the alias / alias 的目标命令"
+        help = crate::i18n::tr(
+            "Target command for the alias",
+            "alias 的目标命令"
+        )
     )]
     pub(crate) command: Option<String>,
 
-    #[arg(required = false, help = "Alias description / alias 的描述")]
+    #[arg(
+        required = false,
+        help = crate::i18n::tr("Alias description", "alias 的描述")
+    )]
     pub(crate) description: Option<String>,
 }
 
 #[derive(Args, Debug, Clone)]
-#[command(about = "List all alias ps1 scripts / 列出所有 alias 的 ps1 脚本")]
+#[command(about = crate::i18n::tr(
+    "List all alias ps1 scripts",
+    "列出所有 alias 的 ps1 脚本"
+))]
 pub struct ListArgs {}
 
 pub fn execute_alias_command(args: AliasArgs) -> anyhow::Result<()> {

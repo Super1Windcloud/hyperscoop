@@ -8,23 +8,28 @@ pub enum CacheSubcommand {
 }
 
 #[derive(Debug, Clone, Args)]
-///显示所有缓存
+#[command(about = crate::i18n::tr("Show download cache entries", "显示所有缓存"))]
 pub struct ShowArgs {
     #[arg(from_global)]
     pub global: bool,
 }
 
 #[derive(Debug, Clone, Args)]
-///删除指定缓存
 #[command(arg_required_else_help = true, subcommand_negates_reqs = true)]
 pub struct RmArgs {
-    #[arg(required = false , help = "删除指定App缓存",
-    value_parser = clap_args_to_lowercase)]
+    #[arg(
+        required = false,
+        help = crate::i18n::tr("Remove cache for the provided app", "删除指定 App 缓存"),
+        value_parser = clap_args_to_lowercase
+    )]
     pub rm_app: Option<String>,
     #[arg(
         long,
         short = 'a',
-        help = "清理所有缓存\t 例如 rm -a /--all /* ",
+        help = crate::i18n::tr(
+            "Clear all cache entries (e.g. rm -a / --all / *)",
+            "清理所有缓存，例如 rm -a / --all / *"
+        ),
         alias = "*"
     )]
     pub all: bool,
@@ -33,7 +38,7 @@ pub struct RmArgs {
     #[arg(
         short = 'l',
         long,
-        help = "启动日志等级",
+        help = crate::i18n::tr("Set log level", "启动日志等级"),
         default_value = "4",
         value_name = "1-4"
     )]
@@ -42,15 +47,24 @@ pub struct RmArgs {
 
 #[derive(Args, Debug)]
 #[command(arg_required_else_help = true, subcommand_negates_reqs = true)]
-#[command(about = "🎨\t\t显示或清理下载缓存 ")]
-#[command(override_usage = " hp  cache show|rm [app(s)]")]
+#[command(about = crate::i18n::tr(
+    "🎨\t\tShow or clean download cache",
+    "🎨\t\t显示或清理下载缓存"
+))]
+#[command(override_usage = crate::i18n::tr(
+    "hp cache show|rm [app(s)]",
+    "hp cache show|rm [app(s)]"
+))]
 pub struct CacheArgs {
     #[clap(subcommand)]
     pub(crate) command: Option<CacheSubcommand>,
     #[arg(
         long,
         short = 'a',
-        help = "清理所有缓存\t 例如 rm -a /--all /* ",
+        help = crate::i18n::tr(
+            "Clear all cache entries (e.g. rm -a / --all / *)",
+            "清理所有缓存，例如 rm -a / --all / *"
+        ),
         alias = "*"
     )]
     pub all: bool,
@@ -58,7 +72,7 @@ pub struct CacheArgs {
     #[arg(
         short = 'l',
         long,
-        help = "启动日志等级",
+        help = crate::i18n::tr("Set log level", "启动日志等级"),
         default_value = "4",
         value_name = "1-4"
     )]

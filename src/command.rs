@@ -71,7 +71,7 @@ pub(crate) enum Commands {
 #[clap(
     author,
     version,
-    about = "💖 Show project credits / 💖 显示 Credits 信息",
+    about = crate::i18n::tr("💖 Show project credits", "💖 显示 Credits 信息"),
     long_about = None
 )]
 #[command(arg_required_else_help = false, subcommand_negates_reqs = true)]
@@ -93,7 +93,10 @@ pub async fn execute_credits_command() -> anyhow::Result<()> {
 #[clap(
     author,
     version,
-    about = "💖 Lock specific app versions so global updates skip them / 💖 锁定指定 APP 版本，后续更新与检测会跳过",
+    about = crate::i18n::tr(
+        "💖 Lock app versions so global updates skip them",
+        "💖 锁定指定 APP 版本，后续更新与检测会跳过"
+    ),
     long_about = None
 )]
 #[command(arg_required_else_help = true, subcommand_negates_reqs = true)]
@@ -102,7 +105,10 @@ pub struct HoldArgs {
     #[arg(
         required = false,
         num_args = 1..,
-        help = "Names of the apps to hold (exact match, supports multiple values) / 要锁定的 APP 名称，精确匹配，支持多个参数",
+        help = crate::i18n::tr(
+            "Names of the apps to hold (exact match, supports multiple values)",
+            "要锁定的 APP 名称，精确匹配，支持多个参数"
+        ),
         value_parser = clap_args_to_lowercase
     )]
     pub app_names: Option<Vec<String>>,
@@ -110,7 +116,7 @@ pub struct HoldArgs {
         short = 'u',
         long,
         required = false,
-        help = "Cancel hold for the provided apps / 取消锁定，支持多个 APP"
+        help = crate::i18n::tr("Cancel hold for these apps", "取消锁定，支持多个 APP")
     )]
     pub cancel_hold: bool,
 }

@@ -1,7 +1,5 @@
 use clap::ValueEnum;
-use command_util_lib::utils::system::get_system_env_str;
 use once_cell::sync::OnceCell;
-use reqwest::get;
 pub use rust_i18n::t;
 use std::env;
 use windows::Win32::Globalization::GetUserDefaultLocaleName;

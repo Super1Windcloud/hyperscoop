@@ -1,5 +1,4 @@
 use std::env;
-use std::io::BufRead;
 use windows::Win32::Globalization::GetUserDefaultLocaleName;
 
 fn get_gitee_env_path() -> String {

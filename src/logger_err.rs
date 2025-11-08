@@ -1,6 +1,6 @@
 use crate::Cli;
 use command_util_lib::utils::system::{is_admin, request_admin};
-use crossterm::style::{force_color_output, Stylize};
+use crossterm::style::{Stylize, force_color_output};
 use env_logger;
 use env_logger::init;
 use std::env;

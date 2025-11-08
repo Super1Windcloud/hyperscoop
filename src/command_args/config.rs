@@ -1,24 +1,36 @@
 use clap::{Args, Subcommand};
 
 #[derive(Debug, Clone, Args)]
-#[command(about = "设置配置选项, config set <name> <value>")]
+#[command(about = crate::i18n::tr(
+    "Set a configuration value, e.g. config set <name> <value>",
+    "设置配置选项，例如 config set <name> <value>"
+))]
 pub struct SetArgs {
     pub name: String,
     pub value: String,
 }
 
 #[derive(Args, Debug)]
-#[command(about = "获取指定配置, config get <name>")]
+#[command(about = crate::i18n::tr(
+    "Get a specific configuration, e.g. config get <name>",
+    "获取指定配置，例如 config get <name>"
+))]
 pub struct GetArgs {
     pub name: String,
 }
 #[derive(Args, Debug)]
-#[command(about = "显示所有配置, config show")]
+#[command(about = crate::i18n::tr(
+    "Show all configuration values, config show",
+    "显示所有配置，config show"
+))]
 
 pub struct ShowArgs {}
 
 #[derive(Args, Debug)]
-#[command(about = "删除指定配置, config rm <name> ")]
+#[command(about = crate::i18n::tr(
+    "Remove a configuration entry, config rm <name>",
+    "删除指定配置，config rm <name>"
+))]
 
 pub struct RmArgs {
     pub name: String,
@@ -34,14 +46,21 @@ pub(crate) enum ConfigSubcommand {
 #[clap(
     author,
     version,
-    about = "🐼\t\t获取或设置配置文件",
+    about = crate::i18n::tr(
+        "🐼\t\tGet or set configuration values",
+        "🐼\t\t获取或设置配置文件"
+    ),
     arg_required_else_help = true
 )]
 pub struct ConfigArgs {
     #[clap(subcommand)]
     pub(crate) command: Option<ConfigSubcommand>,
 
-    #[clap(short, long, help = "显示配置帮助信息")]
+    #[clap(
+        short,
+        long,
+        help = crate::i18n::tr("Show configuration help", "显示配置帮助信息")
+    )]
     pub config_help: bool,
 }
 
