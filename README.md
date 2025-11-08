@@ -129,6 +129,8 @@ and add it to your `$env:Path`.
 
 <p align="center">
   <img src="./img/flowser.jpg" width="350" alt="Sky illustration">
+</p>
+<p align="center">
   <img src="./img/sea.jpg" width="350" alt="Sky illustration">
 </p>
 
