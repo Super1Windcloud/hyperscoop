@@ -71,7 +71,7 @@ pub(crate) enum Commands {
 #[clap(
     author,
     version,
-    about = crate::i18n::tr("💖 Show project credits", "💖 显示 Credits 信息"),
+    about = crate::i18n::tr("💖\t\tShow project credits", "💖\t\t显示 Credits 信息"),
     long_about = None
 )]
 #[command(arg_required_else_help = false, subcommand_negates_reqs = true)]
@@ -94,8 +94,8 @@ pub async fn execute_credits_command() -> anyhow::Result<()> {
     author,
     version,
     about = crate::i18n::tr(
-        "💖 Lock app versions so global updates skip them",
-        "💖 锁定指定 APP 版本，后续更新与检测会跳过"
+        "💖\t\tLock app versions so global updates skip them",
+        "💖\t\t锁定指定 APP 版本，后续更新与检测会跳过"
     ),
     long_about = None
 )]

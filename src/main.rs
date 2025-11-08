@@ -116,12 +116,27 @@ struct Cli {
         help_heading = tr("Global Options", "全局选项")
     )]
     pub no_color: bool,
+    #[arg(
+        short = 'L',
+        long = "lang",
+        required = false,
+        global = true,
+        value_enum,
+        default_value_t = i18n::LanguageChoice::Auto,
+        help = tr(
+            "Force CLI language (auto/en/zh)",
+            "强制设置 CLI 语言 (auto/en/zh)"
+        ),
+        help_heading = tr("Global Options", "全局选项")
+    )]
+    pub language: i18n::LanguageChoice,
 }
 
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> anyhow::Result<()> {
+    let preselected_language = i18n::detect_language_choice_from_args();
+    i18n::init_language(preselected_language);
     let cli = Cli::parse();
-    println!("\n{}\n", t!("cli.banner").as_ref().dark_magenta().bold());
     init_color_output(cli.no_color);
     unsafe {
         init_logger(&cli);
@@ -135,7 +150,6 @@ async fn main() -> anyhow::Result<()> {
     let result = match cli.command {
         None => {
             auto_check_hp_update(None).await?;
-            eprintln!("{}", t!("cli.no_command"));
             Ok(())
         }
         Some(input_command) => match input_command {

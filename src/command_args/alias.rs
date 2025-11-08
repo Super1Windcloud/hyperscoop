@@ -16,8 +16,8 @@ use std::path::Path;
     author,
     version,
     about = crate::i18n::tr(
-        "🎉 Create Windows terminal aliases",
-        "🎉 创建 Windows 终端命令别名"
+        "🎉\t\tCreate Windows terminal aliases",
+        "🎉\t\t创建 Windows 终端命令别名"
     ),
     long_about = None
 )]

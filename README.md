@@ -1,38 +1,38 @@
 <a href='https://postimg.cc/HVXTGZq6' target='_blank'><img src='https://i.postimg.cc/HVXTGZq6/mmexport1677398873855.jpg' border='0' alt='mmexport1677398873855'/></a>
 > [!IMPORTANT]
-> ## Latest Release 请到 [Github](https://github.com/Super1Windcloud/hyperscoop/releases), [English Readme](./README.en.md)
+> ## Latest Release Please go to [Github](https://github.com/Super1Windcloud/hyperscoop/releases), [English Readme](./README.en.md)
 
 > [!IMPORTANT]
-> ## 运行前请关闭国产杀毒软件 ,微软等各种电脑自带的管家(卡巴斯基除外)
------- 
+> ## Before running, please close domestic antivirus software, various computer built-in guardians (except Kaspersky)
+------
 
 # HYPERSCOOP(hp)
 
-## 🐼 一个更快,更强, 更精美的  windows 包管理器,By Rust( 继承自 scoop )
---- 
+## 🐼 A faster, stronger, and more beautiful Windows package manager, written in Rust (inherited from Scoop)
+---
 
-## Feature
+## Features
 
-- > **多进度条, 多线程 , 丰富色彩, 命令识别自动补全 ......**
-- > **为Aria2动态选择合适的分片数和并发线程数, 以达到最速下载,拉爆你的带宽**
-- > **支持URL直链安装, 无拘无束, 随心所欲 ,肆意驰骋**
+- > **Multiple progress bars, multi-threading, rich colors, command auto-completion......**
+- > **Dynamically select appropriate shards and concurrent threads for Aria2 to achieve maximum download speed, pushing your bandwidth to the limit**
+- > **Support direct URL installation, unrestricted, go anywhere you want**
 
-## 快速开始,三种方式
+## Quick Start, Three Methods
 
 ### 1. By Scoop
 
 - `scoop bucket add hp https://gitee.com/SuperWindcloud/hyperscoop_bucket.git`
 - `scoop  install  -u  -s   hp/hp`
 
---- 
+---
 
-### 2. By  Powershell
+### 2. By Powershell
 
 ```powershell
 iwr   -useb  https://raw.githubusercontent.com/Super1Windcloud/hyperscoop/refs/heads/main/install.ps1    | iex
 ```
 ---
-### 3. By Cargo Binstall 
+### 3. By Cargo Binstall
 ```bash
 cargo  install  binstall
 cargo  binstall  hp2
@@ -44,17 +44,17 @@ cargo  binstall  hp2
 
 
 ---
-### 5. 下载[exe](https://github.com/Super1Windcloud/hyperscoop/releases)使用,并添加到 `$env:Path`
+### 5. Download the [exe](https://github.com/Super1Windcloud/hyperscoop/releases) and add it to `$env:Path`
 
-## 使用前提
+## Prerequisites
 
-> `hp b k` 查看官方的bucket列表, `hp b -i` 添加所有bucket ,`hp i 7zip` 用于生命周期脚本 , `hp i aria2` 安装在本地
+> `hp b k` View official bucket list, `hp b -i` Add all buckets, `hp i 7zip` for lifecycle scripts, `hp i aria2` install locally
 
 ## Bucket Demo
 
 ![bucket.png](./img/bucket.png)
 
-## 🏗 Project Status   (Completed🍻🎉🐉)
+## 🏗 Project Status (Completed🍻🎉🐉)
 
 | ![](https://i.giphy.com/media/CwfC5Pv6Rtp66h4coK/giphy.gif) |
 |:-----------------------------------------------------------:|
@@ -63,12 +63,12 @@ cargo  binstall  hp2
 ---
 
 ## CLI Features
---- 
+---
 ![img](./img/cmd1.png)
 <!-- ![cmd](https://s1.imagehub.cc/images/2025/05/21/6f39fd471bad23c23d610cdb2daab6a4.png) -->
---- 
+---
 
-## ☑️ TODO (功能全部完成, 尽情使用)
+## ☑️ TODO (All features completed, use freely)
 
 - [x]  Alias
 - [x] Bucket
@@ -95,19 +95,15 @@ cargo  binstall  hp2
 - [x] merge
 - [x] credits
 
---- 
+---
 
-## 开发计划
 
-- **[ROADMAP](./roadmap.md)**
 
 [//]: # ([![sky2.jpg]&#40;https://i.postimg.cc/76yfL7XC/sky2.jpg&#41;]&#40;https://postimg.cc/FfD9WYMm&#41;)
 ![sky](./img/sky2.jpg)
---- 
+---
 
-- 美是一种选择，甚至是一种放弃，而不是贪婪。
-- 经过人生的荒芜, 才干抵达内心的繁华
-- 君子应处木雁之间，当有龙蛇之变
+- Beauty is a choice, even a renunciation, rather than greed.
+- A gentleman should be flexible like wood and goose, adapting like dragons and snakes.
 
---- 
-
+---
