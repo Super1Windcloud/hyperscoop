@@ -1,6 +1,6 @@
 <!-- HYPERSCOOP README.md -->
 <p align="center">
-  <img src="./img/tomorrow.jpg" alt="HYPERSCOOP Logo"  height="1312"/>
+  <img src="./img/tomorrow.jpg" alt="HYPERSCOOP Logo"  height="600"/>
 </p>
 
 <h1 align="center">✨ HYPERSCOOP (hp)</h1>
