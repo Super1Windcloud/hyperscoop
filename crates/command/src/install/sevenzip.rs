@@ -5,7 +5,7 @@ use crate::install::InstallOptions::NoUseDownloadCache;
 use crate::install::{ArchiveFormat, InstallOptions, install_app};
 use crate::manifest::manifest_deserialize::StringArrayOrString;
 use crate::utils::system::{is_broken_symlink, kill_processes_using_app};
-use anyhow::{Context, bail};
+use anyhow::{Context, Ok, bail};
 use crossterm::style::Stylize;
 use std::env;
 use std::fs::File;
@@ -291,11 +291,7 @@ impl<'a> SevenZipStruct<'a> {
             if parent.file_stem().unwrap().to_str().unwrap() == "shims" {
                 self.get_temp_7z_dll_path()
             } else {
-                let dll_path = format!("{}\\7z.dll", parent.to_str().unwrap());
-                if !Path::new(&dll_path).exists() {
-                    bail!("7z.dll not found in 7zip dir , please install 7zip and try again.")
-                }
-                dll_path
+                "use another 7z derivative  version".into()
             }
         } else {
             self.get_temp_7z_dll_path()

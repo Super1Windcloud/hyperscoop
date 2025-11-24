@@ -2,10 +2,7 @@ import http.client
 import json
 import os
 from pathlib import Path
-import base64
 import argparse
-import random
-import string
 import requests
 
 
