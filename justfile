@@ -21,7 +21,7 @@ publish_release:
     just  upload
 
 publish:
-    git add -A  && git commit -m ":panda_face:    publish hp" && git push repo   master  && git push github  master:dev &&  git  push github master:main
+    git add -A  && git commit -m ":panda_face:    publish hp" && git push repo main && git push repo main:dev
     just upload
 
 upload:
@@ -49,18 +49,18 @@ update_hash:
     just  push_all
 
 push_all:
-    git push repo master && git push github master:dev && git push github master:main
+    git push repo main && git push repo main:dev
 
 no_commit_update_hash:
     python  script/hash.py
     cd  hyperscoop_source_bucket  &&  git push repo   master
-    git push repo   master  && git push github  master:dev  &&  git  push github master:main
+    git push repo main && git push repo main:dev
 
 push:
-    git add -A  && git commit -m ":panda_face:  update" && git push repo   master  && git push github  master:dev  &&  git  push github master:main
+    git add -A  && git commit -m ":panda_face:  update" && git push repo main && git push repo main:dev
 
 pull:
-    git pull repo master
+    git pull repo main
 
 musicbox:
     daktilo --preset musicbox

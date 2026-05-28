@@ -81,12 +81,6 @@ pub fn execute_bucket_command(args: BucketArgs) -> Result<(), anyhow::Error> {
             buckets.display_known_buckets(_known_args.global)?;
         }
         BucketSubcommands::Rm(rm_args) => {
-            println!(
-                "{} {} ",
-                t!("bucket.preparing_delete").as_ref().blue(),
-                &rm_args.name.clone().dark_green().bold()
-            );
-
             buckets.rm_buckets(&rm_args.name, rm_args.global)?;
         }
         BucketSubcommands::Update(_) => {
