@@ -88,6 +88,17 @@ pub async fn execute_self_update_command(args: SelfUpdateArgs) -> Result<(), any
         return Ok(());
     }
 
+    println!(
+        "{}",
+        tr(
+            "Updating buckets before hp self-update",
+            "hp 自更新前先更新 buckets"
+        )
+        .dark_cyan()
+        .bold()
+    );
+    update_buckets_parallel()?;
+
     let options = inject_self_update_options(&args);
     update_hp(&options).await
 }
@@ -152,13 +163,13 @@ fn inject_update_user_options(args: &UpdateArgs) -> anyhow::Result<Vec<UpdateOpt
 }
 
 pub(crate) fn update_buckets_parallel() -> Result<(), anyhow::Error> {
-    update_all_buckets_bar_parallel().expect("update all buckets bar failed");
+    update_all_buckets_bar_parallel().context("update all buckets bar failed")?;
     update_scoop_config_last_update_time();
     Ok(())
 }
 
 pub(crate) fn update_buckets_serial() -> Result<(), anyhow::Error> {
-    update_all_buckets_bar_serial().expect("update all buckets bar failed");
+    update_all_buckets_bar_serial().context("update all buckets bar failed")?;
     update_scoop_config_last_update_time();
     Ok(())
 }
@@ -177,7 +188,7 @@ pub async fn update_hp(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
         if !Path::new(&app_dir).exists() {
             let version = install_and_replace_hp(install_options.as_slice())
                 .await
-                .expect("hp update failed");
+                .context("hp update failed")?;
             launch_update_script(global, "", false).expect("update hp script failed");
             println!(
                 "{}",
@@ -235,7 +246,7 @@ pub async fn update_hp(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
 
     let version = install_and_replace_hp(install_options.as_slice())
         .await
-        .expect("hp update failed");
+        .context("hp update failed")?;
 
     if update_options.contains(&ForceUpdateOverride) {
         launch_update_script(global, "", true).expect("update hp script failed");
