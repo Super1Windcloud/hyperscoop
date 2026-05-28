@@ -163,7 +163,6 @@ mod test_auto_update {
 
     #[tokio::test]
     async fn test_github_api() {
-        let _token = "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";
         let owner = "super1windcloud";
         let repo = "hp";
         let url = format!(

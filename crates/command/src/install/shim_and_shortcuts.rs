@@ -556,11 +556,8 @@ pub fn create_py_shim_scripts(
             alias_name
         })
     };
-    if target_name.is_err() {
-        let target_name = target_name.unwrap();
-        bail!("Invalid target executable name {target_path} \n Error TargetName :{target_name}")
-    }
-    let target_name = target_name.unwrap();
+    let target_name = target_name
+        .map_err(|e| anyhow::anyhow!("Invalid target executable name {target_path}: {e}"))?;
     let out_shim_dir: Result<&str, anyhow::Error> = if out_shim_dir.exists() {
         Ok(out_shim_dir.to_str().unwrap())
     } else {
@@ -637,11 +634,8 @@ pub fn create_jar_shim_scripts(
             alias_name
         })
     };
-    if target_name.is_err() {
-        let target_name = target_name.unwrap();
-        bail!("Invalid target executable name {target_path} \n Error TargetName :{target_name}")
-    }
-    let target_name = target_name.unwrap();
+    let target_name = target_name
+        .map_err(|e| anyhow::anyhow!("Invalid target executable name {target_path}: {e}"))?;
     let out_shim_dir: Result<&str, anyhow::Error> = if out_shim_dir.exists() {
         Ok(out_shim_dir.to_str().unwrap())
     } else {
@@ -738,11 +732,8 @@ pub fn create_ps1_shim_scripts(
             alias_name
         })
     };
-    if target_name.is_err() {
-        let target_name = target_name.unwrap();
-        bail!("Invalid target executable name {target_path} \n Error TargetName :{target_name}")
-    }
-    let target_name = target_name.unwrap();
+    let target_name = target_name
+        .map_err(|e| anyhow::anyhow!("Invalid target executable name {target_path}: {e}"))?;
     let resolved_path = target_path;
     let out_shim_dir: Result<&str, anyhow::Error> = if out_shim_dir.exists() {
         Ok(out_shim_dir.to_str().unwrap())
@@ -842,11 +833,8 @@ pub fn create_cmd_or_bat_shim_scripts(
             alias_name
         })
     };
-    if target_name.is_err() {
-        let target_name = target_name.unwrap();
-        bail!("Invalid target executable name {target_path} \n Error TargetName :{target_name}")
-    }
-    let target_name = target_name.unwrap();
+    let target_name = target_name
+        .map_err(|e| anyhow::anyhow!("Invalid target executable name {target_path}: {e}"))?;
 
     let cmd_content = if program_args.is_none() {
         format!("@rem {target_path}\r\n@\"{target_path}\" %*\r\n")
@@ -917,16 +905,12 @@ pub fn create_shell_shim_scripts(
             alias_name
         })
     };
-    if target_name.is_err() {
-        let target_name = target_name.unwrap();
-        bail!("Invalid target executable name {target_path} \n Error TargetName :{target_name}")
-    }
+    let target_name = target_name
+        .map_err(|e| anyhow::anyhow!("Invalid target executable name {target_path}: {e}"))?;
     if !out_shim_dir.exists() {
         fs::create_dir_all(&out_shim_dir)?;
     }
     let out_shim_dir = out_shim_dir.to_str().unwrap();
-    let target_name = target_name.unwrap();
-
     let shim_cmd_path = format!("{out_shim_dir}\\{target_name}.cmd");
     println!(
         "{} {}",
@@ -997,10 +981,8 @@ pub fn create_exe_type_shim_file_and_shim_bin<P1: AsRef<Path>, P2: AsRef<Path>>(
         })
     };
 
-    if target_name.is_err() {
-        let target_name = target_name.unwrap();
-        bail!("Invalid target executable name {target_path} \n Error TargetName :{target_name}")
-    }
+    let target_name = target_name
+        .map_err(|e| anyhow::anyhow!("Invalid target executable name {target_path}: {e}"))?;
 
     let content = if program_params.is_none() {
         format!("path = \"{}\"", target_path)
@@ -1008,7 +990,6 @@ pub fn create_exe_type_shim_file_and_shim_bin<P1: AsRef<Path>, P2: AsRef<Path>>(
         let program_params = program_params.clone().unwrap();
         format!("path = \"{target_path}\"\nargs = \"{program_params}\"")
     };
-    let target_name = target_name.unwrap();
     // Determine the shim file name
     let shim_name = format!("{}.shim", target_name);
     let shim_name2 = format!("{}.exe", target_name);

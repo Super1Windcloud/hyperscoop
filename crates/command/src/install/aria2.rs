@@ -97,42 +97,25 @@ impl<'a> Aria2C<'a> {
     pub fn get_download_file_size_by_powershell(&self) -> anyhow::Result<u64> {
         let mut max_size = 0;
         let urls = self.get_download_urls();
-        let result = urls.iter().try_for_each(|url| {
-            let script = format!(
-                "try {{
-            $response = Invoke-WebRequest -Uri '{}' -Method Head -UseBasicParsing
-            if ($response.Headers['Content-Length']) {{
-                Write-Output $response.Headers['Content-Length']
-            }} else {{
-                Write-Error 'No Content-Length'
-            }}
-        }} catch {{
-            Write-Error $_
-        }}",
-                url
-            );
-            let output = Command::new("powershell")
-                .args(["-Command", &script])
-                .output()?;
-
-            if !output.status.success() {
-                let err = String::from_utf8_lossy(&output.stderr);
-                bail!("PowerShell 调用失败: {}", err);
-            }
-
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            let size = stdout
-                .trim()
+        let client = reqwest::blocking::Client::builder()
+            .timeout(Duration::from_secs(10))
+            .build()?;
+        urls.iter().try_for_each(|url| {
+            let response = client
+                .head(url)
+                .send()
+                .with_context(|| format!("Failed to get response from {}", url))?;
+            let size = response
+                .headers()
+                .get(reqwest::header::CONTENT_LENGTH)
+                .context("Content-Length header is missing")?
+                .to_str()?
                 .parse::<u64>()
-                .context("Failed to parse content-length: at line 153")?;
+                .context("Failed to parse content-length")?;
             let size_mb = size / 1024 / 1024;
             max_size = max_size.max(size_mb);
-            Ok(())
-        });
-
-        if result.is_err() {
-            bail!(result.unwrap_err());
-        }
+            Ok::<(), anyhow::Error>(())
+        })?;
         Ok(max_size)
     }
 
@@ -188,42 +171,7 @@ impl<'a> Aria2C<'a> {
                 bail!(result.unwrap_err());
             }
         } else {
-            let result = urls.iter().try_for_each(|url| {
-                let script = format!(
-                    "try {{
-            $response = Invoke-WebRequest -Uri '{}' -Method Head -UseBasicParsing
-            if ($response.Headers['Content-Length']) {{
-                Write-Output $response.Headers['Content-Length']
-            }} else {{
-                Write-Error 'No Content-Length'
-            }}
-        }} catch {{
-            Write-Error $_
-        }}",
-                    url
-                );
-                let output = Command::new("powershell")
-                    .args(["-Command", &script])
-                    .output()?;
-
-                if !output.status.success() {
-                    let err = String::from_utf8_lossy(&output.stderr);
-                    bail!("PowerShell 调用失败: {}", err);
-                }
-
-                let stdout = String::from_utf8_lossy(&output.stdout);
-                let size = stdout
-                    .trim()
-                    .parse::<u64>()
-                    .context("Failed to parse content-length: at line 153")?;
-                let size_mb = size / 1024 / 1024;
-                max_size = max_size.max(size_mb);
-                Ok(())
-            });
-
-            if result.is_err() {
-                bail!(result.unwrap_err());
-            }
+            max_size = self.get_download_file_size_by_powershell()?;
         }
         Ok(max_size)
     }

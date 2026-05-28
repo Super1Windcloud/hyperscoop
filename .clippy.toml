@@ -17,5 +17,5 @@ disallowed-names = [
 ]
 
 cognitive-complexity-threshold = 50
-msrv = "1.91"
+msrv = "1.91.0"
 type-complexity-threshold = 25000

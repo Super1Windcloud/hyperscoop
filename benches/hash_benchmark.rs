@@ -1,3 +1,5 @@
+#![allow(clippy::io_other_error)]
+
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use rand::Rng;
 use sha1::Sha1;

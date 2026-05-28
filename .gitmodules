@@ -1,0 +1,3 @@
+[submodule "hyperscoop_source_bucket"]
+	path = hyperscoop_source_bucket
+	url = git@github.com:Super1Windcloud/hyperscoop_source_bucket.git

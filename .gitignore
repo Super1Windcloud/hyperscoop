@@ -41,3 +41,7 @@ log/
 .idea/
 .ruff_cache/
 *.log
+
+# generated local binaries and shim test output
+crates/command/src/bin/output/
+crates/shim/*.exe

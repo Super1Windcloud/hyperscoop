@@ -1,6 +1,5 @@
 $repoOwner = "Super1Windcloud"
 $repoName = "hyperscoop"
-$exeName = "hp.exe"
 $installDir = "$env:USERPROFILE\Tools\hyperscoop"
 $headers = @{ "User-Agent" = "PowerShell" }
 
@@ -14,16 +13,33 @@ try {
   exit 1
 }
 
-$downloadUrl = "https://github.com/$repoOwner/$repoName/releases/download/$version/$exeName"
+switch ($env:PROCESSOR_ARCHITECTURE) {
+  "AMD64" { $arch = "x64" }
+  "ARM64" { $arch = "arm64" }
+  default { $arch = "x86" }
+}
+
+$assetName = "hp-$arch-$version.exe"
+$downloadUrl = "https://github.com/$repoOwner/$repoName/releases/download/$version/$assetName"
+$checksumUrl = "$downloadUrl.sha256"
 
 if (-not (Test-Path -Path $installDir)) {
   New-Item -ItemType Directory -Path $installDir -Force | Out-Null
 }
 
-$targetPath = Join-Path $installDir $exeName
+$targetPath = Join-Path $installDir "hp.exe"
+$checksumPath = "$targetPath.sha256"
 try {
   Write-Host "Downloading: $downloadUrl"
   Invoke-WebRequest -Uri $downloadUrl -OutFile $targetPath
+  Invoke-WebRequest -Uri $checksumUrl -OutFile $checksumPath
+  $expectedHash = ((Get-Content $checksumPath -Raw) -split '\s+')[0].Trim().ToLowerInvariant()
+  $actualHash = (Get-FileHash -Path $targetPath -Algorithm SHA256).Hash.ToLowerInvariant()
+  if ($actualHash -ne $expectedHash) {
+    Remove-Item -Path $targetPath -Force -ErrorAction SilentlyContinue
+    Write-Error "Checksum verification failed. Expected $expectedHash, got $actualHash"
+    exit 1
+  }
   Write-Host "Download complete: $targetPath"
 } catch {
   Write-Error "Download failed: $_"

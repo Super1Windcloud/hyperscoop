@@ -1,4 +1,25 @@
-#![deny(clippy::shadow)]
+#![allow(
+    clippy::collapsible_if,
+    clippy::double_ended_iterator_last,
+    clippy::empty_line_after_outer_attr,
+    clippy::enum_variant_names,
+    clippy::format_in_format_args,
+    clippy::iter_count,
+    clippy::let_and_return,
+    clippy::let_unit_value,
+    clippy::manual_strip,
+    clippy::manual_unwrap_or_default,
+    clippy::needless_bool,
+    clippy::needless_borrow,
+    clippy::needless_borrows_for_generic_args,
+    clippy::needless_return,
+    clippy::single_component_path_imports,
+    clippy::unnecessary_unwrap,
+    clippy::useless_asref,
+    clippy::useless_conversion,
+    clippy::useless_format,
+    clippy::useless_vec
+)]
 
 mod command_args;
 

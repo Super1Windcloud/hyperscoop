@@ -97,6 +97,9 @@ jobs:
          Copy-Item "x64\hp.exe"     "hp-x64-$tag.exe"
          Copy-Item "x86\hp.exe"     "hp-x86-$tag.exe"
          Copy-Item "arm64\hp.exe"   "hp-arm64-$tag.exe"
+         Get-FileHash "hp-x64-$tag.exe" -Algorithm SHA256 | ForEach-Object { $_.Hash.ToLowerInvariant() + "  hp-x64-$tag.exe" } | Set-Content -NoNewline "hp-x64-$tag.exe.sha256"
+         Get-FileHash "hp-x86-$tag.exe" -Algorithm SHA256 | ForEach-Object { $_.Hash.ToLowerInvariant() + "  hp-x86-$tag.exe" } | Set-Content -NoNewline "hp-x86-$tag.exe.sha256"
+         Get-FileHash "hp-arm64-$tag.exe" -Algorithm SHA256 | ForEach-Object { $_.Hash.ToLowerInvariant() + "  hp-arm64-$tag.exe" } | Set-Content -NoNewline "hp-arm64-$tag.exe.sha256"
          ls   *.exe
 
       - name: Create Release And Upload Build Artifacts
@@ -110,3 +113,6 @@ jobs:
              hp-x64-${{ steps.version.outputs.new_tag }}.exe
              hp-x86-${{ steps.version.outputs.new_tag }}.exe
              hp-arm64-${{ steps.version.outputs.new_tag }}.exe
+             hp-x64-${{ steps.version.outputs.new_tag }}.exe.sha256
+             hp-x86-${{ steps.version.outputs.new_tag }}.exe.sha256
+             hp-arm64-${{ steps.version.outputs.new_tag }}.exe.sha256

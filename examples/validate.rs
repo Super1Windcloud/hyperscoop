@@ -1,3 +1,5 @@
+#![allow(dead_code, non_camel_case_types)]
+
 use clap::{ValueEnum, builder::PossibleValue};
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]

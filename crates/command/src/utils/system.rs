@@ -1,7 +1,9 @@
 use crate::init_env::get_persist_dir_path_global;
 use anyhow::{Context, bail};
+use sha2::{Digest, Sha256};
 use std::ffi::OsStr;
 use std::fs;
+use std::io::Read;
 use std::iter::once;
 use std::os::windows::ffi::OsStrExt;
 use std::path::Path;
@@ -73,25 +75,7 @@ pub fn set_global_env_var(var_key: &str, var_value: &str) -> Result<(), anyhow::
     if (environment_key.set_value(var_key, &var_value) as Result<(), std::io::Error>).is_ok() {
         return Ok(());
     }
-    let powershell_command = format!(
-        "[System.Environment]::SetEnvironmentVariable(\"{}\", \"{}\", \"Machine\")",
-        var_key, var_value
-    );
-    let output = Command::new("powershell")
-        .arg("-NoProfile")
-        .arg("-Command")
-        .arg(powershell_command)
-        .stdin(Stdio::null()) // 防止出现输入提示
-        .output()?;
-
-    if output.status.success() {
-        println!("Successfully added system environment variable!");
-    } else {
-        eprintln!("Failed to add system environment variable.");
-        eprintln!("Error: {}", String::from_utf8_lossy(&output.stderr));
-        bail!("Failed to add system environment variable.");
-    }
-    Ok(())
+    bail!("Failed to add system environment variable.");
 }
 
 pub fn is_shortcut(path: &Path) -> bool {
@@ -237,39 +221,45 @@ pub fn request_admin_and_wait(args: &str) {
 }
 
 pub fn compute_hash_by_powershell(file_path: &str, algorithm: &str) -> anyhow::Result<String> {
-    let cmd = format!(
-        r#"$env:PSModulePath ="$PSHOME/Modules";(Get-FileHash -Algorithm {} -Path "{}").hash"#,
-        algorithm, file_path
-    );
-    let output = Command::new("powershell")
-        .arg("-NoProfile")
-        .arg("-Command")
-        .arg(cmd)
-        .output()
-        .expect("Failed to execute command");
-    if output.status.success() {
-        let hash = String::from_utf8_lossy(&output.stdout);
-        Ok(hash.trim().to_string())
-    } else {
-        eprintln!("{}", String::from_utf8_lossy(&output.stderr));
-        bail!("powershell.exe  compute cache hash failed")
+    if !algorithm.eq_ignore_ascii_case("sha256") {
+        bail!("unsupported hash algorithm: {algorithm}");
     }
+
+    let mut file = fs::File::open(file_path)
+        .with_context(|| format!("failed to open file for hashing: {file_path}"))?;
+    let mut hasher = Sha256::new();
+    let mut buffer = [0_u8; 8192];
+    loop {
+        let bytes_read = file
+            .read(&mut buffer)
+            .with_context(|| format!("failed to read file for hashing: {file_path}"))?;
+        if bytes_read == 0 {
+            break;
+        }
+        hasher.update(&buffer[..bytes_read]);
+    }
+    Ok(hex::encode(hasher.finalize()))
 }
 
 pub fn ensure_persist_permission() -> anyhow::Result<()> {
     if is_admin()? {
         let persist_dir = get_persist_dir_path_global();
-        let cmd = format!(
-            r"
-        $path={persist_dir};
+        let script = r"
+        $path = $env:HP_PERSIST_DIR;
         $user = New-Object System.Security.Principal.SecurityIdentifier 'S-1-5-32-545';
         $target_rule = New-Object System.Security.AccessControl.FileSystemAccessRule($user, 'Write', 'ObjectInherit', 'none', 'Allow');
         $acl = Get-Acl -Path $path;
         $acl.SetAccessRule($target_rule);
         $acl | Set-Acl -Path $path;
-       "
-        );
-        let output = Command::new(&cmd).output()?;
+       ";
+        let output = Command::new("powershell")
+            .arg("-NoProfile")
+            .arg("-NonInteractive")
+            .arg("-Command")
+            .arg(script)
+            .env("HP_PERSIST_DIR", persist_dir)
+            .stdin(Stdio::null())
+            .output()?;
         if !output.status.success() {
             bail!("Error : {}", String::from_utf8_lossy(&output.stderr));
         }
