@@ -1,16 +1,16 @@
 name: Hp  Release Pipeline
 on:
-  pull_request:
-#  push:
-    branches: ["main"]
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
 permissions:
   contents: write
 env:
   CARGO_TERM_COLOR: always
-  GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
   TERM: msys  # 或 xterm-256color
   FORCE_COLOR: 1
-  CI : false
+  CI: true
   WT_SESSION: 1
   ConEmuANSI: ON
 jobs:

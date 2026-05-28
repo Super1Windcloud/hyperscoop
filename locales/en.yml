@@ -4,7 +4,7 @@ en:
     no_command: "No command provided. Run `hp --help` to see available commands!"
   credits:
     up_to_date: "💖 Your hp version is up to date. Enjoy!"
-    author_line: "hp is created by superwindcloud (https://gitee.com/superwindcloud | https://github.com/super1windcloud)"
+    author_line: "hp is created by superwindcloud (https://github.com/super1windcloud)"
     support_message: "Your support keeps me debugging through life. print! │───┘"
   hold:
     locked: "%{name} is now held and will be skipped during updates."

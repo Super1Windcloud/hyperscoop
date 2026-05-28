@@ -1,3 +1,5 @@
+#![allow(unsafe_code)]
+
 use std::ffi::OsString;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
@@ -37,10 +39,10 @@ fn get_directory(exe_path: &str) -> String {
 }
 
 fn normalize_args(args: &mut WStringOpt, cur_dir: &str) {
-    if let Some(arg_str) = args {
-        if arg_str.contains("%~dp0") {
-            *arg_str = arg_str.replace("%~dp0", cur_dir);
-        }
+    if let Some(arg_str) = args
+        && arg_str.contains("%~dp0")
+    {
+        *arg_str = arg_str.replace("%~dp0", cur_dir);
     }
 }
 
@@ -67,11 +69,11 @@ fn get_shim_info() -> color_eyre::Result<ShimInfo> {
     let mut args: WStringOpt = None;
 
     if let Some(reader) = reader {
-        for line in reader.lines().flatten() {
-            if line.starts_with("path = ") {
-                path = Some(line[7..].trim().to_string());
-            } else if line.starts_with("args = ") {
-                args = Some(line[7..].trim().to_string());
+        for line in reader.lines().map_while(Result::ok) {
+            if let Some(value) = line.strip_prefix("path = ") {
+                path = Some(value.trim().to_string());
+            } else if let Some(value) = line.strip_prefix("args = ") {
+                args = Some(value.trim().to_string());
             }
         }
     }
@@ -93,15 +95,14 @@ fn is_elevation_required(error: &std::io::Error) -> bool {
     }
 }
 
-fn remove_extra_quotes(str: &str) -> String {
-    str.trim_matches(|c| c == '\'' || c == '"').to_string()
+fn remove_extra_quotes(value: &str) -> String {
+    value.trim_matches(|c| c == '\'' || c == '"').to_string()
 }
 fn make_process(info: &ShimInfo) -> Option<std::process::Child> {
     let path = info.path.as_ref()?;
     let path = remove_extra_quotes(path);
     let args = info.args.as_ref()?.to_string();
     let args = remove_extra_quotes(&args);
-    let args_split = args.split_whitespace().collect::<Vec<_>>().join(" ");
     let process = Command::new(&path).args(args.split_whitespace()).spawn();
     match process {
         Ok(child) => Some(child),
@@ -164,7 +165,7 @@ fn elevate_process(exe_path: &str, params: &str) -> bool {
             Ok(sei.hProcess)
         }
     };
-    if let Ok(pi) = pi {
+    if let Ok(_pi) = pi {
         true
     } else {
         eprintln!("Failed to create elevated process.");
@@ -190,8 +191,8 @@ fn create_job_object() -> Option<HANDLE> {
             size_of::<JOBOBJECT_EXTENDED_LIMIT_INFORMATION>() as u32,
         )
     };
-    if result.is_err() {
-        println!("Error setting job object limit. {:?}", result.unwrap_err());
+    if let Err(err) = result {
+        println!("Error setting job object limit. {:?}", err);
     }
     Some(job)
 }
@@ -201,6 +202,10 @@ fn set_console_ctrl_handler() {
     }
 }
 
+/// # Safety
+///
+/// Windows invokes this callback from the console control handler context.
+/// The implementation does not dereference pointers or touch shared Rust state.
 pub unsafe extern "system" fn ctrl_handler(_ctrl_type: u32) -> BOOL {
     TRUE // 忽略所有 Ctrl+C 等信号
 }

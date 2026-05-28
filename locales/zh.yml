@@ -4,7 +4,7 @@ zh:
     no_command: "未提供任何命令。运行 `hp --help` 查看可用命令！"
   credits:
     up_to_date: "💖 当前 hp 已是最新版本，尽情使用吧！"
-    author_line: "hp 由 superwindcloud 构建 (https://gitee.com/superwindcloud | https://github.com/super1windcloud)"
+    author_line: "hp 由 superwindcloud 构建 (https://github.com/super1windcloud)"
     support_message: "您的支持是我调试人生的 print! │───┘"
   hold:
     locked: "%{name} 已锁定，后续更新将自动跳过。"

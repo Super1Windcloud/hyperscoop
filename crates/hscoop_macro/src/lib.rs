@@ -1,6 +1,5 @@
 use proc_macro::TokenStream; // 词法树
 use quote::quote;
-use syn;
 use syn::{Data, DeriveInput};
 
 #[proc_macro_attribute]
@@ -82,24 +81,19 @@ pub fn my_default(input: TokenStream) -> TokenStream {
     let mut field_ast = quote!();
 
     // 这里就是要动态添加token的地方了，需要动态完成Self的字段赋值
-    for (idx, f) in s.fields.iter().enumerate() {
-        let (field_id, field_ty) = (&f.ident, &f.ty);
+    for f in s.fields.iter() {
+        let (field_id, _field_ty) = (&f.ident, &f.ty);
 
-        if field_id.is_none() {
-            let field_idx = syn::Index::from(idx);
-            field_ast.extend(quote! {});
-        } else {
-            field_ast.extend(quote! {});
-        }
+        let _ = field_id;
+        field_ast.extend(quote! {});
     }
 
-    let result = quote! {
+    quote! {
         impl std::default::Default for #id {
             fn default() -> Self {
                 Self { #field_ast }
             }
         }
     }
-    .into();
-    result
+    .into()
 }

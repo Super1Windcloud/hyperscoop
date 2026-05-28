@@ -27,9 +27,17 @@ shim_proxy
 script/.venv
 script/venv
 script/__pycache__
+__pycache__/
+*.py[cod]
 
+# local secrets and generated logs
+*.pem
+*.key
+log/
+.env
+.github_token
 
-
-
-
-script/__pycache__/publish.cpython-313.pyc
+# local IDE and temporary output
+.idea/
+.ruff_cache/
+*.log

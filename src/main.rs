@@ -3,9 +3,9 @@
 mod command_args;
 
 use crate::i18n::tr;
+use clap::Parser;
 use clap::builder::Styles;
 use clap::builder::styling::{AnsiColor, Effects};
-use clap::{Parser, command};
 use clap_verbosity_flag;
 use crossterm::execute;
 use std::io::stdout;
@@ -16,7 +16,6 @@ use hyperscoop_middle::*;
 mod logger_err;
 use logger_err::init_logger;
 mod check_self_update;
-mod crypto;
 mod i18n;
 rust_i18n::i18n!("locales");
 use crate::command::{Commands, execute_credits_command, execute_hold_command};
@@ -25,7 +24,6 @@ use crate::command_args::alias::execute_alias_command;
 use crate::logger_err::{init_color_output, invoke_admin_process};
 use check_self_update::*;
 use crossterm::style::{Print, Stylize};
-use rust_i18n::t;
 
 const WONDERFUL_STYLES: Styles = Styles::styled()
     .header(AnsiColor::Green.on_default().effects(Effects::BOLD))

@@ -6,6 +6,5 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "googletrans>=4.0.2",
-    "pycryptodome>=3.22.0",
     "requests>=2.32.3",
 ]

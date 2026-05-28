@@ -26,7 +26,6 @@ space_example = ["run", "--release", "--", "\"command list\""]
 target-dir = "target"
 rustc = "rustc"
 rustdoc = "rustdoc"
-rustflags = ["-A", "unused_imports", "-A", "unused_variables"]
 
 [net]
 retry = 3                   # network retries

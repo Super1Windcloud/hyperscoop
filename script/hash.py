@@ -1,29 +1,7 @@
 import hashlib
 import os
-import http.client
 import json
 from changelog import download_file_then_compute_hash
-
-
-def get_gitee_latest_version():
-    host = "gitee.com"
-    url = "/api/v5/repos/SuperWindcloud/hyperscoop/releases/latest"
-    headers = {"Content-Type": "application/json;charset=UTF-8"}
-
-    data = {
-        "access_token": "1fba69da2f34d7b0b42c6812153d6d12",
-    }
-
-    json_data = json.dumps(data)
-
-    conn = http.client.HTTPSConnection(host)
-    conn.request("GET", url, body=json_data, headers=headers)
-
-    response = conn.getresponse()
-    print("Status:", response.status, response.reason)
-    response = json.loads(response.read().decode())
-    conn.close()
-    return response.get("tag_name")
 
 
 def get_version_from_cargo():

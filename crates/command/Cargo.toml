@@ -12,6 +12,7 @@ homepage = { workspace = true }
 rust-version = { workspace = true }
 keywords = { workspace = true }
 categories = { workspace = true }
+autobins = false
 
 [dependencies]
 serde = { workspace = true }
@@ -70,16 +71,3 @@ name = "command_util_lib"
 crate-type = ["lib"]
 proc-macro = false
 path = "src/lib.rs"
-
-[[bin]]
-name = "main"
-path = "src/bin/bin.rs"
-
-[[bin]]
-name = "test"
-path = "src/bin/test.rs"
-
-
-[[bin]]
-name = "indicatif_demo"
-path = "src/bin/indicatif_demo.rs"

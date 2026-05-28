@@ -3,7 +3,7 @@ use criterion::{BatchSize, Criterion, black_box, criterion_group, criterion_main
 fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("parse url", |b| {
         b.iter_batched(
-            || "https://gitee.com/SuperWindcloud/hyperscoop",
+            || "https://github.com/Super1Windcloud/hyperscoop",
             |url| black_box(url::Url::parse(black_box(url)).unwrap()),
             BatchSize::SmallInput,
         );

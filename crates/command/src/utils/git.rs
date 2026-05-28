@@ -352,7 +352,7 @@ fn start_fetch(
 
 pub fn pull_special_local_repo(repo_path: &str) -> anyhow::Result<()> {
     let branch = "master";
-    let hp_url = "https://gitee.com/SuperWindcloud/hyperscoop_bucket.git";
+    let hp_url = "https://github.com/Super1Windcloud/hyperscoop_bucket.git";
     if Path::new(repo_path).exists() {
         let repo = Repository::open(repo_path)?;
         let mut remote = repo.find_remote("origin")?;

@@ -1,6 +1,3 @@
-﻿#![deny(clippy::shadow)]
-warn_about_specific_lints = ["clippy::unwrap_used"]
-
 disallowed-names = [
   "bool",
   "char",
@@ -17,9 +14,8 @@ disallowed-names = [
   "u64",
   "isize",
   "usize",
-
 ]
 
 cognitive-complexity-threshold = 50
-msrv = "1.73"
+msrv = "1.91"
 type-complexity-threshold = 25000

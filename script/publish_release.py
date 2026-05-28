@@ -101,7 +101,7 @@ def get_github_access_token():
 
 def init_parser():
     parser = argparse.ArgumentParser(
-        description="Publish hp   release to gitee",
+        description="Publish hp release to GitHub",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""示例用法:
       python publish_release.py -t v1.0.0 -n "新版本" -b "更新说明"

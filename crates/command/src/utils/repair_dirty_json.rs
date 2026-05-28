@@ -1,7 +1,6 @@
 use regex::Regex;
 
 #[allow(unused)]
-
 pub const DEMO_JSON: &str = r#"
 {
     "version": "20141215",
@@ -31,7 +30,6 @@ pub const DEMO_JSON: &str = r#"
 "#;
 
 #[allow(unused)]
-
 pub fn fix_dirty_json(dirty_json: &str) -> Result<String, anyhow::Error> {
     let mut json_str = repairing_json(&dirty_json)?;
     println!("{}", json_str);
@@ -43,7 +41,6 @@ pub fn fix_dirty_json(dirty_json: &str) -> Result<String, anyhow::Error> {
     Ok(json_value.to_string())
 }
 #[allow(unused)]
-
 fn repairing_json(dirty_json: &str) -> Result<String, anyhow::Error> {
     //  替换掉单引号
     let json_str = dirty_json.trim().to_string();

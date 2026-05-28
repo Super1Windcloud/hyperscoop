@@ -363,12 +363,12 @@ mod test_manifest_deserialize {
             if persist.is_some() {
                 let persist = persist.unwrap();
                 match persist {
-                    StringOrArrayOrDoubleDimensionArray::StringArray(array) => {
+                    StringOrArrayOrDoubleDimensionArray::StringArray(_array) => {
                         // println!("persist {:?}", array);
                         // println!(" path {}", path.display());
                         // *_count.lock().unwrap() += 1;
                     }
-                    StringOrArrayOrDoubleDimensionArray::String(str) => {
+                    StringOrArrayOrDoubleDimensionArray::String(_str) => {
                         // println!("persist {:?}", str);
                     }
                     StringOrArrayOrDoubleDimensionArray::DoubleDimensionArray(double_arr) => {
@@ -394,11 +394,11 @@ mod test_manifest_deserialize {
             path: &PathBuf,
             _count: &Arc<Mutex<i32>>,
         ) -> bool {
-            let bin = _manifest.bin;
+            let _bin = _manifest.bin;
             let shortcuts = _manifest.shortcuts;
             if shortcuts.is_some() {
                 let shortcuts = shortcuts.unwrap();
-                let result = match shortcuts {
+                let _result = match shortcuts {
                     ArrayOrDoubleDimensionArray::StringArray(array) => {
                         println!("shortcuts {:?}", array);
                         println!(" path {}", path.display());
@@ -432,7 +432,7 @@ mod test_manifest_deserialize {
             let shortcuts = _manifest.shortcuts;
             if shortcuts.is_some() {
                 let shortcuts = shortcuts.unwrap();
-                let result = match shortcuts {
+                let _result = match shortcuts {
                     StringOrStringArrayOrDoubleDimensionArray::StringArray(array) => {
                         println!(
                             "StringOrStringArrayOrDoubleDimensionArray Array shortcuts {:?}",

@@ -137,7 +137,7 @@ pub async fn update_hp(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
                 format!(
                     "{}",
                     format!(
-                        "{} {}",
+                        "{} {ver}",
                         tr(
                             "Hp latest version ('{ver}') installed successfully! ❤️‍🔥💝🐉🍾🎉",
                             "Hp 最新版本 ('{ver}') 安装成功！❤️‍🔥💝🐉🍾🎉"
@@ -209,7 +209,7 @@ pub async fn update_hp(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
         format!(
             "{}",
             format!(
-                "{} {}",
+                "{} {ver}",
                 tr(
                     "Hp latest version ('{ver}') installed successfully! ❤️‍🔥💝🐉🍾🎉",
                     "Hp 最新版本 ('{ver}') 安装成功！❤️‍🔥💝🐉🍾🎉"

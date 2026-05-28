@@ -14,6 +14,7 @@ fn calculate_sha256(input: &str) -> String {
     format!("{:x}", sha256)
 }
 
+#[allow(dead_code)]
 fn calculate_sha256_by_pwsh(input: &str) -> String {
     let input = if input.starts_with("\"") {
         input.trim_matches('"').replace("\"", "").to_string()
@@ -23,10 +24,6 @@ fn calculate_sha256_by_pwsh(input: &str) -> String {
         input.to_string()
     };
     dbg!(&input);
-    let script = format!(
-        "Get-FileHash -Algorithm SHA256 -Path \"{}\" | Select-Object -ExpandProperty Hash",
-        input
-    );
     let script = format!(
         "& {{ Get-FileHash -Algorithm SHA256 -LiteralPath '{}' | Select-Object -ExpandProperty Hash }}",
         input.replace('\'', "''")
@@ -45,6 +42,7 @@ fn calculate_sha256_by_pwsh(input: &str) -> String {
     sha256.trim().to_string()
 }
 
+#[allow(dead_code)]
 fn test_elapsed_time() {
     let start = std::time::Instant::now();
     let scoop = std::env::var("SCOOP").unwrap();
