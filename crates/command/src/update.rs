@@ -228,7 +228,6 @@ pub fn update_all_buckets_bar_serial() -> anyhow::Result<()> {
             );
 
             pb.set_position(0);
-            pb.set_draw_target(ProgressDrawTarget::stdout());
             (pb, bucket_path)
         })
         .collect::<Vec<_>>();
@@ -271,7 +270,6 @@ pub fn update_all_buckets_bar_parallel() -> anyhow::Result<()> {
             );
 
             pb.set_position(0);
-            pb.set_draw_target(ProgressDrawTarget::stdout());
             (pb, bucket_path)
         })
         .collect::<Vec<_>>();

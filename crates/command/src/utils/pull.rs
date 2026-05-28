@@ -134,7 +134,6 @@ fn normal_merge(
     let mut idx = repo.merge_trees(&ancestor, &local_tree, &remote_tree, None)?;
 
     if idx.has_conflicts() {
-        println!("Merge conflicts detected...");
         repo.checkout_index(Some(&mut idx), None)?;
         bail!("Merge conflicts detected");
     }
