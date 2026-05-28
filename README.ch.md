@@ -21,7 +21,7 @@
 
 ### 1. By Scoop
 
-- `scoop bucket add hp https://github.com/Super1Windcloud/hyperscoop_bucket.git`
+- `scoop bucket add hp https://github.com/Super1Windcloud/hyperscoop_source_bucket.git`
 - `scoop  install  -u  -s   hp/hp`
 
 --- 

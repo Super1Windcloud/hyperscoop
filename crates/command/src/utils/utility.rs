@@ -112,7 +112,7 @@ pub fn get_official_bucket_urls<'a>() -> Vec<&'a str> {
         "https://github.com/ScoopInstaller/Nonportable",
         "https://github.com/ScoopInstaller/Java",
         "https://github.com/Calinou/scoop-games",
-        "https://github.com/Super1Windcloud/hyperscoop_bucket.git",
+        "https://github.com/Super1Windcloud/hyperscoop_source_bucket.git",
     ]
 }
 

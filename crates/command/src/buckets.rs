@@ -525,8 +525,8 @@ pub fn get_hp_bucket_repo_path(bucket_name: &str) -> anyhow::Result<Option<Strin
         let result = urls
             .into_iter()
             .zip(bucket_paths.into_iter())
-            .find(|(url, _)| url.contains("hyperscoop_bucket"))
-            .ok_or_else(|| anyhow!("未找到 hyperscoop_bucket 仓库"))
+            .find(|(url, _)| url.contains("hyperscoop_source_bucket"))
+            .ok_or_else(|| anyhow!("未找到 hyperscoop_source_bucket 仓库"))
             as anyhow::Result<(String, String)>;
 
         if result.is_err() {
