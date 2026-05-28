@@ -4,7 +4,7 @@ use command_util_lib::cat::catch_manifest;
 
 pub fn execute_cat_command(cat: CatArgs) -> Result<(), anyhow::Error> {
     if cat.app_name.is_empty() {
-        eprintln!("{}", t!("cat.no_app"));
+        log::debug!("{}", t!("cat.no_app"));
         return Ok(());
     }
     let app_name = cat.app_name.clone();

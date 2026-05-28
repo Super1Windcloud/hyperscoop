@@ -81,11 +81,11 @@ pub(crate) enum Commands {
 pub struct CreditsArgs {}
 pub async fn execute_credits_command() -> anyhow::Result<()> {
     if !auto_check_hp_update(None).await? {
-        println!("{}", t!("credits.up_to_date").dark_cyan().bold());
+        log::debug!("{}", t!("credits.up_to_date").dark_cyan().bold());
     };
 
     let author_line = t!("credits.author_line").to_string().dark_blue().bold();
-    println!("💖\t{author_line}");
+    log::debug!("💖\t{author_line}");
 
     show_reward_img();
     Ok(())
@@ -140,7 +140,7 @@ pub fn add_key_value_to_json(
             bail!("{name} is already held.");
         }
         map.insert(new_key.to_string(), Value::Bool(new_value));
-        println!("{}", t!("hold.locked", name = name).dark_green().bold());
+        log::debug!("{}", t!("hold.locked", name = name).dark_green().bold());
     } else {
         bail!("Invalid JSON: Expected an object");
     }
@@ -160,7 +160,7 @@ pub fn execute_hold_command(hold_args: HoldArgs) -> anyhow::Result<()> {
         .filter_map(|name| {
             let install_json = get_app_dir_install_json(name);
             if !Path::new(&install_json).exists() {
-                eprintln!("{}", t!("common.file_not_found", path = install_json));
+                log::debug!("{}", t!("common.file_not_found", path = install_json));
                 None
             } else {
                 if hold_args.cancel_hold {
@@ -198,7 +198,7 @@ pub fn unhold_locked_apps(app_name: &str, install_json_file: &str) -> anyhow::Re
             bail!("'{app_name}' is not  held.");
         }
         map.remove("hold");
-        println!(
+        log::debug!(
             "{}",
             t!("hold.unlocked", name = app_name).dark_green().bold()
         );
@@ -224,7 +224,7 @@ pub fn show_reward_img() {
         .build();
 
     println!("{}", image);
-    println!(
+    log::debug!(
         "{}",
         t!("credits.support_message").as_ref().dark_cyan().bold()
     );

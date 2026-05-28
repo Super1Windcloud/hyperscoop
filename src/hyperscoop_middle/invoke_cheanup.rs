@@ -84,7 +84,7 @@ fn clean_specific_old_version(app_name: Vec<String>, is_global: bool) -> anyhow:
             Ok(())
         });
         if !*flag.lock().unwrap() {
-            println!(
+            log::debug!(
                 "{}",
                 t!(
                     "cleanup.no_old_versions_for",
@@ -162,7 +162,7 @@ fn clean_all_old_versions(is_global: bool) -> anyhow::Result<()> {
         versions_with_name.insert(app_name, versions_max.clone());
     }
     if versions_with_name.is_empty() {
-        println!("{}", t!("cleanup.none").as_ref().green().bold());
+        log::debug!("{}", t!("cleanup.none").as_ref().green().bold());
     }
     log::info!("{:?}", versions_with_name);
     for (app_name, version) in versions_with_name {

@@ -164,7 +164,7 @@ fn rm_alias(alias_name: Option<String>, shim_root_dir: &str, all: bool) -> anyho
             let path = dir.path();
             let file_name = path.file_name().unwrap().to_str().unwrap();
             if file_name.starts_with("hp-") && file_name.ends_with(".ps1") {
-                println!("{}", t!("alias.remove_file", path = path.display()));
+                log::debug!("{}", t!("alias.remove_file", path = path.display()));
                 std::fs::remove_file(path).context("Failed to remove ps1 script at line 115")?;
             }
         }
@@ -175,7 +175,7 @@ fn rm_alias(alias_name: Option<String>, shim_root_dir: &str, all: bool) -> anyho
     if !Path::new(&shim_ps_script).exists() {
         bail!(format!("alias  {} does not exist", alias_name));
     } else {
-        println!(
+        log::debug!(
             "{}",
             t!("alias.remove_success", name = alias_name)
                 .dark_green()
@@ -236,7 +236,7 @@ fn list_alias(shim_root_dir: &str) -> anyhow::Result<()> {
         .collect::<Vec<_>>();
     let len = result.len();
     if len == 0 {
-        println!("{}", t!("alias.none").dark_green().bold());
+        log::debug!("{}", t!("alias.none").dark_green().bold());
         return Ok(());
     }
     let alias_width = max(
@@ -363,7 +363,7 @@ fn add_alias(
     "#
     );
     std::fs::write(&alias_ps_path, alias_ps_content).context("Failed to write ps1 script")?;
-    println!(
+    log::debug!(
         "{}",
         t!("alias.created", name = alias_name).dark_green().bold()
     );

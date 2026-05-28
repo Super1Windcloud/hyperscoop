@@ -172,7 +172,7 @@ mod test_auto_update {
             .unwrap();
 
         if !response.status().is_success() {
-            eprintln!(
+            log::debug!(
                 "{}",
                 t!("network.request_failed", status = response.status())
             );
