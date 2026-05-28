@@ -121,30 +121,15 @@ unreachable_pub = "warn"
 [dev-dependencies] # 依赖项仅在开发和测试过程中使用，
 # 例如 `cargo test` 或 `cargo bench` , 'cargo build --tests` ,`cargo build --examples` |
 criterion = { version = "0.5.1" }
-
-[profile.release]
-debug = false
-lto = true
-panic = "abort"
-opt-level = 3
-strip = "symbols"
-codegen-units = 1    # 编译单元数量
-incremental = true
-debug-assertions = false
-overflow-checks = false
-rpath = false   # 关闭运行时路径
-
 [profile.dev]
-opt-level = 0
-debug = false
-lto = false
-overflow-checks = true
-panic = "abort"
-incremental = true
-codegen-units = 256
-debug-assertions = true
-rpath = false
+debug = 0
 
+#最快编译时间
+[profile.release]
+lto = false
+codegen-units = 256
+panic = "abort"
+debug = 0
 
 
 [target.x86_64-pc-windows-msvc.dependencies] # 依赖项仅在 Windows 平台上使用。
