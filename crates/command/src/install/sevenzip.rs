@@ -296,7 +296,7 @@ impl<'a> SevenZipStruct<'a> {
         } else {
             self.get_temp_7z_dll_path()
         };
-        if Path::new(&exe_path).exists() && Path::new(&dll_path).exists() {
+        if Path::new(&exe_path).exists() {
             log::debug!("7z.exe {} ,7z.dll {}", &exe_path, &dll_path);
             return Ok(exe_path);
         }

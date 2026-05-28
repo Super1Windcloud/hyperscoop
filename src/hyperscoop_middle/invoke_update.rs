@@ -35,7 +35,7 @@ pub async fn execute_update_command(update_args: UpdateArgs) -> Result<(), anyho
         } else {
             update_buckets_parallel()?
         };
-        update_hp(&options).await?;
+        // update_hp(&options).await?;
         return Ok(());
     }
     if update_args.all {

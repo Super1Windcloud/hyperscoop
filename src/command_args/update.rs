@@ -46,7 +46,7 @@ pub struct UpdateArgs {
         required = false,
         short,
         long,
-        help = crate::i18n::tr("Update hp itself and all buckets", "更新 hp 自身和所有 buckets")
+        help = crate::i18n::tr("Update all buckets", "更新所有 buckets")
     )]
     pub update_self_and_buckets: bool,
 

@@ -1,16 +1,13 @@
-﻿#[build]
-#rustflags = ["-A", "unused_imports", "-A", "unused_variables"]
-# rust  fs操作依赖 ucrtbase.dll ,静态链接兼容win7,8
-
-#[target.x86_64-pc-windows-msvc]
-#rustflags = ["-C", "target-feature=+crt-static",
-#]
-#[target.i686-pc-windows-msvc]
-#rustflags = ["-C", "target-feature=+crt-static"
-#]
-#[target.aarch64-pc-windows-msvc]
-#rustflags = ["-C", "target-feature=+crt-static",
-#]
+﻿
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static",
+]
+[target.i686-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"
+]
+[target.aarch64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static",
+]
 
 
 [alias]
@@ -29,7 +26,7 @@ space_example = ["run", "--release", "--", "\"command list\""]
 target-dir = "target"
 rustc = "rustc"
 rustdoc = "rustdoc"
-rustflags = ["-C", "target-cpu=native"]
+rustflags = ["-A", "unused_imports", "-A", "unused_variables"]
 
 [net]
 retry = 3                   # network retries
@@ -49,5 +46,3 @@ hyperlinks = true      # whether cargo inserts links into output
 unicode = true         # whether cargo can render output using non-ASCII unicode characters
 progress.when = 'auto' # whether cargo shows progress bar
 progress.width = 80    # width of progress bar
-
-

@@ -25,10 +25,11 @@ shim_proxy
 .github_token
 
 script/.venv
+script/venv
+script/__pycache__
 
 
 
 
 
-
-
+script/__pycache__/publish.cpython-313.pyc
