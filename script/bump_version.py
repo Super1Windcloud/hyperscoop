@@ -1,4 +1,5 @@
 import argparse
+import json
 import re
 import subprocess
 from pathlib import Path
@@ -6,6 +7,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 CARGO_TOML = ROOT / "Cargo.toml"
+HP_MANIFEST = ROOT / "hyperscoop_source_bucket" / "bucket" / "hp.json"
+RELEASE_BASE_URL = "https://github.com/Super1Windcloud/hyperscoop/releases/download"
 WORKSPACE_PACKAGE_RE = re.compile(
     r'(?ms)(?P<prefix>^\[workspace\.package\]\s*)(?P<body>.*?)(?=^\[|\Z)'
 )
@@ -33,6 +36,31 @@ def bump_version(version, part):
     return f"{major}.{minor}.{patch + 1}"
 
 
+def update_hp_manifest(version, manifest_path=HP_MANIFEST):
+    if not manifest_path.exists():
+        raise SystemExit(f"hp manifest 不存在: {manifest_path}")
+
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["version"] = version
+    manifest["url"] = f"{RELEASE_BASE_URL}/{version}/hp.exe"
+
+    architecture = manifest.setdefault("architecture", {})
+    architecture.setdefault("64bit", {})[
+        "url"
+    ] = f"{RELEASE_BASE_URL}/{version}/hp.exe"
+    architecture.setdefault("32bit", {})[
+        "url"
+    ] = f"{RELEASE_BASE_URL}/{version}/hp-x86-{version}.exe#/hp.exe"
+    architecture.setdefault("arm64", {})[
+        "url"
+    ] = f"{RELEASE_BASE_URL}/{version}/hp-arm64-{version}.exe#/hp.exe"
+
+    manifest_path.write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=4) + "\n",
+        encoding="utf-8",
+    )
+
+
 def main():
     args = parse_args()
     cargo_toml = CARGO_TOML.read_text(encoding="utf-8")
@@ -54,6 +82,7 @@ def main():
         + cargo_toml[version_end:]
     )
     CARGO_TOML.write_text(updated, encoding="utf-8", newline="")
+    update_hp_manifest(next_version)
 
     subprocess.run(
         ["cargo", "metadata", "--format-version", "1", "--no-deps"],
