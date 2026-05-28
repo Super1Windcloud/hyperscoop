@@ -11,7 +11,7 @@ pub use invoke_merge::execute_merge_command;
 
 pub use invoke_search::execute_search_command;
 
-pub use invoke_update::execute_update_command;
+pub use invoke_update::{execute_self_update_command, execute_update_command};
 mod invoke_install;
 pub use invoke_cat::execute_cat_command;
 pub use invoke_install::execute_install_command;

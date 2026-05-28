@@ -14,6 +14,7 @@ use crate::command_args::merge_bucket::MergeArgs;
 use crate::command_args::prefix::PrefixArgs;
 use crate::command_args::reset::ResetArgs;
 use crate::command_args::search::SearchArgs;
+use crate::command_args::self_update::SelfUpdateArgs;
 use crate::command_args::shim::ShimArgs;
 use crate::command_args::status::StatusArgs;
 use crate::command_args::uninstall::UninstallArgs;
@@ -57,6 +58,7 @@ pub(crate) enum Commands {
     Reset(ResetArgs),
     #[clap(alias = "s")]
     Search(SearchArgs),
+    SelfUpdate(SelfUpdateArgs),
     Shim(ShimArgs),
     Status(StatusArgs),
     #[clap(alias = "un")]

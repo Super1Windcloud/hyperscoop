@@ -15,6 +15,7 @@ pub mod merge_bucket;
 pub mod prefix;
 pub mod reset;
 pub mod search;
+pub mod self_update;
 pub mod shim;
 pub mod status;
 pub mod uninstall;

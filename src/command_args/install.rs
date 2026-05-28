@@ -104,8 +104,8 @@ pub struct InstallArgs {
         short = 'u',
         long,
         help = crate::i18n::tr(
-            "Update hp and buckets before installing",
-            "安装前更新 hp 和 bucket，默认不更新"
+            "Update buckets before installing",
+            "安装前更新 bucket，默认不更新"
         ),
         required = false,
         action = ArgAction::SetTrue,

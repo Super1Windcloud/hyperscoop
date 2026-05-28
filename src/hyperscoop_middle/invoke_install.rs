@@ -1,6 +1,6 @@
 use crate::check_self_update::auto_check_hp_update;
 use crate::command_args::install::InstallArgs;
-use crate::hyperscoop_middle::invoke_update::{update_buckets_parallel, update_hp};
+use crate::hyperscoop_middle::invoke_update::update_buckets_parallel;
 use crate::i18n::tr;
 use anyhow::bail;
 use command_util_lib::install::*;
@@ -34,19 +34,26 @@ pub async fn execute_install_command(args: InstallArgs) -> Result<(), anyhow::Er
     if options.contains(&InstallOptions::UpdateHpAndBuckets) {
         println!(
             "{}",
-            tr("Starting hp and bucket updates", "开始更新 hp 和 buckets")
+            tr("Starting bucket updates", "开始更新 buckets")
                 .dark_cyan()
                 .bold()
         );
-        let update_option = create_update_options(&options)?;
         update_buckets_parallel()?;
-        update_hp(&update_option).await?;
     }
     if args.app_name.is_none() {
         return Ok(());
     }
 
     let app_name = convert_path(app_name.trim()).to_lowercase();
+    if app_name == "hp" || app_name.ends_with("/hp") || app_name.starts_with("hp@") {
+        bail!(
+            "{}",
+            tr(
+                "hp cannot be installed with `hp install`; use `hp self-update` to update hp itself",
+                "不能通过 `hp install` 安装 hp 自身；请使用 `hp self-update` 更新 hp"
+            )
+        );
+    }
     let app_path = Path::new(&app_name);
     if app_path.exists() {
         if app_path.is_file() {
@@ -114,28 +121,6 @@ pub async fn execute_install_command(args: InstallArgs) -> Result<(), anyhow::Er
     }
     install_app(app_name.as_str(), &options)?;
     Ok(())
-}
-
-fn create_update_options(option: &[InstallOptions]) -> anyhow::Result<Vec<UpdateOptions>> {
-    let mut update_options = vec![];
-    if option.contains(&InstallOptions::UpdateHpAndBuckets) {
-        update_options.push(UpdateOptions::UpdateHpAndBuckets);
-    }
-    if option.contains(&InstallOptions::NoUseDownloadCache) {
-        update_options.push(UpdateOptions::NoUseDownloadCache);
-    }
-    if option.contains(&InstallOptions::SkipDownloadHashCheck) {
-        update_options.push(UpdateOptions::SkipDownloadHashCheck);
-    }
-
-    if option.contains(&InstallOptions::NoAutoDownloadDepends) {
-        update_options.push(UpdateOptions::NoAutoDownloadDepends);
-    }
-    if option.contains(&InstallOptions::Global) {
-        update_options.push(UpdateOptions::Global);
-    }
-
-    Ok(update_options)
 }
 
 pub fn inject_user_options(install_args: &InstallArgs) -> anyhow::Result<Vec<InstallOptions<'_>>> {

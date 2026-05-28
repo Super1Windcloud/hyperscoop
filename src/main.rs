@@ -188,6 +188,7 @@ async fn main() -> anyhow::Result<()> {
             Commands::Prefix(prefix) => execute_prefix_command(prefix),
             Commands::Reset(args) => execute_reset_command(args),
             Commands::Search(search_app) => execute_search_command(search_app),
+            Commands::SelfUpdate(args) => execute_self_update_command(args).await,
             Commands::Shim(args) => execute_shim_command(args),
             Commands::Status(args) => execute_status_command(args),
             Commands::Uninstall(args) => execute_uninstall_command(args),

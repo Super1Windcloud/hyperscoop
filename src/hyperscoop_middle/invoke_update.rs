@@ -1,7 +1,8 @@
 use crate::check_self_update::{auto_check_hp_update, get_app_old_version};
+use crate::command_args::self_update::SelfUpdateArgs;
 use crate::command_args::update::UpdateArgs;
 use crate::i18n::tr;
-use anyhow::Context;
+use anyhow::{Context, bail};
 use command_util_lib::init_env::{
     get_app_current_bin_path, get_app_current_dir, get_app_current_dir_global, get_app_dir,
     get_app_version_dir,
@@ -63,11 +64,57 @@ pub async fn execute_update_command(update_args: UpdateArgs) -> Result<(), anyho
 
     let app_name = update_args.app_name.unwrap();
     if app_name.to_lowercase() == "hp" {
-        update_hp(&options).await?;
-        return Ok(());
+        bail!(
+            "{}",
+            tr(
+                "hp self update has moved to: hp self-update",
+                "hp 自更新已改为独立命令: hp self-update"
+            )
+        );
     }
     update_specific_app(&app_name, &options)?;
     Ok(())
+}
+
+pub async fn execute_self_update_command(args: SelfUpdateArgs) -> Result<(), anyhow::Error> {
+    if args.global && !is_admin()? {
+        let args = env::args().skip(1).collect::<Vec<String>>();
+        let args_str = args.join(" ");
+        log::warn!(
+            "Global command arguments: {}",
+            args_str.clone().dark_yellow()
+        );
+        request_admin(args_str.as_str())?;
+        return Ok(());
+    }
+
+    let options = inject_self_update_options(&args);
+    update_hp(&options).await
+}
+
+fn inject_self_update_options(args: &SelfUpdateArgs) -> Vec<UpdateOptions> {
+    let mut options = vec![];
+
+    if args.global {
+        options.push(UpdateOptions::Global);
+    }
+    if args.no_use_download_cache {
+        options.push(UpdateOptions::NoUseDownloadCache);
+    }
+    if args.skip_hash_check {
+        options.push(UpdateOptions::SkipDownloadHashCheck);
+    }
+    if args.no_auto_download_dependencies {
+        options.push(UpdateOptions::NoAutoDownloadDepends);
+    }
+    if args.force_update_override {
+        options.push(ForceUpdateOverride);
+    }
+    if args.interactive {
+        options.push(UpdateOptions::InteractiveInstall);
+    }
+
+    options
 }
 
 fn inject_update_user_options(args: &UpdateArgs) -> anyhow::Result<Vec<UpdateOptions>> {
