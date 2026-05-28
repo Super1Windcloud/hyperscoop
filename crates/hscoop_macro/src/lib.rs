@@ -4,8 +4,7 @@ use syn::{Data, DeriveInput};
 
 #[proc_macro_attribute]
 pub fn route(attr: TokenStream, item: TokenStream) -> TokenStream {
-    eprintln!("route attr:{:#?}", attr);
-    eprintln!("route item:{:#?}", item);
+    let _ = attr;
     item
 }
 
@@ -30,7 +29,7 @@ fn impl_hello_macro(ast: &syn::DeriveInput) -> TokenStream {
 
 #[proc_macro]
 pub fn make_answer(item: TokenStream) -> TokenStream {
-    eprintln!("make_answer:{:#?}", item); //可以通过eprintln!进行打印调试
+    let _ = item;
     "fn answer() -> u32 { 45 }".parse().unwrap()
 }
 

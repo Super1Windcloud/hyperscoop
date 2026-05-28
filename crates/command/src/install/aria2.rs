@@ -82,7 +82,7 @@ impl<'a> Aria2C<'a> {
         match aria.init() {
             Ok(_) => aria,
             Err(e) => {
-                println!("Error: {}", e.to_string().dark_red().bold());
+                log::error!("aria2 init error: {}", e);
                 aria
             }
         }
@@ -212,7 +212,7 @@ impl<'a> Aria2C<'a> {
             .await?;
 
         if let Some(max_size) = sizes.iter().max() {
-            println!("最大文件大小: {} MB", max_size);
+            log::debug!("max download file size: {} MB", max_size);
             Ok(*max_size)
         } else {
             bail!("未能获取任何文件大小");
@@ -223,7 +223,7 @@ impl<'a> Aria2C<'a> {
         let max_file_size = self
             .request_download_file_size_by_external_command()
             .unwrap_or_else(|e| {
-                println!("Error: {}", e.to_string().dark_red().bold());
+                log::debug!("failed to get download file size: {}", e);
                 0
             });
         let threshold = 100;
@@ -417,7 +417,7 @@ impl<'a> Aria2C<'a> {
                 }
                 let output = String::from_utf8_lossy(&buffer[..n]);
                 for line in output.lines() {
-                    println!("Download: {}", line);
+                    log::debug!("aria2 download output: {}", line);
                 }
             }
         }
@@ -425,7 +425,7 @@ impl<'a> Aria2C<'a> {
             let reader = BufReader::new(stderr);
             for line in reader.lines() {
                 let line = line?;
-                println!("Download Error: {}", line);
+                log::debug!("aria2 download stderr: {}", line);
             }
         }
         let status = child.wait()?; // 等待子进程结束

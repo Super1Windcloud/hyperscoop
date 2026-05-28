@@ -1,5 +1,4 @@
 use anyhow::{Context, bail};
-use crossterm::style::Stylize;
 use encoding::all::{GBK, UTF_8, UTF_16BE, UTF_16LE};
 use encoding::label::encoding_from_whatwg_label;
 use encoding::{DecoderTrap, Encoding};
@@ -93,11 +92,7 @@ pub fn judge_utf8_is_having_bom(path: &Path) -> bool {
     file.read(&mut buffer).unwrap();
 
     if buffer == [0xEF, 0xBB, 0xBF] {
-        println!(
-            "{} {}",
-            "UTF-8 with BOM detected in path.".dark_green().bold(),
-            path.display().to_string().dark_green().bold()
-        );
+        log::debug!("UTF-8 with BOM detected in path: {}", path.display());
         true
     } else {
         //  println!("UTF-8 is not having BOM ");
@@ -172,7 +167,7 @@ pub fn transform_file_to_utf8(path: &Path) -> Result<String, anyhow::Error> {
     match reader.read_to_string(&mut json_str) {
         Ok(_) => None::<usize>,
         Err(_) => {
-            println!("转换GBK编码{}", path.display());
+            log::debug!("converting GBK encoded file: {}", path.display());
             convert_gbk_to_utf8(path).expect("转换失败");
             None
         }
@@ -204,7 +199,7 @@ pub fn convert_gbk_to_utf8(file_path: &Path) -> Result<(), anyhow::Error> {
     output_file
         .write_all(utf8_content.as_bytes())
         .context("Failed to write file content from buffer at line 204")?;
-    println!("GBK file converted to UTF-8 successfully.");
+    log::debug!("GBK file converted to UTF-8: {}", file_path.display());
     Ok(())
 }
 
@@ -240,6 +235,6 @@ pub fn convert_utf8bom_to_utf8(file_path: &Path) -> Result<(), anyhow::Error> {
     output_file
         .write_all(&utf8_content.as_bytes())
         .expect("写入文件失败,文件可能被占用");
-    println!("UTF-8-BOM file converted to UTF-8 successfully.");
+    log::debug!("UTF-8-BOM file converted to UTF-8: {}", file_path.display());
     Ok(())
 }

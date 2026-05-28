@@ -455,13 +455,16 @@ pub fn rm_shim_file(
                             }
                         }
                         _ => {
-                            println!("at line 462 what the fuck bin?   {:?}", item);
+                            log::debug!(
+                                "unsupported nested bin object while removing shim: {:?}",
+                                item
+                            );
                         }
                     }
                 }
             }
             _ => {
-                bail!("WTF? can't parser this bin object type ")
+                bail!("unsupported bin object type")
             }
         }
     } else if architecture.is_some() {
@@ -499,7 +502,10 @@ pub fn rm_shim_file(
                             let alias_name = item[1].clone();
                             rm_alias_shim_name_file(exe_name, alias_name, shim_path)?;
                         } else {
-                            println!(" what the fuck bin?   {:?}", item);
+                            log::debug!(
+                                "unsupported bin item while removing 64bit shim: {:?}",
+                                item
+                            );
                         }
                     }
                 }
@@ -518,17 +524,23 @@ pub fn rm_shim_file(
                                     let alias_name = item[1].clone();
                                     rm_alias_shim_name_file(exe_name, alias_name, shim_path)?;
                                 } else {
-                                    println!(" what the fuck bin?   {:?}", item);
+                                    log::debug!(
+                                        "unsupported nested bin item while removing 64bit shim: {:?}",
+                                        item
+                                    );
                                 }
                             }
                             _ => {
-                                println!(" what the fuck bin?   {:?}", item);
+                                log::debug!(
+                                    "unsupported nested bin object while removing 64bit shim: {:?}",
+                                    item
+                                );
                             }
                         }
                     }
                 }
                 _ => {
-                    bail!("WTF? can't parser this bin object type ")
+                    bail!("unsupported bin object type")
                 }
             }
         } else if system_arch == "32bit" {
@@ -560,7 +572,10 @@ pub fn rm_shim_file(
                             let alias_name = item[1].clone();
                             rm_alias_shim_name_file(exe_name, alias_name, shim_path)?;
                         } else {
-                            println!(" what the fuck bin?   {:?}", item);
+                            log::debug!(
+                                "unsupported bin item while removing 32bit shim: {:?}",
+                                item
+                            );
                         }
                     }
                 }
@@ -579,17 +594,23 @@ pub fn rm_shim_file(
                                     let alias_name = item[1].clone();
                                     rm_alias_shim_name_file(exe_name, alias_name, shim_path)?;
                                 } else {
-                                    println!(" what the fuck bin?   {:?}", item);
+                                    log::debug!(
+                                        "unsupported nested bin item while removing 32bit shim: {:?}",
+                                        item
+                                    );
                                 }
                             }
                             _ => {
-                                println!(" what the fuck bin?   {:?}", item);
+                                log::debug!(
+                                    "unsupported nested bin object while removing 32bit shim: {:?}",
+                                    item
+                                );
                             }
                         }
                     }
                 }
                 _ => {
-                    bail!("WTF? can't parser this bin object type ")
+                    bail!("unsupported bin object type")
                 }
             }
         } else if system_arch == "arm64" {
@@ -621,7 +642,10 @@ pub fn rm_shim_file(
                             let alias_name = item[1].clone();
                             rm_alias_shim_name_file(exe_name, alias_name, shim_path)?;
                         } else {
-                            println!(" what the fuck bin?   {:?}", item);
+                            log::debug!(
+                                "unsupported bin item while removing arm64 shim: {:?}",
+                                item
+                            );
                         }
                     }
                 }
@@ -640,17 +664,23 @@ pub fn rm_shim_file(
                                     let alias_name = item[1].clone();
                                     rm_alias_shim_name_file(exe_name, alias_name, shim_path)?;
                                 } else {
-                                    println!(" what the fuck bin?   {:?}", item);
+                                    log::debug!(
+                                        "unsupported nested bin item while removing arm64 shim: {:?}",
+                                        item
+                                    );
                                 }
                             }
                             _ => {
-                                println!(" what the fuck bin?   {:?}", item);
+                                log::debug!(
+                                    "unsupported nested bin object while removing arm64 shim: {:?}",
+                                    item
+                                );
                             }
                         }
                     }
                 }
                 _ => {
-                    bail!("WTF? can't parser this bin object type ")
+                    bail!("unsupported bin object type")
                 }
             }
         }
@@ -664,7 +694,7 @@ fn rm_alias_shim_name_file(
     shim_path: &Path,
 ) -> anyhow::Result<()> {
     if exe_name.is_empty() || alias_name.is_empty() {
-        eprintln!("exe_name  or alias_name cannot be empty");
+        log::debug!("exe_name or alias_name cannot be empty");
         return Ok(());
     }
     let alias_name = if alias_name.contains(".") {
@@ -795,7 +825,7 @@ fn rm_alias_shim_name_file(
 
 fn rm_default_shim_name_file(exe_name: String, shim_path: &Path) -> anyhow::Result<()> {
     if exe_name.is_empty() {
-        eprintln!("exe_name  cannot be empty");
+        log::debug!("exe_name cannot be empty");
         return Ok(());
     }
     let mut exe_name = exe_name.clone();

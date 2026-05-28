@@ -162,7 +162,7 @@ pub fn request_download_git_clone(
             })();
             result
         } else {
-            println!("Failed to extract total size from output");
+            log::debug!("failed to extract total size from git clone output");
             0.0
         };
     })();
@@ -196,7 +196,7 @@ pub fn request_download_git_clone(
 
             result
         } else {
-            println!("Failed to extract download speed from output");
+            log::debug!("failed to extract download speed from git clone output");
             0.0
         };
     })();
@@ -225,7 +225,7 @@ pub fn request_download_git_clone(
             .expect("Failed to read stderr");
 
         let error_message = String::from_utf8_lossy(&stderr_bytes).to_string();
-        println!("克隆失败: {}", error_message);
+        log::error!("克隆失败: {}", error_message);
         bail!(error_message);
     }
 }
@@ -242,7 +242,7 @@ pub fn request_git_clone_by_git2(
     }
     match Repository::clone(repo_url, &destination) {
         Ok(_) => println!("✅ 仓库已克隆到 {}", destination.dark_green().bold()),
-        Err(e) => eprintln!("❌ 克隆失败: {}", e),
+        Err(e) => log::error!("❌ 克隆失败: {}", e),
     }
     Ok("下载成功!!!".dark_green().bold().to_string())
 }

@@ -130,11 +130,11 @@ async fn get_latest_version_from_github() -> anyhow::Result<String> {
     let response = client.get(&url).headers(headers).send().await?;
 
     if !response.status().is_success() {
-        eprintln!(
+        log::debug!(
             "{}",
             t!("network.request_failed", status = response.status())
         );
-        eprintln!(
+        log::debug!(
             "{}",
             t!("network.response_body", body = response.text().await?)
         );

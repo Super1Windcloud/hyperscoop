@@ -158,7 +158,7 @@ pub fn create_shims_file(
                         options,
                     )?;
                 } else {
-                    eprintln!(" what the fuck bin?   {:?}", item)
+                    log::debug!("unsupported bin item while creating shim: {:?}", item)
                 }
             }
         }
@@ -196,17 +196,23 @@ pub fn create_shims_file(
                                 options,
                             )?;
                         } else {
-                            eprintln!("what the fuck bin?   {:?}", item)
+                            log::debug!(
+                                "unsupported nested bin item while creating shim: {:?}",
+                                item
+                            )
                         }
                     }
                     _ => {
-                        println!(" what the fuck bin?   {:?}", item);
+                        log::debug!(
+                            "unsupported nested bin object while creating shim: {:?}",
+                            item
+                        );
                     }
                 }
             }
         }
         _ => {
-            bail!("WTF? can't parser this bin object type ")
+            bail!("unsupported bin object type")
         }
     }
     Ok(())
@@ -550,7 +556,10 @@ pub fn create_py_shim_scripts(
     } else {
         let alias_name = alias_name.unwrap();
         Ok(if alias_name.contains('.') {
-            eprintln!("alias_name {} 包含 . 字符, 自动去除扩展名", alias_name);
+            log::debug!(
+                "alias_name {} contains '.', stripping extension",
+                alias_name
+            );
             alias_name.split('.').next().unwrap().to_string()
         } else {
             alias_name
@@ -628,7 +637,10 @@ pub fn create_jar_shim_scripts(
     } else {
         let alias_name = alias_name.unwrap();
         Ok(if alias_name.contains('.') {
-            eprintln!("alias_name {} 包含 . 字符, 自动去除扩展名", alias_name);
+            log::debug!(
+                "alias_name {} contains '.', stripping extension",
+                alias_name
+            );
             alias_name.split('.').next().unwrap().to_string()
         } else {
             alias_name
@@ -726,7 +738,10 @@ pub fn create_ps1_shim_scripts(
     } else {
         let alias_name = alias_name.unwrap();
         Ok(if alias_name.contains('.') {
-            eprintln!("alias_name {} 包含 . 字符, 自动去除扩展名", alias_name);
+            log::debug!(
+                "alias_name {} contains '.', stripping extension",
+                alias_name
+            );
             alias_name.split('.').next().unwrap().to_string()
         } else {
             alias_name
@@ -827,7 +842,10 @@ pub fn create_cmd_or_bat_shim_scripts(
     } else {
         let alias_name = alias_name.unwrap();
         Ok(if alias_name.contains('.') {
-            eprintln!("alias_name {} 包含 . 字符, 自动去除扩展名", alias_name);
+            log::debug!(
+                "alias_name {} contains '.', stripping extension",
+                alias_name
+            );
             alias_name.split('.').next().unwrap().to_string()
         } else {
             alias_name
@@ -899,7 +917,10 @@ pub fn create_shell_shim_scripts(
     } else {
         let alias_name = alias_name.unwrap();
         Ok(if alias_name.contains('.') {
-            eprintln!("alias_name {} 包含 . 字符, 自动去除扩展名", alias_name);
+            log::debug!(
+                "alias_name {} contains '.', stripping extension",
+                alias_name
+            );
             alias_name.split('.').next().unwrap().to_string()
         } else {
             alias_name
@@ -974,7 +995,10 @@ pub fn create_exe_type_shim_file_and_shim_bin<P1: AsRef<Path>, P2: AsRef<Path>>(
     } else {
         let alias_name = alias_name.unwrap();
         Ok(if alias_name.contains('.') {
-            eprintln!("alias_name {} 包含 . 字符, 自动去除扩展名", alias_name);
+            log::debug!(
+                "alias_name {} contains '.', stripping extension",
+                alias_name
+            );
             alias_name.split('.').next().unwrap().to_string()
         } else {
             alias_name
