@@ -1,12 +1,17 @@
 set shell := ["pwsh.exe", "-NoProfile", "-c"]
 
-release_with_upx:
+release_with_upx part="patch":
+    just  bump_version {{part}}
     cargo  br
     just  update_hash
     just  upload
     just  compress
 
-release:
+bump_version part="patch":
+    python  script/bump_version.py  {{part}}
+
+release part="patch":
+    just  bump_version {{part}}
     cargo  br
     just  update_hash
     just  upload
