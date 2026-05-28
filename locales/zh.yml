@@ -14,8 +14,6 @@ zh:
   network:
     request_failed: "请求失败: %{status}"
     response_body: "响应内容: %{body}"
-  update:
-    detected: "检测到 hp 新版本 %{latest_version}。运行 `hp u hp` 或 `hp u -f -k hp`。\n详见 https://github.com/Super1Windcloud/hp/releases。"
   alias:
     remove_file: "删除文件: %{path}"
     remove_success: "Alias '%{name}' 删除成功！"

@@ -14,8 +14,6 @@ en:
   network:
     request_failed: "Request failed: %{status}"
     response_body: "Response body: %{body}"
-  update:
-    detected: "hp detected a new version %{latest_version}. Run `hp u hp` or `hp u -f -k hp`.\nVisit https://github.com/Super1Windcloud/hp/releases for details."
   alias:
     remove_file: "Remove file: %{path}"
     remove_success: "Alias '%{name}' removed successfully!"

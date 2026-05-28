@@ -9,7 +9,6 @@ use command_util_lib::install::UpdateOptions;
 use command_util_lib::list::VersionJSON;
 use command_util_lib::utils::git::pull_special_local_repo;
 use command_util_lib::utils::utility::is_valid_url;
-use crossterm::style::Stylize;
 use reqwest::{Client, header};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
@@ -49,12 +48,6 @@ pub async fn auto_check_hp_update(old_version: Option<&str>) -> anyhow::Result<b
         version
     );
     if version < latest_version || hash_changed() {
-        println!(
-            "{}",
-            t!("update.detected", latest_version = latest_version)
-                .dark_cyan()
-                .bold()
-        );
         let hp_repo = get_hp_bucket_repo_path("hp")?;
         if hp_repo.is_none() {
             bail!("hp bucket repository  is empty");
