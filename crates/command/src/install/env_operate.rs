@@ -2,9 +2,11 @@ use crate::init_env::{get_old_scoop_dir, get_scoop_cfg_path, init_scoop_global, 
 use crate::install::InstallOptions;
 use crate::manifest::install_manifest::InstallManifest;
 use crate::manifest::manifest_deserialize::{ManifestObj, StringArrayOrString};
+#[cfg(windows)]
 use crate::utils::system::{set_global_env_var, set_user_env_var};
 use anyhow::bail;
 use crossterm::style::Stylize;
+#[cfg(windows)]
 use std::path::Path;
 use std::process::Command;
 #[cfg(windows)]
@@ -140,53 +142,54 @@ pub fn add_bin_to_path(
         };
         let hkcu = RegKey::predef(HKEY_CURRENT_USER);
         let environment_key = if options.contains(&InstallOptions::Global) {
-        hkcu.open_subkey("SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment")?
-    } else {
-        hkcu.open_subkey("Environment")?
-    };
+            hkcu.open_subkey("SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment")?
+        } else {
+            hkcu.open_subkey("Environment")?
+        };
 
-    let user_path: String = environment_key.get_value("PATH")?;
-    let user_path_split: Vec<&str> = user_path.split(";").collect();
+        let user_path: String = environment_key.get_value("PATH")?;
+        let user_path_split: Vec<&str> = user_path.split(";").collect();
 
-    if user_path_split.contains(&path.as_str()) {
-        log::warn!(
-            "{} {} {}",
-            "The path already exists in the user's PATH"
-                .to_string()
-                .dark_yellow()
-                .bold(),
-            path.to_string().dark_yellow().bold(),
-            "Skipping...".to_string().dark_yellow().bold()
-        );
-        return Ok(());
-    }
-    let user_path = if user_path.ends_with(";") {
-        format!("{user_path}{path}")
-    } else {
-        format!("{user_path};{path}")
-    };
-
-    log::debug!("\n 更新后的用户的 PATH: {}", user_path);
-    let script =
-        format!(r#"[System.Environment]::SetEnvironmentVariable("PATH","{user_path}", "Machine")"#);
-
-    if options.contains(&InstallOptions::Global) {
-        if set_global_env_var("Path", &user_path).is_ok() {
+        if user_path_split.contains(&path.as_str()) {
+            log::warn!(
+                "{} {} {}",
+                "The path already exists in the user's PATH"
+                    .to_string()
+                    .dark_yellow()
+                    .bold(),
+                path.to_string().dark_yellow().bold(),
+                "Skipping...".to_string().dark_yellow().bold()
+            );
             return Ok(());
         }
-        let output = Command::new("powershell")
-            .arg("-NoProfile")
-            .arg("-Command")
-            .arg(script)
-            .output()?;
-        if !output.status.success() {
-            bail!("Failed to remove path var");
+        let user_path = if user_path.ends_with(";") {
+            format!("{user_path}{path}")
+        } else {
+            format!("{user_path};{path}")
+        };
+
+        log::debug!("\n 更新后的用户的 PATH: {}", user_path);
+        let script = format!(
+            r#"[System.Environment]::SetEnvironmentVariable("PATH","{user_path}", "Machine")"#
+        );
+
+        if options.contains(&InstallOptions::Global) {
+            if set_global_env_var("Path", &user_path).is_ok() {
+                return Ok(());
+            }
+            let output = Command::new("powershell")
+                .arg("-NoProfile")
+                .arg("-Command")
+                .arg(script)
+                .output()?;
+            if !output.status.success() {
+                bail!("Failed to remove path var");
+            }
+            Ok(())
+        } else {
+            set_user_env_var("Path", &user_path)?;
+            Ok(())
         }
-        Ok(())
-    } else {
-        set_user_env_var("Path", &user_path)?;
-        Ok(())
-    }
     }
 }
 

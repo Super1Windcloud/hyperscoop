@@ -8,12 +8,12 @@ use std::fs;
 use std::path::Path;
 pub(crate) mod update;
 use crate::init_env::{
-    get_app_current_dir, get_app_current_dir_global, get_app_dir, get_app_dir_global,
+    get_app_current_dir, get_app_current_dir_global, get_app_dir, get_app_dir_global, is_app_held,
 };
 use crate::install::InstallOptions::UpdateTransaction;
 use crate::install::UpdateOptions::{ForceUpdateOverride, Global, RemoveOldVersionApp};
 use crate::install::{InstallOptions, UpdateOptions, install_app};
-use crate::list::get_all_installed_apps_name;
+use crate::list::{get_all_installed_apps_name, get_all_installed_apps_name_by_scope};
 use crate::utils::progrees_bar::{
     Message,
     indicatif::{MultiProgress, ProgressBar, ProgressFinish},
@@ -33,8 +33,22 @@ pub use update::*;
 const FINISH_MESSAGE: &str = "✅";
 
 pub fn update_all_apps(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
-    let all_apps_name = get_all_installed_apps_name();
+    let is_global = options.contains(&Global);
+    let all_apps_name = if is_global {
+        get_all_installed_apps_name_by_scope(true)
+    } else {
+        get_all_installed_apps_name()
+    };
     for app in all_apps_name {
+        if is_app_held(&app, is_global) {
+            println!(
+                "{}",
+                format!("🔒 '{app}' is held, skipping update")
+                    .dark_yellow()
+                    .bold()
+            );
+            continue;
+        }
         let _ = match check_app_version_latest(&app, &options) {
             Ok(version) => {
                 if version.is_some() {
@@ -115,6 +129,18 @@ pub fn transform_update_options_to_install(
 pub fn update_specific_app(app_name: &str, options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
     log::debug!("update_specific_app {}", &app_name);
     let origin_options = options.to_vec();
+    let is_global = origin_options.contains(&Global);
+
+    if is_app_held(app_name, is_global) && !origin_options.contains(&ForceUpdateOverride) {
+        println!(
+            "{}",
+            format!("🔒 '{app_name}' is held. Use 'hp hold -u {app_name}' to unhold before updating, or use --force.")
+                .dark_yellow()
+                .bold()
+        );
+        return Ok(());
+    }
+
     let options = transform_update_options_to_install(options);
 
     if origin_options.contains(&ForceUpdateOverride) {

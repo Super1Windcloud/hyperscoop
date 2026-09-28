@@ -364,7 +364,8 @@ pub fn start_create_shortcut<P: AsRef<Path>>(
         let shell_link = ShellLink::new(link_target_path, args, None, None)?;
         let parent = start_menu_path.as_ref().parent().unwrap();
         if !parent.exists() {
-            fs::create_dir_all(parent).context("Failed to create link parent directory at line 353")?;
+            fs::create_dir_all(parent)
+                .context("Failed to create link parent directory at line 353")?;
         };
         shell_link
             .create_lnk(start_menu_path)

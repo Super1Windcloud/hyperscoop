@@ -1,5 +1,6 @@
-﻿use crate::init_env::{
-    get_app_dir_install_json, get_app_dir_manifest_json, get_apps_path, get_apps_path_global,
+use crate::init_env::{
+    get_app_dir_install_json, get_app_dir_install_json_global, get_app_dir_manifest_json,
+    get_app_dir_manifest_json_global, get_apps_path, get_apps_path_global, is_app_held_by_path,
 };
 use crate::init_hyperscoop;
 use crate::utils::get_file_or_dir_metadata::get_dir_updated_time;
@@ -102,16 +103,28 @@ pub fn list_all_installed_apps_refactor(is_global: bool) -> anyhow::Result<Vec<A
         .par_iter()
         .filter_map(|path| {
             let name = path.file_name().unwrap().to_str().unwrap().to_string();
-            let install_json = get_app_dir_install_json(&name);
-            let manifest_json = get_app_dir_manifest_json(&name);
-            let bucket = get_install_json_bucket(&install_json).unwrap();
+            let install_json = if is_global {
+                get_app_dir_install_json_global(&name)
+            } else {
+                get_app_dir_install_json(&name)
+            };
+            let manifest_json = if is_global {
+                get_app_dir_manifest_json_global(&name)
+            } else {
+                get_app_dir_manifest_json(&name)
+            };
+            let bucket =
+                get_install_json_bucket(&install_json).unwrap_or_else(|_| "unknown".to_string());
             let update_data = get_dir_updated_time(&path);
-            let version = get_install_json_version(&manifest_json).unwrap_or_else(|e| {
+            let mut version = get_install_json_version(&manifest_json).unwrap_or_else(|e| {
                 log::warn!("Failed to get install json version: {}", e);
                 #[cfg(debug_assertions)] // 编译器排除
                 println!("path is {}", manifest_json);
                 return "unknown".to_string();
             });
+            if is_app_held_by_path(&install_json) {
+                version = format!("{version} *held*");
+            }
             Some(AppInfo::new(name, version, bucket, update_data))
         })
         .collect::<Vec<_>>();
@@ -259,9 +272,22 @@ pub fn list_specific_installed_apps(query: Vec<String>, is_global: bool) -> anyh
 }
 
 pub fn get_all_installed_apps_name() -> Vec<String> {
-    let apps_path = init_hyperscoop().unwrap().apps_path;
-    let app_name_list: Vec<String> = read_dir(&apps_path)
-        .unwrap()
+    get_all_installed_apps_name_by_scope(false)
+}
+
+pub fn get_all_installed_apps_name_by_scope(is_global: bool) -> Vec<String> {
+    let apps_path = if is_global {
+        get_apps_path_global()
+    } else {
+        match init_hyperscoop() {
+            Ok(hp) => hp.apps_path,
+            Err(_) => return Vec::new(),
+        }
+    };
+    let Ok(entries) = read_dir(&apps_path) else {
+        return Vec::new();
+    };
+    let app_name_list: Vec<String> = entries
         .par_bridge() // 将标准迭代器转换为并行迭代器
         .filter_map(|entry| {
             let entry = entry.ok()?;

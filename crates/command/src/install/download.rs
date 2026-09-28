@@ -370,7 +370,8 @@ impl<'a> DownloadManager<'a> {
         {
             let env_path: String = if self.options.contains(&Global) {
                 let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
-                let environment_key = r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment";
+                let environment_key =
+                    r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment";
                 let env_key = hklm.open_subkey(environment_key)?;
                 env_key.get_value("PATH")?
             } else {

@@ -1,5 +1,7 @@
+#[cfg(windows)]
 use windows::Win32::Globalization::GetUserDefaultLocaleName;
 
+#[cfg(windows)]
 fn main() {
     unsafe {
         let mut buffer = [0u16; 85];
@@ -15,4 +17,9 @@ fn main() {
             println!("无法获取系统语言");
         }
     }
+}
+
+#[cfg(not(windows))]
+fn main() {
+    println!("Only supported on Windows");
 }

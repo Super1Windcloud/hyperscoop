@@ -68,6 +68,37 @@ pub fn get_app_dir_manifest_json(app_name: &str) -> String {
     format!("{}\\apps\\{}\\current\\manifest.json", scoop_home, app_name)
 }
 
+pub fn is_app_held_by_path(install_json_path: &str) -> bool {
+    let path = Path::new(install_json_path);
+    if !path.exists() {
+        return false;
+    }
+    if let Ok(content) = std::fs::read_to_string(path) {
+        if let Ok(serde_json::Value::Object(map)) =
+            serde_json::from_str::<serde_json::Value>(&content)
+        {
+            if let Some(val) = map.get("hold") {
+                if let Some(b) = val.as_bool() {
+                    return b;
+                }
+            }
+        }
+    }
+    false
+}
+
+pub fn is_app_held(app_name: &str, is_global: bool) -> bool {
+    if is_global {
+        is_app_held_by_path(&get_app_dir_install_json_global(app_name))
+    } else {
+        let user_path = get_app_dir_install_json(app_name);
+        if is_app_held_by_path(&user_path) {
+            return true;
+        }
+        is_app_held_by_path(&get_app_dir_install_json_global(app_name))
+    }
+}
+
 pub fn get_app_current_bin_path(
     app_name: &str,
     bin_name: &str,

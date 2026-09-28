@@ -400,6 +400,9 @@ pub fn download_third_party_buckets() -> Result<String, anyhow::Error> {
 
 pub fn get_git_repo_remote_url<P: AsRef<Path>>(repo_path: P) -> Result<String, anyhow::Error> {
     use git2::Repository;
+    unsafe {
+        let _ = git2::opts::set_verify_owner_validation(false);
+    }
     let repo = Repository::open(repo_path)?;
     for remote in repo.remotes()?.iter() {
         if remote.is_none() {
@@ -411,11 +414,11 @@ pub fn get_git_repo_remote_url<P: AsRef<Path>>(repo_path: P) -> Result<String, a
             continue;
         }
         let remote = remote?;
-        let url = remote.url().unwrap();
-        if url.is_empty() {
-            continue;
+        if let Some(url) = remote.url() {
+            if !url.is_empty() {
+                return Ok(url.to_string());
+            }
         }
-        return Ok(url.to_string());
     }
     Ok("Not found remote url".to_string())
 }

@@ -24,7 +24,7 @@ pub(crate) use crate::command_args::{bucket_args::BucketArgs, cache::CacheArgs};
 use crate::i18n::t;
 use anyhow::{Context, bail};
 use clap::{Args, Subcommand};
-use command_util_lib::init_env::get_app_dir_install_json;
+use command_util_lib::init_env::{get_app_dir_install_json, get_app_dir_install_json_global};
 use command_util_lib::utils::utility::clap_args_to_lowercase;
 use crossterm::style::Stylize;
 use serde_json::Value;
@@ -121,6 +121,13 @@ pub struct HoldArgs {
         help = crate::i18n::tr("Cancel hold for these apps", "取消锁定，支持多个 APP")
     )]
     pub cancel_hold: bool,
+    #[arg(
+        short = 'g',
+        long,
+        required = false,
+        help = crate::i18n::tr("Hold or unhold globally installed apps", "锁定或解锁全局安装的应用")
+    )]
+    pub global: bool,
 }
 
 pub fn add_key_value_to_json(
@@ -140,7 +147,7 @@ pub fn add_key_value_to_json(
             bail!("{name} is already held.");
         }
         map.insert(new_key.to_string(), Value::Bool(new_value));
-        log::debug!("{}", t!("hold.locked", name = name).dark_green().bold());
+        println!("{}", t!("hold.locked", name = name).dark_green().bold());
     } else {
         bail!("Invalid JSON: Expected an object");
     }
@@ -158,16 +165,33 @@ pub fn execute_hold_command(hold_args: HoldArgs) -> anyhow::Result<()> {
     let result = app_names
         .iter()
         .filter_map(|name| {
-            let install_json = get_app_dir_install_json(name);
+            let install_json = if hold_args.global {
+                get_app_dir_install_json_global(name)
+            } else {
+                let user_json = get_app_dir_install_json(name);
+                if Path::new(&user_json).exists() {
+                    user_json
+                } else {
+                    let global_json = get_app_dir_install_json_global(name);
+                    if Path::new(&global_json).exists() {
+                        global_json
+                    } else {
+                        user_json
+                    }
+                }
+            };
             if !Path::new(&install_json).exists() {
-                log::debug!("{}", t!("common.file_not_found", path = install_json));
+                eprintln!(
+                    "{}",
+                    format!("'{name}' is not installed.").dark_yellow().bold()
+                );
                 None
             } else {
                 if hold_args.cancel_hold {
-                    let result = unhold_locked_apps(&name, &install_json);
+                    let result = unhold_locked_apps(name, &install_json);
                     if result.is_err() { Some(result) } else { None }
                 } else {
-                    let result = add_key_value_to_json(&install_json, "hold".as_ref(), true, name);
+                    let result = add_key_value_to_json(&install_json, "hold", true, name);
                     if result.is_err() { Some(result) } else { None }
                 }
             }
@@ -180,7 +204,7 @@ pub fn execute_hold_command(hold_args: HoldArgs) -> anyhow::Result<()> {
         Ok(_) => {}
         Err(e) => {
             let e = e.to_string();
-            eprintln!("{}", e.dark_grey().bold());
+            eprintln!("{}", e.dark_red().bold());
         }
     });
     Ok(())
@@ -195,10 +219,10 @@ pub fn unhold_locked_apps(app_name: &str, install_json_file: &str) -> anyhow::Re
 
     if let Value::Object(ref mut map) = json_data {
         if map.get("hold").is_none() {
-            bail!("'{app_name}' is not  held.");
+            bail!("'{app_name}' is not held.");
         }
         map.remove("hold");
-        log::debug!(
+        println!(
             "{}",
             t!("hold.unlocked", name = app_name).dark_green().bold()
         );

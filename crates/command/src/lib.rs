@@ -90,3 +90,9 @@ pub fn init_hyperscoop_global() -> Result<HyperScoopGlobal, anyhow::Error> {
     let hyperscoop = HyperScoopGlobal::new();
     Ok(hyperscoop)
 }
+
+pub fn disable_git2_owner_validation() {
+    unsafe {
+        let _ = git2::opts::set_verify_owner_validation(false);
+    }
+}

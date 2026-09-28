@@ -1,8 +1,11 @@
+#![cfg_attr(not(windows), allow(dead_code, unused_imports))]
+
 use crate::i18n::tr;
 use anyhow::Context;
 use color_eyre::owo_colors::OwoColorize;
 use command_util_lib::init_env::{init_scoop_global, init_user_scoop};
 use crossterm::style::Stylize;
+#[cfg(windows)]
 use std::process::Command;
 use std::{env, path::Path};
 use which::which;
@@ -42,7 +45,14 @@ fn localized(en: &str, zh: &str) -> String {
 
 #[cfg(not(windows))]
 pub async fn execute_checkup_command(_global: bool) -> anyhow::Result<()> {
-    eprintln!("{}", tr("checkup is only supported on Windows.", "checkup 仅支持 Windows 系统。").yellow());
+    eprintln!(
+        "{}",
+        tr(
+            "checkup is only supported on Windows.",
+            "checkup 仅支持 Windows 系统。"
+        )
+        .yellow()
+    );
     Ok(())
 }
 
@@ -133,14 +143,14 @@ pub async fn execute_checkup_command(global: bool) -> anyhow::Result<()> {
     if total_issues > 0 {
         let msg = tr(
             "Found {count} potential issues.",
-            "发现 {count} 个潜在问题。"
+            "发现 {count} 个潜在问题。",
         )
         .replace("{count}", &total_issues.to_string());
         println!("{}", msg.yellow());
     } else if defender_issues > 0 {
         let msg = tr(
             "Found {count} performance issues.",
-            "发现 {count} 个性能问题。"
+            "发现 {count} 个性能问题。",
         )
         .replace("{count}", &defender_issues.to_string());
         println!("{}", msg.blue());
@@ -252,7 +262,10 @@ fn check_long_paths() -> anyhow::Result<CheckupResult> {
 fn check_long_paths() -> anyhow::Result<CheckupResult> {
     Ok(CheckupResult {
         passed: true,
-        message: localized("LongPaths support is not applicable", "LongPaths 不适用于当前系统"),
+        message: localized(
+            "LongPaths support is not applicable",
+            "LongPaths 不适用于当前系统",
+        ),
         fix_hint: None,
     })
 }
@@ -293,7 +306,10 @@ fn check_developer_mode() -> anyhow::Result<CheckupResult> {
 fn check_developer_mode() -> anyhow::Result<CheckupResult> {
     Ok(CheckupResult {
         passed: true,
-        message: localized("Developer mode is not applicable", "开发者模式不适用于当前系统"),
+        message: localized(
+            "Developer mode is not applicable",
+            "开发者模式不适用于当前系统",
+        ),
         fix_hint: None,
     })
 }
@@ -591,7 +607,7 @@ fn check_ntfs_volumes() -> anyhow::Result<CheckupResult> {
     if !is_ntfs(scoop_drive) {
         let msg = tr(
             "hp requires an NTFS volume to work! Current path: {path}",
-            "hp 需要安装在 NTFS 分区上！当前路径: {path}"
+            "hp 需要安装在 NTFS 分区上！当前路径: {path}",
         )
         .replace("{path}", &scoop_path);
         issues.push(msg);
@@ -600,7 +616,7 @@ fn check_ntfs_volumes() -> anyhow::Result<CheckupResult> {
     if !is_ntfs(global_drive) {
         let msg = tr(
             "hp global requires an NTFS volume to work! Current path: {path}",
-            "hp global 需要安装在 NTFS 分区上！当前路径: {path}"
+            "hp global 需要安装在 NTFS 分区上！当前路径: {path}",
         )
         .replace("{path}", &global_path);
         issues.push(msg);
@@ -649,7 +665,10 @@ fn is_ntfs(drive: &str) -> bool {
         );
 
         if success.is_ok() {
-            let len = fs_name_buffer.iter().position(|&x| x == 0).unwrap_or(fs_name_buffer.len());
+            let len = fs_name_buffer
+                .iter()
+                .position(|&x| x == 0)
+                .unwrap_or(fs_name_buffer.len());
             let fs_name = String::from_utf16_lossy(&fs_name_buffer[..len]).to_ascii_uppercase();
             fs_name == "NTFS"
         } else {

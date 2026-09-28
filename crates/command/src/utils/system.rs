@@ -1,9 +1,11 @@
 use crate::init_env::get_persist_dir_path_global;
 use anyhow::{Context, bail};
 use sha2::{Digest, Sha256};
+#[cfg(windows)]
 use std::ffi::OsStr;
 use std::fs;
 use std::io::Read;
+#[cfg(windows)]
 use std::iter::once;
 #[cfg(windows)]
 use std::os::windows::ffi::OsStrExt;

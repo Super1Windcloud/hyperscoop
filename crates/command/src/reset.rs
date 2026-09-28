@@ -6,10 +6,10 @@ use crate::utils::utility::compare_versions;
 use anyhow::{Context, bail};
 use crossterm::style::Stylize;
 use std::cmp::Ordering;
-#[cfg(windows)]
-use std::os::windows::fs::symlink_dir;
 #[cfg(not(windows))]
 use std::os::unix::fs::symlink as symlink_dir;
+#[cfg(windows)]
+use std::os::windows::fs::symlink_dir;
 use std::path::{Path, PathBuf};
 
 pub fn reset_latest_version(

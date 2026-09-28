@@ -473,19 +473,13 @@ impl Buckets {
         } else {
             get_buckets_path()?
         };
-        let result = bucket_path.iter().try_for_each(|path| {
-            if !Path::new(path).exists() || !Path::new(path).is_dir() {
-                bail!("bucket dir not found")
-            } else {
-                Ok(())
-            }
-        });
-        if result.is_err() {
-            bail!(result.err().unwrap())
-        }
+        let bucket_path = bucket_path
+            .into_iter()
+            .filter(|path| Path::new(path).is_dir())
+            .collect::<Vec<_>>();
         let buckets_path = bucket_path
             .iter()
-            .map(|path| get_git_repo_remote_url(path).unwrap())
+            .map(|path| get_git_repo_remote_url(path).unwrap_or_else(|_| "Unknown".to_string()))
             .collect::<Vec<_>>();
 
         Ok(buckets_path)
@@ -499,19 +493,13 @@ impl Buckets {
         } else {
             get_buckets_path()?
         };
-        let result = bucket_paths.iter().try_for_each(|path| {
-            if !Path::new(path).exists() || !Path::new(path).is_dir() {
-                bail!("bucket dir not found")
-            } else {
-                Ok(())
-            }
-        });
-        if result.is_err() {
-            bail!(result.err().unwrap())
-        }
+        let bucket_paths = bucket_paths
+            .into_iter()
+            .filter(|path| Path::new(path).is_dir())
+            .collect::<Vec<_>>();
         let buckets_path = bucket_paths
             .iter()
-            .map(|path| get_git_repo_remote_url(path).unwrap())
+            .map(|path| get_git_repo_remote_url(path).unwrap_or_else(|_| "Unknown".to_string()))
             .collect::<Vec<_>>();
 
         Ok((buckets_path, bucket_paths))
