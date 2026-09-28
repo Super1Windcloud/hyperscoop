@@ -14,8 +14,9 @@ use command_util_lib::utils::utility::clap_args_to_lowercase;
 pub struct HomeArgs {
     #[arg(
         required = false,
-        help = crate::i18n::tr("App name", "指定 APP 的名称"),
+        num_args = 1..,
+        help = crate::i18n::tr("App name(s)", "指定 APP 的名称（支持打开多个）"),
         value_parser = clap_args_to_lowercase
     )]
-    pub name: Option<String>,
+    pub names: Vec<String>,
 }

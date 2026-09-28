@@ -1,4 +1,4 @@
-﻿use clap::ArgAction;
+use clap::ArgAction;
 use clap::Args;
 use command_util_lib::utils::utility::clap_args_to_lowercase;
 
@@ -32,13 +32,14 @@ use command_util_lib::utils::utility::clap_args_to_lowercase;
 pub struct InstallArgs {
     #[arg(
         help = crate::i18n::tr(
-            "App name to install (exact match, single install)",
-            "安装 APP 的名称，精准匹配，仅单个安装"
+            "App name(s) to install (supports multiple apps)",
+            "安装 APP 的名称，精准匹配，支持同时安装多个 APP"
         ),
         required = false,
+        num_args = 1..,
         value_parser = clap_args_to_lowercase
     )]
-    pub app_name: Option<String>,
+    pub app_names: Vec<String>,
 
     #[arg(
         short,

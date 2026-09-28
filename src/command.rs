@@ -253,3 +253,117 @@ pub fn show_reward_img() {
         t!("credits.support_message").as_ref().dark_cyan().bold()
     );
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use clap::Parser;
+
+    #[test]
+    fn test_multi_app_parsing() {
+        // Install
+        let cli = crate::Cli::try_parse_from(["hp", "install", "git", "curl", "7zip"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Install(args) => assert_eq!(args.app_names, vec!["git", "curl", "7zip"]),
+            _ => panic!("Expected Install"),
+        }
+
+        // Uninstall
+        let cli = crate::Cli::try_parse_from(["hp", "uninstall", "git", "curl"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Uninstall(args) => assert_eq!(args.app_names, vec!["git", "curl"]),
+            _ => panic!("Expected Uninstall"),
+        }
+
+        // Update
+        let cli = crate::Cli::try_parse_from(["hp", "update", "git", "curl"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Update(args) => assert_eq!(args.app_names, vec!["git", "curl"]),
+            _ => panic!("Expected Update"),
+        }
+
+        // Reset
+        let cli = crate::Cli::try_parse_from(["hp", "reset", "python@3.9", "nodejs"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Reset(args) => assert_eq!(args.names, vec!["python@3.9", "nodejs"]),
+            _ => panic!("Expected Reset"),
+        }
+
+        // Cache rm
+        let cli = crate::Cli::try_parse_from(["hp", "cache", "rm", "git", "curl"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Cache(args) => match args.command.unwrap() {
+                crate::command_args::cache::CacheSubcommand::Rm(rm) => {
+                    assert_eq!(rm.rm_apps, vec!["git", "curl"]);
+                }
+                _ => panic!("Expected Cache Rm"),
+            },
+            _ => panic!("Expected Cache"),
+        }
+
+        // Info
+        let cli = crate::Cli::try_parse_from(["hp", "info", "git", "curl"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Info(args) => assert_eq!(args.names, vec!["git", "curl"]),
+            _ => panic!("Expected Info"),
+        }
+
+        // Cat
+        let cli = crate::Cli::try_parse_from(["hp", "cat", "git", "curl"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Cat(args) => assert_eq!(args.app_names, vec!["git", "curl"]),
+            _ => panic!("Expected Cat"),
+        }
+
+        // Home
+        let cli = crate::Cli::try_parse_from(["hp", "home", "git", "curl"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Home(args) => assert_eq!(args.names, vec!["git", "curl"]),
+            _ => panic!("Expected Home"),
+        }
+
+        // Prefix
+        let cli = crate::Cli::try_parse_from(["hp", "prefix", "git", "curl"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Prefix(args) => assert_eq!(args.names, vec!["git", "curl"]),
+            _ => panic!("Expected Prefix"),
+        }
+
+        // Which
+        let cli = crate::Cli::try_parse_from(["hp", "which", "git", "curl"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Which(args) => assert_eq!(args.names, vec!["git", "curl"]),
+            _ => panic!("Expected Which"),
+        }
+    }
+
+    #[test]
+    fn test_single_app_parsing() {
+        let cli = crate::Cli::try_parse_from(["hp", "install", "git"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Install(args) => assert_eq!(args.app_names, vec!["git"]),
+            _ => panic!("Expected Install"),
+        }
+
+        let cli = crate::Cli::try_parse_from(["hp", "uninstall", "git"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Uninstall(args) => assert_eq!(args.app_names, vec!["git"]),
+            _ => panic!("Expected Uninstall"),
+        }
+
+        let cli = crate::Cli::try_parse_from(["hp", "update", "git"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Update(args) => assert_eq!(args.app_names, vec!["git"]),
+            _ => panic!("Expected Update"),
+        }
+
+        let cli = crate::Cli::try_parse_from(["hp", "update", "-a"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Update(args) => {
+                assert!(args.all);
+                assert!(args.app_names.is_empty());
+            }
+            _ => panic!("Expected Update"),
+        }
+    }
+}

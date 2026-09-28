@@ -19,107 +19,119 @@ pub struct InstallJSON {
 }
 
 pub fn execute_which_command(command: WhichArgs) -> Result<(), anyhow::Error> {
-    if let Some(name) = command.name {
-        let current_dir = if command.global {
-            get_app_current_dir_global(&name)
-        } else {
-            get_app_current_dir(&name)
-        };
+    let mut errors = Vec::new();
+    for name in &command.names {
+        if let Err(e) = which_single_command(name, command.global) {
+            eprintln!("{} {}: {:#}", "ERROR".dark_red().bold(), name, e);
+            errors.push(format!("{}: {:#}", name, e));
+        }
+    }
+    if !errors.is_empty() {
+        bail!("Failed to locate {} command(s)", errors.len());
+    }
+    Ok(())
+}
 
-        let shim_root_dir = if command.global {
-            get_shims_root_dir_global()
-        } else {
-            get_shims_root_dir()
-        };
+fn which_single_command(name: &str, global: bool) -> Result<(), anyhow::Error> {
+    let current_dir = if global {
+        get_app_current_dir_global(name)
+    } else {
+        get_app_current_dir(name)
+    };
 
-        let result = which(name.as_str()).ok();
-        if let Some(path) = result {
-            output_current_exe(path, shim_root_dir.as_str())?;
+    let shim_root_dir = if global {
+        get_shims_root_dir_global()
+    } else {
+        get_shims_root_dir()
+    };
+
+    let result = which(name).ok();
+    if let Some(path) = result {
+        output_current_exe(path, shim_root_dir.as_str())?;
+    } else {
+        if !Path::new(&current_dir).exists() {
+            bail!(format!(
+                "{} {path}",
+                tr("{path} does not exist", "{path} 不存在"),
+                path = current_dir
+            ))
         } else {
-            if !Path::new(&current_dir).exists() {
+            let manifest_json = format!("{}\\manifest.json", current_dir);
+            if !Path::new(&manifest_json).exists() {
                 bail!(format!(
                     "{} {path}",
                     tr("{path} does not exist", "{path} 不存在"),
-                    path = current_dir
+                    path = manifest_json
                 ))
             } else {
-                let manifest_json = format!("{}\\manifest.json", current_dir);
-                if !Path::new(&manifest_json).exists() {
+                let manifest_json_content =
+                    std::fs::read_to_string(&manifest_json).context(format!(
+                        "Failed to read manifest.json file {} at line 46",
+                        &manifest_json
+                    ))?;
+                let manifest: InstallManifest = serde_json::from_str(&manifest_json_content)
+                    .context(format!(
+                        "Failed to parse manifest.json file {} at line 48",
+                        &manifest_json
+                    ))?;
+
+                let install_json = format!("{}\\install.json", current_dir);
+                if !Path::new(&install_json).exists() {
                     bail!(format!(
                         "{} {path}",
                         tr("{path} does not exist", "{path} 不存在"),
-                        path = manifest_json
+                        path = install_json
                     ))
-                } else {
-                    let manifest_json_content =
-                        std::fs::read_to_string(&manifest_json).context(format!(
-                            "Failed to read manifest.json file {} at line 46",
-                            &manifest_json
-                        ))?;
-                    let manifest: InstallManifest = serde_json::from_str(&manifest_json_content)
-                        .context(format!(
-                            "Failed to parse manifest.json file {} at line 48",
-                            &manifest_json
-                        ))?;
+                }
+                let install_json_content = std::fs::read_to_string(&install_json).context(
+                    format!("Failed to read install.json file {}", &install_json),
+                )?;
+                let install_json: InstallJSON = serde_json::from_str(&install_json_content)
+                    .context(format!(
+                        "Failed to parse install.json file {}",
+                        &install_json
+                    ))?;
+                let arch = install_json.architecture.unwrap();
 
-                    let install_json = format!("{}\\install.json", current_dir);
-                    if !Path::new(&install_json).exists() {
-                        bail!(format!(
-                            "{} {path}",
-                            tr("{path} does not exist", "{path} 不存在"),
-                            path = install_json
-                        ))
-                    }
-                    let install_json_content = std::fs::read_to_string(&install_json).context(
-                        format!("Failed to read install.json file {}", &install_json),
-                    )?;
-                    let install_json: InstallJSON = serde_json::from_str(&install_json_content)
-                        .context(format!(
-                            "Failed to parse install.json file {}",
-                            &install_json
-                        ))?;
-                    let arch = install_json.architecture.unwrap();
+                let bin = manifest.bin;
+                let architecture = manifest.architecture;
 
-                    let bin = manifest.bin;
-                    let architecture = manifest.architecture;
-
-                    if bin.is_some() {
-                        let bin = bin.unwrap();
-                        match_bin_parser(bin, shim_root_dir.to_string())?;
-                    } else if architecture.is_some() {
-                        let architecture = architecture.unwrap();
-                        match arch {
-                            ArchType::X86 => {
-                                let x86 = architecture.x86bit;
-                                if x86.is_some() {
-                                    let x86 = x86.unwrap();
-                                    let bin = x86.bin;
-                                    if bin.is_some() {
-                                        let bin = bin.unwrap();
-                                        match_bin_parser(bin, shim_root_dir.to_string())?;
-                                    }
+                if bin.is_some() {
+                    let bin = bin.unwrap();
+                    match_bin_parser(bin, shim_root_dir.to_string())?;
+                } else if architecture.is_some() {
+                    let architecture = architecture.unwrap();
+                    match arch {
+                        ArchType::X86 => {
+                            let x86 = architecture.x86bit;
+                            if x86.is_some() {
+                                let x86 = x86.unwrap();
+                                let bin = x86.bin;
+                                if bin.is_some() {
+                                    let bin = bin.unwrap();
+                                    match_bin_parser(bin, shim_root_dir.to_string())?;
                                 }
                             }
-                            ArchType::X64 => {
-                                let x64 = architecture.x64bit;
-                                if x64.is_some() {
-                                    let x64 = x64.unwrap();
-                                    let bin = x64.bin;
-                                    if bin.is_some() {
-                                        let bin = bin.unwrap();
-                                        match_bin_parser(bin, shim_root_dir.to_string())?;
-                                    }
+                        }
+                        ArchType::X64 => {
+                            let x64 = architecture.x64bit;
+                            if x64.is_some() {
+                                let x64 = x64.unwrap();
+                                let bin = x64.bin;
+                                if bin.is_some() {
+                                    let bin = bin.unwrap();
+                                    match_bin_parser(bin, shim_root_dir.to_string())?;
                                 }
                             }
-                            ArchType::Arm64 => {
-                                let arm64 = architecture.arm64;
-                                if arm64.is_some() {
-                                    let arm64 = arm64.unwrap();
-                                    let bin = arm64.bin;
-                                    if bin.is_some() {
-                                        let bin = bin.unwrap();
-                                        match_bin_parser(bin, shim_root_dir.to_string())?;
-                                    }
+                        }
+                        ArchType::Arm64 => {
+                            let arm64 = architecture.arm64;
+                            if arm64.is_some() {
+                                let arm64 = arm64.unwrap();
+                                let bin = arm64.bin;
+                                if bin.is_some() {
+                                    let bin = bin.unwrap();
+                                    match_bin_parser(bin, shim_root_dir.to_string())?;
                                 }
                             }
                         }

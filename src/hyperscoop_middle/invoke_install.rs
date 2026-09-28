@@ -11,14 +11,13 @@ use std::env;
 use std::path::Path;
 
 pub async fn execute_install_command(args: InstallArgs) -> Result<(), anyhow::Error> {
-    if args.app_name.is_none() {
+    if args.app_names.is_empty() {
         return Ok(());
     }
 
-    let app_name = args.app_name.clone().unwrap();
     if args.global && !is_admin()? {
-        let args = env::args().skip(1).collect::<Vec<String>>();
-        let args_str = args.join(" ");
+        let args_env = env::args().skip(1).collect::<Vec<String>>();
+        let args_str = args_env.join(" ");
         log::warn!(
             "Global command arguments: {}",
             args_str.clone().dark_yellow()
@@ -40,11 +39,48 @@ pub async fn execute_install_command(args: InstallArgs) -> Result<(), anyhow::Er
         );
         update_buckets_parallel()?;
     }
-    if args.app_name.is_none() {
-        return Ok(());
+
+    let total = args.app_names.len();
+    let mut errors = Vec::new();
+
+    for (i, raw_name) in args.app_names.iter().enumerate() {
+        if total > 1 {
+            println!(
+                "{}",
+                format!("\n[{}/{}] Installing '{}'...", i + 1, total, raw_name)
+                    .dark_cyan()
+                    .bold()
+            );
+        }
+        if let Err(e) = install_single_app(raw_name, &options, &args).await {
+            eprintln!(
+                "{}",
+                format!("Failed to install '{}': {}", raw_name, e)
+                    .dark_red()
+                    .bold()
+            );
+            errors.push((raw_name.clone(), e));
+        }
     }
 
-    let app_name = convert_path(app_name.trim()).to_lowercase();
+    if !errors.is_empty() && total > 1 {
+        eprintln!(
+            "{}",
+            format!("\n{} of {} apps failed to install.", errors.len(), total)
+                .dark_red()
+                .bold()
+        );
+    }
+
+    Ok(())
+}
+
+async fn install_single_app(
+    raw_name: &str,
+    options: &[InstallOptions<'_>],
+    args: &InstallArgs,
+) -> Result<(), anyhow::Error> {
+    let app_name = convert_path(raw_name.trim()).to_lowercase();
     if app_name == "hp" || app_name.ends_with("/hp") || app_name.starts_with("hp@") {
         bail!(
             "{}",
@@ -60,7 +96,7 @@ pub async fn execute_install_command(args: InstallArgs) -> Result<(), anyhow::Er
             log::debug!("manifest file {}", app_name);
             let manifest_path = app_name.as_str();
             if app_path.extension().unwrap_or_default() == "json" {
-                install_app_from_local_manifest_file(manifest_path, options, None)?;
+                install_app_from_local_manifest_file(manifest_path, options.to_vec(), None)?;
                 return Ok(());
             } else {
                 bail!("{} is not a json file", app_path.display());
@@ -75,8 +111,7 @@ pub async fn execute_install_command(args: InstallArgs) -> Result<(), anyhow::Er
     }
 
     if is_valid_url(app_name.as_str()) {
-        install_app_from_url(app_path, &options, args.app_alias_from_url_install.clone())?;
-
+        install_app_from_url(app_path, options, args.app_alias_from_url_install.clone())?;
         return Ok(());
     }
 
@@ -95,7 +130,7 @@ pub async fn execute_install_command(args: InstallArgs) -> Result<(), anyhow::Er
             if bucket.is_empty() || app_name.is_empty() {
                 bail!("指定的App格式不正确")
             }
-            install_from_specific_bucket(&bucket, &app_name, &options)?;
+            install_from_specific_bucket(&bucket, &app_name, options)?;
             return Ok(());
         } else if split_arg.iter().count() > 2 || split_arg.len() == 1 {
             bail!("指定的APP格式错误")
@@ -106,11 +141,11 @@ pub async fn execute_install_command(args: InstallArgs) -> Result<(), anyhow::Er
         if split_version.iter().count() == 2 {
             let app_name = split_version[0].trim().to_lowercase();
             let app_version = split_version[1].trim().to_lowercase();
-            log::info!("install   {} specific version {}", app_name, app_version);
+            log::info!("install {} specific version {}", app_name, app_version);
             if app_name.is_empty() || app_version.is_empty() {
                 bail!("指定的APP格式错误")
             }
-            install_app_specific_version(&app_name, &app_version, &options).await?;
+            install_app_specific_version(&app_name, &app_version, &options.to_vec()).await?;
             return Ok(());
         } else if split_version.len() == 1 || split_version.len() > 2 {
             bail!("指定的APP格式错误")
@@ -119,7 +154,7 @@ pub async fn execute_install_command(args: InstallArgs) -> Result<(), anyhow::Er
     if contains_special_char(app_name.as_str()) {
         bail!("指定的APP格式错误")
     }
-    install_app(app_name.as_str(), &options)?;
+    install_app(app_name.as_str(), options)?;
     Ok(())
 }
 

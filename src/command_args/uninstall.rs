@@ -12,13 +12,14 @@ use command_util_lib::utils::utility::clap_args_to_lowercase;
 pub struct UninstallArgs {
     #[arg(
         help = crate::i18n::tr(
-            "Name of the app to uninstall (exact match, single)",
-            "卸载指定 APP 的名称，精准匹配，仅单个卸载"
+            "Name(s) of the app to uninstall (supports multiple apps)",
+            "卸载指定 APP 的名称，精准匹配，支持同时卸载多个 APP"
         ),
         required = false,
+        num_args = 1..,
         value_parser = clap_args_to_lowercase
     )]
-    pub(crate) app_name: Option<String>,
+    pub(crate) app_names: Vec<String>,
     #[arg(
         short,
         long,

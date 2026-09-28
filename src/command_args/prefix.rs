@@ -11,10 +11,11 @@ use command_util_lib::utils::utility::clap_args_to_lowercase;
 pub struct PrefixArgs {
     #[arg(
         required = false,
-        help = crate::i18n::tr("App name", "指定 APP 的名称"),
+        num_args = 1..,
+        help = crate::i18n::tr("App name(s)", "指定 APP 的名称（支持查询多个）"),
         value_parser = clap_args_to_lowercase
     )]
-    pub(crate) name: Option<String>,
+    pub(crate) names: Vec<String>,
 
     #[arg(from_global)]
     pub(crate) global: bool,

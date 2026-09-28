@@ -14,12 +14,14 @@ use command_util_lib::utils::utility::clap_args_to_lowercase;
 pub struct InfoArgs {
     #[clap(
         help = crate::i18n::tr(
-            "Exact match; bucket can be specified, e.g. main/zig",
-            "精准匹配，可指定 bucket，例如 main/zig"
+            "Exact match; bucket can be specified, e.g. main/zig (supports multiple apps)",
+            "精准匹配，可指定 bucket，例如 main/zig（支持查询多个）"
         ),
+        required = false,
+        num_args = 1..,
         value_parser = clap_args_to_lowercase
     )]
-    pub name: Option<String>,
+    pub names: Vec<String>,
     #[arg(from_global)]
     pub global: bool,
 }

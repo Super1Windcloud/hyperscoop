@@ -45,7 +45,7 @@ pub async fn execute_update_command(update_args: UpdateArgs) -> Result<(), anyho
         return Ok(());
     }
 
-    if update_args.app_name.is_none() {
+    if update_args.app_names.is_empty() {
         return Ok(());
     }
 
@@ -62,17 +62,42 @@ pub async fn execute_update_command(update_args: UpdateArgs) -> Result<(), anyho
         }
     }
 
-    let app_name = update_args.app_name.unwrap();
-    if app_name.to_lowercase() == "hp" {
+    let total = update_args.app_names.len();
+    let mut errors = Vec::new();
+    for (idx, app_name) in update_args.app_names.iter().enumerate() {
+        if total > 1 {
+            println!(
+                "{}",
+                format!("\n[{}/{}] Updating '{}'...", idx + 1, total, app_name)
+                    .dark_cyan()
+                    .bold()
+            );
+        }
+        if app_name.to_lowercase() == "hp" {
+            eprintln!(
+                "{}",
+                tr(
+                    "hp self update has moved to: hp self-update",
+                    "hp 自更新已改为独立命令: hp self-update"
+                )
+                .dark_yellow()
+            );
+            continue;
+        }
+        if let Err(e) = update_specific_app(app_name, &options) {
+            eprintln!("{} {}: {:#}", "ERROR".dark_red().bold(), app_name, e);
+            errors.push(format!("{}: {:#}", app_name, e));
+        }
+    }
+
+    if !errors.is_empty() {
         bail!(
-            "{}",
-            tr(
-                "hp self update has moved to: hp self-update",
-                "hp 自更新已改为独立命令: hp self-update"
-            )
+            "Failed to update {} app(s):\n{}",
+            errors.len(),
+            errors.join("\n")
         );
     }
-    update_specific_app(&app_name, &options)?;
+
     Ok(())
 }
 

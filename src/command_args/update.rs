@@ -18,15 +18,16 @@ use command_util_lib::utils::utility::clap_args_to_lowercase;
     )
 )]
 pub struct UpdateArgs {
-    #[arg(required = false)]
     #[arg(
+        required = false,
+        num_args = 0..,
         help = crate::i18n::tr(
-            "Name of the app to update (single)",
-            "指定要更新的 APP 名称，仅单个更新"
+            "Name(s) of the app to update (supports multiple apps)",
+            "指定要更新的 APP 名称，支持同时更新多个 APP"
         ),
         value_parser = clap_args_to_lowercase
     )]
-    pub(crate) app_name: Option<String>,
+    pub(crate) app_names: Vec<String>,
 
     #[arg(
         short,

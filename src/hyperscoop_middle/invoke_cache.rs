@@ -20,12 +20,13 @@ pub fn execute_cache_command(cache_args: CacheArgs) -> Result<(), anyhow::Error>
                     rm_all_cache(sub.global)?;
                     return Ok(());
                 }
-                if let Some(app_name) = sub.rm_app {
-                    display_specified_cache_info(app_name.as_str(), sub.global)?;
-                    Ok(())
-                } else {
-                    bail!("the following required arguments were not provided: <app>");
+                if sub.rm_apps.is_empty() {
+                    bail!("the following required arguments were not provided: <apps>...");
                 }
+                for app_name in &sub.rm_apps {
+                    display_specified_cache_info(app_name.as_str(), sub.global)?;
+                }
+                Ok(())
             }
         },
     }

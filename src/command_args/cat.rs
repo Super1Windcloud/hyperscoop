@@ -13,11 +13,12 @@ use command_util_lib::utils::utility::clap_args_to_lowercase;
 ))]
 pub struct CatArgs {
     #[arg(
-        help = crate::i18n::tr("App name", "App 的名称"),
+        help = crate::i18n::tr("App name(s)", "App 的名称（支持查看多个）"),
         required = false,
+        num_args = 1..,
         value_parser = clap_args_to_lowercase
     )]
-    pub app_name: String,
+    pub app_names: Vec<String>,
 
     #[arg(from_global)]
     pub global: bool,

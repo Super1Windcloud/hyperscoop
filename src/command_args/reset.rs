@@ -15,13 +15,14 @@ use command_util_lib::utils::utility::clap_args_to_lowercase;
 pub struct ResetArgs {
     #[arg(
         help = crate::i18n::tr(
-            "App name, e.g. reset python@3.9 or reset python",
-            "APP 名称，例如 reset python@3.9 或 reset python"
+            "App name(s), e.g. reset python@3.9 or reset python nodejs",
+            "APP 名称，例如 reset python@3.9 或 reset python nodejs（支持多参数）"
         ),
         required = false,
+        num_args = 1..,
         value_parser = clap_args_to_lowercase
     )]
-    pub(crate) name: Option<String>,
+    pub(crate) names: Vec<String>,
 
     #[arg(
         required = false,

@@ -19,10 +19,11 @@ pub struct ShowArgs {
 pub struct RmArgs {
     #[arg(
         required = false,
-        help = crate::i18n::tr("Remove cache for the provided app", "删除指定 App 缓存"),
+        num_args = 0..,
+        help = crate::i18n::tr("Remove cache for the provided app(s)", "删除指定 App 缓存（支持多参数）"),
         value_parser = clap_args_to_lowercase
     )]
-    pub rm_app: Option<String>,
+    pub rm_apps: Vec<String>,
     #[arg(
         long,
         short = 'a',
