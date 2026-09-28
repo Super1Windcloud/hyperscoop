@@ -396,18 +396,18 @@ pub fn create_alias_shim_name_file(
 
     let target_path = get_app_current_bin_path(app_name.into(), &exe_name, options);
 
-    let target_path = fs::canonicalize(&target_path).context(format!(
-        "Failed to get canonicalize target_path {target_path} at line 377"
-    ))?;
-    let target_path = strip_extended_prefix(target_path.as_path());
-    let target_path = target_version_dir_to_current_dir(&target_path, options)?;
-
     if !out_dir.exists() {
         bail!(format!("shim 目录 {shim_dir} 不存在"));
     }
     if !Path::new(&target_path).exists() {
-        bail!(format!("链接目标文件 {target_path} 不存在"))
+        bail!(format!("链接目标文件 {target_path} 不存在"));
+    }
+    let target_path = match fs::canonicalize(&target_path) {
+        Ok(p) => strip_extended_prefix(p.as_path()),
+        Err(_) => target_path,
     };
+    let target_path = target_version_dir_to_current_dir(&target_path, options)?;
+
     log::info!("origin name {}, alias name {}", exe_name, alias_name);
 
     if suffix == "exe" || suffix == "com" {
@@ -501,18 +501,18 @@ pub fn create_default_shim_name_file(
         return Ok(());
     }
     let target_path = get_app_current_bin_path(app_name.into(), &exe_name, options);
-    let target_path = fs::canonicalize(&target_path).context(format!(
-        "Failed to get canonicalize target_path {target_path} at line 459"
-    ))?;
-    let target_path = strip_extended_prefix(target_path.as_path());
-    let target_path = target_version_dir_to_current_dir(&target_path, options)?;
 
     if !out_dir.exists() {
         bail!(format!("shim 目录 {shim_dir} 不存在"));
     }
     if !Path::new(&target_path).exists() && exe_name != "hp.exe" {
-        bail!(format!("链接目标文件 {target_path} 不存在"))
+        bail!(format!("链接目标文件 {target_path} 不存在"));
+    }
+    let target_path = match fs::canonicalize(&target_path) {
+        Ok(p) => strip_extended_prefix(p.as_path()),
+        Err(_) => target_path,
     };
+    let target_path = target_version_dir_to_current_dir(&target_path, options)?;
     if suffix == "exe" || suffix == "com" {
         create_exe_type_shim_file_and_shim_bin(target_path, out_dir, None, None, options)?;
     } else if suffix == "cmd" || "bat" == suffix {

@@ -43,7 +43,8 @@ pub fn install_app_from_local_manifest_file<P: AsRef<Path>>(
     bucket_source: Option<&str>,
 ) -> Result<()> {
     let options: Box<[InstallOptions]> = options.into_boxed_slice();
-    add_scoop_shim_root_dir_to_env_path(&options).expect("add scoop shim root to env path failed");
+    add_scoop_shim_root_dir_to_env_path(&options)
+        .context("add scoop shim root to env path failed")?;
 
     let manifest_path = manifest_path.as_ref().to_str().unwrap();
     let install_arch = handle_arch(&options)?;
@@ -243,7 +244,7 @@ pub fn install_app_from_local_manifest_file<P: AsRef<Path>>(
         &app_name,
         None,
     )
-    .expect("parse pre_install failed");
+    .context("parse pre_install failed")?;
 
     // !  parse    manifest installer
     parse_lifecycle_scripts(
@@ -253,14 +254,14 @@ pub fn install_app_from_local_manifest_file<P: AsRef<Path>>(
         &app_name,
         None,
     )
-    .expect("parse installer scripts failed");
+    .context("parse installer scripts failed")?;
 
     //  ? linking   app current dir to app version dir
     // senvenzip.link_current()?;
     //*create_shims
     //*create_startmenu_shortcuts
     create_shim_or_shortcuts(manifest_path, &app_name, &options)
-        .expect("create shim or shortcuts failed");
+        .context("create shim or shortcuts failed")?;
 
     // * install_psmodule
     if psmodule.is_some() {
@@ -270,7 +271,8 @@ pub fn install_app_from_local_manifest_file<P: AsRef<Path>>(
         } else {
             false
         };
-        install_psmodule(global, psmodule, &app_name, version).expect("install_psmodule failed");
+        install_psmodule(global, psmodule, &app_name, version)
+            .context("install_psmodule failed")?;
     }
     if !env_set.is_none() {
         handle_env_set(env_set.unwrap(), obj_copy, &options)?;
@@ -284,7 +286,7 @@ pub fn install_app_from_local_manifest_file<P: AsRef<Path>>(
     }
     // ! linking  persist_data  链接 Persist 目录
     create_persist_data_link(persist.clone(), &options, &app_name)
-        .expect("create persist link failed");
+        .context("create persist link failed")?;
 
     //*persist_permission  主要用于 设置文件系统权限，确保特定用户（通常是 "Users" 组）对某个目录具有写入权限。
     if persist.is_some() {
@@ -294,7 +296,7 @@ pub fn install_app_from_local_manifest_file<P: AsRef<Path>>(
             false
         };
         if global {
-            ensure_persist_permission().expect("persist dir check failed");
+            ensure_persist_permission().context("persist dir check failed")?;
         }
     }
     // !   parse post_install
@@ -305,11 +307,11 @@ pub fn install_app_from_local_manifest_file<P: AsRef<Path>>(
         &app_name,
         None,
     )
-    .expect("parse post_install failed");
+    .context("parse post_install failed")?;
     //*  save  install.json , manifest.json  to app version dir
     download_manager
         .save_install_info()
-        .expect("save install info failed");
+        .context("save install info failed")?;
     if !suggest.is_none() {
         show_suggest(&suggest.unwrap())?;
     }

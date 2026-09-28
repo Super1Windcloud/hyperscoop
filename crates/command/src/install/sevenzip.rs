@@ -5,7 +5,7 @@ use crate::install::InstallOptions::NoUseDownloadCache;
 use crate::install::{ArchiveFormat, InstallOptions, install_app};
 use crate::manifest::manifest_deserialize::StringArrayOrString;
 use crate::utils::system::{is_broken_symlink, kill_processes_using_app};
-use anyhow::{Context, Ok, bail};
+use anyhow::{Context, bail};
 use crossterm::style::Stylize;
 use std::env;
 use std::fs::File;
@@ -417,12 +417,15 @@ impl<'a> SevenZipStruct<'a> {
                                     .expect("Failed to install innounp");
                             }
                         }
-                        self.invoke_innounp_extract(extract_to.as_str(), path.as_str())
-                            .expect("Failed to extract inno archive");
-                        let child_dir = format!("{}\\{}", extract_to, extract_dir);
-
-                        self.move_child_dir_to_root(&child_dir, target_dir)
-                            .expect("Failed to move child dir to root");
+                        self.invoke_innounp_extract(
+                            extract_to.as_str(),
+                            path.as_str(),
+                            Some(extract_dir.as_str()),
+                        )?;
+                        if !extract_dir.is_empty() {
+                            let child_dir = format!("{}\\{}", extract_to, extract_dir);
+                            self.move_child_dir_to_root(&child_dir, extract_to.as_str())?;
+                        }
                         Ok(())
                     } else if *archive_format == ArchiveFormat::MSI {
                         println!("✅");
@@ -439,12 +442,15 @@ impl<'a> SevenZipStruct<'a> {
                             }
                         }
 
-                        self.invoke_lessmsi_extract(extract_to.as_str(), path.as_str())
-                            .expect("Failed to extract msi archive");
-                        let child_dir = format!("{}\\{}", extract_to, extract_dir);
-
-                        self.move_child_dir_to_root(&child_dir, target_dir)
-                            .expect("Failed to move child dir to root");
+                        self.invoke_lessmsi_extract(
+                            extract_to.as_str(),
+                            path.as_str(),
+                            Some(extract_dir.as_str()),
+                        )?;
+                        if !extract_dir.is_empty() {
+                            let child_dir = format!("{}\\{}", extract_to, extract_dir);
+                            self.move_child_dir_to_root(&child_dir, extract_to.as_str())?;
+                        }
                         Ok(())
                     } else {
                         let target = format!("-o{}", extract_to);
@@ -460,23 +466,11 @@ impl<'a> SevenZipStruct<'a> {
                             let error = String::from_utf8_lossy(&output.stderr);
                             bail!("7z command failed: {}", error)
                         } else {
-                            let child_dir = format!("{}\\{}", extract_to, extract_dir);
-                            // log::debug!("child dir: {}", child_dir);
-                            for entry in std::fs::read_dir(&child_dir)
-                                .context(format!("Failed to read child directory {}", &child_dir))?
-                            {
-                                let entry = entry?;
-                                let from = entry.path();
-                                let file_name = entry.file_name();
-                                let to = Path::new(&extract_to).join(file_name);
-                                std::fs::rename(&from, &to).context(format!(
-                                    "Failed to move file {} to {}",
-                                    from.display(),
-                                    to.display()
-                                ))?;
+                            Self::unpack_nested_tar_if_needed(&_7z, extract_to.as_str())?;
+                            if !extract_dir.is_empty() {
+                                let child_dir = format!("{}\\{}", extract_to, extract_dir);
+                                self.move_child_dir_to_root(&child_dir, extract_to.as_str())?;
                             }
-                            std::fs::remove_dir_all(&child_dir)
-                                .context(format!("Failed to remove old child {}", &child_dir))?;
                             println!("✅");
                             Ok(())
                         }
@@ -489,7 +483,55 @@ impl<'a> SevenZipStruct<'a> {
         Ok(())
     }
 
-    pub fn invoke_lessmsi_extract(&self, target_dir: &str, msi_file: &str) -> anyhow::Result<()> {
+    pub fn unpack_nested_tar_if_needed(_7z: &str, target_dir: &str) -> anyhow::Result<()> {
+        let dir = Path::new(target_dir);
+        if !dir.exists() {
+            return Ok(());
+        }
+        let Ok(entries) = std::fs::read_dir(dir) else {
+            return Ok(());
+        };
+        let mut tar_files = Vec::new();
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_file() {
+                if let Some(ext) = path.extension() {
+                    if ext.to_string_lossy().to_lowercase() == "tar" {
+                        tar_files.push(path);
+                    }
+                }
+            }
+        }
+        for tar_file in tar_files {
+            log::info!("Unpacking nested tar: {}", tar_file.display());
+            let target = format!("-o{}", target_dir);
+            let output = Command::new(_7z)
+                .arg("x")
+                .arg(&tar_file)
+                .arg(&target)
+                .arg("-aoa")
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped())
+                .output()?;
+            if !output.status.success() {
+                let error = String::from_utf8_lossy(&output.stderr);
+                bail!(
+                    "Failed to extract nested tar file {}: {}",
+                    tar_file.display(),
+                    error
+                );
+            }
+            let _ = std::fs::remove_file(&tar_file);
+        }
+        Ok(())
+    }
+
+    pub fn invoke_lessmsi_extract(
+        &self,
+        target_dir: &str,
+        msi_file: &str,
+        extract_dir: Option<&str>,
+    ) -> anyhow::Result<()> {
         let core_script = include_str!("../../../../asset_scripts/core.ps1");
         let decompress_script = include_str!("../../../../asset_scripts/decompress.ps1");
         let temp = env::temp_dir();
@@ -508,11 +550,15 @@ impl<'a> SevenZipStruct<'a> {
                 decompress_path.display()
             ))?;
         }
+        let extract_dir_param = match extract_dir {
+            Some(dir) if !dir.is_empty() => format!(" -ExtractDir \"{dir}\""),
+            _ => String::new(),
+        };
         let include_header = format!(
             r#". "{temp_str}core.ps1";
 . "{temp_str}decompress.ps1";
 
-Expand-MsiArchive  "{msi_file}" "{target_dir}"  -Removal
+Expand-MsiArchive  "{msi_file}" "{target_dir}"{extract_dir_param}  -Removal
  "#
         );
         let output = Command::new("PowerShell")
@@ -520,7 +566,7 @@ Expand-MsiArchive  "{msi_file}" "{target_dir}"  -Removal
             .arg("-Command")
             .arg(include_header)
             .output()
-            .expect("Failed to execute PowerShell MSI Extract");
+            .context("Failed to execute PowerShell MSI Extract")?;
 
         if !output.status.success() {
             let error = String::from_utf8_lossy(&output.stderr).to_string();
@@ -530,7 +576,12 @@ Expand-MsiArchive  "{msi_file}" "{target_dir}"  -Removal
         Ok(())
     }
 
-    pub fn invoke_innounp_extract(&self, target_dir: &str, inno_file: &str) -> anyhow::Result<()> {
+    pub fn invoke_innounp_extract(
+        &self,
+        target_dir: &str,
+        inno_file: &str,
+        extract_dir: Option<&str>,
+    ) -> anyhow::Result<()> {
         let core_script = include_str!("../../../../asset_scripts/core.ps1");
         let decompress_script = include_str!("../../../../asset_scripts/decompress.ps1");
         let temp = env::temp_dir();
@@ -549,11 +600,15 @@ Expand-MsiArchive  "{msi_file}" "{target_dir}"  -Removal
                 decompress_path.display()
             ))?;
         }
+        let extract_dir_param = match extract_dir {
+            Some(dir) if !dir.is_empty() => format!(" -ExtractDir \"{dir}\""),
+            _ => String::new(),
+        };
         let include_header = format!(
             r#". "{temp_str}core.ps1";
 . "{temp_str}decompress.ps1";
 
-Expand-InnoArchive "{inno_file}" "{target_dir}"  -Removal
+Expand-InnoArchive "{inno_file}" "{target_dir}"{extract_dir_param}  -Removal
  "#
         );
         let output = Command::new("PowerShell")
@@ -561,7 +616,7 @@ Expand-InnoArchive "{inno_file}" "{target_dir}"  -Removal
             .arg("-Command")
             .arg(include_header)
             .output()
-            .expect("Failed to execute PowerShell Inno Extract");
+            .context("Failed to execute PowerShell Inno Extract")?;
 
         if !output.status.success() {
             let error = String::from_utf8_lossy(&output.stderr).to_string();
@@ -672,11 +727,11 @@ Expand-InnoArchive "{inno_file}" "{target_dir}"  -Removal
                             }
                         }
 
-                        self.invoke_innounp_extract(target_dir, path.as_str())
-                            .expect("Failed to extract inno archive");
-                        let child_dir = format!("{}\\{}", target_dir, child_dir);
-                        self.move_child_dir_to_root(&child_dir, target_dir)
-                            .expect("Failed to move child dir to root");
+                        self.invoke_innounp_extract(target_dir, path.as_str(), Some(&child_dir))?;
+                        if !child_dir.is_empty() {
+                            let child_dir = format!("{}\\{}", target_dir, child_dir);
+                            self.move_child_dir_to_root(&child_dir, target_dir)?;
+                        }
                         Ok(())
                     } else if *archive_format == ArchiveFormat::MSI {
                         println!("✅");
@@ -693,11 +748,11 @@ Expand-InnoArchive "{inno_file}" "{target_dir}"  -Removal
                             }
                         }
 
-                        self.invoke_lessmsi_extract(target_dir, path.as_str())
-                            .expect("Failed to extract msi archive");
-                        let child_dir = format!("{}\\{}", target_dir, child_dir);
-                        self.move_child_dir_to_root(&child_dir, target_dir)
-                            .expect("Failed to move child dir to root");
+                        self.invoke_lessmsi_extract(target_dir, path.as_str(), Some(&child_dir))?;
+                        if !child_dir.is_empty() {
+                            let child_dir = format!("{}\\{}", target_dir, child_dir);
+                            self.move_child_dir_to_root(&child_dir, target_dir)?;
+                        }
                         Ok(())
                     } else {
                         let target = format!("-o{}", target_dir);
@@ -708,19 +763,17 @@ Expand-InnoArchive "{inno_file}" "{target_dir}"  -Removal
                             .arg("-aoa") // *!自动覆盖同名文件
                             .stdout(Stdio::piped())
                             .stderr(Stdio::piped())
-                            .output()
-                            .expect("Failed to extract archive");
+                            .output()?;
 
                         if !output.status.success() {
                             let error = String::from_utf8_lossy(&output.stderr);
                             bail!("7z command failed: {}", error)
                         } else {
-                            let child_dir = format!("{}\\{}", target_dir, child_dir);
-                            log::debug!("Child dir is {}", target_dir);
-                            log::debug!("Target dir is {}", target_dir);
-
-                            self.move_child_dir_to_root(&child_dir, target_dir)
-                                .expect("Failed to move child dir to root");
+                            Self::unpack_nested_tar_if_needed(&_7z, target_dir)?;
+                            if !child_dir.is_empty() {
+                                let child_dir = format!("{}\\{}", target_dir, child_dir);
+                                self.move_child_dir_to_root(&child_dir, target_dir)?;
+                            }
 
                             println!("✅");
 
@@ -738,21 +791,33 @@ Expand-InnoArchive "{inno_file}" "{target_dir}"  -Removal
     }
 
     pub fn move_child_dir_to_root(&self, child_dir: &str, target_dir: &str) -> anyhow::Result<()> {
-        for entry in std::fs::read_dir(&child_dir)
-            .context("Failed to read moved child directory at line 630")?
-        {
+        let child_path = Path::new(child_dir);
+        let target_path = Path::new(target_dir);
+        if child_dir.is_empty() || !child_path.exists() || child_path == target_path {
+            return Ok(());
+        }
+        for entry in std::fs::read_dir(child_path).context(format!(
+            "Failed to read moved child directory {}",
+            child_dir
+        ))? {
             let entry = entry?;
             let from = entry.path();
             let file_name = entry.file_name();
-            let to = Path::new(&target_dir).join(file_name);
+            let to = target_path.join(file_name);
+            if to.exists() {
+                if to.is_dir() {
+                    let _ = std::fs::remove_dir_all(&to);
+                } else {
+                    let _ = std::fs::remove_file(&to);
+                }
+            }
             std::fs::rename(from.as_path(), to.as_path()).context(format!(
-                "Failed to move file {} to {} at line 636",
+                "Failed to move file {} to {}",
                 from.display(),
                 to.display()
             ))?;
         }
-        std::fs::remove_dir_all(&child_dir)
-            .context("Failed to remove old child directory at line 640")?; // 清理原来的空目录
+        let _ = std::fs::remove_dir_all(child_path); // 清理原来的空目录
         Ok(())
     }
 
@@ -986,8 +1051,7 @@ Expand-InnoArchive "{inno_file}" "{target_dir}"  -Removal
                     install_app("innounp", vec![].as_ref()).expect("Failed to install innounp");
                 }
             }
-            self.invoke_innounp_extract(target_dir, path.as_str())
-                .expect("Failed to extract inno archive");
+            self.invoke_innounp_extract(target_dir, path.as_str(), None)?;
 
             Ok(())
         } else if *archive_format == ArchiveFormat::MSI {
@@ -1002,8 +1066,7 @@ Expand-InnoArchive "{inno_file}" "{target_dir}"  -Removal
                     install_app("lessmsi", vec![].as_ref()).expect("Failed to install lessmsi");
                 }
             }
-            self.invoke_lessmsi_extract(target_dir, path.as_str())
-                .expect("Failed to extract msi archive");
+            self.invoke_lessmsi_extract(target_dir, path.as_str(), None)?;
 
             Ok(())
         } else {
@@ -1019,6 +1082,7 @@ Expand-InnoArchive "{inno_file}" "{target_dir}"  -Removal
                 let error = String::from_utf8_lossy(&output.stderr);
                 bail!("7z command failed: {}", error)
             } else {
+                Self::unpack_nested_tar_if_needed(_7z, target_dir)?;
                 println!("✅");
                 Ok(())
             }
