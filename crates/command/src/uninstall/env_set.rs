@@ -7,10 +7,19 @@ use crate::utils::system::{
 };
 use anyhow::bail;
 use std::path::PathBuf;
+#[cfg(windows)]
 use winreg::RegKey;
+#[cfg(windows)]
 use winreg::enums::*;
 
 pub fn env_var_rm(manifest: &UninstallManifest, is_global: bool) -> Result<(), anyhow::Error> {
+    #[cfg(not(windows))]
+    {
+        let _ = (manifest, is_global);
+        return Ok(());
+    }
+    #[cfg(windows)]
+    {
     let env_set = manifest.env_set.clone();
     if env_set.is_none() {
         return Ok(());
@@ -107,6 +116,7 @@ pub fn env_var_rm(manifest: &UninstallManifest, is_global: bool) -> Result<(), a
         }
     }
     Ok(())
+    }
 }
 
 pub fn env_path_var_rm(
@@ -114,9 +124,16 @@ pub fn env_path_var_rm(
     manifest: &UninstallManifest,
     is_global: bool,
 ) -> Result<(), anyhow::Error> {
-    use winreg::RegKey;
-    use winreg::enums::*;
-    if let Some(StringArrayOrString::String(env_add_path_str)) = manifest.env_add_path.clone() {
+    #[cfg(not(windows))]
+    {
+        let _ = (current, manifest, is_global);
+        return Ok(());
+    }
+    #[cfg(windows)]
+    {
+        use winreg::RegKey;
+        use winreg::enums::*;
+        if let Some(StringArrayOrString::String(env_add_path_str)) = manifest.env_add_path.clone() {
         let path_var = if env_add_path_str == "." {
             current.clone()
         } else {
@@ -213,6 +230,7 @@ pub fn env_path_var_rm(
         }
     }
     Ok(())
+    }
 }
 
 mod test {

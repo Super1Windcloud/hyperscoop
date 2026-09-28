@@ -7,7 +7,9 @@ use anyhow::bail;
 use crossterm::style::Stylize;
 use std::path::Path;
 use std::process::Command;
+#[cfg(windows)]
 use windows_sys::Win32::System::Registry::HKEY_CURRENT_USER;
+#[cfg(windows)]
 use winreg::RegKey;
 
 pub fn handle_env_set(
@@ -120,17 +122,24 @@ pub fn add_bin_to_path(
     app_current_dir: &str,
     options: &[InstallOptions],
 ) -> anyhow::Result<()> {
-    let path = if path.eq(".") {
-        Path::new(app_current_dir).to_str().unwrap().to_string()
-    } else {
-        Path::new(app_current_dir)
-            .join(path)
-            .to_str()
-            .unwrap()
-            .to_string()
-    };
-    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-    let environment_key = if options.contains(&InstallOptions::Global) {
+    #[cfg(not(windows))]
+    {
+        let _ = (path, app_current_dir, options);
+        return Ok(());
+    }
+    #[cfg(windows)]
+    {
+        let path = if path.eq(".") {
+            Path::new(app_current_dir).to_str().unwrap().to_string()
+        } else {
+            Path::new(app_current_dir)
+                .join(path)
+                .to_str()
+                .unwrap()
+                .to_string()
+        };
+        let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+        let environment_key = if options.contains(&InstallOptions::Global) {
         hkcu.open_subkey("SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment")?
     } else {
         hkcu.open_subkey("Environment")?
@@ -177,6 +186,7 @@ pub fn add_bin_to_path(
     } else {
         set_user_env_var("Path", &user_path)?;
         Ok(())
+    }
     }
 }
 

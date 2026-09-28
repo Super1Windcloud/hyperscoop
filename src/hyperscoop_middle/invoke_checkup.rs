@@ -6,11 +6,17 @@ use crossterm::style::Stylize;
 use std::process::Command;
 use std::{env, path::Path};
 use which::which;
+#[cfg(windows)]
 use windows::Wdk::System::SystemServices::RtlGetVersion;
+#[cfg(windows)]
 use windows::Win32::Storage::FileSystem::GetVolumeInformationW;
+#[cfg(windows)]
 use windows::Win32::System::Diagnostics::Debug::VER_PLATFORM_WIN32_NT;
+#[cfg(windows)]
 use windows::Win32::System::SystemInformation::OSVERSIONINFOW;
+#[cfg(windows)]
 use windows::core::PCWSTR;
+#[cfg(windows)]
 use winreg::{RegKey, enums::HKEY_LOCAL_MACHINE};
 
 #[allow(dead_code)]
@@ -34,6 +40,13 @@ fn localized(en: &str, zh: &str) -> String {
     tr(en, zh).to_string()
 }
 
+#[cfg(not(windows))]
+pub async fn execute_checkup_command(_global: bool) -> anyhow::Result<()> {
+    eprintln!("{}", tr("checkup is only supported on Windows.", "checkup 仅支持 Windows 系统。").yellow());
+    Ok(())
+}
+
+#[cfg(windows)]
 pub async fn execute_checkup_command(global: bool) -> anyhow::Result<()> {
     let mut total_issues = 0;
     let defender_issues = 0;
@@ -118,31 +131,19 @@ pub async fn execute_checkup_command(global: bool) -> anyhow::Result<()> {
         print_result(&virus_result);
     }
     if total_issues > 0 {
-        println!(
-            "{}",
-            format!(
-                "{} {count}",
-                tr(
-                    "Found {count} potential issues.",
-                    "发现 {count} 个潜在问题。"
-                ),
-                count = total_issues
-            )
-            .yellow()
-        );
+        let msg = tr(
+            "Found {count} potential issues.",
+            "发现 {count} 个潜在问题。"
+        )
+        .replace("{count}", &total_issues.to_string());
+        println!("{}", msg.yellow());
     } else if defender_issues > 0 {
-        println!(
-            "{}",
-            format!(
-                "{} {count}",
-                tr(
-                    "Found {count} performance issues.",
-                    "发现 {count} 个性能问题。"
-                ),
-                count = defender_issues
-            )
-            .blue()
-        );
+        let msg = tr(
+            "Found {count} performance issues.",
+            "发现 {count} 个性能问题。"
+        )
+        .replace("{count}", &defender_issues.to_string());
+        println!("{}", msg.blue());
         println!(
             "{}",
             tr(
@@ -198,6 +199,7 @@ fn check_main_bucket(global: bool) -> anyhow::Result<CheckupResult> {
     }
 }
 
+#[cfg(windows)]
 fn check_long_paths() -> anyhow::Result<CheckupResult> {
     let mut os_info = OSVERSIONINFOW {
         dwOSVersionInfoSize: size_of::<OSVERSIONINFOW>() as u32,
@@ -246,7 +248,16 @@ fn check_long_paths() -> anyhow::Result<CheckupResult> {
         })
     }
 }
+#[cfg(not(windows))]
+fn check_long_paths() -> anyhow::Result<CheckupResult> {
+    Ok(CheckupResult {
+        passed: true,
+        message: localized("LongPaths support is not applicable", "LongPaths 不适用于当前系统"),
+        fix_hint: None,
+    })
+}
 
+#[cfg(windows)]
 fn check_developer_mode() -> anyhow::Result<CheckupResult> {
     let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
     let dev_key =
@@ -277,6 +288,14 @@ fn check_developer_mode() -> anyhow::Result<CheckupResult> {
             fix_hint: None,
         })
     }
+}
+#[cfg(not(windows))]
+fn check_developer_mode() -> anyhow::Result<CheckupResult> {
+    Ok(CheckupResult {
+        passed: true,
+        message: localized("Developer mode is not applicable", "开发者模式不适用于当前系统"),
+        fix_hint: None,
+    })
 }
 
 fn check_7zip() -> anyhow::Result<CheckupResult> {
@@ -447,10 +466,12 @@ fn check_dark() -> anyhow::Result<CheckupResult> {
     }
 }
 
+#[cfg(windows)]
 use windows::Win32::System::SecurityCenter::{
     WSC_SECURITY_PROVIDER_ANTIVIRUS, WSC_SECURITY_PROVIDER_HEALTH, WscGetSecurityProviderHealth,
 };
 
+#[cfg(windows)]
 fn check_antivirus() -> anyhow::Result<CheckupResult> {
     let health = unsafe {
         let mut health = WSC_SECURITY_PROVIDER_HEALTH::default();
@@ -472,60 +493,76 @@ fn check_antivirus() -> anyhow::Result<CheckupResult> {
         }
     }
 }
+#[cfg(not(windows))]
+fn check_antivirus() -> anyhow::Result<CheckupResult> {
+    Ok(CheckupResult {
+        passed: true,
+        message: localized("Antivirus check not applicable", "杀毒软件检测不适用"),
+        fix_hint: None,
+    })
+}
 
 fn check_common_antivirus() -> anyhow::Result<CheckupResult> {
-    let output = Command::new("tasklist")
-        .output()
-        .expect("Failed to execute tasklist");
-
-    let tasklist = String::from_utf8_lossy(&output.stdout);
-
-    // 常见杀毒软件进程列表
-    let av_processes = [
-        "bdagent.exe",    // Bitdefender
-        "avguard.exe",    // Avira
-        "egui.exe",       // ESET
-        "mcshield.exe",   // McAfee
-        "hipsdaemon.exe", // Trend Micro
-        "360sd.exe",      // 360杀毒
-        "360Safe.exe",    // 360安全卫士
-        "MsMpEng.exe",    // Windows Defender
-        "avp.exe",        // 卡巴斯基
-        "QQPCTray.exe",   // 腾讯电脑管家
-        "McAfee.exe",     // McAfee
-        "AvastUI.exe",    // Avast
-        "wsctrlsvc.exe",  // huorong
-        "HipsDaemon.exe", // huorong
-        "HipsTray.exe",   // huorong
-    ];
-
-    let mut issues = Vec::new();
-
-    for process in av_processes {
-        if tasklist.contains(process) {
-            issues.push(format!(
-                "{} {name}",
-                tr("{name} is running", "{name} 正在运行"),
-                name = process
-            ));
-        }
+    #[cfg(not(windows))]
+    {
+        return Ok(CheckupResult {
+            passed: true,
+            message: localized("Antivirus check not applicable", "杀毒软件检测不适用"),
+            fix_hint: None,
+        });
     }
 
-    if !issues.is_empty() {
-        Ok(CheckupResult {
-            passed: false,
-            message: issues.join("\n"),
-            fix_hint: Some(localized(
-                "Please stop the antivirus and try again",
-                "请暂时关闭杀毒软件后重试",
-            )),
-        })
-    } else {
-        Ok(CheckupResult {
-            passed: true,
-            message: localized("Antivirus is not running", "杀毒软件未运行"),
-            fix_hint: None,
-        })
+    #[cfg(windows)]
+    {
+        let output = Command::new("tasklist")
+            .output()
+            .expect("Failed to execute tasklist");
+
+        let tasklist = String::from_utf8_lossy(&output.stdout);
+
+        // 常见第三方杀毒软件进程列表（不包含 Windows 自带 Defender MsMpEng.exe）
+        let av_processes = [
+            "bdagent.exe",    // Bitdefender
+            "avguard.exe",    // Avira
+            "egui.exe",       // ESET
+            "mcshield.exe",   // McAfee
+            "hipsdaemon.exe", // Trend Micro
+            "360sd.exe",      // 360杀毒
+            "360Safe.exe",    // 360安全卫士
+            "avp.exe",        // 卡巴斯基
+            "QQPCTray.exe",   // 腾讯电脑管家
+            "McAfee.exe",     // McAfee
+            "AvastUI.exe",    // Avast
+            "wsctrlsvc.exe",  // huorong
+            "HipsDaemon.exe", // huorong
+            "HipsTray.exe",   // huorong
+        ];
+
+        let mut issues = Vec::new();
+
+        for process in av_processes {
+            if tasklist.contains(process) {
+                let msg = tr("{name} is running", "{name} 正在运行").replace("{name}", process);
+                issues.push(msg);
+            }
+        }
+
+        if !issues.is_empty() {
+            Ok(CheckupResult {
+                passed: false,
+                message: issues.join("\n"),
+                fix_hint: Some(localized(
+                    "Please stop the antivirus and try again",
+                    "请暂时关闭杀毒软件后重试",
+                )),
+            })
+        } else {
+            Ok(CheckupResult {
+                passed: true,
+                message: localized("Antivirus is not running", "杀毒软件未运行"),
+                fix_hint: None,
+            })
+        }
     }
 }
 fn check_ntfs_volumes() -> anyhow::Result<CheckupResult> {
@@ -552,25 +589,21 @@ fn check_ntfs_volumes() -> anyhow::Result<CheckupResult> {
     let mut issues = Vec::new();
 
     if !is_ntfs(scoop_drive) {
-        issues.push(format!(
-            "{} {path}",
-            tr(
-                "hp requires an NTFS volume to work! Current path: {path}",
-                "hp 需要安装在 NTFS 分区上！当前路径: {path}"
-            ),
-            path = scoop_path
-        ));
+        let msg = tr(
+            "hp requires an NTFS volume to work! Current path: {path}",
+            "hp 需要安装在 NTFS 分区上！当前路径: {path}"
+        )
+        .replace("{path}", &scoop_path);
+        issues.push(msg);
     }
 
     if !is_ntfs(global_drive) {
-        issues.push(format!(
-            "{} {path}",
-            tr(
-                "hp global requires an NTFS volume to work! Current path: {path}",
-                "hp global 需要安装在 NTFS 分区上！当前路径: {path}"
-            ),
-            path = global_path
-        ));
+        let msg = tr(
+            "hp global requires an NTFS volume to work! Current path: {path}",
+            "hp global 需要安装在 NTFS 分区上！当前路径: {path}"
+        )
+        .replace("{path}", &global_path);
+        issues.push(msg);
     }
 
     if !issues.is_empty() {
@@ -594,12 +627,14 @@ fn check_ntfs_volumes() -> anyhow::Result<CheckupResult> {
     }
 }
 
+#[cfg(windows)]
 fn is_ntfs(drive: &str) -> bool {
-    if drive.is_empty() {
-        return false;
-    }
+    let drive_letter = match drive.chars().next() {
+        Some(c) if c.is_ascii_alphabetic() => c,
+        _ => return false,
+    };
 
-    let root = format!(r"{}:\\", drive.chars().next().unwrap());
+    let root = format!("{}:\\", drive_letter);
     let wide_path: Vec<u16> = root.encode_utf16().chain(std::iter::once(0)).collect();
 
     unsafe {
@@ -613,14 +648,16 @@ fn is_ntfs(drive: &str) -> bool {
             Some(&mut fs_name_buffer),  // lpFileSystemNameBuffer
         );
 
-        if success.is_err() {
-            let fs_name = String::from_utf16_lossy(
-                &fs_name_buffer[..fs_name_buffer.iter().position(|&x| x == 0).unwrap_or(0)],
-            )
-            .to_ascii_uppercase();
+        if success.is_ok() {
+            let len = fs_name_buffer.iter().position(|&x| x == 0).unwrap_or(fs_name_buffer.len());
+            let fs_name = String::from_utf16_lossy(&fs_name_buffer[..len]).to_ascii_uppercase();
             fs_name == "NTFS"
         } else {
             false
         }
     }
+}
+#[cfg(not(windows))]
+fn is_ntfs(_drive: &str) -> bool {
+    true
 }

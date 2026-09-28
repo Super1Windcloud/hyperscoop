@@ -12,12 +12,13 @@ use crate::utils::utility::{
 };
 use anyhow::{Context, bail};
 use crossterm::style::Stylize;
+#[cfg(windows)]
 use shortcuts_rs::ShellLink;
 use std::fs;
 use std::path::{Path, PathBuf};
 use textwrap::LineEnding;
 
-const DRIVER_SHIM_BYTES: &[u8] = include_bytes!("..\\bin\\shim.exe");
+const DRIVER_SHIM_BYTES: &[u8] = include_bytes!("../bin/shim.exe");
 
 pub fn create_shim_or_shortcuts(
     manifest_json: &str,
@@ -358,14 +359,21 @@ pub fn start_create_shortcut<P: AsRef<Path>>(
     if link_path.exists() {
         return Ok(());
     }
-    let shell_link = ShellLink::new(link_target_path, args, None, None)?;
-    let parent = start_menu_path.as_ref().parent().unwrap();
-    if !parent.exists() {
-        fs::create_dir_all(parent).context("Failed to create link parent directory at line 353")?;
-    };
-    shell_link
-        .create_lnk(start_menu_path)
-        .context("Create shell_link shortcuts failed  at line 357")?;
+    #[cfg(windows)]
+    {
+        let shell_link = ShellLink::new(link_target_path, args, None, None)?;
+        let parent = start_menu_path.as_ref().parent().unwrap();
+        if !parent.exists() {
+            fs::create_dir_all(parent).context("Failed to create link parent directory at line 353")?;
+        };
+        shell_link
+            .create_lnk(start_menu_path)
+            .context("Create shell_link shortcuts failed  at line 357")?;
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = (link_target_path, args, start_menu_path);
+    }
     Ok(())
 }
 

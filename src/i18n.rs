@@ -2,6 +2,7 @@ use clap::ValueEnum;
 use once_cell::sync::OnceCell;
 pub use rust_i18n::t;
 use std::env;
+#[cfg(windows)]
 use windows::Win32::Globalization::GetUserDefaultLocaleName;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -95,6 +96,7 @@ pub fn tr<'a>(en: &'a str, zh: &'a str) -> &'a str {
     }
 }
 
+#[cfg(windows)]
 pub fn get_system_locale() -> String {
     unsafe {
         let mut buffer = [0u16; 85];
@@ -107,9 +109,14 @@ pub fn get_system_locale() -> String {
             //zh-CN
             locale
         } else {
-            panic!("无法获取系统语言");
+            "en-US".to_string()
         }
     }
+}
+
+#[cfg(not(windows))]
+pub fn get_system_locale() -> String {
+    env::var("LANG").unwrap_or_else(|_| "en-US".to_string())
 }
 
 pub fn is_chinese_locale() -> bool {

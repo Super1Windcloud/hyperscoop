@@ -5,7 +5,10 @@ use crate::update::{check_bucket_update_status, update_all_buckets_bar_parallel}
 use crate::utils::utility::update_scoop_config_last_update_time;
 use anyhow::{Context, bail};
 use crossterm::style::Stylize;
+#[cfg(windows)]
 use std::os::windows::fs::symlink_dir;
+#[cfg(not(windows))]
+use std::os::unix::fs::symlink as symlink_dir;
 use std::path::Path;
 
 pub fn get_app_old_version(app_name: &str, options: &[InstallOptions]) -> anyhow::Result<String> {

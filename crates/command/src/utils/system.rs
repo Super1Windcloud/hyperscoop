@@ -5,19 +5,27 @@ use std::ffi::OsStr;
 use std::fs;
 use std::io::Read;
 use std::iter::once;
+#[cfg(windows)]
 use std::os::windows::ffi::OsStrExt;
 use std::path::Path;
 use std::process::{Command, Stdio};
 use sysinfo::System;
+#[cfg(windows)]
 use windows::Win32::Foundation::HANDLE;
+#[cfg(windows)]
 use windows::Win32::UI::Shell::{
     IsUserAnAdmin, SEE_MASK_NOCLOSEPROCESS, SHELLEXECUTEINFOW, ShellExecuteExW, ShellExecuteW,
 };
+#[cfg(windows)]
 use windows::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;
+#[cfg(windows)]
 use windows::core::PCWSTR;
+#[cfg(windows)]
 use winreg::RegKey;
+#[cfg(windows)]
 use winreg::enums::*;
 
+#[cfg(windows)]
 pub fn delete_env_var(var_key: &str) -> Result<(), anyhow::Error> {
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
     let environment_key = hkcu.open_subkey_with_flags("Environment", KEY_ALL_ACCESS)?;
@@ -26,6 +34,12 @@ pub fn delete_env_var(var_key: &str) -> Result<(), anyhow::Error> {
     }
     Ok(())
 }
+#[cfg(not(windows))]
+pub fn delete_env_var(_var_key: &str) -> Result<(), anyhow::Error> {
+    Ok(())
+}
+
+#[cfg(windows)]
 pub fn delete_global_env_var(var_key: &str) -> Result<(), anyhow::Error> {
     let hkcu = RegKey::predef(HKEY_LOCAL_MACHINE);
     let key = r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment";
@@ -36,14 +50,24 @@ pub fn delete_global_env_var(var_key: &str) -> Result<(), anyhow::Error> {
     }
     Ok(())
 }
+#[cfg(not(windows))]
+pub fn delete_global_env_var(_var_key: &str) -> Result<(), anyhow::Error> {
+    Ok(())
+}
 
+#[cfg(windows)]
 pub fn get_user_env_var(var_key: &str) -> Result<String, anyhow::Error> {
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
     let environment = hkcu.open_subkey("Environment")?;
     let value: String = environment.get_value(var_key)?;
     Ok(value)
 }
+#[cfg(not(windows))]
+pub fn get_user_env_var(_var_key: &str) -> Result<String, anyhow::Error> {
+    Ok(String::new())
+}
 
+#[cfg(windows)]
 pub fn get_system_env_var(var_key: &str) -> Result<String, anyhow::Error> {
     let hkcu = RegKey::predef(HKEY_LOCAL_MACHINE);
     let key = r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment";
@@ -51,7 +75,12 @@ pub fn get_system_env_var(var_key: &str) -> Result<String, anyhow::Error> {
     let value: String = environment_key.get_value(var_key)?;
     Ok(value)
 }
+#[cfg(not(windows))]
+pub fn get_system_env_var(_var_key: &str) -> Result<String, anyhow::Error> {
+    Ok(String::new())
+}
 
+#[cfg(windows)]
 pub fn set_user_env_var(var_key: &str, var_value: &str) -> Result<(), anyhow::Error> {
     if var_key.is_empty() || var_value.is_empty() {
         bail!("Environment variable  can't be empty ");
@@ -62,7 +91,12 @@ pub fn set_user_env_var(var_key: &str, var_value: &str) -> Result<(), anyhow::Er
 
     Ok(())
 }
+#[cfg(not(windows))]
+pub fn set_user_env_var(_var_key: &str, _var_value: &str) -> Result<(), anyhow::Error> {
+    Ok(())
+}
 
+#[cfg(windows)]
 pub fn set_global_env_var(var_key: &str, var_value: &str) -> Result<(), anyhow::Error> {
     if var_key.is_empty() || var_value.is_empty() {
         bail!("Environment variable  can't be empty ");
@@ -76,6 +110,10 @@ pub fn set_global_env_var(var_key: &str, var_value: &str) -> Result<(), anyhow::
         return Ok(());
     }
     bail!("Failed to add system environment variable.");
+}
+#[cfg(not(windows))]
+pub fn set_global_env_var(_var_key: &str, _var_value: &str) -> Result<(), anyhow::Error> {
+    Ok(())
 }
 
 pub fn is_shortcut(path: &Path) -> bool {
@@ -103,6 +141,7 @@ pub fn get_system_default_arch() -> Result<String, anyhow::Error> {
     }
 }
 
+#[cfg(windows)]
 pub fn get_system_env_path() -> Vec<String> {
     let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
     let environment_key = r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment";
@@ -115,6 +154,12 @@ pub fn get_system_env_path() -> Vec<String> {
         .map(|s| s.to_string())
         .collect::<Vec<String>>()
 }
+#[cfg(not(windows))]
+pub fn get_system_env_path() -> Vec<String> {
+    Vec::new()
+}
+
+#[cfg(windows)]
 pub fn get_system_env_str() -> String {
     let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
     let environment_key = r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment";
@@ -123,6 +168,12 @@ pub fn get_system_env_str() -> String {
         .get_value("PATH")
         .expect("Failed to get system path")
 }
+#[cfg(not(windows))]
+pub fn get_system_env_str() -> String {
+    String::new()
+}
+
+#[cfg(windows)]
 pub fn get_user_env_path() -> Vec<String> {
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
     let environment_key = hkcu
@@ -137,7 +188,12 @@ pub fn get_user_env_path() -> Vec<String> {
         .map(|s| s.to_string())
         .collect::<Vec<String>>()
 }
+#[cfg(not(windows))]
+pub fn get_user_env_path() -> Vec<String> {
+    Vec::new()
+}
 
+#[cfg(windows)]
 pub fn get_user_env_str() -> String {
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
     let environment_key = hkcu
@@ -146,6 +202,10 @@ pub fn get_user_env_str() -> String {
     environment_key
         .get_value("PATH")
         .expect("Failed to get user path")
+}
+#[cfg(not(windows))]
+pub fn get_user_env_str() -> String {
+    String::new()
 }
 
 #[cfg(windows)]
@@ -181,12 +241,21 @@ pub fn request_admin(cli_args: &str) -> anyhow::Result<()> {
         }
     }
 }
+#[cfg(not(windows))]
+pub fn request_admin(_cli_args: &str) -> anyhow::Result<()> {
+    bail!("request_admin is only supported on Windows");
+}
 
 #[cfg(windows)]
 pub fn is_admin() -> anyhow::Result<bool> {
     unsafe { Ok(IsUserAnAdmin().as_bool()) }
 }
+#[cfg(not(windows))]
+pub fn is_admin() -> anyhow::Result<bool> {
+    Ok(false)
+}
 
+#[cfg(windows)]
 pub fn request_admin_and_wait(args: &str) {
     let exe_path = std::env::current_exe().expect("无法获取程序路径");
 
@@ -218,6 +287,10 @@ pub fn request_admin_and_wait(args: &str) {
     unsafe {
         windows::Win32::System::Threading::WaitForSingleObject(handle, u32::MAX);
     }
+}
+#[cfg(not(windows))]
+pub fn request_admin_and_wait(_args: &str) {
+    panic!("request_admin_and_wait is only supported on Windows");
 }
 
 pub fn compute_hash_by_powershell(file_path: &str, algorithm: &str) -> anyhow::Result<String> {

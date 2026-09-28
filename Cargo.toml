@@ -40,13 +40,6 @@ line-ending = { workspace = true }
 console = "0.15.11"
 comfy-table = { workspace = true }
 indicatif = { workspace = true }
-windows = { version = "0.56.0", features = ["Win32_Foundation",
-  "Win32_System_Services", "Win32_System_SystemServices", "Win32_System_Registry",
-  "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_SecurityCenter", "Wdk",
-  "Win32_System_Diagnostics", "Win32_System_SystemInformation",
-  "Wdk_System", "Win32_System_Diagnostics_Debug", "Wdk_System_SystemServices",
-  "Win32_Globalization", "Win32"] }
-winreg = "0.55.0"
 thiserror = "1.0.69"
 which = { workspace = true }
 qrcode = "0.14.1"
@@ -138,8 +131,14 @@ criterion = "0.5.1"
 [target.macos.dependencies]
 core-foundation = "0.10.1"
 
-[target.windows.dependencies]
-windows = "0.60.0"
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.56.0", features = ["Win32_Foundation",
+  "Win32_System_Services", "Win32_System_SystemServices", "Win32_System_Registry",
+  "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_SecurityCenter", "Wdk",
+  "Win32_System_Diagnostics", "Win32_System_SystemInformation",
+  "Wdk_System", "Win32_System_Diagnostics_Debug", "Wdk_System_SystemServices",
+  "Win32_Globalization", "Win32"] }
+winreg = "0.55.0"
 
 [target.linux.dependencies]
 nix = "0.29.0"
@@ -181,5 +180,5 @@ harness = false # 必须设置为 false 才能使用 criterion 进行基准测�
 
 
 
-[build-dependencies]
+[target.'cfg(windows)'.build-dependencies]
 windows = { version = "0.62.2" ,features = ["Win32_Globalization"] }

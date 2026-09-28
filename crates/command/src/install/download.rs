@@ -21,7 +21,9 @@ use std::borrow::Cow;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::vec;
+#[cfg(windows)]
 use windows_sys::Win32::System::Registry::{HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE};
+#[cfg(windows)]
 use winreg::RegKey;
 
 #[derive(Debug, Clone)]
@@ -363,22 +365,24 @@ impl<'a> DownloadManager<'a> {
         self.options
     }
 
-    // ensure_install_dir_not_in_path   检查并清理系统或用户的 PATH 环境变量，确保某个目录（或其子目录）不会出现在 PATH 中，
     pub fn ensure_install_dir_not_in_env_path(&self) -> anyhow::Result<()> {
-        let env_path: String = if self.options.contains(&Global) {
-            let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
-            let environment_key = r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment";
-            let env_key = hklm.open_subkey(environment_key)?;
-            env_key.get_value("PATH")?
-        } else {
-            let hklm = RegKey::predef(HKEY_CURRENT_USER);
-            let env = hklm.open_subkey("Environment")?;
-            let user_path = env.get_value("PATH")?;
-            user_path
-        };
-        let dir = self.app_current_dir.as_str();
-        if env_path.contains(dir) && !dir.is_empty() {
-            log::warn!("{} 已经存在于 PATH 环境变量中, 请检查", dir)
+        #[cfg(windows)]
+        {
+            let env_path: String = if self.options.contains(&Global) {
+                let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
+                let environment_key = r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment";
+                let env_key = hklm.open_subkey(environment_key)?;
+                env_key.get_value("PATH")?
+            } else {
+                let hklm = RegKey::predef(HKEY_CURRENT_USER);
+                let env = hklm.open_subkey("Environment")?;
+                let user_path = env.get_value("PATH")?;
+                user_path
+            };
+            let dir = self.app_current_dir.as_str();
+            if env_path.contains(dir) && !dir.is_empty() {
+                log::warn!("{} 已经存在于 PATH 环境变量中, 请检查", dir)
+            }
         }
         Ok(())
     }
@@ -1039,11 +1043,18 @@ impl<'a> DownloadManager<'a> {
                 .context("failed to remove app current link file at line 1006")?;
         }
 
+        #[cfg(windows)]
         let result = std::os::windows::fs::symlink_dir(version_dir, current_dir);
+        #[cfg(not(windows))]
+        let result = std::os::unix::fs::symlink(version_dir, current_dir);
         if result.is_err() {
             std::fs::remove_dir_all(current_dir)
                 .context("failed to remove app current link dir at line 1011")?;
+            #[cfg(windows)]
             std::os::windows::fs::symlink_dir(version_dir, current_dir)
+                .context("failed to create app current symlink dir at line 1014")?;
+            #[cfg(not(windows))]
+            std::os::unix::fs::symlink(version_dir, current_dir)
                 .context("failed to create app current symlink dir at line 1014")?;
         }
         println!(

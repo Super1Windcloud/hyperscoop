@@ -1,5 +1,7 @@
+#[cfg(windows)]
 use windows::Win32::Globalization::GetUserDefaultLocaleName;
 
+#[cfg(windows)]
 fn get_system_locale() -> String {
     unsafe {
         let mut buffer = [0u16; 85];
@@ -16,15 +18,20 @@ fn get_system_locale() -> String {
 }
 
 fn main() {
-    if !cfg!(target_os = "windows") {
-        panic!("This crate can only be built on Windows.");
+    #[cfg(not(target_os = "windows"))]
+    {
+        println!("cargo:rustc-env=BUILD_SYSTEM_LANG=en-US");
+        return;
     }
 
-    let lang = get_system_locale();
-    println!("lang {}", lang);
+    #[cfg(target_os = "windows")]
+    {
+        let lang = get_system_locale();
+        println!("lang {}", lang);
 
-    println!("cargo:rustc-env=BUILD_SYSTEM_LANG={}", lang);
-    if lang == "zh-CN" {
-        println!("cargo:rustc-cfg=system_lang_zh");
+        println!("cargo:rustc-env=BUILD_SYSTEM_LANG={}", lang);
+        if lang == "zh-CN" {
+            println!("cargo:rustc-cfg=system_lang_zh");
+        }
     }
 }

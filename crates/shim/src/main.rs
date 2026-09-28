@@ -1,27 +1,38 @@
 #![allow(unsafe_code)]
 
-use std::ffi::OsString;
-use std::fs::File;
-use std::io::{BufRead, BufReader};
-use std::os::windows::prelude::*;
-use std::path::PathBuf;
-use std::process::Command;
-use windows::Win32::Foundation::*;
-use windows::Win32::Storage::FileSystem::FILE_FLAGS_AND_ATTRIBUTES;
-use windows::Win32::System::Console::*;
-use windows::Win32::System::JobObjects::CreateJobObjectW;
-use windows::Win32::System::JobObjects::*;
-use windows::Win32::System::LibraryLoader::*;
-use windows::Win32::UI::Shell::{
-    PathUnquoteSpacesW, SEE_MASK_NOCLOSEPROCESS, SHFILEINFOW, SHGFI_EXETYPE, SHGetFileInfoW,
-};
-use windows::core::{BOOL, PCWSTR, PWSTR};
+#[cfg(not(windows))]
+fn main() {
+    eprintln!("shim is only supported on Windows.");
+}
 
-use windows::Win32::UI::WindowsAndMessaging::SW_SHOW;
-use windows::Win32::{
-    Foundation::HANDLE,
-    UI::Shell::{SHELLEXECUTEINFOW, ShellExecuteExW},
-};
+#[cfg(windows)]
+fn main() -> color_eyre::Result<()> {
+    windows_shim::run()
+}
+
+#[cfg(windows)]
+mod windows_shim {
+    use std::ffi::OsString;
+    use std::fs::File;
+    use std::io::{BufRead, BufReader};
+    use std::os::windows::prelude::*;
+    use std::path::PathBuf;
+    use std::process::Command;
+    use windows::Win32::Foundation::*;
+    use windows::Win32::Storage::FileSystem::FILE_FLAGS_AND_ATTRIBUTES;
+    use windows::Win32::System::Console::*;
+    use windows::Win32::System::JobObjects::CreateJobObjectW;
+    use windows::Win32::System::JobObjects::*;
+    use windows::Win32::System::LibraryLoader::*;
+    use windows::Win32::UI::Shell::{
+        PathUnquoteSpacesW, SEE_MASK_NOCLOSEPROCESS, SHFILEINFOW, SHGFI_EXETYPE, SHGetFileInfoW,
+    };
+    use windows::core::{BOOL, PCWSTR, PWSTR};
+    use windows::Win32::UI::WindowsAndMessaging::SW_SHOW;
+    use windows::Win32::{
+        Foundation::HANDLE,
+        UI::Shell::{SHELLEXECUTEINFOW, ShellExecuteExW},
+    };
 
 type WStringOpt = Option<String>;
 
@@ -231,7 +242,7 @@ fn is_windows_gui_app(exe_path: &str) -> bool {
     ret != 0 && ret & 0xFFFF_0000 != 0
 }
 
-fn main() -> color_eyre::Result<()> {
+pub fn run() -> color_eyre::Result<()> {
     let shim_info = get_shim_info()?;
 
     if shim_info.path.is_none() {
@@ -291,4 +302,5 @@ fn test_create_process() {
             eprintln!("Failed to start process: {}", e);
         }
     }
+}
 }

@@ -35,7 +35,6 @@ human-panic = { workspace = true }
 webbrowser = "1.0.6"
 git2 = { workspace = true }
 rust_file_encode_mode_convert = "11.45.14"
-winreg = { version = "0.55.0" }
 dialoguer = "0.11.0"
 gix = { version = "0.70.0", features = [
   "blocking-http-transport-reqwest",
@@ -44,8 +43,6 @@ gix = { version = "0.70.0", features = [
 thiserror = "2.0.17"
 gix-object = "0.47.0"
 dashmap = "6.1.0"
-windows = { version = "0.61.3", features = ["Win32_UI", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging","Win32_Security",
-  "Win32_System_Registry" , "Win32_System_Threading"] }
 textwrap = { version = "0.16.2" }
 bat = { workspace = true }
 flate2 = { workspace = true }
@@ -54,14 +51,19 @@ sha2 = { workspace = true }
 hex = {workspace = true}
 os_info = "3.12.0"
 zip = "6.0.0"
-windows-sys = "0.59.0"
 sha1 = "0.10.6"
-shortcuts-rs = "1.1.1"
-sysinfo =  { version = "0.34.2" , features = ["system", "windows"] }
+sysinfo =  { version = "0.34.2" , features = ["system"] }
 comfy-table =  {workspace = true}
 which = {workspace = true}
 futures = "0.3.31"
 wait-timeout = "0.2.1"
+
+[target.'cfg(windows)'.dependencies]
+winreg = { version = "0.55.0" }
+windows = { version = "0.61.3", features = ["Win32_UI", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging","Win32_Security",
+  "Win32_System_Registry" , "Win32_System_Threading"] }
+windows-sys = "0.59.0"
+shortcuts-rs = "1.1.1"
 
 
 

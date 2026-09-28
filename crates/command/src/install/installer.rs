@@ -19,7 +19,16 @@ use crate::utils::system::{
 use anyhow::{Context, bail};
 use crossterm::style::Stylize;
 use regex::Regex;
+#[cfg(windows)]
 use std::os::windows::fs;
+#[cfg(not(windows))]
+mod fs {
+    use std::io;
+    use std::path::Path;
+    pub fn symlink_dir<P: AsRef<Path>, Q: AsRef<Path>>(original: P, link: Q) -> io::Result<()> {
+        std::os::unix::fs::symlink(original, link)
+    }
+}
 use std::path::Path;
 use which::which;
 
