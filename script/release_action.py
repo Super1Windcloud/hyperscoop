@@ -83,6 +83,72 @@ def main():
     print(f"\n✅ Successfully bumped version to {new_version} and pushed tag {tag_name}!")
     print("🚀 GitHub Actions 'Hp Release Pipeline' has been triggered to build and publish release.")
 
+    # 6. Wait for GitHub Actions release build to finish and update bucket hashes
+    print("\n⏳ Waiting for GitHub Actions build to complete and release assets to be ready...")
+    print("   (Will automatically fetch new sha256 hashes and update hyperscoop_source_bucket)")
+
+    import time
+    import urllib.request
+    from hash import update_manifest
+
+    check_url = f"https://github.com/Super1Windcloud/hyperscoop/releases/download/{tag_name}/hp.exe.sha256"
+    max_wait = 600  # 10 minutes max
+    start_time = time.time()
+    ready = False
+
+    while time.time() - start_time < max_wait:
+        try:
+            req = urllib.request.Request(
+                check_url, headers={"User-Agent": "hyperscoop-release-waiter"}
+            )
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                if resp.status == 200:
+                    ready = True
+                    break
+        except Exception:
+            pass
+        time.sleep(10)
+        elapsed = int(time.time() - start_time)
+        print(f"   Waiting for release assets... ({elapsed}s)", end="\r", flush=True)
+
+    if ready:
+        print("\n🎉 Release assets found! Updating manifest hashes...")
+        update_manifest()
+        if (bucket_dir / ".git").exists() or (bucket_dir / "bucket" / "hp.json").exists():
+            run_cmd(["git", "-C", str(bucket_dir), "add", "-A"], check=False)
+            run_cmd(
+                [
+                    "git",
+                    "-C",
+                    str(bucket_dir),
+                    "commit",
+                    "-m",
+                    f":panda_face: update hp.json hashes for {new_version}",
+                ],
+                check=False,
+            )
+            run_cmd(
+                ["git", "-C", str(bucket_dir), "push", "origin", "master"],
+                check=False,
+            )
+        run_cmd(["git", "add", "-A"], check=False)
+        run_cmd(
+            [
+                "git",
+                "commit",
+                "-m",
+                f":panda_face: update bucket hash pointer for {new_version}",
+            ],
+            check=False,
+        )
+        run_cmd(["git", "push", "origin", "main"], check=False)
+        run_cmd(["git", "push", "origin", "main:dev"], check=False)
+        print("\n✅ Bucket hashes have been automatically updated and pushed to master!")
+    else:
+        print(
+            "\n⚠️ Timed out waiting for release assets. Please run 'just update_hash' once CI finishes."
+        )
+
 
 if __name__ == "__main__":
     main()
