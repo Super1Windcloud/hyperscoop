@@ -1,4 +1,4 @@
-set shell := ["pwsh.exe", "-NoProfile", "-c"]
+set windows-shell := ["pwsh.exe", "-NoProfile", "-c"]
 
 release_with_upx part="patch":
     just  bump_version {{part}}
@@ -11,6 +11,9 @@ bump_version part="patch":
     python  script/bump_version.py  {{part}}
 
 release part="patch":
+    python  script/release_action.py  {{part}}
+
+release_local part="patch":
     just  bump_version {{part}}
     cargo  br
     just  update_hash
@@ -21,7 +24,7 @@ publish_release:
     just  upload
 
 publish:
-    git add -A  && git commit -m ":panda_face:    publish hp" && git push repo main && git push repo main:dev
+    git add -A  && git commit -m ":panda_face:    publish hp" && git push origin main && git push origin main:dev
     just upload
 
 upload:
@@ -49,18 +52,18 @@ update_hash:
     just  push_all
 
 push_all:
-    git push repo main && git push repo main:dev
+    git push origin main && git push origin main:dev
 
 no_commit_update_hash:
     python  script/hash.py
-    cd  hyperscoop_source_bucket  &&  git push repo   master
-    git push repo main && git push repo main:dev
+    cd  hyperscoop_source_bucket  &&  git push origin   master
+    git push origin main && git push origin main:dev
 
 push:
-    git add -A  && git commit -m ":panda_face:  update" && git push repo main && git push repo main:dev
+    git add -A  && git commit -m ":panda_face:  update" && git push origin main && git push origin main:dev
 
 pull:
-    git pull repo main
+    git pull origin main
 
 musicbox:
     daktilo --preset musicbox

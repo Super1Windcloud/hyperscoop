@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - "v*"
+      - "[0-9]+.[0-9]+.[0-9]+"
 permissions:
   contents: write
 env:
@@ -94,9 +95,11 @@ jobs:
          $tag = "${{ steps.version.outputs.new_tag }}"
          echo "tag=$tag"
          Get-ChildItem -Recurse
+         Copy-Item "x64\hp.exe"     "hp.exe"
          Copy-Item "x64\hp.exe"     "hp-x64-$tag.exe"
          Copy-Item "x86\hp.exe"     "hp-x86-$tag.exe"
          Copy-Item "arm64\hp.exe"   "hp-arm64-$tag.exe"
+         Get-FileHash "hp.exe" -Algorithm SHA256 | ForEach-Object { $_.Hash.ToLowerInvariant() + "  hp.exe" } | Set-Content -NoNewline "hp.exe.sha256"
          Get-FileHash "hp-x64-$tag.exe" -Algorithm SHA256 | ForEach-Object { $_.Hash.ToLowerInvariant() + "  hp-x64-$tag.exe" } | Set-Content -NoNewline "hp-x64-$tag.exe.sha256"
          Get-FileHash "hp-x86-$tag.exe" -Algorithm SHA256 | ForEach-Object { $_.Hash.ToLowerInvariant() + "  hp-x86-$tag.exe" } | Set-Content -NoNewline "hp-x86-$tag.exe.sha256"
          Get-FileHash "hp-arm64-$tag.exe" -Algorithm SHA256 | ForEach-Object { $_.Hash.ToLowerInvariant() + "  hp-arm64-$tag.exe" } | Set-Content -NoNewline "hp-arm64-$tag.exe.sha256"
@@ -110,6 +113,8 @@ jobs:
           tag_name:   ${{ steps.version.outputs.new_tag }}
           body:  "Hp  '${{ steps.version.outputs.new_tag }}'  is published, 修复了一些更新和安装指定版本的bug"
           files: | #yaml 配置会把\ 当做转义字符
+             hp.exe
+             hp.exe.sha256
              hp-x64-${{ steps.version.outputs.new_tag }}.exe
              hp-x86-${{ steps.version.outputs.new_tag }}.exe
              hp-arm64-${{ steps.version.outputs.new_tag }}.exe
