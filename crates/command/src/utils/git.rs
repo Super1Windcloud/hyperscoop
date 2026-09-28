@@ -281,18 +281,23 @@ pub fn git_pull_update_repo<'a>(
         arg_remote: Some(remote_name),
         arg_branch: Some(remote_branch),
     };
-    run_pull(args, repo_path.into(), callback)?;
-
-    // let    remote = repo.find_remote("origin")?  ;
-    // let mut fetch_options = FetchOptions::new();
-    // let mut callbacks = RemoteCallbacks::new();
-    // callbacks.transfer_progress(|status|   callback(status, true   )) ;
-    // fetch_options.remote_callbacks(callbacks);
-    //
-    // start_fetch(remote.clone()  ,&repo ,fetch_options)?;
-    // let stats = remote.stats()  ;
-    // callback(stats, true);
-    Ok(())
+    let pull_res = run_pull(args, repo_path.into(), callback);
+    if pull_res.is_err() {
+        log::warn!(
+            "libgit2 pull failed for {}, attempting fallback via git CLI: {:?}",
+            repo_path,
+            pull_res.as_ref().err()
+        );
+        let output = std::process::Command::new("git")
+            .args(["-C", repo_path, "pull", "--ff-only"])
+            .output();
+        if let Ok(out) = output {
+            if out.status.success() {
+                return Ok(());
+            }
+        }
+    }
+    pull_res
 }
 fn start_fetch(
     mut remote: Remote,

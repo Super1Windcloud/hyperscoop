@@ -300,18 +300,23 @@ pub fn update_all_buckets_bar_parallel() -> anyhow::Result<()> {
         })
         .collect::<Vec<_>>();
 
-    let _ = outdated_buckets
-        .par_iter()
-        .try_for_each(|(pb, bucket_path)| {
+    let pool = rayon::ThreadPoolBuilder::new().num_threads(4).build();
+    let runner = || {
+        outdated_buckets.par_iter().for_each(|(pb, bucket_path)| {
             let callback = gen_stats_callback(pb);
             let result = git_pull_update_repo(bucket_path, &callback);
             if let Err(e) = result {
-                pb.finish_with_message(format!("❌ {}", e.to_string()));
-                return Err(e);
+                pb.finish_with_message(format!("❌ {}", e));
+            } else {
+                pb.finish_with_message(FINISH_MESSAGE);
             }
-            pb.finish_with_message(FINISH_MESSAGE);
-            Ok(())
         });
+    };
+    if let Ok(pool) = pool {
+        pool.install(runner);
+    } else {
+        runner();
+    }
 
     Ok(())
 }

@@ -1,4 +1,3 @@
-use crate::i18n::t;
 use anyhow::{Context, anyhow, bail};
 use command_util_lib::buckets::get_hp_bucket_repo_path;
 use command_util_lib::config::get_config_value_no_print;
@@ -33,6 +32,28 @@ pub fn get_app_old_version(app_name: &str, options: &[UpdateOptions]) -> anyhow:
     Ok(version.unwrap())
 }
 
+fn is_version_newer(current: &str, latest: &str) -> bool {
+    let parse_nums = |v: &str| -> Vec<u64> {
+        v.trim_start_matches('v')
+            .split(['.', '-', '_'])
+            .filter_map(|p| p.parse::<u64>().ok())
+            .collect()
+    };
+    let cur_nums = parse_nums(current);
+    let lat_nums = parse_nums(latest);
+    if !cur_nums.is_empty() && !lat_nums.is_empty() {
+        for (c, l) in cur_nums.iter().zip(lat_nums.iter()) {
+            if l > c {
+                return true;
+            } else if l < c {
+                return false;
+            }
+        }
+        return lat_nums.len() > cur_nums.len();
+    }
+    latest > current
+}
+
 pub async fn auto_check_hp_update(old_version: Option<&str>) -> anyhow::Result<bool> {
     let version = if old_version.is_none() {
         String::new()
@@ -47,7 +68,14 @@ pub async fn auto_check_hp_update(old_version: Option<&str>) -> anyhow::Result<b
         latest_version,
         version
     );
-    if version < latest_version || hash_changed() {
+    let is_newer = if !latest_version.is_empty() && !version.is_empty() {
+        is_version_newer(&version, &latest_version)
+    } else if !latest_version.is_empty() {
+        true
+    } else {
+        false
+    };
+    if is_newer || hash_changed() {
         let hp_repo = get_hp_bucket_repo_path("hp")?;
         if hp_repo.is_none() {
             bail!("hp bucket repository  is empty");
@@ -97,8 +125,8 @@ struct GithubRelease {
 }
 
 async fn get_latest_version_from_github() -> anyhow::Result<String> {
-    let owner = "super1windcloud";
-    let repo = "hp";
+    let owner = "Super1Windcloud";
+    let repo = "hyperscoop";
     let url = format!(
         "https://api.github.com/repos/{}/{}/releases/latest",
         owner, repo
@@ -127,26 +155,47 @@ async fn get_latest_version_from_github() -> anyhow::Result<String> {
         Client::builder().build()?
     };
 
-    let response = client.get(&url).headers(headers).send().await?;
+    let response = client.get(&url).headers(headers.clone()).send().await;
 
-    if !response.status().is_success() {
-        log::debug!(
-            "{}",
-            t!("network.request_failed", status = response.status())
-        );
-        log::debug!(
-            "{}",
-            t!("network.response_body", body = response.text().await?)
-        );
-        return Ok("".into());
+    if let Ok(resp) = response {
+        if resp.status().is_success() {
+            if let Ok(tags) = resp.json::<GithubRelease>().await {
+                return Ok(tags.tag_name);
+            }
+        }
     }
-    let tags: GithubRelease = response.json().await?;
-    Ok(tags.tag_name)
+
+    // Fallback: check redirect location of https://github.com/{owner}/{repo}/releases/latest
+    // This endpoint is not subject to GitHub API 60 req/hour rate limits.
+    let web_url = format!("https://github.com/{}/{}/releases/latest", owner, repo);
+    let no_redirect_client = Client::builder()
+        .redirect(reqwest::redirect::Policy::none())
+        .build()?;
+    if let Ok(resp) = no_redirect_client
+        .get(&web_url)
+        .headers(headers)
+        .send()
+        .await
+    {
+        if resp.status().is_redirection() {
+            if let Some(loc) = resp.headers().get(header::LOCATION) {
+                if let Ok(loc_str) = loc.to_str() {
+                    if let Some(tag) = loc_str.split("/tag/").last() {
+                        return Ok(tag.trim().to_string());
+                    }
+                }
+            }
+        }
+    }
+
+    Ok("".into())
 }
 
 mod test_auto_update {
     #[allow(unused)]
     use super::*;
+    #[allow(unused_imports)]
+    use rust_i18n::t;
 
     #[tokio::test]
     async fn test_auto_check_hp_update() {

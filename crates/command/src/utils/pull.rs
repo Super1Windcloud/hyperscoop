@@ -74,6 +74,7 @@ fn do_fetch<'a>(
 ) -> Result<git2::AnnotatedCommit<'a>, git2::Error> {
     let mut cb = git2::RemoteCallbacks::new();
     cb.transfer_progress(|stats| callback(stats, false));
+    cb.credentials(|_url, _username_from_url, _allowed_types| git2::Cred::default());
 
     let mut proxy_option = ProxyOptions::new();
     let config_proxy = get_config_value_no_print("proxy");
@@ -84,11 +85,15 @@ fn do_fetch<'a>(
             "http://".to_string() + &config_proxy
         };
         proxy_option.url(proxy_url.as_str());
+    } else {
+        proxy_option.auto();
     }
     let mut fo = git2::FetchOptions::new();
     fo.remote_callbacks(cb);
     fo.proxy_options(proxy_option);
     fo.download_tags(git2::AutotagOption::All);
+    let headers = ["User-Agent: git/2.43.0 (hyperscoop)"];
+    fo.custom_headers(&headers);
     remote.fetch(refs, Some(&mut fo), None)?;
 
     let stats = remote.stats();
