@@ -73,14 +73,12 @@ fn which_single_command(name: &str, global: bool) -> Result<(), anyhow::Error> {
                     )
                 );
             } else {
-                let manifest_json_content =
-                    std::fs::read_to_string(&manifest_json).context(format!(
-                        "Failed to read manifest.json file {} at line 46",
-                        &manifest_json
-                    ))?;
+                let manifest_json_content = std::fs::read_to_string(&manifest_json).context(
+                    format!("Failed to read manifest.json file {}", &manifest_json),
+                )?;
                 let manifest: InstallManifest = serde_json::from_str(&manifest_json_content)
                     .context(format!(
-                        "Failed to parse manifest.json file {} at line 48",
+                        "Failed to parse manifest.json file {}",
                         &manifest_json
                     ))?;
 

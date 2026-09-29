@@ -123,7 +123,7 @@ fn load_bucket_info(
     );
     let entries = path
         .read_dir()
-        .context("read bucket dir error at line 109")?
+        .context("read bucket dir error")?
         .par_bridge()
         .collect::<Result<Vec<_>, _>>()?;
     let result = entries
@@ -235,7 +235,7 @@ fn remove_old_manifest(
     // 读取目录条目并收集结果（提前处理错误）
     let entries: Vec<_> = bucket_dir
         .read_dir()
-        .context("read bucket dir error at line 220")?
+        .context("read bucket dir error")?
         .par_bridge()
         .collect::<Result<Vec<_>, _>>()?;
 
@@ -254,19 +254,32 @@ fn remove_old_manifest(
                     .expect("Invalid file stem");
                 let app_name = app_name.split("/").last().expect("Invalid path");
                 if latest_buckets_map.lock().unwrap().contains_key(app_name) {
-                    let content = read_to_string(&path).unwrap_or_default();
-                    if content.is_empty() {
-                        remove_file(&path).expect("删除文件失败");
+                    let content = match read_to_string(&path) {
+                        Ok(c) => c,
+                        Err(e) => {
+                            log::warn!("Failed to read manifest {}: {}", path.display(), e);
+                            return None;
+                        }
+                    };
+                    if content.trim().is_empty() {
+                        log::warn!("Manifest {} is empty", path.display());
                         return None;
                     }
-                    let json_str: SearchManifest =
-                        serde_json::from_str(&content).unwrap_or_default();
+                    let json_str: SearchManifest = match serde_json::from_str(&content) {
+                        Ok(m) => m,
+                        Err(e) => {
+                            log::warn!("Failed to parse manifest {}: {}", path.display(), e);
+                            return None;
+                        }
+                    };
 
-                    let app_version = json_str.get_version().unwrap_or_default();
-                    if app_version.is_empty() {
-                        remove_file(&path).expect("删除文件失败");
-                        return None;
-                    }
+                    let app_version = match json_str.get_version() {
+                        Some(v) if !v.trim().is_empty() => v,
+                        _ => {
+                            log::warn!("Manifest {} has empty version", path.display());
+                            return None;
+                        }
+                    };
                     return if app_version.to_string()
                         < latest_buckets_map
                             .lock()
@@ -276,7 +289,7 @@ fn remove_old_manifest(
                             .app_version
                     {
                         //  println!("删除的文件{} 版本{}", path.display(), app_version);
-                        remove_file(&path).expect("删除文件失败");
+                        let _ = remove_file(&path);
                         None
                     } else {
                         //多个相等的manifest最高版本只保留一个
@@ -360,33 +373,28 @@ fn merge_same_latest_version(
 }
 
 fn extract_info_from_manifest(path: &PathBuf) -> Result<Merge, anyhow::Error> {
-    let content = read_to_string(path).unwrap_or_default();
-    if content.is_empty() {
-        return Err(anyhow!("文件为空"));
+    let content =
+        read_to_string(path).context(format!("Failed to read manifest: {}", path.display()))?;
+    if content.trim().is_empty() {
+        return Err(anyhow!("Manifest is empty: {}", path.display()));
     }
-    let manifest_json: SearchManifest = serde_json::from_str(&content).unwrap_or_default();
+    let manifest_json: SearchManifest = serde_json::from_str(&content)
+        .context(format!("Failed to parse manifest JSON: {}", path.display()))?;
 
-    let app_version = manifest_json.version.unwrap_or_default();
-    // file_stem 去掉文件的扩展名
-    if app_version.is_empty() {
-        println!(
-            "{}",
-            tr_fmt!(
-                "Removing invalid file {path}",
-                "删除无效文件 {path}",
-                path = path.display()
-            )
-        );
-        remove_file(path).expect("Failed to delete file");
+    let app_version = manifest_json
+        .version
+        .ok_or_else(|| anyhow!("Manifest missing version: {}", path.display()))?;
+    if app_version.trim().is_empty() {
+        return Err(anyhow!("Manifest version is empty: {}", path.display()));
     }
     let app_name = path
         .file_stem()
         .and_then(|s| s.to_str())
-        .expect("Invalid file stem");
+        .ok_or_else(|| anyhow!("Invalid file stem: {}", path.display()))?;
     let app_name = app_name
         .split("/")
         .last()
-        .expect("Invalid path")
+        .ok_or_else(|| anyhow!("Invalid path: {}", path.display()))?
         .trim()
         .to_string();
     let merge = Merge::new(&app_name, &app_version);
@@ -539,10 +547,7 @@ fn rm_err_manifest_unit(
     let bucket_path = Path::new(bucket_path);
     let manifests = bucket_path
         .read_dir()
-        .context(format!(
-            "read bucket dir error at line 479 {}",
-            bucket_path.display()
-        ))?
+        .context(format!("read bucket dir error {}", bucket_path.display()))?
         .par_bridge()
         .filter_map(|path| Some(path.ok()))
         .collect::<Vec<_>>();

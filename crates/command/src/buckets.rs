@@ -94,7 +94,7 @@ impl Buckets {
             &bucket_path.display().to_string().dark_green().bold()
         );
         remove_dir_all(bucket_path).context(format!(
-            "Failed to remove directory: {} at line 91",
+            "Failed to remove directory: {}",
             bucket_path.display()
         ))?;
         Ok(())
@@ -157,10 +157,7 @@ impl Buckets {
         // 检查目录是否包含文件
         if !Path::new(bucket_path)
             .read_dir()
-            .context(format!(
-                "Failed to read directory: {}at line 145",
-                bucket_path
-            ))?
+            .context(format!("Failed to read directory: {}", bucket_path))?
             .next()
             .is_none()
         {
@@ -206,29 +203,21 @@ impl Buckets {
         // 创建一个文件用于存储 ZIP 数据
         let zip_path = Path::new(bucket_path).join("repo.zip");
         if !Path::new(bucket_path).exists() {
-            create_dir_all(&bucket_path).context(format!(
-                "Failed to create directory: {} at line 181",
-                &bucket_path
-            ))?;
+            create_dir_all(&bucket_path)
+                .context(format!("Failed to create directory: {}", &bucket_path))?;
         }
-        let mut file = File::create(&zip_path).context(format!(
-            "Failed to create zip file: {} at line 184",
-            zip_path.display()
-        ))?;
+        let mut file = File::create(&zip_path)
+            .context(format!("Failed to create zip file: {}", zip_path.display()))?;
         let content = response.bytes().await?;
         file.write_all(&content).context(format!(
-            "Failed to write to zip file: {} at line 187",
+            "Failed to write to zip file: {}",
             zip_path.display()
         ))?;
 
-        let file = File::open(&zip_path).context(format!(
-            "Failed to open zip file: {} at line 190",
-            zip_path.display()
-        ))?;
-        let mut archive = ZipArchive::new(file).context(format!(
-            "Failed to open zip file: {} at line 192",
-            zip_path.display()
-        ))?;
+        let file = File::open(&zip_path)
+            .context(format!("Failed to open zip file: {}", zip_path.display()))?;
+        let mut archive = ZipArchive::new(file)
+            .context(format!("Failed to open zip file: {}", zip_path.display()))?;
         let repo_name = archive
             .by_index(0)?
             .name()
@@ -236,38 +225,29 @@ impl Buckets {
             .trim()
             .replace("/", r"\");
         let dest = Path::new(bucket_path);
-        create_dir_all(&dest).context(format!(
-            "Failed to create directory: {} at line 201",
-            dest.display()
-        ))?;
+        create_dir_all(&dest).context(format!("Failed to create directory: {}", dest.display()))?;
 
         for i in 0..archive.len() {
             let mut file = archive.by_index(i)?;
             let outpath = dest.join(file.name());
             if file.name().ends_with('/') {
                 // 如果是文件夹，创建目录
-                create_dir_all(&outpath).context(format!(
-                    "Failed to create directory: {} at line 209",
-                    outpath.display()
-                ))?;
+                create_dir_all(&outpath)
+                    .context(format!("Failed to create directory: {}", outpath.display()))?;
             } else {
                 // 如果是文件，写入文件
-                let mut outfile = File::create(&outpath).context(format!(
-                    "Failed to create path: {} at line 213",
-                    outpath.display()
-                ))?;
-                io::copy(&mut file, &mut outfile).context("Failed to copy file at line 215")?;
+                let mut outfile = File::create(&outpath)
+                    .context(format!("Failed to create path: {}", outpath.display()))?;
+                io::copy(&mut file, &mut outfile).context("Failed to copy file")?;
             }
         }
-        remove_file(&zip_path).context(format!(
-            "Failed to remove zip file: {} at line 219",
-            zip_path.display()
-        ))?;
+        remove_file(&zip_path)
+            .context(format!("Failed to remove zip file: {}", zip_path.display()))?;
         let last_url = url.split("/").last().unwrap().to_string();
         let current_dir = dest.join(last_url + &branch_flag);
 
         for entry in read_dir(&current_dir).context(format!(
-            "Failed to read directory: {} at line 224",
+            "Failed to read directory: {}",
             current_dir.display()
         ))? {
             let error_message = format!(
@@ -281,19 +261,15 @@ impl Buckets {
 
             let target_path = Path::new(&target_path);
             if entry.is_dir() {
-                rename(&entry, &target_path).context(format!(
-                    "Failed to rename directory: {} at line 233",
-                    entry.display()
-                ))?
+                rename(&entry, &target_path)
+                    .context(format!("Failed to rename directory: {}", entry.display()))?
             } else if entry.is_file() {
-                rename(&entry, &target_path).context(format!(
-                    "Failed to rename file: {} at line 236",
-                    entry.display()
-                ))?
+                rename(&entry, &target_path)
+                    .context(format!("Failed to rename file: {}", entry.display()))?
             }
         }
         remove_dir_all(&current_dir).context(format!(
-            "Failed to remove directory: {} at line 240",
+            "Failed to remove directory: {}",
             current_dir.display()
         ))?;
         Ok(tr("Download succeeded!", "下载成功!!!")
@@ -599,10 +575,7 @@ impl Buckets {
         let bucket_path = get_buckets_root_dir_path();
         // 遍历 bucket_path 下的所有文件夹，并将文件夹名加入 buckets_path
         let buckets_path: Vec<String> = read_dir(&bucket_path)
-            .context(format!(
-                "Failed to read directory: {} at line 519",
-                bucket_path
-            ))?
+            .context(format!("Failed to read directory: {}", bucket_path))?
             .filter_map(|e| e.ok())
             .filter(|e| e.path().is_dir())
             .map(|e| e.path().to_str().unwrap().to_string())
@@ -615,7 +588,7 @@ impl Buckets {
         if Path::new(&global_buckets_paths).exists() {
             let global_buckets_paths: Vec<String> = read_dir(&global_buckets_paths)
                 .context(format!(
-                    "Failed to read directory: {} at line 531",
+                    "Failed to read directory: {}",
                     global_buckets_paths
                 ))?
                 .filter_map(|e| e.ok())
@@ -686,8 +659,8 @@ impl Buckets {
         let known_bucket_path = self.get_known_bucket_path();
         let file_buffer = File::open(&known_bucket_path).expect("Failed to open known_bucket_path");
         let reader_buffer = BufReader::new(file_buffer);
-        let content: serde_json::Value = serde_json::from_reader(reader_buffer)
-            .context("Failed to parse known_bucket_path at line 601")?;
+        let content: serde_json::Value =
+            serde_json::from_reader(reader_buffer).context("Failed to parse known_bucket_path")?;
         let mut known_name: Vec<String> = Vec::new();
         let mut known_source: Vec<String> = Vec::new();
         let re = Regex::new(r#""(https?://\S+)""#)?;

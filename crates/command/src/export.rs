@@ -14,7 +14,7 @@ use std::path::Path;
 pub fn export_config_to_path(file_name: String) -> anyhow::Result<()> {
     let path = Path::new(&file_name);
     let mut file = std::fs::File::create(path)
-        .with_context(|| format!("Failed to create file {} at line 15", file_name))?;
+        .with_context(|| format!("Failed to create file {}", file_name))?;
 
     let bucket_config = get_all_buckets_info()?;
     let apps = get_all_installed_apps()?;
@@ -110,7 +110,7 @@ fn get_all_installed_apps() -> anyhow::Result<Vec<InstalledApp>> {
     let mut installed_apps: Vec<InstalledApp> = Vec::new();
 
     for entry in read_dir(&apps_root_dir)
-        .with_context(|| format!("Failed to read directory :{} at line 94", apps_root_dir))?
+        .with_context(|| format!("Failed to read directory :{}", apps_root_dir))?
     {
         let entry = entry.context("Failed to read entry at 99")?;
         let path = entry.path();
@@ -126,20 +126,20 @@ fn get_all_installed_apps() -> anyhow::Result<Vec<InstalledApp>> {
         if !install_file.is_file() {
             continue;
         }
-        let content = std::fs::read_to_string(install_file)
-            .context("Failed to read install file at line 113")?;
+        let content =
+            std::fs::read_to_string(install_file).context("Failed to read install file")?;
         let install_info = serde_json::from_str::<serde_json::Value>(&content)
-            .context("Failed to deserialize install file at line 115")?;
+            .context("Failed to deserialize install file")?;
         let source = install_info["bucket"].as_str().unwrap();
         let manifest_file = app_path.join("manifest.json");
         if !manifest_file.is_file() {
             continue;
         }
         let content = std::fs::read_to_string(&manifest_file)
-            .with_context(|| "Failed to read manifest file at line 122".to_string())?;
+            .with_context(|| "Failed to read manifest file".to_string())?;
 
         let content = serde_json::from_str::<serde_json::Value>(&content)
-            .context("Failed to deserialize manifest file at line 125")?;
+            .context("Failed to deserialize manifest file")?;
         let version = content["version"].as_str().unwrap_or("unknown");
         let updated = get_repo_updated(&path)?;
         installed_apps.push(InstalledApp::new(
@@ -184,28 +184,28 @@ fn get_manifests_count(path: &Path) -> anyhow::Result<u32> {
     if target.is_dir() {
         let count = target
             .read_dir()
-            .context("Failed to read bucket directory at line 163")?
+            .context("Failed to read bucket directory")?
             .filter_map(|e| e.ok())
             .filter(|e| e.path().extension().map_or(false, |ext| ext == "json"))
             .count();
         Ok(count as u32)
     } else {
-        bail!("Failed to read bucket directory at line 168")
+        bail!("Failed to read bucket directory")
     }
 }
 
 fn get_repo_updated(path: &Path) -> anyhow::Result<String> {
-    let metadatas = metadata(path).context("Failed to read metadata at line 194".to_string())?;
+    let metadatas = metadata(path).context("Failed to read metadata".to_string())?;
     let modified_time = metadatas
         .modified()
-        .context("Failed to read metadata modified at line 196")?;
+        .context("Failed to read metadata modified")?;
     let datetime: DateTime<Utc> = DateTime::from(modified_time);
     let formatted_time = datetime.format("%Y-%m-%dT%H:%M:%S%z").to_string();
     Ok(formatted_time)
 }
 
 fn get_repo_url(path: &Path) -> anyhow::Result<String> {
-    let repo = Repository::open(path).context("Failed to open repository at line 197")?;
+    let repo = Repository::open(path).context("Failed to open repository")?;
     let remote = repo
         .find_remote("origin")
         .context("Failed to find remote origin")?;
@@ -248,8 +248,8 @@ pub fn export_config_to_path_width_config(file_name: String) -> anyhow::Result<(
 fn get_scoop_config_info() -> anyhow::Result<String> {
     let config_path = get_scoop_cfg_path();
     log::info!("config_path: {}", config_path);
-    let content = std::fs::read_to_string(config_path)
-        .context("Failed to read scoop config file at line 232")?;
+    let content =
+        std::fs::read_to_string(config_path).context("Failed to read scoop config file")?;
     Ok(content)
 }
 

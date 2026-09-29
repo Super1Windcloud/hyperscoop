@@ -12,7 +12,6 @@
     clippy::disallowed_names,
     clippy::double_ended_iterator_last,
     clippy::enum_variant_names,
-    clippy::expect_fun_call,
     clippy::extra_unused_lifetimes,
     clippy::format_in_format_args,
     clippy::get_first,

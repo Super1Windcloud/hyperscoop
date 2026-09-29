@@ -1,4 +1,5 @@
 use crate::buckets::{get_buckets_name, get_buckets_path};
+use crate::i18n::tr;
 use crate::tr_fmt;
 use crate::utils::git::{
     git_pull_update_repo, git_pull_update_repo_with_scoop, local_scoop_latest_commit,
@@ -83,22 +84,19 @@ pub fn remove_old_version(app_name: &str, options: &[UpdateOptions]) -> anyhow::
     } else {
         get_app_current_dir(app_name)
     };
-    let target_version_path = fs::read_link(app_current_dir)
-        .context(format!("failed to read link of {} at line 67", app_name))?;
+    let target_version_path =
+        fs::read_link(app_current_dir).context(format!("failed to read link of {}", app_name))?;
     log::debug!("target_version_path: {:?}", target_version_path);
-    let result = fs::remove_dir_all(&target_version_path).context(format!(
-        "failed to remove target version of {} at line 70",
-        app_name
-    ));
+    let result = fs::remove_dir_all(&target_version_path)
+        .context(format!("failed to remove target version of {}", app_name));
     if result.is_err() {
         eprintln!(
             "Remove Failed : {}",
             result.err().unwrap().to_string().dark_red().bold()
         );
         kill_processes_using_app(app_name);
-        fs::remove_dir_all(&target_version_path).context(format!(
-            "failed to remove target version of {app_name} at line 80"
-        ))?
+        fs::remove_dir_all(&target_version_path)
+            .context(format!("failed to remove target version of {app_name}"))?
     }
     Ok(())
 }
@@ -271,15 +269,23 @@ pub fn update_all_buckets_bar_serial() -> anyhow::Result<()> {
         })
         .collect::<Vec<_>>();
 
-    let _ = outdated_buckets.iter().try_for_each(|(pb, bucket_path)| {
+    let mut has_error = false;
+    for (pb, bucket_path) in outdated_buckets.iter() {
         let callback = gen_stats_callback(pb);
         let result = git_pull_update_repo(bucket_path, &callback);
         if let Err(e) = result {
-            pb.finish_with_message(format!("❌ {}", e.to_string()));
+            pb.finish_with_message(format!("❌ {}", e));
+            has_error = true;
+        } else {
+            pb.finish_with_message(FINISH_MESSAGE);
         }
-        pb.finish_with_message(FINISH_MESSAGE);
-        Ok(())
-    }) as anyhow::Result<()>;
+    }
+    if has_error {
+        bail!(
+            "{}",
+            tr("Some buckets failed to update", "部分 bucket 更新失败")
+        );
+    }
     Ok(())
 }
 
@@ -314,12 +320,14 @@ pub fn update_all_buckets_bar_parallel() -> anyhow::Result<()> {
         .collect::<Vec<_>>();
 
     let pool = rayon::ThreadPoolBuilder::new().num_threads(4).build();
+    let has_error = std::sync::atomic::AtomicBool::new(false);
     let runner = || {
         outdated_buckets.par_iter().for_each(|(pb, bucket_path)| {
             let callback = gen_stats_callback(pb);
             let result = git_pull_update_repo(bucket_path, &callback);
             if let Err(e) = result {
                 pb.finish_with_message(format!("❌ {}", e));
+                has_error.store(true, std::sync::atomic::Ordering::Relaxed);
             } else {
                 pb.finish_with_message(FINISH_MESSAGE);
             }
@@ -329,6 +337,13 @@ pub fn update_all_buckets_bar_parallel() -> anyhow::Result<()> {
         pool.install(runner);
     } else {
         runner();
+    }
+
+    if has_error.load(std::sync::atomic::Ordering::Relaxed) {
+        bail!(
+            "{}",
+            tr("Some buckets failed to update", "部分 bucket 更新失败")
+        );
     }
 
     Ok(())

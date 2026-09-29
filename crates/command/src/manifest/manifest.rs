@@ -110,11 +110,11 @@ pub fn get_best_app_version_from_local_bucket(app_name: &str) -> anyhow::Result<
         bail!("Manifest {}does not exist", better_manifest.display());
     }
     let content = std::fs::read_to_string(&better_manifest).context(format!(
-        "Failed to read manifest file: {} at line 109",
+        "Failed to read manifest file: {}",
         better_manifest.display()
     ))?;
     let version: VersionJSON = serde_json::from_str(&content).context(format!(
-        "Failed to parse manifest file: {} at line 111",
+        "Failed to parse manifest file: {}",
         better_manifest.display()
     ))?;
     if version.version.is_none() {
@@ -129,11 +129,11 @@ pub fn get_latest_app_version_from_local_bucket(app_name: &str) -> anyhow::Resul
         bail!("Manifest {}does not exist", better_manifest.display());
     }
     let content = std::fs::read_to_string(&better_manifest).context(format!(
-        "Failed to read manifest file: {} at line 132",
+        "Failed to read manifest file: {}",
         better_manifest.display()
     ))?;
     let version: VersionJSON = serde_json::from_str(&content).context(format!(
-        "Failed to parse manifest file: {} at line 136",
+        "Failed to parse manifest file: {}",
         better_manifest.display()
     ))?;
     if version.version.is_none() {
@@ -148,11 +148,11 @@ pub fn get_best_app_version_from_local_bucket_global(app_name: &str) -> anyhow::
         bail!("Manifest {}does not exist", better_manifest.display());
     }
     let content = std::fs::read_to_string(&better_manifest).context(format!(
-        "Failed to read global manifest file: {} at line 151",
+        "Failed to read global manifest file: {}",
         better_manifest.display()
     ))?;
     let version: VersionJSON = serde_json::from_str(&content).context(format!(
-        "Failed to parse global manifest file: {} at line 153",
+        "Failed to parse global manifest file: {}",
         better_manifest.display()
     ))?;
     if version.version.is_none() {
@@ -167,11 +167,11 @@ pub fn get_latest_app_version_from_local_bucket_global(app_name: &str) -> anyhow
         bail!("Manifest {}does not exist", better_manifest.display());
     }
     let content = std::fs::read_to_string(&better_manifest).context(format!(
-        "Failed to read global manifest file: {} at line 166",
+        "Failed to read global manifest file: {}",
         better_manifest.display()
     ))?;
     let version: VersionJSON = serde_json::from_str(&content).context(format!(
-        "Failed to parse global manifest file: {} at line 168",
+        "Failed to parse global manifest file: {}",
         better_manifest.display()
     ))?;
     if version.version.is_none() {

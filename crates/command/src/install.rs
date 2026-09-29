@@ -49,12 +49,10 @@ pub fn install_app_from_local_manifest_file<P: AsRef<Path>>(
     let manifest_path = manifest_path.as_ref().to_str().unwrap();
     let install_arch = handle_arch(&options)?;
     log::info!("install arch: {}", install_arch);
-    let content = std::fs::read_to_string(&manifest_path).context(format!(
-        "read manifest file '{}' failed at line 51",
-        manifest_path
-    ))?;
+    let content = std::fs::read_to_string(&manifest_path)
+        .context(format!("read manifest file '{}' failed", manifest_path))?;
     let mut serde_obj: InstallManifest = serde_json::from_str(&content).context(format!(
-        "deserialize manifest file '{}' failed at line 53",
+        "deserialize manifest file '{}' failed",
         manifest_path
     ))?;
     let app_name = serde_obj
@@ -85,10 +83,8 @@ pub fn install_app_from_local_manifest_file<P: AsRef<Path>>(
                 Err(_) => {
                     log::debug!("kill {app_name}  process");
                     kill_processes_using_app(&app_name);
-                    std::fs::remove_dir_all(&special_app_dir).context(format!(
-                        "remove app dir '{}' failed at line 83",
-                        special_app_dir
-                    ))?;
+                    std::fs::remove_dir_all(&special_app_dir)
+                        .context(format!("remove app dir '{}' failed", special_app_dir))?;
                 }
             }
         }
@@ -163,7 +159,7 @@ pub fn install_app_from_local_manifest_file<P: AsRef<Path>>(
                             log::debug!("kill {app_name}  process");
                             kill_processes_using_app(&app_name);
                             std::fs::remove_dir_all(&special_app_dir).context(format!(
-                                "After kill process ,still remove app dir '{}' failed at line 142",
+                                "After kill process ,still remove app dir '{}' failed",
                                 special_app_dir
                             ))?;
                         }
@@ -224,7 +220,7 @@ pub fn install_app_from_local_manifest_file<P: AsRef<Path>>(
     }
 
     //   **invoke aria2  to  download  file to cache
-    let download_manager = DownloadManager::new(&options, &manifest_path, bucket_source);
+    let download_manager = DownloadManager::new(&options, &manifest_path, bucket_source)?;
     download_manager.start_download()?;
     if !options.contains(&InstallOptions::SkipDownloadHashCheck) {
         download_manager.check_cache_file_hash()?
@@ -400,15 +396,11 @@ pub async fn install_app_specific_version(
     let special_version_manifests = manifest_paths
         .into_iter()
         .filter_map(|path| {
-            let content = std::fs::read_to_string(path)
-                .expect(format!("文件编码格式错误, 检查{}", path.display()).as_ref());
-            let version: VersionJSON = serde_json::from_str(&content)
-                .expect(format!("JSON格式错误, 检查{}", path.display()).as_str());
-            let version = version
-                .version
-                .expect(format!("Version为空,检查{}", path.display()).as_ref());
+            let content = std::fs::read_to_string(&path).ok()?;
+            let version_json: VersionJSON = serde_json::from_str(&content).ok()?;
+            let version = version_json.version?;
             if !version.is_empty() && version.to_lowercase() == app_version {
-                Some(path.to_str().unwrap().to_string())
+                Some(path.to_str()?.to_string())
             } else {
                 None
             }

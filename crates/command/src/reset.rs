@@ -25,7 +25,7 @@ pub fn reset_latest_version(
         get_app_dir(&name)
     };
     let child_dirs = std::fs::read_dir(&app_dir)
-        .context("Failed to read app root dir at line 23")?
+        .context("Failed to read app root dir")?
         .filter_map(|entry| {
             let file_type = entry.as_ref().unwrap().file_type().unwrap();
             let path = entry.as_ref().unwrap().path();
@@ -40,18 +40,15 @@ pub fn reset_latest_version(
         bail!("{}", tr("App directory is empty", "app 文件目录为空"))
     } else if count == 1 {
         if app_current_path.exists() {
-            std::fs::remove_dir_all(&app_current_path).context(format!(
-                "remove old app dir {} at line 43",
-                app_current_path.display()
-            ))?;
+            std::fs::remove_dir_all(&app_current_path)
+                .context(format!("remove old app dir {}", app_current_path.display()))?;
         };
         let version_path = child_dirs.first().unwrap();
         let result = symlink_dir(version_path, app_current_path.as_path());
         if result.is_err() {
-            std::fs::remove_dir_all(&app_current_path)
-                .context("failed remove current dir at line 49")?;
+            std::fs::remove_dir_all(&app_current_path).context("failed remove current dir")?;
             symlink_dir(&version_path.as_path(), app_current_path.as_path())
-                .context("failed to create app symlink at line 51")?;
+                .context("failed to create app symlink")?;
         }
         println!(
             "{} {} => {}",
@@ -68,7 +65,7 @@ pub fn reset_latest_version(
     } else {
         if app_current_path.exists() {
             std::fs::remove_dir_all(app_current_path.as_path())
-                .context("failed remove app current dir at line 64")?;
+                .context("failed remove app current dir")?;
         }
         let mut max_version = String::new();
         let _ = child_dirs.iter().for_each(|version_path| {
@@ -82,7 +79,7 @@ pub fn reset_latest_version(
         let max_version_path = app_dir.join(&max_version);
         log::info!("Resetting app: {}", max_version_path.display());
         symlink_dir(max_version_path, app_current_path.as_path())
-            .context("Failed to create app symlink for reset at line 80")?;
+            .context("Failed to create app symlink for reset")?;
         println!(
             "{}",
             tr_fmt!(
@@ -110,10 +107,10 @@ fn reset_shim_file(app_name: &str, app_current_path: PathBuf, global: bool) -> a
             dir = app_current_path.display()
         ));
     }
-    let manifest_json = std::fs::read_to_string(manifest_path)
-        .context("Failed to read manifest.json at line 101")?;
-    let manifest: InstallManifest = serde_json::from_str(&manifest_json)
-        .context("Failed to parse manifest.json at line 103")?;
+    let manifest_json =
+        std::fs::read_to_string(manifest_path).context("Failed to read manifest.json")?;
+    let manifest: InstallManifest =
+        serde_json::from_str(&manifest_json).context("Failed to parse manifest.json")?;
     let bin = manifest.bin;
     let architecture = manifest.architecture;
     let arch = get_system_default_arch()?;
@@ -165,16 +162,15 @@ pub fn reset_specific_version(
 
     if app_current_path.exists() {
         std::fs::remove_dir_all(&app_current_path).context(format!(
-            "Failed remove app current dir {} at line 150",
+            "Failed remove app current dir {}",
             app_current_path.display()
         ))?;
     };
     let result = symlink_dir(&version_path, app_current_path.as_path());
     if result.is_err() {
-        std::fs::remove_dir_all(&app_current_path)
-            .context("failed remove app current dir at line 159")?;
+        std::fs::remove_dir_all(&app_current_path).context("failed remove app current dir")?;
         symlink_dir(version_path.as_path(), app_current_path.as_path()).context(format!(
-            "Failed to create app symlink {} at line 161",
+            "Failed to create app symlink {}",
             version_path.display()
         ))?;
     }

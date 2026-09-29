@@ -207,14 +207,10 @@ fn process_manifest_file(
     bucket_root_dir: &str,
     app_name: &str,
 ) -> anyhow::Result<Vec<(String, String)>> {
-    let content = fs::read_to_string(file_path).context(format!(
-        "Failed to read file {} at line 207",
-        file_path.display()
-    ))?;
-    let serde_obj: Value = serde_json::from_str(&content).context(format!(
-        "Failed to parse file {} at line 209",
-        file_path.display()
-    ))?;
+    let content = fs::read_to_string(file_path)
+        .context(format!("Failed to read file {}", file_path.display()))?;
+    let serde_obj: Value = serde_json::from_str(&content)
+        .context(format!("Failed to parse file {}", file_path.display()))?;
 
     let description = serde_obj["description"].as_str().unwrap_or_default();
     let version = serde_obj["version"].as_str().unwrap_or_default();
@@ -645,14 +641,11 @@ fn format_and_print(
 }
 
 fn get_file_modified_time(file_path: &str) -> anyhow::Result<String> {
-    let metadata = fs::metadata(file_path).context(format!(
-        "Failed to get metadata of file {} at line 647",
-        file_path
-    ))?;
-    let time = metadata.modified().context(format!(
-        "Failed to get modified time of file {} at line 649",
-        file_path
-    ))?;
+    let metadata =
+        fs::metadata(file_path).context(format!("Failed to get metadata of file {}", file_path))?;
+    let time = metadata
+        .modified()
+        .context(format!("Failed to get modified time of file {}", file_path))?;
     let datetime: DateTime<Local> = time.into();
     Ok(datetime.format("%Y-%m-%d %H:%M:%S").to_string())
 }

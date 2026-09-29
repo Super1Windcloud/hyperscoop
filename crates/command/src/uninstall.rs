@@ -35,10 +35,8 @@ pub fn uninstall_app_with_purge(app_name: &str, global: bool) -> Result<(), anyh
                 .is_err()
             {
                 kill_processes_using_app(&app_name);
-                std::fs::remove_dir_all(app_dir).context(format!(
-                    "Failed to remove app dir  {} at line 38",
-                    app_dir.display()
-                ))?;
+                std::fs::remove_dir_all(app_dir)
+                    .context(format!("Failed to remove app dir  {}", app_dir.display()))?;
             }
         } else {
             bail!(
@@ -78,8 +76,7 @@ pub fn uninstall_app_with_purge(app_name: &str, global: bool) -> Result<(), anyh
         );
         return Ok(());
     }
-    std::fs::remove_dir_all(app_persist_path)
-        .context("Failed to remove app persisted data at line 74")?;
+    std::fs::remove_dir_all(app_persist_path).context("Failed to remove app persisted data")?;
     Ok(())
 }
 
@@ -201,7 +198,7 @@ fn uninstall_matched_app(
     shim_path: &str,
     is_global: bool,
 ) -> Result<(), anyhow::Error> {
-    for entry in std::fs::read_dir(app_path).context("Failed to read app path at line  135")? {
+    for entry in std::fs::read_dir(app_path).context("Failed to read app path ")? {
         let entry = entry?;
         let path = entry.path();
         if let Some(file_name) = path.file_name() {
@@ -217,9 +214,9 @@ fn uninstall_matched_app(
                     bail!("{} is not  existing ", manifest_path.display());
                 }
                 let contents = std::fs::read_to_string(&manifest_path)
-                    .context("Failed to read app current manifest.json at line 150")?;
+                    .context("Failed to read app current manifest.json")?;
                 let mut manifest: UninstallManifest = serde_json::from_str(&contents)
-                    .context("Failed to parse app current manifest.json at line 152")?;
+                    .context("Failed to parse app current manifest.json")?;
                 manifest.set_name(&app_name.to_string()); // 先进行可变借用
 
                 let version = &manifest.version;
@@ -228,9 +225,9 @@ fn uninstall_matched_app(
                 };
                 let version = version.clone().unwrap();
                 let install_info = std::fs::read_to_string(install_path)
-                    .context("Failed to read app install.json at line 161")?;
+                    .context("Failed to read app install.json")?;
                 let install_info: serde_json::Value = serde_json::from_str(&install_info)
-                    .context("Failed to parse app install.json at line 163")?;
+                    .context("Failed to parse app install.json")?;
                 let arch = install_info["architecture"].as_str().unwrap_or("Unknown");
                 let manifest_path = manifest_path.to_str().unwrap();
                 let options = if is_global {
@@ -245,7 +242,7 @@ fn uninstall_matched_app(
                     app_name,
                     Some(arch),
                 )
-                .expect("Failed to run pre-uninstall lifecycle script");
+                .context("Failed to run pre-uninstall lifecycle script")?;
                 println!(
                     "{} '{}'  ({})",
                     tr("Uninstalling", "正在卸载").dark_blue().bold(),
@@ -253,7 +250,7 @@ fn uninstall_matched_app(
                     version.dark_red().bold()
                 );
                 parse_lifecycle_scripts(Uninstaller, manifest_path, &options, app_name, Some(arch))
-                    .expect("Failed to run Uninstaller lifecycle script");
+                    .context("Failed to run Uninstaller lifecycle script")?;
                 parse_lifecycle_scripts(
                     PostUninstall,
                     manifest_path,
@@ -261,7 +258,7 @@ fn uninstall_matched_app(
                     app_name,
                     Some(arch),
                 )
-                .expect("Failed to run PostUninstall lifecycle script");
+                .context("Failed to run PostUninstall lifecycle script")?;
 
                 // invoke_hook_script(HookType::Uninstaller, &manifest, arch)?;
                 // invoke_hook_script(HookType::PostUninstall, &manifest, arch)?;
@@ -316,7 +313,7 @@ fn uninstall_psmodule(manifest: &UninstallManifest, is_global: bool) -> Result<(
             .bold(),
             &lind_path.display()
         );
-        std::fs::remove_dir_all(lind_path).context("Failed to remove psmodule path at line 235")?;
+        std::fs::remove_dir_all(lind_path).context("Failed to remove psmodule path")?;
     }
     Ok(())
 }

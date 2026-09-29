@@ -74,18 +74,31 @@ pub async fn execute_install_command(args: InstallArgs) -> Result<(), anyhow::Er
         }
     }
 
-    if !errors.is_empty() && total > 1 {
-        eprintln!(
-            "{}",
-            tr_fmt!(
-                "\n{failed} of {total} apps failed to install.",
-                "\n共有 {failed} 个应用（共 {total} 个）安装失败。",
-                failed = errors.len(),
-                total = total
-            )
-            .dark_red()
-            .bold()
-        );
+    if !errors.is_empty() {
+        if total > 1 {
+            eprintln!(
+                "{}",
+                tr_fmt!(
+                    "\n{failed} of {total} apps failed to install.",
+                    "\n共有 {failed} 个应用（共 {total} 个）安装失败。",
+                    failed = errors.len(),
+                    total = total
+                )
+                .dark_red()
+                .bold()
+            );
+            bail!(
+                "{}",
+                tr_fmt!(
+                    "{failed} app(s) failed to install",
+                    "{failed} 个应用安装失败",
+                    failed = errors.len()
+                )
+            );
+        } else {
+            let (_, err) = errors.remove(0);
+            return Err(err);
+        }
     }
 
     Ok(())

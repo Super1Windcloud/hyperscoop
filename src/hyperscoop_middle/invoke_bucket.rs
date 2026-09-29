@@ -108,8 +108,7 @@ fn execute_init_bucket_command(
                     Ok(())
                 }) as anyhow::Result<()>;
             if result.is_err() {
-                return Err(anyhow!("Failed to init official bucket at line 103")
-                    .context(result.unwrap_err()));
+                return Err(anyhow!("Failed to init official bucket").context(result.unwrap_err()));
             }
         } else {
             let official_bucket_urls = get_official_bucket_urls();
@@ -122,8 +121,7 @@ fn execute_init_bucket_command(
                 Ok(())
             }) as anyhow::Result<()>;
             if result.is_err() {
-                return Err(anyhow!("Failed to init official bucket at line 125")
-                    .context(result.unwrap_err()));
+                return Err(anyhow!("Failed to init official bucket").context(result.unwrap_err()));
             }
         }
     } else if args.init_official_bucket_with_social {
@@ -139,9 +137,7 @@ fn execute_init_bucket_command(
                 Ok(())
             }) as anyhow::Result<()>;
         if result.is_err() {
-            return Err(
-                anyhow!("Failed to init official bucket at line 141").context(result.unwrap_err())
-            );
+            return Err(anyhow!("Failed to init official bucket").context(result.unwrap_err()));
         }
     }
 

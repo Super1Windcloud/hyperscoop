@@ -68,7 +68,7 @@ pub fn rm_start_menu_shortcut(
                             shortcut_name.to_string().dark_cyan().bold()
                         );
                         std::fs::remove_file(&path).context(format!(
-                            "Failed to remove shortcut file: {} at line 65",
+                            "Failed to remove shortcut file: {}",
                             path.display()
                         ))?;
                     }
@@ -115,7 +115,7 @@ pub fn rm_start_menu_shortcut(
                                 shortcut_name.to_string().dark_cyan().bold()
                             );
                             std::fs::remove_file(&path).context(format!(
-                                "Failed to remove shortcut file: {} at line 106",
+                                "Failed to remove shortcut file: {}",
                                 path.display()
                             ))?;
                         }
@@ -171,7 +171,7 @@ pub fn rm_start_menu_shortcut(
                                 shortcut_name.to_string().dark_cyan().bold()
                             );
                             std::fs::remove_file(&path).context(format!(
-                                "Failed to remove shortcut file: {} at line 157",
+                                "Failed to remove shortcut file: {}",
                                 path.display()
                             ))?;
                         }
@@ -218,7 +218,7 @@ pub fn rm_start_menu_shortcut(
                                     shortcut_name.to_string().dark_cyan().bold()
                                 );
                                 std::fs::remove_file(&path).context(format!(
-                                    "Failed to remove shortcut file: {} at line 198",
+                                    "Failed to remove shortcut file: {}",
                                     path.display()
                                 ))?;
                             }
@@ -269,7 +269,7 @@ pub fn rm_start_menu_shortcut(
                                 shortcut_name.to_string().dark_cyan().bold()
                             );
                             std::fs::remove_file(&path).context(format!(
-                                "Failed to remove shortcut file: {} at line 243",
+                                "Failed to remove shortcut file: {}",
                                 path.display()
                             ))?;
                         }
@@ -316,7 +316,7 @@ pub fn rm_start_menu_shortcut(
                                     shortcut_name.to_string().dark_cyan().bold()
                                 );
                                 std::fs::remove_file(&path).context(format!(
-                                    "Failed to remove shortcut file: {} at line 284",
+                                    "Failed to remove shortcut file: {}",
                                     path.display()
                                 ))?;
                             }
@@ -367,7 +367,7 @@ pub fn rm_start_menu_shortcut(
                                 shortcut_name.to_string().dark_cyan().bold()
                             );
                             std::fs::remove_file(&path).context(format!(
-                                "Failed to remove shortcut file: {} at line 329",
+                                "Failed to remove shortcut file: {}",
                                 path.display()
                             ))?;
                         }
@@ -414,7 +414,7 @@ pub fn rm_start_menu_shortcut(
                                     shortcut_name.to_string().dark_cyan().bold()
                                 );
                                 std::fs::remove_file(&path).context(format!(
-                                    "Failed to remove shortcut file: {} at line 370",
+                                    "Failed to remove shortcut file: {}",
                                     path.display()
                                 ))?;
                             }
@@ -756,8 +756,7 @@ fn rm_alias_shim_name_file(
             "origin exe shim file {}",
             origin_shim_file.display().to_string().dark_cyan().bold()
         );
-        std::fs::remove_file(origin_shim_file)
-            .context("failed to remove original shim file at line 679")?;
+        std::fs::remove_file(origin_shim_file).context("failed to remove original shim file")?;
     }
 
     if suffix == "exe" {
@@ -771,8 +770,7 @@ fn rm_alias_shim_name_file(
                     .bold(),
                 shim_file.display().to_string().dark_green().bold()
             );
-            std::fs::remove_file(&shim_file)
-                .context("failed to remove exe shim file at line 692")?;
+            std::fs::remove_file(&shim_file).context("failed to remove exe shim file")?;
         }
         let shim = prefix.to_string() + ".shim";
         let shim_file = shim_path.join(shim);
@@ -784,7 +782,7 @@ fn rm_alias_shim_name_file(
             "Removing shim file".dark_blue().bold(),
             shim_file.display().to_string().dark_green().bold()
         );
-        std::fs::remove_file(shim_file).context("failed to remove shim file at line 705")?;
+        std::fs::remove_file(shim_file).context("failed to remove shim file")?;
     } else if suffix == "bat" || suffix == "cmd" {
         if shim_file.exists() {
             println!(
@@ -794,8 +792,7 @@ fn rm_alias_shim_name_file(
                     .bold(),
                 shim_file.display().to_string().dark_green().bold()
             );
-            std::fs::remove_file(&shim_file)
-                .context("failed to remove sh shim file at line 715")?;
+            std::fs::remove_file(&shim_file).context("failed to remove sh shim file")?;
         }
         let cmd_str = prefix.to_string() + ".cmd";
         let cmd_file = shim_path.join(cmd_str);
@@ -808,8 +805,7 @@ fn rm_alias_shim_name_file(
                     .bold(),
                 cmd_file.display().to_string().dark_green().bold()
             );
-            std::fs::remove_file(&cmd_file)
-                .context("failed to remove cmd bat shim file at line 727")?;
+            std::fs::remove_file(&cmd_file).context("failed to remove cmd bat shim file")?;
         }
     } else if suffix == "ps1" {
         let ps_file = prefix.to_string() + ".ps1";
@@ -823,8 +819,7 @@ fn rm_alias_shim_name_file(
                     .bold(),
                 shim_file.display().to_string().dark_green().bold()
             );
-            std::fs::remove_file(&shim_file)
-                .context("failed to remove ps1 shim file at line 742")?;
+            std::fs::remove_file(&shim_file).context("failed to remove ps1 shim file")?;
         }
         let cmd_str = prefix.to_string() + ".cmd";
         let shell_file = shim_path.join(prefix);
@@ -837,8 +832,7 @@ fn rm_alias_shim_name_file(
                     .bold(),
                 shell_file.display().to_string().dark_green().bold()
             );
-            std::fs::remove_file(&shell_file)
-                .context("failed to remove sh shim file at line 754")?;
+            std::fs::remove_file(&shell_file).context("failed to remove sh shim file")?;
         }
         if cmd_file.exists() {
             println!(
@@ -846,8 +840,7 @@ fn rm_alias_shim_name_file(
                 "Removing shim file".dark_blue().bold(),
                 cmd_file.display().to_string().dark_green().bold()
             );
-            std::fs::remove_file(&cmd_file)
-                .context("failed to remove cmd shim file at line 763")?;
+            std::fs::remove_file(&cmd_file).context("failed to remove cmd shim file")?;
         }
     } else {
         let extensions = ["ps1", "bat", "cmd", "exe", "jar", "py", "com", ""];
@@ -892,7 +885,7 @@ fn rm_default_shim_name_file(exe_name: String, shim_path: &Path) -> anyhow::Resu
             "Removing shim file".dark_blue().bold(),
             shim_file.display().to_string().dark_green().bold()
         );
-        std::fs::remove_file(&shim_file).context("failed to remove exe shim file at line 791")?;
+        std::fs::remove_file(&shim_file).context("failed to remove exe shim file")?;
         let shim = prefix.to_string() + ".shim";
         let shim_file = shim_path.join(shim);
         if !shim_file.exists() {
@@ -903,7 +896,7 @@ fn rm_default_shim_name_file(exe_name: String, shim_path: &Path) -> anyhow::Resu
             "Removing shim file".dark_blue().bold(),
             shim_file.display().to_string().dark_green().bold()
         );
-        std::fs::remove_file(shim_file).context("failed to remove shim file at line 803")?;
+        std::fs::remove_file(shim_file).context("failed to remove shim file")?;
     } else if suffix == "bat" || suffix == "cmd" {
         if shim_file.exists() {
             println!(
@@ -911,8 +904,7 @@ fn rm_default_shim_name_file(exe_name: String, shim_path: &Path) -> anyhow::Resu
                 "Removing shim file".dark_blue().bold(),
                 shim_file.display().to_string().dark_green().bold()
             );
-            std::fs::remove_file(&shim_file)
-                .context("failed to remove cmd bat file at line 813")?;
+            std::fs::remove_file(&shim_file).context("failed to remove cmd bat file")?;
         }
         let cmd_str = prefix.to_string() + ".cmd";
         let shell_file = shim_path.join(prefix);
@@ -923,7 +915,7 @@ fn rm_default_shim_name_file(exe_name: String, shim_path: &Path) -> anyhow::Resu
                 "Removing shim file".dark_blue().bold(),
                 shell_file.display().to_string().dark_green().bold()
             );
-            std::fs::remove_file(&shell_file).context("failed to remove sh file at line 825")?;
+            std::fs::remove_file(&shell_file).context("failed to remove sh file")?;
         }
         if cmd_file.exists() {
             println!(
@@ -931,7 +923,7 @@ fn rm_default_shim_name_file(exe_name: String, shim_path: &Path) -> anyhow::Resu
                 "Removing shim file".dark_blue().bold(),
                 cmd_file.display().to_string().dark_green().bold()
             );
-            std::fs::remove_file(&cmd_file).context("failed to remove cmd file at line 834")?;
+            std::fs::remove_file(&cmd_file).context("failed to remove cmd file")?;
         }
     } else if shim_file.exists() && suffix == "ps1" {
         println!(
@@ -939,7 +931,7 @@ fn rm_default_shim_name_file(exe_name: String, shim_path: &Path) -> anyhow::Resu
             "Removing shim file".dark_blue().bold(),
             shim_file.display().to_string().dark_green().bold()
         );
-        std::fs::remove_file(&shim_file).context("failed to remove ps1 shim file at line 845")?;
+        std::fs::remove_file(&shim_file).context("failed to remove ps1 shim file")?;
 
         let cmd_str = prefix.to_string() + ".cmd";
         let shell_file = shim_path.join(prefix);
@@ -950,8 +942,7 @@ fn rm_default_shim_name_file(exe_name: String, shim_path: &Path) -> anyhow::Resu
                 "Removing shim file".dark_blue().bold(),
                 shell_file.display().to_string().dark_green().bold()
             );
-            std::fs::remove_file(&shell_file)
-                .context("failed to remove sh shim file at line 857")?;
+            std::fs::remove_file(&shell_file).context("failed to remove sh shim file")?;
         }
         if cmd_file.exists() {
             println!(
@@ -959,8 +950,7 @@ fn rm_default_shim_name_file(exe_name: String, shim_path: &Path) -> anyhow::Resu
                 "Removing shim file".dark_blue().bold(),
                 cmd_file.display().to_string().dark_green().bold()
             );
-            std::fs::remove_file(&cmd_file)
-                .context("failed to remove cmd shim file at line 866")?;
+            std::fs::remove_file(&cmd_file).context("failed to remove cmd shim file")?;
         }
     } else {
         let extensions = ["ps1", "bat", "cmd", "exe", "jar", "py", "com", ""];

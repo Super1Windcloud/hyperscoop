@@ -135,10 +135,10 @@ pub fn check_app_version_latest(
             )
         );
     }
-    let content = std::fs::read_to_string(&manifest_path)
-        .context("Failed to read manifest.json at line 112")?;
+    let content =
+        std::fs::read_to_string(&manifest_path).context("Failed to read manifest.json")?;
     let version: VersionJSON =
-        serde_json::from_str(&content).context("Failed to parse manifest.json at line 114")?;
+        serde_json::from_str(&content).context("Failed to parse manifest.json")?;
     let old_version = version.version.ok_or(0);
     match old_version {
         Err(_) => {

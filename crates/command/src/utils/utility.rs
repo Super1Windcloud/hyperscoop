@@ -44,11 +44,11 @@ pub fn add_key_value_to_json(
     new_key: &str,
     new_value: Value,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let data = fs::read_to_string(file_path)
-        .context(format!("Failed to read file {} at line 46", file_path))?;
+    let data =
+        fs::read_to_string(file_path).context(format!("Failed to read file {}", file_path))?;
 
-    let mut json_data: Value = serde_json::from_str(&data)
-        .context(format!("Failed to parse file {} at line 49", file_path))?;
+    let mut json_data: Value =
+        serde_json::from_str(&data).context(format!("Failed to parse file {}", file_path))?;
 
     if let Value::Object(ref mut map) = json_data {
         map.insert(new_key.to_string(), new_value);
@@ -58,9 +58,9 @@ pub fn add_key_value_to_json(
     fs::write(
         file_path,
         serde_json::to_string_pretty(&json_data)
-            .context("Failed to transform JSON to pretty string at line 57")?,
+            .context("Failed to transform JSON to pretty string")?,
     )
-    .context(format!("Failed to write file {} at line 58", file_path))?;
+    .context(format!("Failed to write file {}", file_path))?;
     Ok(())
 }
 
@@ -215,13 +215,13 @@ pub fn remove_bom_and_control_chars_from_utf8_file<P: AsRef<Path>>(
         }
     }
     let content = serde_json::to_string_pretty(&filtered_data)
-        .context("Failed to transform filtered data to JSON string at line 189")?;
+        .context("Failed to transform filtered data to JSON string")?;
     fs::write(&path, content).context(format!(
-        "Failed to write file {} at line 191",
+        "Failed to write file {}",
         path.as_ref().to_str().unwrap()
     ))?;
     let content = fs::read_to_string(&path).context(format!(
-        "Failed to read file {} at line 193",
+        "Failed to read file {}",
         path.as_ref().to_str().unwrap()
     ))?;
     Ok(content)
@@ -328,8 +328,7 @@ pub fn write_utf8_file(path: &str, content: &str, option: &[InstallOptions]) -> 
             );
         }
     }
-    let mut file =
-        File::create(path).context(format!("Failed to create utf8 file {} at line 281", path))?;
+    let mut file = File::create(path).context(format!("Failed to create utf8 file {}", path))?;
     /*
      File::create(path) 的默认行为
     如果文件存在： 会 直接清空文件内容（相当于 truncate 模式），然后写入新数据。
@@ -337,7 +336,7 @@ pub fn write_utf8_file(path: &str, content: &str, option: &[InstallOptions]) -> 
     如果文件不存在： 创建新文件并写入内容。*/
     let crlf_content = content.replace(LineEnding::LF.as_str(), LineEnding::CRLF.as_str());
     file.write_all(crlf_content.as_bytes())
-        .context(format!("Failed to write utf8 file {} at line 289", path))?; // 一次性全部写入
+        .context(format!("Failed to write utf8 file {}", path))?; // 一次性全部写入
     Ok(())
 }
 

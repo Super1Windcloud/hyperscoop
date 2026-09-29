@@ -207,13 +207,10 @@ pub fn install_psmodule(
             .bold()
             .to_string()
         );
-        std::fs::remove_dir_all(&link_dir).context(format!(
-            "remove old module dir link failed {} at line 178",
-            link_dir
-        ))?;
+        std::fs::remove_dir_all(&link_dir)
+            .context(format!("remove old module dir link failed {}", link_dir))?;
     }
-    fs::symlink_dir(&app_version_dir, &link_dir)
-        .context("Create ps module dir symlink failed at line 180")?;
+    fs::symlink_dir(&app_version_dir, &link_dir).context("Create ps module dir symlink failed")?;
     println!(
         "{}  {} => {}",
         tr("Linking", "正在链接").dark_blue().bold(),
@@ -343,10 +340,8 @@ pub fn create_persist_data_link(
 pub fn ensure_directory(target: &str) -> anyhow::Result<()> {
     let path = Path::new(target);
     if !path.exists() {
-        std::fs::create_dir_all(path).context(format!(
-            "create target directory failed {} at line 307",
-            target
-        ))?;
+        std::fs::create_dir_all(path)
+            .context(format!("create target directory failed {}", target))?;
     } else if !path.is_dir() {
         // 如果路径存在但不是目录，返回错误
         return Err(std::io::Error::new(
@@ -380,21 +375,19 @@ pub fn start_create_file_and_dir_link(
 
     if Path::new(&target_persist_dir).exists() {
         if Path::new(&source_dir).exists() {
-            std::fs::rename(&source_dir, format!("{source_dir}.original")).context(format!(
-                "rename old source dir failed {} at line 343",
-                source_dir
-            ))?;
+            std::fs::rename(&source_dir, format!("{source_dir}.original"))
+                .context(format!("rename old source dir failed {}", source_dir))?;
         }
     } else if Path::new(&source_dir).exists() {
         let parent = Path::new(&target_persist_dir).parent().unwrap();
         if !parent.exists() {
             std::fs::create_dir_all(parent).context(format!(
-                "create parent directory failed {} at line 351",
+                "create parent directory failed {}",
                 parent.display()
             ))?;
         }
         std::fs::rename(&source_dir, &target_persist_dir)
-            .context(format!("move source dir failed {} at line 355", source_dir))?
+            .context(format!("move source dir failed {}", source_dir))?
     } else {
         ensure_directory(&target_persist_dir)?;
     }
@@ -402,12 +395,12 @@ pub fn start_create_file_and_dir_link(
     // !create persist data link
     if Path::new(&target_persist_dir).is_dir() {
         fs::symlink_dir(&target_persist_dir, &source_dir).context(format!(
-            "create target persisted dir failed {} at line 362",
+            "create target persisted dir failed {}",
             target_persist_dir
         ))?;
     } else {
         std::fs::hard_link(&target_persist_dir, &source_dir).context(format!(
-            "create target persisted hard file failed {} at line 365",
+            "create target persisted hard file failed {}",
             target_persist_dir
         ))?;
     }
@@ -444,7 +437,7 @@ pub fn install_app_from_url(
                 options,
                 download_url.to_str().unwrap(),
                 Some(download_url.to_str().unwrap()),
-            );
+            )?;
             download_manager.start_download()?;
             let exe_name =
                 download_manager.copy_file_to_app_dir_from_remote_url(app_alias.clone(), "exe")?;
@@ -457,7 +450,7 @@ pub fn install_app_from_url(
             options,
             download_url.to_str().unwrap(),
             Some(download_url.to_str().unwrap()),
-        );
+        )?;
         download_manager.start_download()?;
         let bat_name = if suffix == "bat" {
             download_manager.copy_file_to_app_dir_from_remote_url(app_alias.clone(), "bat")?
@@ -472,7 +465,7 @@ pub fn install_app_from_url(
             options,
             download_url.to_str().unwrap(),
             Some(download_url.to_str().unwrap()),
-        );
+        )?;
         download_manager.start_download()?;
         let ps1_name =
             download_manager.copy_file_to_app_dir_from_remote_url(app_alias.clone(), "ps1")?;

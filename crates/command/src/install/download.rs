@@ -75,24 +75,22 @@ impl<'a> DownloadManager<'a> {
         });
         let write_manifest_path = format!("{}\\manifest.json", current_dir);
         if Path::new(&install_json_path).exists() {
-            std::fs::remove_file(&install_json_path).context(format!(
-                "Failed to remove old {} at line 74",
-                &install_json_path
-            ))?;
+            std::fs::remove_file(&install_json_path)
+                .context(format!("Failed to remove old {}", &install_json_path))?;
         }
 
         let file = std::fs::File::create(&install_json_path)
-            .context("Failed to create app install.json at line 80")?;
+            .context("Failed to create app install.json")?;
 
         serde_json::to_writer_pretty(&file, &install_json)
             .context("Failed to write pretty json to install.json")?;
 
         if Path::new(&write_manifest_path).exists() {
             std::fs::remove_file(&write_manifest_path)
-                .context("Failed to remove app old manifest.json at line 87".to_string())?;
+                .context("Failed to remove app old manifest.json".to_string())?;
         }
         std::fs::copy(self.manifest_path, write_manifest_path)
-            .context("copy bucket manifest to app current dir failed at line 90")?;
+            .context("copy bucket manifest to app current dir failed")?;
         Ok(())
     }
     pub fn get_archive_files_format(&self) -> &[ArchiveFormat] {
@@ -295,11 +293,10 @@ impl<'a> DownloadManager<'a> {
             .map(|url| {
                 // log::debug!("{}", format!("Downloading '{}'", url).dark_blue().bold());
                 if !self.check_is_no_special_char_url(url) {
-                    let file_name =
-                        get_parse_url_query(url).expect(&format!("Could not parse url {}", url));
-                    file_name
+                    get_parse_url_query(url)
+                        .unwrap_or_else(|_| url.split('/').last().unwrap_or("download").to_string())
                 } else {
-                    let file_name = url.split('/').last().unwrap();
+                    let file_name = url.split('/').last().unwrap_or("download");
                     file_name.to_string()
                 }
             })
@@ -335,16 +332,15 @@ impl<'a> DownloadManager<'a> {
         let final_caches = self.final_cache_file_path.as_ref();
         log::debug!("final caches file : {:?}", final_caches);
 
-        let mut file = std::fs::File::create(self.get_input_file())
-            .context("Failed to create input file at line 321")?;
+        let mut file =
+            std::fs::File::create(self.get_input_file()).context("Failed to create input file")?;
         let urls = self.get_download_urls();
         let result =
             urls.iter()
                 .zip(self.get_cache_file_name())
                 .try_for_each(|(url, cache_name)| {
                     let content = format!("{}\n\tout={}", url, cache_name);
-                    writeln!(file, "{}", content)
-                        .context("Failed to write input file at line 330")?;
+                    writeln!(file, "{}", content).context("Failed to write input file")?;
                     Ok(())
                 }) as anyhow::Result<_>;
         if result.is_err() {
@@ -409,8 +405,7 @@ impl<'a> DownloadManager<'a> {
         let path = Path::new(self.app_version_dir.as_str());
 
         if !path.exists() {
-            std::fs::create_dir_all(path)
-                .context("Failed to create app version directory at line 377")?;
+            std::fs::create_dir_all(path).context("Failed to create app version directory")?;
         }
         let absolute_path = if path.is_relative() {
             std::env::current_dir()?.join(path)
@@ -497,17 +492,13 @@ impl<'a> DownloadManager<'a> {
             self.create_input_file()?;
             return Ok(());
         }
-        let content = std::fs::read_to_string(manifest_path).context(format!(
-            "Failed to read manifest file {} at line 465",
-            manifest_path
-        ))?;
-        let serde_obj = serde_json::from_str::<InstallManifest>(&content).context(format!(
-            "Failed to parse manifest file {} at line 467",
-            manifest_path
-        ))?;
-        let version = serde_obj
-            .version
-            .expect(tr("Version cannot be empty", "version 不能为空"));
+        let content = std::fs::read_to_string(manifest_path)
+            .context(format!("Failed to read manifest file {}", manifest_path))?;
+        let serde_obj = serde_json::from_str::<InstallManifest>(&content)
+            .context(format!("Failed to parse manifest file {}", manifest_path))?;
+        let version = serde_obj.version.ok_or_else(|| {
+            anyhow::anyhow!("{}", tr("Version cannot be empty", "version 不能为空"))
+        })?;
         let innosetup = serde_obj.innosetup;
         let exe_setup = innosetup.unwrap_or(false);
         self.set_whether_exe_setup_installer(exe_setup);
@@ -576,7 +567,7 @@ impl<'a> DownloadManager<'a> {
         options: &'a [InstallOptions],
         manifest_path: &'a str,
         bucket_source: Option<&'a str>,
-    ) -> DownloadManager<'a> {
+    ) -> anyhow::Result<DownloadManager<'a>> {
         let mut download = Self {
             app_name: "",
             manifest_path,
@@ -600,13 +591,8 @@ impl<'a> DownloadManager<'a> {
             exe_setup: false,
             seven_zip: SevenZipStruct::new(),
         };
-        match download.init(manifest_path) {
-            Ok(_) => download,
-            Err(e) => {
-                println!("{}", e.to_string().dark_red().bold());
-                download
-            }
-        }
+        download.init(manifest_path)?;
+        Ok(download)
     }
 
     pub fn get_scoop_cache_dir(&self) -> &str {
@@ -820,7 +806,8 @@ impl<'a> DownloadManager<'a> {
             );
         }
         let final_caches = self.final_cache_file_path.as_ref();
-        let result = final_caches.iter().all(|path| Path::new(path).exists());
+        let result =
+            !final_caches.is_empty() && final_caches.iter().all(|path| Path::new(path).exists());
         if result {
             log::info!("cache file already exist, skip download");
             self.origin_cache_file_names.iter().for_each(|name| {
@@ -834,8 +821,7 @@ impl<'a> DownloadManager<'a> {
             });
             if Path::new(input_file).exists() && !is_valid_url(self.manifest_path) {
                 log::debug!("start remove aria2 input file {}", input_file);
-                std::fs::remove_file(input_file)
-                    .context("failed to remove aria2 input file at line 735")?;
+                std::fs::remove_file(input_file).context("failed to remove aria2 input file")?;
             }
             return Ok(());
         }
@@ -850,18 +836,17 @@ impl<'a> DownloadManager<'a> {
                 if Path::new(&input_file).exists() {
                     log::debug!("start remove aria2 input file");
                     std::fs::remove_file(input_file)
-                        .context("failed to remove aria2 input file at line 759")?;
+                        .context("failed to remove aria2 input file")?;
                 }
                 Ok(())
             }
             Err(e) => {
                 if Path::new(&input_file).exists() {
                     log::debug!("start remove aria2 input file");
-                    std::fs::remove_file(input_file)
-                        .context("failed to remove aria2 input file at line 767")?;
+                    let _ = std::fs::remove_file(input_file);
                 }
                 eprintln!("Aria2 Error : {}", e.to_string().dark_red().bold());
-                Ok(())
+                Err(e)
             }
         }
     }
@@ -885,7 +870,7 @@ impl<'a> DownloadManager<'a> {
                 std::io::stdout().flush().unwrap(); // 不刷新缓冲区会等待换行
 
                 let mut open_file = std::fs::File::open(file)
-                    .context(format!("failed to open cache file {file} at line 787"))?;
+                    .context(format!("failed to open cache file {file}"))?;
                 let mut buffer = vec![];
                 // let mut reader = std::io::BufReader::new(&open_file);
                 let caculate_hash = match format {
@@ -923,10 +908,14 @@ impl<'a> DownloadManager<'a> {
 
                 if caculate_hash.to_lowercase() != *hash_value.to_lowercase() {
                     bail!(
-                        "{} 文件哈希校验失败\n期望hash: {}\n实际hash: {}",
-                        file,
-                        hash_value,
-                        caculate_hash
+                        "{}",
+                        tr_fmt!(
+                            "Hash validation failed for '{file}'\nExpected: {expected}\nActual:   {actual}",
+                            "{file} 文件哈希校验失败\n期望hash: {expected}\n实际hash: {actual}",
+                            file = file,
+                            expected = hash_value,
+                            actual = caculate_hash
+                        )
                     )
                 } else {
                     println!("✅");
@@ -934,9 +923,7 @@ impl<'a> DownloadManager<'a> {
                 }
             }) as anyhow::Result<()>;
 
-        if result.is_err() {
-            bail!("{}", result.unwrap_err())
-        }
+        result?;
         Ok(())
     }
 
@@ -1015,7 +1002,7 @@ impl<'a> DownloadManager<'a> {
             extract_to
         );
         _7z.invoke_7z_command(extract_dir, extract_to)
-            .expect("extract zip failed");
+            .context("Failed to extract archive with 7-Zip")?;
         Ok(_7z.clone())
     }
 
@@ -1046,12 +1033,11 @@ impl<'a> DownloadManager<'a> {
         let target = format!("{}\\{}", self.get_app_version_dir(), app_name); // with_extension
         if !Path::new(&target).exists() {
             std::fs::create_dir_all(self.get_app_version_dir())
-                .context("failed to create app remote_url dir at line 963")?;
+                .context("failed to create app remote_url dir")?;
         } else {
             let result = assume_yes_to_cover_folder(&target)?;
             if result {
-                std::fs::remove_file(&target)
-                    .context("failed to remove old app file at line 968")?;
+                std::fs::remove_file(&target).context("failed to remove old app file")?;
             } else {
                 bail!("取消删除")
             }
@@ -1077,7 +1063,7 @@ impl<'a> DownloadManager<'a> {
         std::io::stdout().flush()?; // 不刷新缓冲区会等待换行
 
         std::fs::copy(cache_path.as_str(), target)
-            .context("failed to copy cache file to app target at line 992")?;
+            .context("failed to copy cache file to app target")?;
 
         println!("✅");
         Ok(app_name)
@@ -1090,8 +1076,7 @@ impl<'a> DownloadManager<'a> {
         }
         let current_dir = self.get_app_current_dir();
         if Path::new(&current_dir).is_file() {
-            std::fs::remove_file(&current_dir)
-                .context("failed to remove app current link file at line 1006")?;
+            std::fs::remove_file(&current_dir).context("failed to remove app current link file")?;
         }
 
         #[cfg(windows)]
@@ -1100,13 +1085,13 @@ impl<'a> DownloadManager<'a> {
         let result = std::os::unix::fs::symlink(version_dir, current_dir);
         if result.is_err() {
             std::fs::remove_dir_all(current_dir)
-                .context("failed to remove app current link dir at line 1011")?;
+                .context("failed to remove app current link dir")?;
             #[cfg(windows)]
             std::os::windows::fs::symlink_dir(version_dir, current_dir)
-                .context("failed to create app current symlink dir at line 1014")?;
+                .context("failed to create app current symlink dir")?;
             #[cfg(not(windows))]
             std::os::unix::fs::symlink(version_dir, current_dir)
-                .context("failed to create app current symlink dir at line 1014")?;
+                .context("failed to create app current symlink dir")?;
         }
         println!(
             "{}  {} => {}",
@@ -1122,7 +1107,7 @@ impl<'a> DownloadManager<'a> {
                 .collect::<Vec<String>>();
             cache_file_path.iter().for_each(|path| {
                 if Path::new(path).exists() {
-                    std::fs::remove_file(path).expect("failed to remove cache file at line 1033");
+                    std::fs::remove_file(path).expect("failed to remove cache file");
                 }
             });
         }
@@ -1149,51 +1134,60 @@ mod test_download_manager {
         let option = vec![ForceDownloadNoInstallOverrideCache];
         // let d = DownloadManager::new(&option, r"A:\Scoop\buckets\extras\bucket\7ztm.json");
         // let d = DownloadManager::new(option.as_slice(), r"A:\Scoop\buckets\main\bucket\yazi.json");
-        let d = DownloadManager::new(
+        if let Ok(d) = DownloadManager::new(
             option.as_slice(),
             r"A:\Scoop\buckets\main\bucket\bun.json",
             None,
-        );
-        d.get_final_cache_file_path().iter().for_each(|name| {
-            println!("{}", name);
-        })
+        ) {
+            d.get_final_cache_file_path().iter().for_each(|name| {
+                println!("{}", name);
+            });
+        }
     }
 
     #[test]
     fn test_check_hash() {
         let options = vec![];
-        let d = DownloadManager::new(
+        if let Ok(d) = DownloadManager::new(
             options.as_slice(),
             r"A:\Scoop\buckets\main\bucket\bun.json",
             None,
-        );
-        d.check_cache_file_hash().unwrap();
+        ) {
+            d.check_cache_file_hash().unwrap();
+        }
     }
 
     #[test]
     fn test_output() {
         let options = vec![];
-        let d = DownloadManager::new(
+        if let Ok(d) = DownloadManager::new(
             options.as_slice(),
             r"A:\Scoop\buckets\main\bucket\bun.json",
             None,
-        );
-        println!("{}", d.get_app_current_dir());
-        d.ensure_install_dir_not_in_env_path().unwrap();
+        ) {
+            println!("{}", d.get_app_current_dir());
+            d.ensure_install_dir_not_in_env_path().unwrap();
+        }
     }
 
     #[test]
     fn test_target_alias_name() {
         let binding = vec![];
-        let d = DownloadManager::new(&binding, r"A:\Scoop\buckets\extras\bucket\sfsu.json", None);
-        println!("{:?}", d.get_target_rename_alias())
+        if let Ok(d) =
+            DownloadManager::new(&binding, r"A:\Scoop\buckets\extras\bucket\sfsu.json", None)
+        {
+            println!("{:?}", d.get_target_rename_alias())
+        }
     }
 
     #[test]
     fn test_output_arch() {
         let binding = vec![];
-        let d = DownloadManager::new(&binding, r"A:\Scoop\buckets\main\bucket\bun.json", None);
-        println!("{}", d.get_install_arch());
+        if let Ok(d) =
+            DownloadManager::new(&binding, r"A:\Scoop\buckets\main\bucket\bun.json", None)
+        {
+            println!("{}", d.get_install_arch());
+        }
     }
 
     #[test]

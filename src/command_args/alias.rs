@@ -153,10 +153,10 @@ fn rm_alias(alias_name: Option<String>, shim_root_dir: &str, all: bool) -> anyho
         return Ok(());
     }
     if all {
-        let dirs = std::fs::read_dir(shim_root_dir)
-            .context("Failed to read shim root directory at line 104")?;
+        let dirs =
+            std::fs::read_dir(shim_root_dir).context("Failed to read shim root directory")?;
         for dir in dirs {
-            let dir = dir.context("Failed to read directory at line 106")?;
+            let dir = dir.context("Failed to read directory")?;
             let child_type = dir.file_type()?;
             if child_type.is_dir() {
                 continue;
@@ -165,7 +165,7 @@ fn rm_alias(alias_name: Option<String>, shim_root_dir: &str, all: bool) -> anyho
             let file_name = path.file_name().unwrap().to_str().unwrap();
             if file_name.starts_with("hp-") && file_name.ends_with(".ps1") {
                 log::debug!("{}", t!("alias.remove_file", path = path.display()));
-                std::fs::remove_file(path).context("Failed to remove ps1 script at line 115")?;
+                std::fs::remove_file(path).context("Failed to remove ps1 script")?;
             }
         }
         return Ok(());
@@ -181,14 +181,13 @@ fn rm_alias(alias_name: Option<String>, shim_root_dir: &str, all: bool) -> anyho
                 .dark_green()
                 .bold()
         );
-        std::fs::remove_file(&shim_ps_script).context("Failed to remove ps1 script at line 131")?;
+        std::fs::remove_file(&shim_ps_script).context("Failed to remove ps1 script")?;
     }
     Ok(())
 }
 
 fn list_alias(shim_root_dir: &str) -> anyhow::Result<()> {
-    let dirs = std::fs::read_dir(shim_root_dir)
-        .context("Failed to read shim root directory at line 138")?;
+    let dirs = std::fs::read_dir(shim_root_dir).context("Failed to read shim root directory")?;
 
     let result = dirs
         .par_bridge()

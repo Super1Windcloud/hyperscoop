@@ -66,7 +66,7 @@ fn clean_specific_old_version(app_name: Vec<String>, is_global: bool) -> anyhow:
                 let file_name2 = dir2.file_name().unwrap().to_str().unwrap();
                 compare_versions(file_name.to_string(), file_name2.to_string())
             })
-            .ok_or(anyhow!("No version directory found at line 64"))?;
+            .ok_or(anyhow!("No version directory found"))?;
 
         let retain_dir = highest_version_dir;
         let flag = Arc::new(Mutex::new(false));
@@ -77,8 +77,7 @@ fn clean_specific_old_version(app_name: Vec<String>, is_global: bool) -> anyhow:
                 *flag.lock().unwrap() = true;
                 if result.is_err() {
                     kill_processes_using_app(app_name);
-                    std::fs::remove_dir_all(dir)
-                        .context("Failed to remove old version at line 80")?;
+                    std::fs::remove_dir_all(dir).context("Failed to remove old version")?;
                 }
             }
             Ok(())
@@ -108,17 +107,14 @@ fn clean_all_old_versions(is_global: bool) -> anyhow::Result<()> {
         get_apps_path()
     };
 
-    let apps_dir =
-        std::fs::read_dir(apps_dir).context("Failed to read apps  root directory at line 96")?;
+    let apps_dir = std::fs::read_dir(apps_dir).context("Failed to read apps  root directory")?;
     let mut versions_with_name = HashMap::new();
 
     for app_dir in apps_dir {
         let mut dir_count = 0;
         let mut versions_max = String::new();
 
-        let path = app_dir
-            .context("Failed to read app directory at line 105")?
-            .path();
+        let path = app_dir.context("Failed to read app directory")?.path();
         let app_name = path
             .clone()
             .file_name()
@@ -127,10 +123,7 @@ fn clean_all_old_versions(is_global: bool) -> anyhow::Result<()> {
             .unwrap()
             .to_string();
         if path.is_dir() {
-            for entry in path
-                .read_dir()
-                .context("Failed to read app directory at line 118")?
-            {
+            for entry in path.read_dir().context("Failed to read app directory")? {
                 let entry = entry?;
                 if entry.path().is_dir() {
                     dir_count += 1;
@@ -141,10 +134,10 @@ fn clean_all_old_versions(is_global: bool) -> anyhow::Result<()> {
             }
             for version_dir in path
                 .read_dir()
-                .context("Failed to read version directory at line 130")?
+                .context("Failed to read version directory")?
             {
                 let version_path = version_dir
-                    .context("Failed to read version directory at line 133")?
+                    .context("Failed to read version directory")?
                     .path();
                 if version_path.is_dir() {
                     let version_name = version_path.file_name().unwrap().to_str().unwrap();
@@ -179,9 +172,7 @@ fn clean_all_old_versions(is_global: bool) -> anyhow::Result<()> {
         };
         log::info!("{:?}", dir);
         if exclude_path.exists() {
-            for entry in
-                std::fs::read_dir(dir).context("Failed to read app directory at line 169")?
-            {
+            for entry in std::fs::read_dir(dir).context("Failed to read app directory")? {
                 let entry = entry?;
                 if entry.path().is_dir() {
                     if entry.path() == exclude_path {
@@ -194,12 +185,12 @@ fn clean_all_old_versions(is_global: bool) -> anyhow::Result<()> {
                     }
                     log::info!("Removing old version: {}", path.display());
                     if std::fs::remove_dir_all(path.as_path())
-                        .context("Failed to remove old version at line 188")
+                        .context("Failed to remove old version")
                         .is_err()
                     {
                         kill_processes_using_app(&app_name);
                         std::fs::remove_dir_all(path.as_path())
-                            .context("Failed to remove old version at line 195")?;
+                            .context("Failed to remove old version")?;
                     }
                 }
             }

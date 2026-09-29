@@ -12,7 +12,7 @@ use std::str::from_utf8;
 use crate::manifest::search_manifest::SearchManifest;
 
 pub fn transform_to_only_version_manifest(path: &Path) -> Result<SearchManifest, anyhow::Error> {
-    let file = File::open(path).context("Could not open file at line 17")?;
+    let file = File::open(path).context("Could not open file")?;
     let mut content = String::new();
     let mut reader = BufReader::new(file);
     reader
@@ -179,13 +179,13 @@ pub fn transform_file_to_utf8(path: &Path) -> Result<String, anyhow::Error> {
 pub fn convert_gbk_to_utf8(file_path: &Path) -> Result<(), anyhow::Error> {
     // if !judge_is_gbk(file_path) { return Err(anyhow::anyhow!("不是 GBK 编码文件")); }
     // 读取原始文件的内容
-    let file = File::open(file_path).context("Could not open file at line 187")?;
+    let file = File::open(file_path).context("Could not open file")?;
     let mut reader = BufReader::new(file);
     let mut content = Vec::new();
     // read_to_end() 方法读取整个文件的内容到缓冲区字节数组中
     reader
         .read_to_end(&mut content)
-        .context("Failed to read file content to buffer at line 192")?;
+        .context("Failed to read file content to buffer")?;
     let content = GBK.decode(&content, DecoderTrap::Strict);
     let utf8_content = &content.expect("转换失败");
     // print!("{}", utf8_content);
@@ -195,10 +195,10 @@ pub fn convert_gbk_to_utf8(file_path: &Path) -> Result<(), anyhow::Error> {
         .write(true)
         .truncate(true) // 清空文件内容
         .open(file_path)
-        .context("Could not open file at line 202")?;
+        .context("Could not open file")?;
     output_file
         .write_all(utf8_content.as_bytes())
-        .context("Failed to write file content from buffer at line 204")?;
+        .context("Failed to write file content from buffer")?;
     log::debug!("GBK file converted to UTF-8: {}", file_path.display());
     Ok(())
 }
@@ -209,7 +209,7 @@ pub fn convert_utf8bom_to_utf8(file_path: &Path) -> Result<(), anyhow::Error> {
         return Err(anyhow::anyhow!("不是 UTF-8-BOM编码文件"));
     }
     // 读取原始文件的内容
-    let file = File::open(file_path).context("Failed to open utf8bom file at line 216")?;
+    let file = File::open(file_path).context("Failed to open utf8bom file")?;
     let mut reader = BufReader::new(file);
     let mut content = Vec::new();
     // read_to_end() 方法读取整个文件的内容到缓冲区字节数组中
@@ -231,7 +231,7 @@ pub fn convert_utf8bom_to_utf8(file_path: &Path) -> Result<(), anyhow::Error> {
         .write(true)
         .truncate(true) // 清空文件内容
         .open(file_path)
-        .context("Failed to open utf8bom file at line 238")?;
+        .context("Failed to open utf8bom file")?;
     output_file
         .write_all(&utf8_content.as_bytes())
         .expect("写入文件失败,文件可能被占用");

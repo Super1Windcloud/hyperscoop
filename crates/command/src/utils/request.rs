@@ -81,7 +81,7 @@ pub async fn request_download_git_repo(
     let last_url = url.split("/").last().unwrap().to_string();
     let current_dir = dest.join(last_url + &branch_flag);
     for entry in read_dir(&current_dir).context(format!(
-        "Failed to read directory {} at line 83",
+        "Failed to read directory {}",
         current_dir.clone().display()
     ))? {
         let error_message = format!("无法读取目录 {}", current_dir.clone().display());

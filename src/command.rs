@@ -137,10 +137,9 @@ pub fn add_key_value_to_json(
     name: &str,
 ) -> anyhow::Result<()> {
     let data = std::fs::read_to_string(file_path)
-        .context(format!("Failed to read file: {} at line 114", file_path))?;
+        .context(format!("Failed to read file: {}", file_path))?;
 
-    let mut json_data: Value =
-        serde_json::from_str(&data).context("Failed to parse JSON data at line 116")?;
+    let mut json_data: Value = serde_json::from_str(&data).context("Failed to parse JSON data")?;
 
     if let Value::Object(ref mut map) = json_data {
         if map.get(new_key).is_some() {

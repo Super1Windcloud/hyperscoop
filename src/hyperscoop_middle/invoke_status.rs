@@ -26,12 +26,8 @@ pub fn execute_status_command(status_args: StatusArgs) -> Result<(), anyhow::Err
 
     let mut current_versions = Vec::new();
     let mut installed_apps = Vec::new();
-    for app_path in
-        std::fs::read_dir(apps_path).context("Failed to read apps directory at line 29")?
-    {
-        let app_path = app_path
-            .context("Failed to read app directory at line 30")?
-            .path();
+    for app_path in std::fs::read_dir(apps_path).context("Failed to read apps directory")? {
+        let app_path = app_path.context("Failed to read app directory")?.path();
         let app_name = app_path
             .file_name()
             .expect("Invalid app path")
@@ -45,10 +41,10 @@ pub fn execute_status_command(status_args: StatusArgs) -> Result<(), anyhow::Err
             installed_apps.push(app_name.to_string());
             continue;
         }
-        let manifest = std::fs::read_to_string(manifest_path)
-            .context("Failed to read manifest.json at line 45")?;
+        let manifest =
+            std::fs::read_to_string(manifest_path).context("Failed to read manifest.json")?;
         let manifest: VersionJSON = serde_json::from_str(&manifest)
-            .context("Failed to parse manifest.json to VersionJSON at line 47")?;
+            .context("Failed to parse manifest.json to VersionJSON")?;
         let current_version = manifest
             .version
             .unwrap_or_else(|| tr("Not Found", "未找到").to_string());

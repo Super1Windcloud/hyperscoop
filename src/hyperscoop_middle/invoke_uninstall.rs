@@ -1,12 +1,10 @@
 use crate::command_args::uninstall::UninstallArgs;
 use crate::i18n::{tr, tr_fmt};
-use anyhow::{Context, bail};
-use command_util_lib::init_env::{get_app_dir, get_app_dir_global};
+use anyhow::bail;
 use command_util_lib::uninstall::*;
-use command_util_lib::utils::system::{is_admin, kill_processes_using_app, request_admin};
+use command_util_lib::utils::system::{is_admin, request_admin};
 use crossterm::style::Stylize;
 use std::env;
-use std::path::Path;
 
 pub fn execute_uninstall_command(args: UninstallArgs) -> Result<(), anyhow::Error> {
     if args.app_names.is_empty() {
@@ -58,18 +56,31 @@ pub fn execute_uninstall_command(args: UninstallArgs) -> Result<(), anyhow::Erro
         }
     }
 
-    if !errors.is_empty() && total > 1 {
-        eprintln!(
-            "{}",
-            tr_fmt!(
-                "\n{failed} of {total} apps failed to uninstall.",
-                "\n共有 {failed} 个应用（共 {total} 个）卸载失败。",
-                failed = errors.len(),
-                total = total
-            )
-            .dark_red()
-            .bold()
-        );
+    if !errors.is_empty() {
+        if total > 1 {
+            eprintln!(
+                "{}",
+                tr_fmt!(
+                    "\n{failed} of {total} apps failed to uninstall.",
+                    "\n共有 {failed} 个应用（共 {total} 个）卸载失败。",
+                    failed = errors.len(),
+                    total = total
+                )
+                .dark_red()
+                .bold()
+            );
+            bail!(
+                "{}",
+                tr_fmt!(
+                    "{failed} app(s) failed to uninstall",
+                    "{failed} 个应用卸载失败",
+                    failed = errors.len()
+                )
+            );
+        } else {
+            let (_, err) = errors.remove(0);
+            return Err(err);
+        }
     }
 
     Ok(())
@@ -110,45 +121,11 @@ fn uninstall_single_app(app_name: &str, global: bool, purge: bool) -> Result<(),
                         .bold()
                 );
             }
-            Err(_) => {
-                let app_dir = if global {
-                    get_app_dir_global(app_name)
-                } else {
-                    get_app_dir(app_name)
-                };
-                let app_dir = Path::new(&app_dir);
-                if app_dir.exists() {
-                    if std::fs::remove_dir_all(app_dir)
-                        .context(format!(
-                            "Failed to remove app directory {}",
-                            app_dir.display()
-                        ))
-                        .is_err()
-                    {
-                        kill_processes_using_app(app_name);
-                        std::fs::remove_dir_all(app_dir).context(format!(
-                            "Failed to remove app dir  {} at line 68",
-                            app_dir.display()
-                        ))?;
-                    }
-
-                    println!(
-                        "'{}' {}",
-                        app_name.dark_cyan().bold(),
-                        tr("has been uninstalled successfully!", "已成功卸载！")
-                            .dark_green()
-                            .bold()
-                    );
-                } else {
-                    bail!(
-                        "{}",
-                        tr_fmt!(
-                            "'{name}' is not installed.",
-                            "'{name}' 并没有安装。",
-                            name = app_name
-                        )
-                    )
-                }
+            Err(e) => {
+                bail!(
+                    "{}",
+                    tr_fmt!("Failed to uninstall app: {e}", "卸载应用失败: {e}", e = e)
+                );
             }
         }
     }

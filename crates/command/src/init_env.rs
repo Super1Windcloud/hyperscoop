@@ -458,7 +458,7 @@ pub fn get_all_buckets_dir_path() -> anyhow::Result<Vec<String>> {
     let bucket_path = get_bucket_dir_path();
     // 遍历 bucket_path 下的所有文件夹，并将文件夹名加入 buckets_path
     let buckets_path: Vec<String> = read_dir(&bucket_path)
-        .context("failed to read bucket dir at line 419")?
+        .context("failed to read bucket dir")?
         .filter_map(|e| e.ok())
         .filter(|e| e.path().is_dir())
         .map(|e| e.path().to_str().unwrap().to_string())

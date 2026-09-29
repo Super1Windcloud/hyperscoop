@@ -152,16 +152,15 @@ impl<'a> SevenZipStruct<'a> {
         let target = self.get_target_app_version_dir();
         let current = self.get_target_app_current_dir();
         if Path::new(&current).exists() {
-            std::fs::remove_dir_all(&current).context("remove current dir failed at line 112")?;
+            std::fs::remove_dir_all(&current).context("remove current dir failed")?;
         }
 
         if is_broken_symlink(&current)? {
             log::debug!("{} is a broken symlink, removing it", &current);
             std::fs::remove_dir_all(&current) // can't use remove_file here
-                .context("remove current dir failed at line 116")?;
+                .context("remove current dir failed")?;
         }
-        fs::symlink_dir(target, &current)
-            .context("create current dir symlink failed at line 120")?;
+        fs::symlink_dir(target, &current).context("create current dir symlink failed")?;
 
         println!(
             "{} {} => {}",
@@ -244,8 +243,7 @@ impl<'a> SevenZipStruct<'a> {
             if !Path::new(&shim_file).exists() {
                 bail!("{shim_file} is not exists")
             }
-            let content = std::fs::read_to_string(shim_file)
-                .context("failed to read shim file at line 203")?;
+            let content = std::fs::read_to_string(shim_file).context("failed to read shim file")?;
             let first_line = content.lines().next().unwrap();
             let content = first_line.replace("path = ", "").replace("\"", "");
             Ok(content.trim().to_string())
@@ -366,7 +364,7 @@ impl<'a> SevenZipStruct<'a> {
         let target_dir = self.get_target_app_version_dir();
         if !Path::new(target_dir).exists() {
             std::fs::create_dir_all(target_dir)
-                .context("Failed to create target version directory at line 303")?;
+                .context("Failed to create target version directory")?;
         }
         let extract_to_dir = extract_to
             .iter()
@@ -592,13 +590,13 @@ Expand-MsiArchive  "{msi_file}" "{target_dir}"{extract_dir_param}  -Removal
         let decompress_path = temp.join("decompress.ps1");
         if !core_path.exists() {
             std::fs::write(&core_path, core_script).context(format!(
-                "Failed to write core script: {} at line 477",
+                "Failed to write core script: {}",
                 core_path.display()
             ))?;
         }
         if !decompress_path.exists() {
             std::fs::write(&decompress_path, decompress_script).context(format!(
-                "Failed to write decompress script: {} at line 481",
+                "Failed to write decompress script: {}",
                 decompress_path.display()
             ))?;
         }
@@ -652,7 +650,7 @@ Expand-InnoArchive "{inno_file}" "{target_dir}"{extract_dir_param}  -Removal
                 .collect::<Vec<String>>();
             cache_file_path.iter().for_each(|path| {
                 if Path::new(path).exists() {
-                    std::fs::remove_file(path).expect("failed to remove cache file at line 568");
+                    std::fs::remove_file(path).expect("failed to remove cache file");
                 }
             });
         }
@@ -688,7 +686,7 @@ Expand-InnoArchive "{inno_file}" "{target_dir}"{extract_dir_param}  -Removal
         let target_dir = self.get_target_app_version_dir();
         if !Path::new(target_dir).exists() {
             std::fs::create_dir_all(target_dir)
-                .context("Failed to create target version directory at line 527")?;
+                .context("Failed to create target version directory")?;
         }
         let result = archive_items
             .iter()

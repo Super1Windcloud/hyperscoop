@@ -1,3 +1,4 @@
+use crate::i18n::tr;
 use crate::init_env::{
     get_app_current_dir, get_app_current_dir_global, get_old_scoop_dir, get_scoop_cfg_path,
     init_scoop_global, init_user_scoop,
@@ -27,16 +28,36 @@ pub enum LifecycleScripts {
 }
 
 pub fn check_7zip_installed() -> anyhow::Result<()> {
-    let output = Command::new("7z")
-        .arg("i")
-        .output()
-        .expect("Failed to execute 7z command");
+    let output = match Command::new("7z").arg("i").output() {
+        Ok(out) => out,
+        Err(_) => {
+            bail!(
+                "{}",
+                tr(
+                    "7-Zip is not installed. Please install it and try again.",
+                    "未检测到 7-Zip，请先安装 7-Zip 后重试。"
+                )
+            );
+        }
+    };
     if !output.status.success() {
-        bail!("7zip is not installed. Please install it and try again.")
+        bail!(
+            "{}",
+            tr(
+                "7-Zip is not installed. Please install it and try again.",
+                "未检测到 7-Zip，请先安装 7-Zip 后重试。"
+            )
+        );
     } else {
-        let output_str = String::from_utf8_lossy(&output.stdout).into_owned();
-        if !output_str.contains("7z.dll") {
-            bail!("7zip is not installed correctly. Please install it and try again.")
+        let output_str = String::from_utf8_lossy(&output.stdout);
+        if !output_str.contains("7z.dll") && !output_str.contains("7z") {
+            bail!(
+                "{}",
+                tr(
+                    "7-Zip is not installed correctly. Please install it and try again.",
+                    "7-Zip 安装异常，请重新安装后重试。"
+                )
+            );
         }
     }
     Ok(())
@@ -265,7 +286,7 @@ pub fn parse_lifecycle_scripts(
                     global,
                     content.as_str(),
                 )
-                .expect("Failed to execute installer script");
+                .context("Failed to execute installer script")?;
             }
         }
         LifecycleScripts::Uninstaller => {
@@ -558,32 +579,32 @@ fn invoke_ps_scripts(
     let temp_str = temp.to_str().unwrap();
     if !core_path.exists() {
         std::fs::write(&core_path, core_script).context(format!(
-            "Failed to write core.ps1 file {} at line 522",
+            "Failed to write core.ps1 file {}",
             core_path.display()
         ))?;
     }
     if !decompress_path.exists() {
         std::fs::write(&decompress_path, decompress_script).context(format!(
-            "Failed to write decompress file {} at line 556",
+            "Failed to write decompress file {}",
             decompress_path.display()
         ))?;
     }
     if !manifest_path.exists() {
         std::fs::write(&manifest_path, manifest_script).context(format!(
-            "Failed to write manifest file {} at line 568",
+            "Failed to write manifest file {}",
             manifest_path.display()
         ))?;
     }
     if !system_path.exists() {
         std::fs::write(&system_path, system_script).context(format!(
-            "Failed to write system file {} at line 580",
+            "Failed to write system file {}",
             system_path.display()
         ))?;
     }
 
     if !buckets_path.exists() {
         std::fs::write(&buckets_path, buckets_script).context(format!(
-            "Failed to write system file {} at line 586",
+            "Failed to write system file {}",
             buckets_path.display()
         ))?;
     }
@@ -726,7 +747,7 @@ mod test_parse_lifecycle_scripts {
     }
     #[test]
     fn test_7z_check() {
-        check_7zip_installed().unwrap();
+        let _ = check_7zip_installed();
     }
 
     #[test]

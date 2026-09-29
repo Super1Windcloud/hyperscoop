@@ -19,11 +19,11 @@ pub fn display_all_cache_info(is_global: bool) -> anyhow::Result<()> {
         ));
     }
     let cache_files =
-        std::fs::read_dir(&cache_dir).context("Failed to read cache root directory at line 16 ")?;
+        std::fs::read_dir(&cache_dir).context("Failed to read cache root directory ")?;
     let mut infos = Vec::new();
     let mut count = 0;
     for file in cache_files {
-        let path = file.context("Failed to read cache file at line 21")?;
+        let path = file.context("Failed to read cache file")?;
         let path1 = path
             .path()
             .clone()
@@ -35,7 +35,7 @@ pub fn display_all_cache_info(is_global: bool) -> anyhow::Result<()> {
         let path2 = path.path().clone().to_string_lossy().to_string();
         let app_name = path1.split("#").collect::<Vec<&str>>()[0].to_string();
         let zip_size = (std::fs::metadata(&path2)
-            .context("Failed to read cache file metadata at line 26")?
+            .context("Failed to read cache file metadata")?
             .len() as f64)
             / 1024f64
             / 1024f64;
@@ -114,11 +114,11 @@ pub fn display_specified_cache_info(app_name: &str, is_global: bool) -> anyhow::
     }
     log::info!("display_specified_cache_info : {}", app_name);
     let cache_files =
-        std::fs::read_dir(&cache_dir).context("Failed to read cache root directory at line 101")?;
+        std::fs::read_dir(&cache_dir).context("Failed to read cache root directory")?;
     let mut size = 0f64;
     let mut flag = false;
     for file in cache_files {
-        let path = file.context("Failed to read cache file at line 106")?;
+        let path = file.context("Failed to read cache file")?;
         let t = path.path().clone().to_string_lossy().to_string();
         let path_name = path
             .path()
@@ -131,7 +131,7 @@ pub fn display_specified_cache_info(app_name: &str, is_global: bool) -> anyhow::
         if app.trim().to_lowercase() == app_name {
             size = size
                 + (std::fs::metadata(path.path().clone())
-                    .context("Failed to read cache file metadata at line 118")?
+                    .context("Failed to read cache file metadata")?
                     .len() as f64)
                     / 1024f64
                     / 1024f64;
@@ -143,7 +143,7 @@ pub fn display_specified_cache_info(app_name: &str, is_global: bool) -> anyhow::
                     name = path_name.green().bold()
                 )
             );
-            std::fs::remove_file(t).context("Failed to remove cache file at line 120")?;
+            std::fs::remove_file(t).context("Failed to remove cache file")?;
             flag = true;
         }
     }
@@ -188,13 +188,11 @@ pub fn rm_all_cache(is_global: bool) -> anyhow::Result<()> {
 fn rm_cache_file(cache_dir: String) -> anyhow::Result<()> {
     let mut count = 0;
     let mut size = 0f64;
-    for entry in
-        std::fs::read_dir(cache_dir).context("Failed to read cache directory at line 154")?
-    {
+    for entry in std::fs::read_dir(cache_dir).context("Failed to read cache directory")? {
         let path = entry?.path();
         if path.is_file() {
             size += (std::fs::metadata(&path)
-                .context("Failed to read cache file metadata at line 158")?
+                .context("Failed to read cache file metadata")?
                 .len() as f64)
                 / 1024f64
                 / 1024f64;

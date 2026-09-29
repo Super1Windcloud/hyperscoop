@@ -255,10 +255,7 @@ fn get_apps_names(path: &Path, query: &str) -> Result<Vec<(String, PathBuf)>, an
 
     let app_names = path
         .read_dir()
-        .context(format!(
-            "Failed to read directory {} at line 226",
-            path.display()
-        ))?
+        .context(format!("Failed to read directory {}", path.display()))?
         .into_iter()
         .par_bridge()
         .filter_map(|entry| {
@@ -334,10 +331,7 @@ pub fn get_all_manifest_package_name_slow(
 fn par_read_dir(path: &Path) -> anyhow::Result<impl ParallelIterator<Item = DirEntry>> {
     Ok(path
         .read_dir()
-        .context(format!(
-            "Failed to read directory {} at line 306",
-            path.display()
-        ))?
+        .context(format!("Failed to read directory {}", path.display()))?
         .par_bridge()
         .filter_map(|de| de.ok()))
 }

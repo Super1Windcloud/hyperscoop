@@ -77,7 +77,7 @@ pub fn list_all_installed_apps_refactor(is_global: bool) -> anyhow::Result<Vec<A
         get_apps_path()
     };
     let all_apps_path = read_dir(&apps_dir)
-        .context("Failed to read apps root directory at line 77")?
+        .context("Failed to read apps root directory")?
         .par_bridge() // 将标准迭代器转换为并行迭代器
         .filter_map(|entry| {
             let entry = entry.ok()?;
@@ -139,11 +139,11 @@ pub fn get_install_json_version(manifest_json: &String) -> anyhow::Result<String
         return Ok("unknown".to_string());
     }
     let content = std::fs::read_to_string(manifest_json).context(format!(
-        "Failed to read manifest json file: {} at line 127",
+        "Failed to read manifest json file: {}",
         manifest_json
     ))?;
     let obj: VersionJSON = serde_json::from_str(&content).context(format!(
-        "Failed to parse manifest json file: {} at line 129",
+        "Failed to parse manifest json file: {}",
         manifest_json
     ))?;
     let version = obj.version;
@@ -159,11 +159,11 @@ pub fn get_install_json_bucket(install_json: &String) -> anyhow::Result<String> 
         return Ok("unknown".to_string());
     }
     let content = std::fs::read_to_string(install_json).context(format!(
-        "Failed to read install json file: {} at line 147",
+        "Failed to read install json file: {}",
         install_json
     ))?;
     let obj: VersionJSON = serde_json::from_str(&content).context(format!(
-        "Failed to parse install json file: {} at line 151",
+        "Failed to parse install json file: {}",
         install_json
     ))?;
     let bucket = obj.bucket;

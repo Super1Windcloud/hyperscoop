@@ -145,7 +145,7 @@ impl<'a> Aria2C<'a> {
                                 let size = line["content-length:".len()..]
                                     .trim()
                                     .parse::<u64>()
-                                    .context("Failed to parse content-length: at line 115")?;
+                                    .context("Failed to parse content-length:")?;
                                 let size_mb = size / 1024 / 1024;
                                 log::debug!("File size: {} MB", size_mb);
                                 max_size = max_size.max(size_mb);
@@ -449,10 +449,10 @@ impl<'a> Aria2C<'a> {
 
     fn write_aria2_to_temp(&self, aria2_exe: &str) -> anyhow::Result<()> {
         const ARIA2_DATA: &[u8] = include_bytes!("../../../../resources/aria2c.exe");
-        let mut file = File::create(aria2_exe)
-            .context("Failed to create aria2c_data file in temp dir at line 280")?;
+        let mut file =
+            File::create(aria2_exe).context("Failed to create aria2c_data file in temp dir")?;
         file.write_all(&ARIA2_DATA)
-            .context("Failed to write aria2c data to temp file at line 282")?;
+            .context("Failed to write aria2c data to temp file")?;
         file.flush()?;
         file.sync_all()?;
         drop(file); // 需关闭句柄才能调用

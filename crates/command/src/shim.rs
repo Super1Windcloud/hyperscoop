@@ -32,9 +32,9 @@ pub fn list_all_shims(global: bool) -> anyhow::Result<Vec<(String, String, Strin
     let mut shims = vec![];
     for entry in shim_path
         .read_dir()
-        .context("Failed to read  shim root dir at line 28")?
+        .context("Failed to read  shim root dir")?
     {
-        let entry = entry.context("Failed to read  shim root dir at line 30")?;
+        let entry = entry.context("Failed to read  shim root dir")?;
         let file_name = entry.file_type()?;
         let path = entry.path();
         if !file_name.is_file() {
@@ -61,7 +61,7 @@ pub fn list_all_shims(global: bool) -> anyhow::Result<Vec<(String, String, Strin
             content.trim().to_owned()
         } else {
             let content = std::fs::read_to_string(&shim_file_path)
-                .context("Failed to read shim file content at line 57")?;
+                .context("Failed to read shim file content")?;
             let first_line = content.lines().next().unwrap().trim();
             first_line
                 .replace("path =", "")
@@ -136,7 +136,7 @@ pub fn list_shims_by_regex(regex: String, global: bool) -> anyhow::Result<()> {
     let mut shims = vec![];
     for entry in shim_path
         .read_dir()
-        .context("Failed to read  shim root dir at line 75")?
+        .context("Failed to read  shim root dir")?
     {
         let entry = entry?;
         let file_type = entry.file_type()?;
@@ -170,7 +170,7 @@ pub fn list_shims_by_regex(regex: String, global: bool) -> anyhow::Result<()> {
             content.trim().to_owned()
         } else {
             let content = std::fs::read_to_string(&shim_file_path)
-                .context("Failed to read shim file content at line 165")?;
+                .context("Failed to read shim file content")?;
             let first_line = content.lines().next().unwrap().trim();
             first_line
                 .replace("path =", "")
@@ -243,7 +243,7 @@ pub fn list_shims_by_regex(regex: String, global: bool) -> anyhow::Result<()> {
 }
 
 fn extract_rem_comments(file_path: &str) -> String {
-    let content = std::fs::read_to_string(file_path).expect("Failed to read file");
+    let content = std::fs::read_to_string(file_path).unwrap_or_default();
     content
         .lines()
         .filter_map(|line| {
@@ -278,7 +278,7 @@ pub fn list_shim_info(name: Option<String>, global: bool) -> anyhow::Result<()> 
     }
     for entry in shim_path
         .read_dir()
-        .context("Failed to read  shim root dir at line 127")?
+        .context("Failed to read  shim root dir")?
     {
         let entry = entry?;
         let file_type = entry.file_type()?;
@@ -597,8 +597,7 @@ pub fn remove_shim(name: Option<String>, global: bool) -> anyhow::Result<()> {
             path = shim_path.display()
         ));
     }
-    let shim_dir =
-        std::fs::read_dir(&shim_path).context("Failed to read  shim root dir at line 366")?;
+    let shim_dir = std::fs::read_dir(&shim_path).context("Failed to read  shim root dir")?;
     let matched_shims = shim_dir
         .filter_map(|entry| {
             let entry = entry.ok()?;
@@ -637,7 +636,7 @@ pub fn remove_shim(name: Option<String>, global: bool) -> anyhow::Result<()> {
             .dark_green()
             .bold()
         );
-        std::fs::remove_file(shim_path).unwrap();
+        let _ = std::fs::remove_file(shim_path);
     });
     Ok(())
 }
@@ -649,20 +648,33 @@ pub fn clear_invalid_shims(global: bool) -> anyhow::Result<()> {
         get_shims_root_dir()
     };
     let shim_root_dir = Path::new(&shim_root_dir);
-    let result = shim_root_dir.read_dir()?.try_for_each(|entry| {
-        let entry = entry.ok().unwrap();
-        let file_type = entry.file_type().ok().unwrap();
+    if !shim_root_dir.exists() {
+        return Ok(());
+    }
+
+    for entry in shim_root_dir.read_dir()? {
+        let entry = match entry {
+            Ok(e) => e,
+            Err(_) => continue,
+        };
+        let file_type = match entry.file_type() {
+            Ok(ft) => ft,
+            Err(_) => continue,
+        };
         if !file_type.is_file() {
-            return Ok(());
+            continue;
         }
         let path = entry.path();
-        let extension = path.extension().unwrap_or_default().to_str().unwrap();
-        if extension.is_empty() {
-            return Ok(());
-        }
+        let extension = path.extension().and_then(|ext| ext.to_str()).unwrap_or("");
         if extension == "shim" {
-            let content = std::fs::read_to_string(&path).unwrap();
-            let first_line = content.lines().next().unwrap().trim();
+            let content = match std::fs::read_to_string(&path) {
+                Ok(c) => c,
+                Err(_) => continue,
+            };
+            let first_line = match content.lines().next() {
+                Some(l) => l.trim(),
+                None => continue,
+            };
             let target_path = first_line
                 .replace("path =", "")
                 .replace("\"", "")
@@ -690,13 +702,13 @@ pub fn clear_invalid_shims(global: bool) -> anyhow::Result<()> {
                     .dark_green()
                     .bold()
                 );
-                std::fs::remove_file(&path).unwrap();
+                let _ = std::fs::remove_file(&path);
                 if exe_path.exists() {
-                    std::fs::remove_file(&exe_path).unwrap();
+                    let _ = std::fs::remove_file(&exe_path);
                 }
             }
         } else if extension == "cmd" || extension == "bat" {
-            let content = extract_rem_comments(path.to_str().unwrap());
+            let content = extract_rem_comments(path.to_str().unwrap_or_default());
             let target_path = content.trim().to_owned();
             let shell_path = path.with_extension("");
             if !Path::new(&target_path).exists() {
@@ -720,49 +732,47 @@ pub fn clear_invalid_shims(global: bool) -> anyhow::Result<()> {
                     .dark_green()
                     .bold()
                 );
-                std::fs::remove_file(&path).unwrap();
-                if !shell_path.exists() {
-                    return Ok(());
+                let _ = std::fs::remove_file(&path);
+                if shell_path.exists() {
+                    let _ = std::fs::remove_file(&shell_path);
                 }
-                std::fs::remove_file(&shell_path).unwrap();
             }
         } else if extension.is_empty() {
             log::info!("Current app is shell script of running with wsl");
-            let target_path = extract_target_path_from_shell_script(path.to_str().unwrap())?;
-            let cmd_path = path.with_extension("cmd");
+            if let Ok(target_path) =
+                extract_target_path_from_shell_script(path.to_str().unwrap_or_default())
+            {
+                let cmd_path = path.with_extension("cmd");
 
-            if !Path::new(&target_path).exists() {
-                println!(
-                    "{}",
-                    tr_fmt!(
-                        "Removing invalid shim: {path}",
-                        "正在删除无效 shim: {path}",
-                        path = path.display()
-                    )
-                    .dark_green()
-                    .bold()
-                );
+                if !Path::new(&target_path).exists() {
+                    println!(
+                        "{}",
+                        tr_fmt!(
+                            "Removing invalid shim: {path}",
+                            "正在删除无效 shim: {path}",
+                            path = path.display()
+                        )
+                        .dark_green()
+                        .bold()
+                    );
 
-                println!(
-                    "{}",
-                    tr_fmt!(
-                        "Removing invalid shim: {path}",
-                        "正在删除无效 shim: {path}",
-                        path = cmd_path.display()
-                    )
-                    .dark_green()
-                    .bold()
-                );
-                std::fs::remove_file(&path).unwrap();
-                std::fs::remove_file(&cmd_path).unwrap();
+                    println!(
+                        "{}",
+                        tr_fmt!(
+                            "Removing invalid shim: {path}",
+                            "正在删除无效 shim: {path}",
+                            path = cmd_path.display()
+                        )
+                        .dark_green()
+                        .bold()
+                    );
+                    let _ = std::fs::remove_file(&path);
+                    let _ = std::fs::remove_file(&cmd_path);
+                }
             }
         }
-        Ok(())
-    }) as anyhow::Result<()>;
-
-    if result.is_err() {
-        bail!(result.unwrap_err());
     }
+
     Ok(())
 }
 

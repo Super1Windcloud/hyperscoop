@@ -2374,6 +2374,7 @@ dependencies = [
  "crossterm 0.28.1",
  "env_logger",
  "hex",
+ "human-panic",
  "indicatif",
  "line-ending",
  "log",

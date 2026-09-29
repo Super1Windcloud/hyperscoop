@@ -153,6 +153,9 @@ struct Cli {
 
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> anyhow::Result<()> {
+    #[cfg(not(debug_assertions))]
+    human_panic::setup_panic!();
+
     command_util_lib::disable_git2_owner_validation();
 
     let preselected_language = i18n::detect_language_choice_from_args();
@@ -173,7 +176,7 @@ async fn main() -> anyhow::Result<()> {
     unsafe {
         init_logger(&cli);
     }
-    color_eyre::install().unwrap();
+    let _ = color_eyre::install();
     // if cli.command.is_some() && cli.global {
     //     invoke_admin_process()?;
     //     return Ok(());
@@ -214,8 +217,9 @@ async fn main() -> anyhow::Result<()> {
     };
     if let Err(err) = result {
         let red_err = format!("{:#}", err).dark_red().bold();
-        execute!(stdout(), Print(red_err))?;
+        let _ = execute!(stdout(), Print(red_err));
         println!();
+        std::process::exit(1);
     }
     Ok(())
 }
