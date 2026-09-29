@@ -1,4 +1,4 @@
-use anyhow::{Context, anyhow, bail};
+use anyhow::{Context, bail};
 use command_util_lib::buckets::get_hp_bucket_repo_path;
 use command_util_lib::config::get_config_value_no_print;
 use command_util_lib::init_env::{
@@ -32,7 +32,7 @@ pub fn get_app_old_version(app_name: &str, options: &[UpdateOptions]) -> anyhow:
     Ok(version.unwrap())
 }
 
-fn is_version_newer(current: &str, latest: &str) -> bool {
+pub fn is_version_newer(current: &str, latest: &str) -> bool {
     let parse_nums = |v: &str| -> Vec<u64> {
         v.trim_start_matches('v')
             .split(['.', '-', '_'])
@@ -55,14 +55,32 @@ fn is_version_newer(current: &str, latest: &str) -> bool {
 }
 
 pub async fn auto_check_hp_update(old_version: Option<&str>) -> anyhow::Result<bool> {
-    let version = if old_version.is_none() {
-        String::new()
-    } else {
-        old_version.unwrap().to_string()
+    let mut version = match old_version {
+        Some(v) if !v.is_empty() => v.to_string(),
+        _ => {
+            get_app_old_version("hp", &[]).unwrap_or_else(|_| env!("CARGO_PKG_VERSION").to_string())
+        }
     };
-    let latest_version = get_latest_version_from_github()
-        .await
-        .map_err(|e| anyhow!("failed to get latest github version: {}", e))?;
+    let current_pkg_ver = env!("CARGO_PKG_VERSION");
+    if is_version_newer(&version, current_pkg_ver) {
+        version = current_pkg_ver.to_string();
+    }
+
+    let github_version = get_latest_version_from_github().await.unwrap_or_default();
+    let bucket_version = get_latest_app_version_from_local_bucket("hp").unwrap_or_default();
+
+    let latest_version = if !github_version.is_empty() && !bucket_version.is_empty() {
+        if is_version_newer(&bucket_version, &github_version) {
+            github_version
+        } else {
+            bucket_version
+        }
+    } else if !github_version.is_empty() {
+        github_version
+    } else {
+        bucket_version
+    };
+
     log::debug!(
         "latest version: {} , current version: {}",
         latest_version,
@@ -70,27 +88,25 @@ pub async fn auto_check_hp_update(old_version: Option<&str>) -> anyhow::Result<b
     );
     let is_newer = if !latest_version.is_empty() && !version.is_empty() {
         is_version_newer(&version, &latest_version)
-    } else if !latest_version.is_empty() {
-        true
     } else {
         false
     };
-    if is_newer || hash_changed() {
-        let hp_repo = get_hp_bucket_repo_path("hp")?;
-        if hp_repo.is_none() {
-            bail!("hp bucket repository  is empty");
+    if is_newer {
+        if let Ok(Some(hp_repo_path)) = get_hp_bucket_repo_path("hp") {
+            let _ = pull_special_local_repo(hp_repo_path.as_str());
         }
-        let hp_repo_path = hp_repo.unwrap();
-        pull_special_local_repo(hp_repo_path.as_str())?;
         Ok(true)
     } else {
         Ok(false)
     }
 }
 
-use command_util_lib::manifest::manifest::get_latest_manifest_from_local_bucket;
+use command_util_lib::manifest::manifest::{
+    get_latest_app_version_from_local_bucket, get_latest_manifest_from_local_bucket,
+};
 use sha2::{Digest, Sha256};
 
+#[allow(dead_code)]
 pub fn hash_changed() -> bool {
     let hp_manifest = get_latest_manifest_from_local_bucket("hp").unwrap();
     let hp_current = get_app_current_dir("hp");
@@ -196,6 +212,21 @@ mod test_auto_update {
     use super::*;
     #[allow(unused_imports)]
     use rust_i18n::t;
+
+    #[test]
+    fn test_is_version_newer() {
+        assert!(!is_version_newer("4.2.5", "4.2.5"));
+        assert!(!is_version_newer("v4.2.5", "4.2.5"));
+        assert!(!is_version_newer("4.2.5", "v4.2.5"));
+        assert!(!is_version_newer("4.2.6", "4.2.5"));
+        assert!(is_version_newer("4.2.4", "4.2.5"));
+        assert!(is_version_newer("4.2.5", "4.2.6"));
+        assert!(is_version_newer("4.2.5", "4.3.0"));
+        assert!(is_version_newer("4.2.5", "5.0.0"));
+        assert!(is_version_newer("4.2.5", "4.2.5.1"));
+        assert!(!is_version_newer("4.2.5.1", "4.2.5"));
+        assert!(!is_version_newer("4.2.5", ""));
+    }
 
     #[tokio::test]
     async fn test_auto_check_hp_update() {

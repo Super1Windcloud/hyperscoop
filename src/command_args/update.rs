@@ -84,7 +84,8 @@ pub struct UpdateArgs {
 
     #[arg(
         short = 'f',
-        long,
+        long = "force",
+        alias = "force-update-override",
         help = crate::i18n::tr(
             "Force update and clean if the current install is broken",
             "当前版本安装错误时强制更新并删除错误安装"

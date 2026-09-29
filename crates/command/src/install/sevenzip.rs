@@ -640,7 +640,7 @@ Expand-InnoArchive "{inno_file}" "{target_dir}"{extract_dir_param}  -Removal
             }
             self.link_current_target_version_dir()?;
         }
-        if self.options.contains(&NoUseDownloadCache) || self.app_name == "hp" {
+        if self.options.contains(&NoUseDownloadCache) {
             let cache_file_path = self
                 .get_final_cache_file_name()
                 .iter()

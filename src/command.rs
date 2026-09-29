@@ -365,5 +365,42 @@ mod tests {
             }
             _ => panic!("Expected Update"),
         }
+
+        // Self-update without force
+        let cli = crate::Cli::try_parse_from(["hp", "self-update"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::SelfUpdate(args) => {
+                assert!(!args.force_update_override);
+            }
+            _ => panic!("Expected SelfUpdate"),
+        }
+
+        // Self-update with -f
+        let cli = crate::Cli::try_parse_from(["hp", "self-update", "-f"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::SelfUpdate(args) => {
+                assert!(args.force_update_override);
+            }
+            _ => panic!("Expected SelfUpdate"),
+        }
+
+        // Self-update with --force
+        let cli = crate::Cli::try_parse_from(["hp", "self-update", "--force"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::SelfUpdate(args) => {
+                assert!(args.force_update_override);
+            }
+            _ => panic!("Expected SelfUpdate"),
+        }
+
+        // Self-update with --force-update-override
+        let cli =
+            crate::Cli::try_parse_from(["hp", "self-update", "--force-update-override"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::SelfUpdate(args) => {
+                assert!(args.force_update_override);
+            }
+            _ => panic!("Expected SelfUpdate"),
+        }
     }
 }

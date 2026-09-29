@@ -4,7 +4,8 @@ use crate::init_env::{
     get_cache_dir_path_global, get_persist_app_data_dir, get_persist_app_data_dir_global,
 };
 use crate::install::InstallOptions::{
-    ArchOptions, ForceDownloadNoInstallOverrideCache, Global, NoUseDownloadCache,
+    ArchOptions, ForceDownloadNoInstallOverrideCache, ForceInstallOverride, Global,
+    NoUseDownloadCache,
 };
 use crate::install::{ArchiveFormat, Aria2C, HashFormat, InstallOptions, SevenZipStruct};
 use crate::manifest::install_manifest::InstallManifest;
@@ -731,13 +732,14 @@ impl<'a> DownloadManager<'a> {
         aria2c.set_download_urls(self.get_download_urls().as_slice());
         if self.options.contains(&ForceDownloadNoInstallOverrideCache)
             || self.options.contains(&NoUseDownloadCache)
+            || (self.app_name == "hp" && self.options.contains(&ForceInstallOverride))
         {
             let cache_file_path = self
                 .get_cache_file_name()
                 .iter()
                 .map(|name| format!("{}\\{}", self.get_scoop_cache_dir(), name))
                 .collect::<Vec<String>>();
-            let result = cache_file_path.iter().try_for_each(|path| {
+            let result: Result<(), std::io::Error> = cache_file_path.iter().try_for_each(|path| {
                 if !Path::new(path).exists() {
                     return Ok(());
                 }
@@ -745,10 +747,15 @@ impl<'a> DownloadManager<'a> {
                     "{}",
                     format!("Override Cache File '{path}'").dark_grey().bold()
                 );
-                std::fs::remove_file(path)
+                std::fs::remove_file(path)?;
+                let aria2_file = format!("{path}.aria2");
+                if Path::new(&aria2_file).exists() {
+                    let _ = std::fs::remove_file(&aria2_file);
+                }
+                Ok(())
             });
-            if result.is_err() {
-                bail!("this app cache file is not exist, you can directly install")
+            if let Err(e) = result {
+                bail!("Failed to override cache file: {}", e);
             }
         }
         if self

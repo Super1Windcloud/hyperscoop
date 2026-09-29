@@ -37,10 +37,11 @@ pub struct SelfUpdateArgs {
 
     #[arg(
         short = 'f',
-        long,
+        long = "force",
+        alias = "force-update-override",
         help = crate::i18n::tr(
-            "Force update and clean if the current install is broken",
-            "当前版本安装错误时强制更新并删除错误安装"
+            "Force self-update and replace, re-downloading and overwriting cache",
+            "强制自更新替换，并且覆盖重新下载缓存"
         )
     )]
     pub force_update_override: bool,
