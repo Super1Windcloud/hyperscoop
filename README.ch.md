@@ -30,7 +30,7 @@
 ### 2. By  Powershell
 
 ```powershell
-iwr   -useb  https://raw.githubusercontent.com/Super1Windcloud/hyperscoop/refs/heads/main/install.ps1    | iex
+irm -useb https://raw.githubusercontent.com/Super1Windcloud/hyperscoop/refs/heads/main/install.ps1 | iex
 ```
 ---
 ### 3. By Cargo Binstall

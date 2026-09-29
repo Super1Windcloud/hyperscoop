@@ -41,7 +41,7 @@ scoop install -u -s hp/hp
 ### 🧩 Via PowerShell Script
 
 ```powershell
-iwr -useb https://raw.githubusercontent.com/Super1Windcloud/hyperscoop/refs/heads/main/install.ps1 | iex
+irm -useb https://raw.githubusercontent.com/Super1Windcloud/hyperscoop/refs/heads/main/install.ps1 | iex
 ```
 
 ### 🧩 Via Cargo Binstall
