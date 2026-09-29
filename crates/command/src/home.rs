@@ -1,12 +1,21 @@
 use crate::utils::utility::is_valid_url;
+use std::path::{Path, PathBuf};
 use webbrowser;
 
 pub fn _open_home_page(bucket_paths: Vec<String>, name: String) {
     for bucket_path in bucket_paths.iter() {
-        let manifest_path = bucket_path.clone() + "\\bucket";
-        log::info!("manifest_path: {}", manifest_path);
-        for file in std::fs::read_dir(manifest_path).unwrap() {
-            let file = file.unwrap().path();
+        let child = Path::new(bucket_path).join("bucket");
+        let manifest_path = if child.is_dir() {
+            child
+        } else {
+            PathBuf::from(bucket_path)
+        };
+        log::info!("manifest_path: {}", manifest_path.display());
+        let Ok(entries) = std::fs::read_dir(manifest_path) else {
+            continue;
+        };
+        for file in entries.flatten() {
+            let file = file.path();
             let file_str = file.as_path().display().to_string();
             if file.is_file() && file_str.ends_with(".json") {
                 let file_name = file.file_stem().unwrap().to_str().unwrap();
@@ -28,8 +37,13 @@ pub fn _open_home_page(bucket_paths: Vec<String>, name: String) {
 
 pub fn open_home_page(bucket_paths: Vec<String>, name: String) -> anyhow::Result<()> {
     let found = bucket_paths.iter().find_map(|bucket_path| {
-        let manifest_path = format!("{}\\bucket", bucket_path);
-        log::info!("manifest_path: {}", manifest_path);
+        let child = Path::new(bucket_path).join("bucket");
+        let manifest_path = if child.is_dir() {
+            child
+        } else {
+            PathBuf::from(bucket_path)
+        };
+        log::info!("manifest_path: {}", manifest_path.display());
 
         std::fs::read_dir(manifest_path)
             .ok()?

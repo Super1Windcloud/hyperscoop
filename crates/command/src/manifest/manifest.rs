@@ -187,26 +187,33 @@ pub fn get_all_manifest_files_from_bucket<'a>(
     let all_manifests_file = all_buckets_root
         .par_iter()
         .map(|bucket_dir| {
-            let child_files = std::fs::read_dir(bucket_dir)
-                .expect(format!("Don't have child dir: {}", bucket_dir).as_str())
+            let Ok(read_dir) = std::fs::read_dir(bucket_dir) else {
+                return Vec::new();
+            };
+            read_dir
                 .filter_map(|e| e.ok())
                 .filter(|e| {
-                    let file_type = e.file_type().unwrap();
-                    file_type.is_file()
+                    e.file_type().map(|ft| ft.is_file()).unwrap_or(false)
+                        && e.path().extension().map_or(false, |ext| ext == "json")
                 })
                 .map(|e| e.path())
-                .collect::<Vec<_>>();
-            child_files
+                .collect::<Vec<_>>()
         })
         .flatten()
         .collect::<Vec<_>>();
     let manifest_path = all_manifests_file
         .par_iter()
         .filter_map(|path| {
-            let file_name = path.file_stem().unwrap().to_str().unwrap();
+            let file_name = path.file_stem()?.to_str()?;
             if file_name.to_lowercase() == app_name.to_lowercase() {
-                let parent = path.parent().unwrap().parent().unwrap();
-                let bucket_name = parent.file_name().unwrap().to_str().unwrap();
+                let parent = path.parent()?;
+                let bucket_name = if parent.file_name().map_or(false, |n| {
+                    n.to_string_lossy().eq_ignore_ascii_case("bucket")
+                }) {
+                    parent.parent()?.file_name()?.to_str()?
+                } else {
+                    parent.file_name()?.to_str()?
+                };
                 let bucket_enum = match bucket_name.to_lowercase().as_str() {
                     "main" => MainBucket::Main,
                     "extras" => MainBucket::Extras,
@@ -242,24 +249,10 @@ pub fn get_latest_manifest_from_local_bucket(app_name: &str) -> anyhow::Result<P
     let result_with_version = result
         .into_iter()
         .filter_map(|(path, _)| {
-            let content = std::fs::read_to_string(&path)
-                .context(format!(
-                    "Failed to read manifest file: {} at line 196",
-                    path.display()
-                ))
-                .unwrap();
-            let version: VersionJSON = serde_json::from_str(&content)
-                .context(format!(
-                    "Failed to parse manifest file: {} at line 198",
-                    path.display()
-                ))
-                .unwrap();
-            let version = version.version;
-            if version.is_none() {
-                None
-            } else {
-                Some((path, version.unwrap()))
-            }
+            let content = std::fs::read_to_string(&path).ok()?;
+            let version: VersionJSON = serde_json::from_str(&content).ok()?;
+            let version = version.version?;
+            Some((path, version))
         })
         .collect::<Vec<_>>();
     let max_result = result_with_version.iter().max_by(|a, b| a.1.cmp(&b.1));
@@ -326,24 +319,10 @@ pub fn get_latest_manifest_from_local_bucket_global(app_name: &str) -> anyhow::R
     let result_with_version = result
         .into_iter()
         .filter_map(|(path, _)| {
-            let content = std::fs::read_to_string(&path)
-                .context(format!(
-                    "Failed to read manifest file: {} at line 196",
-                    path.display()
-                ))
-                .unwrap();
-            let version: VersionJSON = serde_json::from_str(&content)
-                .context(format!(
-                    "Failed to parse manifest file: {} at line 198",
-                    path.display()
-                ))
-                .unwrap();
-            let version = version.version;
-            if version.is_none() {
-                None
-            } else {
-                Some((path, version.unwrap()))
-            }
+            let content = std::fs::read_to_string(&path).ok()?;
+            let version: VersionJSON = serde_json::from_str(&content).ok()?;
+            let version = version.version?;
+            Some((path, version))
         })
         .collect::<Vec<_>>();
     let max_result = result_with_version.iter().max_by(|a, b| a.1.cmp(&b.1));

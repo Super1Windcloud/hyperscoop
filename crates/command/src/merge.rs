@@ -46,7 +46,14 @@ pub fn merge_all_buckets() -> Result<(), anyhow::Error> {
     let paths = get_buckets_path()?;
     let paths = paths
         .iter()
-        .map(|item| item.to_string() + "\\bucket")
+        .map(|item| {
+            let child = Path::new(item).join("bucket");
+            if child.is_dir() {
+                child.to_string_lossy().to_string()
+            } else {
+                item.to_string()
+            }
+        })
         .collect::<Vec<String>>();
     //  初始化容器
     let all_bucket_set = Mutex::new(HashMap::<String, Merge>::new());
@@ -396,10 +403,19 @@ pub fn rm_err_manifest() -> Result<(), anyhow::Error> {
         .par_iter()
         .map(|path| {
             let path = Path::new(path);
-            let paths = path.join("bucket");
-            let entry = paths.read_dir().unwrap();
-            let bucket_name = path.file_name().unwrap().to_string_lossy().to_string();
-            (bucket_name, entry.count())
+            let child = path.join("bucket");
+            let target = if child.is_dir() {
+                child
+            } else {
+                path.to_path_buf()
+            };
+            let count = target.read_dir().map(|e| e.count()).unwrap_or(0);
+            let bucket_name = path
+                .file_name()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_string();
+            (bucket_name, count)
         })
         .collect::<Vec<_>>();
     let mp = MultiProgress::new();
@@ -412,7 +428,7 @@ pub fn rm_err_manifest() -> Result<(), anyhow::Error> {
     let outdated_buckets = buckets_name
     .into_iter()
     .map(|bucket| {
-      let count = bucket_manifests_count.iter().find(|item| item.0 == bucket).unwrap().1;
+      let count = bucket_manifests_count.iter().find(|item| item.0 == bucket).map(|item| item.1).unwrap_or(0);
       let pb = mp.add(
         ProgressBar::new(count as u64).with_style(
           ProgressStyle::default_bar()
@@ -437,19 +453,30 @@ pub fn rm_err_manifest() -> Result<(), anyhow::Error> {
                 .par_iter()
                 .map(|path| {
                     let path = Path::new(path);
-                    let paths = path.join("bucket");
-                    paths.to_str().unwrap().to_string()
+                    let child = path.join("bucket");
+                    if child.is_dir() {
+                        child.to_string_lossy().to_string()
+                    } else {
+                        path.to_string_lossy().to_string()
+                    }
                 })
                 .collect::<Vec<_>>();
             let bucket_path = bucket_paths
                 .iter()
-                .find(|item| item.ends_with(&(bucket.clone() + "\\bucket")))
-                .unwrap_or(bucket);
-            let result = rm_err_manifest_unit(bucket_path, pb, FINISH_MESSAGE.parse().unwrap());
+                .find(|item| {
+                    let p = Path::new(item);
+                    p.file_name().map_or(false, |n| n == bucket.as_str())
+                        || p.parent()
+                            .and_then(|pp| pp.file_name())
+                            .map_or(false, |n| n == bucket.as_str())
+                })
+                .cloned()
+                .unwrap_or_else(|| bucket.clone());
+            let result = rm_err_manifest_unit(&bucket_path, pb, FINISH_MESSAGE.parse().unwrap());
             if let Err(e) = result {
                 pb.finish_with_message(format!("❌ {}", e.to_string()));
             }
-            bucket_path.into()
+            bucket_path
         })
         .collect::<Vec<String>>();
     validate.par_iter().for_each(|path| {

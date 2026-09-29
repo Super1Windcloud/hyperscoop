@@ -88,9 +88,14 @@ pub fn exact_search(query: String, global: bool) -> anyhow::Result<()> {
         .par_iter()
         .filter_map(|entry| {
             let path = Path::new(&entry);
-            let bucket_path = path.join("bucket");
-            if bucket_path.is_dir() {
-                get_exact_search_apps_names(&bucket_path, &query).ok()
+            let child = path.join("bucket");
+            let target = if child.is_dir() {
+                child
+            } else {
+                path.to_path_buf()
+            };
+            if target.is_dir() {
+                get_exact_search_apps_names(&target, &query).ok()
             } else {
                 None
             }
@@ -168,8 +173,13 @@ fn search_app_in_specific_bucket(
         .iter()
         .filter_map(|item| {
             if item.contains(bucket) {
-                let path = Path::new(item).join("bucket");
-                Some(path)
+                let p = Path::new(item);
+                let child = p.join("bucket");
+                if child.is_dir() {
+                    Some(child)
+                } else {
+                    Some(p.to_path_buf())
+                }
             } else {
                 None
             }
@@ -253,8 +263,15 @@ fn par_read_bucket_dir(path: Vec<String>) -> anyhow::Result<Vec<PathBuf>> {
     let path: Vec<PathBuf> = path
         .into_par_iter()
         .filter_map(|item| {
-            let path = Path::new(&item).join("bucket");
-            if path.is_dir() { Some(path) } else { None }
+            let p = Path::new(&item);
+            let child = p.join("bucket");
+            if child.is_dir() {
+                Some(child)
+            } else if p.is_dir() {
+                Some(p.to_path_buf())
+            } else {
+                None
+            }
         })
         .collect();
     Ok(path)
@@ -267,12 +284,8 @@ pub fn get_all_manifest_package_name_slow(
     let all_manifests_path: Vec<PathBuf> = buckets_path
         .par_iter()
         .filter_map(|item| {
-            let dir = std::fs::read_dir(item).ok();
-            if dir.is_none() {
-                return None;
-            }
-            let dir = dir.unwrap();
-            let paths: Vec<PathBuf> = dir.map(|dir| dir.unwrap().path()).collect();
+            let dir = std::fs::read_dir(item).ok()?;
+            let paths: Vec<PathBuf> = dir.filter_map(|e| e.ok()).map(|e| e.path()).collect();
             Some(paths)
         })
         .collect::<Vec<_>>()
@@ -317,15 +330,22 @@ pub fn get_all_manifest_package_name(buckets_path: Vec<String>) -> anyhow::Resul
     let all_manifests: Vec<PathBuf> = buckets_path
         .into_par_iter()
         .filter_map(|item| {
-            let path = Path::new(&item).join("bucket");
-            if path.is_dir() { Some(path) } else { None }
+            let p = Path::new(&item);
+            let child = p.join("bucket");
+            if child.is_dir() {
+                Some(child)
+            } else if p.is_dir() {
+                Some(p.to_path_buf())
+            } else {
+                None
+            }
         })
-        .flat_map(|path| {
-            par_read_dir(&path)
-                .unwrap()
+        .flat_map(|path| match par_read_dir(&path) {
+            Ok(entries) => entries
                 .filter(is_manifest)
                 .map(|de| de.path())
-                .collect::<Vec<_>>()
+                .collect::<Vec<_>>(),
+            Err(_) => Vec::new(),
         })
         .collect();
 

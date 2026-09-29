@@ -131,8 +131,10 @@ fn build_version_map(
     bucket_entries
         .par_bridge()
         .filter_map(|bucket| {
-            let bucket = bucket.ok()?.path().join("bucket");
-            let entries: Vec<_> = std::fs::read_dir(bucket).ok()?.collect();
+            let p = bucket.ok()?.path();
+            let child = p.join("bucket");
+            let target = if child.is_dir() { child } else { p };
+            let entries: Vec<_> = std::fs::read_dir(target).ok()?.collect();
             Some(entries)
         })
         .flatten()

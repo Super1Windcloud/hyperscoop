@@ -15,7 +15,7 @@ use serde_json;
 use std::fs::{File, create_dir_all, metadata, read_dir, remove_dir_all, remove_file, rename};
 use std::io;
 use std::io::{BufReader, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::time::UNIX_EPOCH;
 use zip::read::ZipArchive;
 
@@ -434,16 +434,25 @@ impl Buckets {
     pub fn get_updated_time(bucket_source: &Vec<String>) -> anyhow::Result<Vec<String>> {
         let mut bucket_updated: Vec<String> = Vec::new();
         for source in bucket_source {
-            let path = source.to_string() + "\\bucket";
-            if !Path::new(&path).exists() {
-                bail!("bucket path {} does not exist", path);
+            let child_bucket = Path::new(source).join("bucket");
+            let target_path = if child_bucket.is_dir() {
+                child_bucket
+            } else {
+                PathBuf::from(source)
+            };
+            if !target_path.exists() {
+                bucket_updated.push("N/A".to_string());
+                continue;
             }
-            let metadata = metadata(&path).expect("Failed to get metadata");
-            let modified_time = metadata.modified().expect("Failed to get modified time");
+            let modified_time = match metadata(&target_path).and_then(|m| m.modified()) {
+                Ok(m) => m,
+                Err(_) => {
+                    bucket_updated.push("N/A".to_string());
+                    continue;
+                }
+            };
             // 将修改时间转换为自 UNIX_EPOCH 以来的时间戳
-            let duration_since_epoch = modified_time
-                .duration_since(UNIX_EPOCH)
-                .expect("Time went backwards");
+            let duration_since_epoch = modified_time.duration_since(UNIX_EPOCH).unwrap_or_default();
             let updated_time = UNIX_EPOCH + duration_since_epoch; // 这里得到的是一个`SystemTime`
             let updated_time_utc: DateTime<Utc> = updated_time.into(); // 转换为 `DateTime<Utc>`
             let updated_time_formatted = updated_time_utc.format("%Y-%m-%d %H:%M:%S").to_string();
@@ -456,11 +465,23 @@ impl Buckets {
         let mut bucket_manifest: Vec<String> = Vec::new();
         // 获取目录的子文件个数
         for source in path {
-            let source = source.to_string() + "\\bucket";
-            if !Path::new(&source).exists() {
-                bail!("bucket dir {} does not exist", source);
+            let child_bucket = Path::new(source).join("bucket");
+            let target_path = if child_bucket.is_dir() {
+                child_bucket
+            } else {
+                PathBuf::from(source)
+            };
+            if !target_path.exists() {
+                bucket_manifest.push("0".to_string());
+                continue;
             }
-            let count = read_dir(source)?.count(); // 这里得到的是一个`u64`
+            let count = match read_dir(&target_path) {
+                Ok(entries) => entries
+                    .filter_map(|e| e.ok())
+                    .filter(|e| e.path().extension().map_or(false, |ext| ext == "json"))
+                    .count(),
+                Err(_) => 0,
+            };
             bucket_manifest.push(count.to_string());
         }
 

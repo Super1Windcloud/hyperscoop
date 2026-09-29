@@ -468,12 +468,20 @@ pub fn get_all_buckets_dir_path() -> anyhow::Result<Vec<String>> {
 }
 pub fn get_all_buckets_dir_child_bucket_path() -> anyhow::Result<Vec<String>> {
     let bucket_path = get_bucket_dir_path();
-    // 遍历 bucket_path 下的所有文件夹，并将文件夹名加入 buckets_path
-    let buckets_path: Vec<String> = read_dir(&bucket_path)
-        .context("failed to read bucket dir at line 431")?
+    let Ok(entries) = read_dir(&bucket_path) else {
+        return Ok(Vec::new());
+    };
+    let buckets_path: Vec<String> = entries
         .filter_map(|e| e.ok())
         .filter(|e| e.path().is_dir())
-        .map(|e| e.path().join("bucket").to_str().unwrap().to_string())
+        .map(|e| {
+            let child = e.path().join("bucket");
+            if child.is_dir() {
+                child.to_string_lossy().to_string()
+            } else {
+                e.path().to_string_lossy().to_string()
+            }
+        })
         .collect();
 
     Ok(buckets_path)
@@ -481,8 +489,10 @@ pub fn get_all_buckets_dir_child_bucket_path() -> anyhow::Result<Vec<String>> {
 
 pub fn get_all_global_buckets_dir_path() -> anyhow::Result<Vec<String>> {
     let bucket_path = get_buckets_root_dir_path_global();
-    let buckets_path: Vec<String> = read_dir(&bucket_path)
-        .context("failed to read bucket dir at line 443")?
+    let Ok(entries) = read_dir(&bucket_path) else {
+        return Ok(Vec::new());
+    };
+    let buckets_path: Vec<String> = entries
         .filter_map(|e| e.ok())
         .filter(|e| e.path().is_dir())
         .map(|e| e.path().to_str().unwrap().to_string())
@@ -491,24 +501,35 @@ pub fn get_all_global_buckets_dir_path() -> anyhow::Result<Vec<String>> {
 }
 pub fn get_all_global_buckets_dir_child_bucket_path() -> anyhow::Result<Vec<String>> {
     let bucket_path = get_buckets_root_dir_path_global();
-    let buckets_path: Vec<String> = read_dir(&bucket_path)
-        .context("failed to read bucket dir at line 453")?
+    let Ok(entries) = read_dir(&bucket_path) else {
+        return Ok(Vec::new());
+    };
+    let buckets_path: Vec<String> = entries
         .filter_map(|e| e.ok())
         .filter(|e| e.path().is_dir())
-        .map(|e| e.path().join("bucket").to_str().unwrap().to_string())
+        .map(|e| {
+            let child = e.path().join("bucket");
+            if child.is_dir() {
+                child.to_string_lossy().to_string()
+            } else {
+                e.path().to_string_lossy().to_string()
+            }
+        })
         .collect();
     Ok(buckets_path)
 }
 
 pub fn get_scoop_config_path() -> anyhow::Result<String> {
-    let home_dir = env::var("USERPROFILE")?;
+    let home_dir = env::var("USERPROFILE")
+        .or_else(|_| env::var("HOME"))
+        .unwrap_or_else(|_| ".".to_string());
     let config_dir = home_dir + "\\.config\\scoop";
     if !Path::new(&config_dir).exists() {
-        std::fs::create_dir_all(&config_dir).context("failed to create config dir at line 466")?;
+        let _ = std::fs::create_dir_all(&config_dir);
     }
     let config_file = format!("{}\\config.json", config_dir);
     if !Path::new(&config_file).exists() {
-        std::fs::File::create(&config_file).context("failed to create config file at line 471")?;
+        let _ = std::fs::write(&config_file, b"{}\n");
     }
     Ok(config_file)
 }
@@ -519,12 +540,22 @@ pub fn get_special_bucket_path(bucket_name: &str) -> String {
 }
 pub fn get_special_bucket_child_path(bucket_name: &str) -> String {
     let bucket_root_dir = get_buckets_root_dir_path();
-    format!("{}\\{}\\bucket", bucket_root_dir, bucket_name)
+    let child = Path::new(&bucket_root_dir).join(bucket_name).join("bucket");
+    if child.is_dir() {
+        child.to_string_lossy().to_string()
+    } else {
+        format!("{}\\{}", bucket_root_dir, bucket_name)
+    }
 }
 
 pub fn get_special_bucket_child_path_global(bucket_name: &str) -> String {
     let bucket_root_dir = get_buckets_root_dir_path_global();
-    format!("{}\\{}\\bucket", bucket_root_dir, bucket_name)
+    let child = Path::new(&bucket_root_dir).join(bucket_name).join("bucket");
+    if child.is_dir() {
+        child.to_string_lossy().to_string()
+    } else {
+        format!("{}\\{}", bucket_root_dir, bucket_name)
+    }
 }
 
 pub fn get_special_bucket_path_global(bucket_name: &str) -> String {
@@ -534,11 +565,13 @@ pub fn get_special_bucket_path_global(bucket_name: &str) -> String {
 
 pub fn get_special_bucket_all_manifest_path(bucket_name: &str) -> anyhow::Result<Vec<PathBuf>> {
     let bucket_path = get_special_bucket_child_path(bucket_name);
-    let entries = read_dir(&bucket_path)
-        .context(format!("Failed to read dir {} at line 496", bucket_path))?;
+    let Ok(entries) = read_dir(&bucket_path) else {
+        return Ok(Vec::new());
+    };
     let buckets_path = entries
         .par_bridge()
         .filter_map(|e| e.ok())
+        .filter(|e| e.path().extension().map_or(false, |ext| ext == "json"))
         .map(|e| e.path())
         .collect::<Vec<_>>();
     Ok(buckets_path)
@@ -548,12 +581,13 @@ pub fn get_special_bucket_all_manifest_path_global(
     bucket_name: &str,
 ) -> anyhow::Result<Vec<PathBuf>> {
     let bucket_path = get_special_bucket_child_path_global(bucket_name);
-    let entries = read_dir(&bucket_path)
-        .context(format!("Failed to read dir {} at line 510", bucket_path))?;
-
+    let Ok(entries) = read_dir(&bucket_path) else {
+        return Ok(Vec::new());
+    };
     let buckets_path = entries
         .par_bridge()
         .filter_map(|e| e.ok())
+        .filter(|e| e.path().extension().map_or(false, |ext| ext == "json"))
         .map(|e| e.path())
         .collect::<Vec<_>>();
 

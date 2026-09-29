@@ -3,7 +3,6 @@ use crate::init_env::{get_apps_path, get_scoop_cfg_path};
 use anyhow::{Context, bail};
 use chrono::{DateTime, Utc};
 use git2::Repository;
-use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::fs::{metadata, read_dir};
@@ -157,16 +156,19 @@ fn get_all_buckets_info() -> anyhow::Result<Vec<BucketInfo>> {
 }
 
 fn get_manifests_count(path: &Path) -> anyhow::Result<u32> {
-    let path = path.join("bucket");
-    if path.is_dir() {
-        // read_dir can't use into_iter
-        let files = path
+    let child = path.join("bucket");
+    let target = if child.is_dir() {
+        child
+    } else {
+        path.to_path_buf()
+    };
+    if target.is_dir() {
+        let count = target
             .read_dir()
             .context("Failed to read bucket directory at line 163")?
-            .par_bridge()
-            .collect::<Vec<_>>();
-
-        let count = files.iter().count();
+            .filter_map(|e| e.ok())
+            .filter(|e| e.path().extension().map_or(false, |ext| ext == "json"))
+            .count();
         Ok(count as u32)
     } else {
         bail!("Failed to read bucket directory at line 168")

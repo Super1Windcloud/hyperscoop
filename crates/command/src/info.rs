@@ -8,7 +8,7 @@ use rayon::prelude::*;
 use regex::Regex;
 use serde_json::Value;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 /// 宏定义：简化键值对格式化输出
 macro_rules! format_key_value {
@@ -29,10 +29,15 @@ pub fn display_app_info(app_name: String, bucket_paths: Vec<String>) -> anyhow::
     }
     let infos_set = DashSet::new();
 
-    let result = bucket_paths.par_iter().try_for_each(|bucket_path| {
-        let manifest_path = format!("{}\\bucket", bucket_path);
-        if !Path::new(&manifest_path).exists() {
-            bail!("Bucket dir {} not exists", bucket_path);
+    bucket_paths.par_iter().for_each(|bucket_path| {
+        let child = Path::new(bucket_path).join("bucket");
+        let manifest_path = if child.is_dir() {
+            child
+        } else {
+            PathBuf::from(bucket_path)
+        };
+        if !manifest_path.exists() {
+            return;
         }
         if let Ok(entries) = fs::read_dir(&manifest_path) {
             entries.par_bridge().for_each(|entry| {
@@ -45,7 +50,7 @@ pub fn display_app_info(app_name: String, bucket_paths: Vec<String>) -> anyhow::
                         if let Some(file_name) = file_path.file_stem().and_then(|s| s.to_str()) {
                             if file_name == app_name {
                                 let result =
-                                    process_manifest_file(&file_path, &bucket_path, &app_name);
+                                    process_manifest_file(&file_path, bucket_path, &app_name);
                                 match result {
                                     Ok(info) => {
                                         infos_set.insert(info);
@@ -64,12 +69,8 @@ pub fn display_app_info(app_name: String, bucket_paths: Vec<String>) -> anyhow::
                 }
             });
         }
-        Ok(())
     });
 
-    if let Err(e) = result {
-        bail!(e.to_string());
-    }
     print_pretty_info(infos_set);
     Ok(())
 }
@@ -104,11 +105,16 @@ fn display_specific_bucket_app_info(
     let result = bucket_paths.par_iter().try_for_each(|bucket_path| {
         if let Some(bucket) = Path::new(bucket_path).file_name().and_then(|s| s.to_str()) {
             if bucket == bucket_name {
-                let bucket_path = format!("{}\\bucket", bucket_path);
-                if !Path::new(&bucket_path).exists() {
-                    bail!("Bucket dir {} not exists", bucket_path);
+                let child = Path::new(bucket_path).join("bucket");
+                let target_path = if child.is_dir() {
+                    child
+                } else {
+                    PathBuf::from(bucket_path)
+                };
+                if !target_path.exists() {
+                    bail!("Bucket dir {} not exists", target_path.display());
                 }
-                if let Ok(entries) = fs::read_dir(&bucket_path) {
+                if let Ok(entries) = fs::read_dir(&target_path) {
                     entries.par_bridge().for_each(|entry| {
                         if let Ok(file) = entry {
                             let file_type = file.file_type().unwrap();
