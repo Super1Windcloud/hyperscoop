@@ -7,42 +7,43 @@ use std::fs::read_dir;
 use std::path::{Path, PathBuf};
 
 pub fn init_user_scoop() -> String {
-    let mut path = env::var("SCOOP").unwrap_or(String::new());
+    let mut path = env::var("SCOOP").unwrap_or_default();
     let root_path = get_config_value_no_print("root_path");
-    if !Path::new(&root_path).exists() {
-        std::fs::create_dir_all(&root_path).unwrap();
+    if !root_path.is_empty() && !Path::new(&root_path).exists() {
+        let _ = std::fs::create_dir_all(&root_path);
     }
     if path.is_empty() {
         path = if !root_path.is_empty() && Path::new(&root_path).exists() {
             root_path
         } else {
-            env::var("USERPROFILE").unwrap() + "\\scoop" // 可以使用or_else 替代
-        }
+            let home = env::var("USERPROFILE")
+                .or_else(|_| env::var("HOME"))
+                .unwrap_or_else(|_| ".".to_string());
+            home + "\\scoop"
+        };
     }
-    if !Path::new(&path).exists() {
-        std::fs::create_dir_all(&path).unwrap();
+    if !path.is_empty() && !Path::new(&path).exists() {
+        let _ = std::fs::create_dir_all(&path);
     }
     path
 }
 
 pub fn init_scoop_global() -> String {
-    let path = env::var("SCOOP_GLOBAL").or(env::var("ProgramData"));
     let root_path = get_config_value_no_print("global_path");
-    if !Path::new(&root_path).exists() {
-        std::fs::create_dir_all(&root_path).unwrap();
-    }
-    if path.is_err() {
-        panic!("No SCOOP_GLOBAL environment variable provided.");
-    }
-    let path = path.unwrap();
-    if !Path::new(&path).exists() {
-        std::fs::create_dir_all(&path).unwrap()
+    if !root_path.is_empty() && !Path::new(&root_path).exists() {
+        let _ = std::fs::create_dir_all(&root_path);
     }
     if !root_path.is_empty() && Path::new(&root_path).exists() {
-        root_path
-    } else {
-        path + "\\scoop"
+        return root_path;
     }
+    let path = env::var("SCOOP_GLOBAL")
+        .or_else(|_| env::var("ProgramData"))
+        .unwrap_or_else(|_| "C:\\ProgramData".to_string());
+    let global_scoop = format!("{}\\scoop", path);
+    if !global_scoop.is_empty() && !Path::new(&global_scoop).exists() {
+        let _ = std::fs::create_dir_all(&global_scoop);
+    }
+    global_scoop
 }
 
 pub fn get_app_current_dir(app_name: &str) -> String {
@@ -118,7 +119,9 @@ pub fn get_old_scoop_dir() -> String {
 }
 
 pub fn get_scoop_cfg_path() -> String {
-    let path = env::var("USERPROFILE").unwrap();
+    let path = env::var("USERPROFILE")
+        .or_else(|_| env::var("HOME"))
+        .unwrap_or_else(|_| ".".to_string());
     path + "\\.config\\scoop\\config.json"
 }
 
@@ -148,8 +151,8 @@ impl HyperScoop {
             bucket_path: format!("{}\\buckets", init_user_scoop()),
             cache_path: {
                 let cache_path = get_config_value_no_print("cache_path");
-                if !Path::new(&cache_path).exists() {
-                    std::fs::create_dir_all(&cache_path).unwrap();
+                if !cache_path.is_empty() && !Path::new(&cache_path).exists() {
+                    let _ = std::fs::create_dir_all(&cache_path);
                 }
                 if !cache_path.is_empty() {
                     cache_path
@@ -165,21 +168,21 @@ impl HyperScoop {
     pub fn get_apps_path(&self) -> String {
         let apps_path = self.apps_path.clone();
         if !Path::new(&apps_path).exists() {
-            std::fs::create_dir_all(&apps_path).unwrap();
+            let _ = std::fs::create_dir_all(&apps_path);
         }
         apps_path
     }
     pub fn get_psmodule_path(&self) -> String {
         let psmodule = format!("{}\\modules", self.scoop_path);
         if !Path::new(&psmodule).exists() {
-            std::fs::create_dir_all(&psmodule).unwrap();
+            let _ = std::fs::create_dir_all(&psmodule);
         }
         psmodule
     }
     pub fn get_persist_path(&self) -> String {
         let persist = self.persist_path.clone();
         if !Path::new(&persist).exists() {
-            std::fs::create_dir_all(&persist).unwrap();
+            let _ = std::fs::create_dir_all(&persist);
         }
         persist
     }
@@ -187,21 +190,21 @@ impl HyperScoop {
     pub fn get_bucket_path(&self) -> String {
         let bucket_path = &self.bucket_path;
         if !Path::new(&bucket_path).exists() {
-            std::fs::create_dir_all(&bucket_path).unwrap();
+            let _ = std::fs::create_dir_all(&bucket_path);
         }
         bucket_path.into()
     }
     pub fn get_cache_path(&self) -> String {
         let cache_path = self.cache_path.clone();
         if !Path::new(&cache_path).exists() {
-            std::fs::create_dir_all(&cache_path).unwrap();
+            let _ = std::fs::create_dir_all(&cache_path);
         }
         cache_path
     }
     pub fn get_shims_root_dir(&self) -> String {
         let shim_path = self.shims_path.clone();
         if !Path::new(&shim_path).exists() {
-            std::fs::create_dir_all(&shim_path).unwrap();
+            let _ = std::fs::create_dir_all(&shim_path);
         }
         shim_path
     }
@@ -225,8 +228,8 @@ impl HyperScoopGlobal {
             bucket_path: format!("{}\\buckets", init_scoop_global()),
             cache_path: {
                 let cache_path = get_config_value_no_print("cache_path");
-                if !Path::new(&cache_path).exists() {
-                    std::fs::create_dir_all(&cache_path).unwrap();
+                if !cache_path.is_empty() && !Path::new(&cache_path).exists() {
+                    let _ = std::fs::create_dir_all(&cache_path);
                 }
                 if !cache_path.is_empty() {
                     cache_path
@@ -242,21 +245,21 @@ impl HyperScoopGlobal {
     pub fn get_apps_path(&self) -> String {
         let apps_path = self.apps_path.clone();
         if !Path::new(&apps_path).exists() {
-            std::fs::create_dir_all(&apps_path).unwrap();
+            let _ = std::fs::create_dir_all(&apps_path);
         }
         apps_path
     }
     pub fn get_psmodule_path(&self) -> String {
         let psmodule = format!("{}\\modules", self.scoop_path);
         if !Path::new(&psmodule).exists() {
-            std::fs::create_dir_all(&psmodule).unwrap();
+            let _ = std::fs::create_dir_all(&psmodule);
         }
         psmodule
     }
     pub fn get_persist_path(&self) -> String {
         let persist = self.persist_path.clone();
         if !Path::new(&persist).exists() {
-            std::fs::create_dir_all(&persist).unwrap();
+            let _ = std::fs::create_dir_all(&persist);
         }
         persist
     }
@@ -264,21 +267,21 @@ impl HyperScoopGlobal {
     pub fn get_bucket_path(&self) -> String {
         let bucket_path = self.bucket_path.clone();
         if !Path::new(&bucket_path).exists() {
-            std::fs::create_dir_all(&bucket_path).unwrap();
+            let _ = std::fs::create_dir_all(&bucket_path);
         }
         bucket_path
     }
     pub fn get_cache_path(&self) -> String {
         let cache_path = self.cache_path.clone();
         if !Path::new(&cache_path).exists() {
-            std::fs::create_dir_all(&cache_path).unwrap();
+            let _ = std::fs::create_dir_all(&cache_path);
         }
         cache_path
     }
     pub fn _get_shims_path(&self) -> String {
         let shim_path = self.shims_path.clone();
         if !Path::new(&shim_path).exists() {
-            std::fs::create_dir_all(&shim_path).unwrap();
+            let _ = std::fs::create_dir_all(&shim_path);
         }
         shim_path
     }

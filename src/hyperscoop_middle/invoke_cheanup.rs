@@ -212,6 +212,7 @@ fn clean_all_old_versions(is_global: bool) -> anyhow::Result<()> {
 mod tests {
 
     #[test]
+    #[cfg(windows)]
     fn test_file_stem() {
         use std::path::Path;
         let path =

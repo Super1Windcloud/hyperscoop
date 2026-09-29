@@ -125,8 +125,10 @@ fn build_version_map(
         .iter()
         .map(|app| app.to_lowercase())
         .collect::<Vec<_>>();
-    let _ = std::fs::read_dir(bucket_path)
-        .context("Failed to read buckets directory at line 126")?
+    let Ok(bucket_entries) = std::fs::read_dir(&bucket_path) else {
+        return Ok(version_map);
+    };
+    bucket_entries
         .par_bridge()
         .filter_map(|bucket| {
             let bucket = bucket.ok()?.path().join("bucket");

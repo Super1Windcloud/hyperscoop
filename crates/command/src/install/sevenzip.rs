@@ -537,7 +537,6 @@ impl<'a> SevenZipStruct<'a> {
         let temp = env::temp_dir();
         let core_path = temp.join("core.ps1");
         let decompress_path = temp.join("decompress.ps1");
-        let temp_str = temp.to_str().unwrap();
         if !core_path.exists() {
             std::fs::write(&core_path, core_script).context(format!(
                 "Failed to write core script: {}",
@@ -555,11 +554,13 @@ impl<'a> SevenZipStruct<'a> {
             _ => String::new(),
         };
         let include_header = format!(
-            r#". "{temp_str}core.ps1";
-. "{temp_str}decompress.ps1";
+            r#". "{}";
+. "{}";
 
 Expand-MsiArchive  "{msi_file}" "{target_dir}"{extract_dir_param}  -Removal
- "#
+ "#,
+            core_path.display(),
+            decompress_path.display()
         );
         let output = Command::new("PowerShell")
             .arg("-NoProfile")
@@ -587,7 +588,6 @@ Expand-MsiArchive  "{msi_file}" "{target_dir}"{extract_dir_param}  -Removal
         let temp = env::temp_dir();
         let core_path = temp.join("core.ps1");
         let decompress_path = temp.join("decompress.ps1");
-        let temp_str = temp.to_str().unwrap();
         if !core_path.exists() {
             std::fs::write(&core_path, core_script).context(format!(
                 "Failed to write core script: {} at line 477",
@@ -605,11 +605,13 @@ Expand-MsiArchive  "{msi_file}" "{target_dir}"{extract_dir_param}  -Removal
             _ => String::new(),
         };
         let include_header = format!(
-            r#". "{temp_str}core.ps1";
-. "{temp_str}decompress.ps1";
+            r#". "{}";
+. "{}";
 
 Expand-InnoArchive "{inno_file}" "{target_dir}"{extract_dir_param}  -Removal
- "#
+ "#,
+            core_path.display(),
+            decompress_path.display()
         );
         let output = Command::new("PowerShell")
             .arg("-NoProfile")

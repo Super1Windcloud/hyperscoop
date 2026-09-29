@@ -73,51 +73,47 @@ pub fn env_var_rm(manifest: &UninstallManifest, is_global: bool) -> Result<(), a
 
         if let serde_json::Value::Object(env_set) = env_set {
             for (key, _) in env_set {
-                let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-                let environment_key = if is_global {
-                    hkcu.open_subkey(
-                        r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment",
-                    )?
+                let root_key = if is_global {
+                    RegKey::predef(HKEY_LOCAL_MACHINE)
                 } else {
-                    hkcu.open_subkey("Environment")?
+                    RegKey::predef(HKEY_CURRENT_USER)
                 };
-                let env_value: String = environment_key.get_value(&key).unwrap_or("".into());
+                let environment_key = if is_global {
+                    root_key.open_subkey(
+                        r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment",
+                    )
+                } else {
+                    root_key.open_subkey("Environment")
+                };
+                let env_value: String = environment_key
+                    .ok()
+                    .and_then(|k| k.get_value(&key).ok())
+                    .unwrap_or_default();
                 if env_value.is_empty() {
                     continue;
                 }
-                let _cmd = if is_global {
-                    delete_global_env_var(key.as_str())?;
-                    format!(
-                        r#"Remove-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" -Name {key}"#
-                    )
+                let result = if is_global {
+                    delete_global_env_var(key.as_str())
                 } else {
-                    delete_env_var(key.as_str())?;
-                    format!(r#"Remove-ItemProperty -Path "HKCU:\Environment" -Name {key}"#)
+                    delete_env_var(key.as_str())
                 };
 
-                let rm_env_var_pointer_path = format!(
-                    r#"
-             if (Test-Path -Path  {env_value}  -PathType Container) {{
-            Remove-Item -Path  {env_value} -Recurse -Force
-            Write-Host "目录已删除:  {env_value}
-              }} else {{
-            Write-Host "目录不存在:  {env_value}
-                  }}
-            "#
-                );
-
-                let output = std::process::Command::new("powershell")
-                    .arg("-NoProfile")
-                    .arg("-Command")
-                    .arg(&cfg_obj)
-                    .arg(&manifest_obj)
-                    .arg(&app_dir)
-                    .arg(&injects_var)
-                    .arg(rm_env_var_pointer_path)
-                    .output()?;
-
-                if !output.status.success() {
-                    bail!("powershell failed to set environment variable");
+                if result.is_err() {
+                    let cmd = if is_global {
+                        format!(
+                            r#"Remove-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" -Name "{key}""#
+                        )
+                    } else {
+                        format!(r#"Remove-ItemProperty -Path "HKCU:\Environment" -Name "{key}""#)
+                    };
+                    let output = std::process::Command::new("powershell")
+                        .arg("-NoProfile")
+                        .arg("-Command")
+                        .arg(cmd)
+                        .output()?;
+                    if !output.status.success() {
+                        bail!("powershell failed to remove environment variable: {}", key);
+                    }
                 }
                 log::debug!("env removed : key {}  ,value {}", key, env_value);
             }
@@ -140,66 +136,17 @@ pub fn env_path_var_rm(
     {
         use winreg::RegKey;
         use winreg::enums::*;
-        if let Some(StringArrayOrString::String(env_add_path_str)) = manifest.env_add_path.clone() {
-            let path_var = if env_add_path_str == "." {
-                current.clone()
-            } else {
-                current.join(env_add_path_str)
-            };
-            log::debug!("\n 要移除的路径变量: {}", path_var.to_string_lossy());
-            let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-            let environment_key = if is_global {
-                hkcu.open_subkey(r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment")?
-            } else {
-                hkcu.open_subkey("Environment")?
-            };
 
-            let user_path: String = environment_key.get_value("PATH")?;
-            log::debug!("\n 当前用户的 PATH: {}", user_path);
-            let mut paths: Vec<PathBuf> = std::env::split_paths(&user_path).collect();
-            paths.retain(|p| p != &path_var);
-            let new_user_path = paths
-                .iter()
-                .map(|p| p.to_string_lossy().into_owned())
-                .collect::<Vec<String>>()
-                .join(";");
-            if user_path.eq(new_user_path.as_str()) {
-                return Ok(());
+        let paths_to_remove: Vec<PathBuf> = match manifest.env_add_path.clone() {
+            Some(StringArrayOrString::String(env_add_path_str)) => {
+                vec![if env_add_path_str == "." {
+                    current.clone()
+                } else {
+                    current.join(env_add_path_str)
+                }]
             }
-            log::debug!("\n 更新后的用户的 PATH: {}", new_user_path);
-
-            let script = if is_global {
-                format!(
-                    r#"[System.Environment]::SetEnvironmentVariable("PATH","{user_path}", "Machine")"#
-                )
-            } else {
-                format!(
-                    r#"[System.Environment]::SetEnvironmentVariable("PATH","{user_path}", "User")"#
-                )
-            };
-            let result = if is_global {
-                set_global_env_var("Path", new_user_path.as_str())
-            } else {
-                set_user_env_var("Path", new_user_path.as_str())
-            };
-            if result.is_err() {
-                eprintln!("Failed to remove path var by winreg");
-                let output = std::process::Command::new("powershell")
-                    .arg("-NoProfile")
-                    .arg("-ExecutionPolicy")
-                    .arg("Bypass")
-                    .arg("-Command")
-                    .arg(script)
-                    .output()?;
-                if !output.status.success() {
-                    bail!("Failed to remove path var");
-                }
-            }
-        } else if let Some(StringArrayOrString::StringArray(env_add_path_arr)) =
-            manifest.env_add_path.clone()
-        {
-            let env_add_path_arr = env_add_path_arr
-                .iter()
+            Some(StringArrayOrString::StringArray(env_add_path_arr)) => env_add_path_arr
+                .into_iter()
                 .map(|env_add_path_str| {
                     if env_add_path_str == "." {
                         current.clone()
@@ -207,35 +154,62 @@ pub fn env_path_var_rm(
                         current.join(env_add_path_str)
                     }
                 })
-                .collect::<Vec<PathBuf>>();
+                .collect(),
+            _ => return Ok(()),
+        };
 
-            let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-            let environment_key = hkcu.open_subkey("Environment")?;
+        if paths_to_remove.is_empty() {
+            return Ok(());
+        }
 
-            let user_path: String = environment_key.get_value("PATH")?;
-            let origin = user_path.clone();
-            log::debug!("\n 当前用户的 PATH: {}", user_path);
-            let mut paths: Vec<PathBuf> = std::env::split_paths(&user_path).collect();
+        log::debug!("\n 要移除的路径变量: {:?}", paths_to_remove);
+        let root_key = if is_global {
+            RegKey::predef(HKEY_LOCAL_MACHINE)
+        } else {
+            RegKey::predef(HKEY_CURRENT_USER)
+        };
+        let environment_key = if is_global {
+            root_key.open_subkey(r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment")?
+        } else {
+            root_key.open_subkey("Environment")?
+        };
 
-            for path_var in env_add_path_arr {
-                paths.retain(|p| p != &path_var);
-            }
+        let user_path: String = environment_key.get_value("PATH")?;
+        log::debug!("\n 当前用户的 PATH: {}", user_path);
+        let mut paths: Vec<PathBuf> = std::env::split_paths(&user_path).collect();
+        for p in &paths_to_remove {
+            paths.retain(|item| item != p);
+        }
+        let new_user_path = paths
+            .iter()
+            .map(|p| p.to_string_lossy().into_owned())
+            .collect::<Vec<String>>()
+            .join(";");
+        if user_path.eq(&new_user_path) {
+            return Ok(());
+        }
+        log::debug!("\n 更新后的用户的 PATH: {}", new_user_path);
 
-            let user_path = paths
-                .iter()
-                .map(|p| p.to_string_lossy().into_owned())
-                .collect::<Vec<String>>()
-                .join(";");
-            if user_path == origin {
-                log::debug!("\n 没有需要移除的路径变量");
-                return Ok(());
-            }
-            log::debug!("\n 更新后的用户的 PATH: {}", user_path);
-
-            if is_global {
-                set_global_env_var("Path", user_path.as_str())?;
-            } else {
-                set_user_env_var("Path", user_path.as_str())?;
+        let result = if is_global {
+            set_global_env_var("Path", new_user_path.as_str())
+        } else {
+            set_user_env_var("Path", new_user_path.as_str())
+        };
+        if result.is_err() {
+            eprintln!("Failed to remove path var by winreg, falling back to powershell");
+            let target_scope = if is_global { "Machine" } else { "User" };
+            let script = format!(
+                r#"[System.Environment]::SetEnvironmentVariable("PATH", "{new_user_path}", "{target_scope}")"#
+            );
+            let output = std::process::Command::new("powershell")
+                .arg("-NoProfile")
+                .arg("-ExecutionPolicy")
+                .arg("Bypass")
+                .arg("-Command")
+                .arg(script)
+                .output()?;
+            if !output.status.success() {
+                bail!("Failed to remove path var");
             }
         }
         Ok(())

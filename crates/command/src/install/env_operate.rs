@@ -10,7 +10,7 @@ use crossterm::style::Stylize;
 use std::path::Path;
 use std::process::Command;
 #[cfg(windows)]
-use windows_sys::Win32::System::Registry::HKEY_CURRENT_USER;
+use windows_sys::Win32::System::Registry::{HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE};
 #[cfg(windows)]
 use winreg::RegKey;
 
@@ -35,12 +35,14 @@ pub fn handle_env_set(
     );
     let old_scoop_dir = get_old_scoop_dir();
     let cfg_path = get_scoop_cfg_path();
+    let is_global = options.contains(&InstallOptions::Global);
+    let global_val = if is_global { "$true" } else { "$false" };
     let injects_var = format!(
         r#"
       $app = "{app_name}" ;
       $version = "{app_version}" ;
       $cmd ="install" ;
-      $global = $false  ;
+      $global = {global_val}  ;
       $scoopdir ="{scoop_home}" ;
       $dir = "{scoop_home}\apps\$app\current" ;
       $globaldir  ="{global_scoop_home}";
@@ -68,11 +70,11 @@ pub fn handle_env_set(
             }
             let cmd = if options.contains(&InstallOptions::Global) {
                 format!(
-                    r#"Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" -Name {key} -Value {env_value}"#
+                    r#"Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" -Name "{key}" -Value "{env_value}""#
                 )
             } else {
                 format!(
-                    r#"Set-ItemProperty -Path "HKCU:\Environment" -Name {key}  -Value {env_value}"#
+                    r#"Set-ItemProperty -Path "HKCU:\Environment" -Name "{key}" -Value "{env_value}""#
                 )
             };
 
@@ -140,10 +142,11 @@ pub fn add_bin_to_path(
                 .unwrap()
                 .to_string()
         };
-        let hkcu = RegKey::predef(HKEY_CURRENT_USER);
         let environment_key = if options.contains(&InstallOptions::Global) {
-            hkcu.open_subkey("SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment")?
+            let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
+            hklm.open_subkey("SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment")?
         } else {
+            let hkcu = RegKey::predef(HKEY_CURRENT_USER);
             hkcu.open_subkey("Environment")?
         };
 

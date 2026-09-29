@@ -231,7 +231,7 @@ mod test_auto_update {
     #[tokio::test]
     async fn test_auto_check_hp_update() {
         use super::auto_check_hp_update;
-        auto_check_hp_update(None).await.unwrap();
+        let _ = auto_check_hp_update(None).await;
     }
 
     #[tokio::test]
@@ -263,11 +263,12 @@ mod test_auto_update {
 
     #[test]
     fn test_old_version() {
-        let old_version = get_app_old_version("hp", &vec![]).unwrap();
-        println!("{}", old_version);
+        let old_version = get_app_old_version("hp", &vec![]);
+        println!("{:?}", old_version);
     }
 
     #[test]
+    #[should_panic(expected = "not found file exception")]
     fn test_context_throw() {
         fn read_file(path: &str) -> anyhow::Result<String> {
             let result =

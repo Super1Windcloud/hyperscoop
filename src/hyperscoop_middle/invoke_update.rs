@@ -300,6 +300,21 @@ fn launch_update_script(
     } else {
         get_app_current_dir("hp")
     };
+    let pid = std::process::id();
+
+    let clean_old_version = if !replace_old_hp && !old_version_dir.is_empty() {
+        format!(
+            r#"if exist "{old_version_dir}" (
+    rmdir /S /Q "{old_version_dir}"
+    if exist "{old_version_dir}" (
+        echo ERROR: Directory still exists after deletion.
+        exit /b 1
+    )
+)"#
+        )
+    } else {
+        String::new()
+    };
 
     let script_content = format!(
         r#"@echo off
@@ -307,23 +322,15 @@ chcp 65001 > nul
 setlocal enabledelayedexpansion
 timeout /t 1 > nul
 :waitloop
-tasklist /fi "imagename eq hp.exe" | findstr /i "hp.exe" > nul
+tasklist /fi "pid eq {pid}" | findstr /i "{pid}" > nul
 if not errorlevel 1 (
     timeout /t 1 > nul
     goto waitloop
 )
 
-
-if exist "{old_version_dir}"   (
-    rmdir  /S /Q "{old_version_dir}"
-    if exist "{old_version_dir}"  (
-        echo ERROR: Directory still exists after deletion.
-        exit /b 1
-    )
-)
+{clean_old_version}
 
 cd /d "{hp_current}"
-
 
 if exist "hp.exe" (
     del /f /q "hp.exe" > nul
@@ -346,55 +353,10 @@ if not exist "hp.exe" (
 )
 
 endlocal
+(goto) 2>nul & del "%~f0"
 "#
     );
 
-    let force_override_script = format!(
-        r#"@echo off
-chcp 65001 > nul
-setlocal enabledelayedexpansion
-timeout /t 1 > nul
-:waitloop
-tasklist /fi "imagename eq hp.exe" | findstr /i "hp.exe" > nul
-if not errorlevel 1 (
-    timeout /t 1 > nul
-    goto waitloop
-)
-
-cd /d "{hp_current}"
-
-:: 删除旧的 hp.exe（如果存在）
-if exist "hp.exe" (
-    del /f /q "hp.exe" > nul
-    if exist "hp.exe" (
-        echo ERROR: Failed to delete hp.exe.
-        exit /b 1
-    )
-)
-
-:: 重命名 hp_updater.exe 为 hp.exe
-if exist "hp_updater.exe" (
-    rename "hp_updater.exe" "hp.exe"
-) else (
-    echo ERROR: hp_updater.exe 不存在！
-    exit /b 1
-)
-
-:: 检查是否重命名成功
-if not exist "hp.exe" (
-    echo ERROR: Failed to rename hp_updater.exe to hp.exe.
-    exit /b 1
-)
-
-endlocal
-"#
-    );
-
-    let script_content = if !replace_old_hp {
-        script_content
-    } else {
-        force_override_script
-    };
     let updater = format!("{hp_current}\\updater.bat");
     let mut file = File::create(&updater).expect("Failed to create updater.bat");
     let script_content = script_content.replace(LineEnding::LF.as_str(), LineEnding::CRLF.as_str());

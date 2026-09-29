@@ -129,23 +129,21 @@ fn normal_merge(
     local: &git2::AnnotatedCommit,
     remote: &git2::AnnotatedCommit,
 ) -> Result<(), anyhow::Error> {
-    let local_tree = repo.find_commit(local.id())?.tree()?;
-    let remote_tree = repo.find_commit(remote.id())?.tree()?;
-    let ancestor = repo
-        .find_commit(repo.merge_base(local.id(), remote.id())?)?
-        .tree()?;
+    let local_commit = repo.find_commit(local.id())?;
+    let remote_commit = repo.find_commit(remote.id())?;
+    let local_tree = local_commit.tree()?;
+    let remote_tree = remote_commit.tree()?;
+    let ancestor_oid = repo.merge_base(local.id(), remote.id())?;
+    let ancestor = repo.find_commit(ancestor_oid)?.tree()?;
     let mut idx = repo.merge_trees(&ancestor, &local_tree, &remote_tree, None)?;
 
     if idx.has_conflicts() {
-        repo.checkout_index(Some(&mut idx), None)?;
         bail!("Merge conflicts detected");
     }
     let result_tree = repo.find_tree(idx.write_tree_to(repo)?)?;
     // now create the merge commit
     let msg = format!("Merge: {} into {}", remote.id(), local.id());
     let sig = repo.signature()?;
-    let local_commit = repo.find_commit(local.id())?;
-    let remote_commit = repo.find_commit(remote.id())?;
     // Do our merge commit and set current branch head to that commit.
     let _merge_commit = repo.commit(
         Some("HEAD"),
@@ -160,18 +158,56 @@ fn normal_merge(
     Ok(())
 }
 
+fn hard_reset_to(
+    repo: &Repository,
+    remote_branch: &str,
+    fetch_commit: &git2::AnnotatedCommit,
+) -> Result<(), anyhow::Error> {
+    let commit_obj = repo.find_object(fetch_commit.id(), Some(git2::ObjectType::Commit))?;
+    repo.reset(&commit_obj, git2::ResetType::Hard, None)?;
+    let refname = format!("refs/heads/{}", remote_branch);
+    if let Ok(mut r) = repo.find_reference(&refname) {
+        let _ = r.set_target(
+            fetch_commit.id(),
+            &format!("Reset {} to {}", remote_branch, fetch_commit.id()),
+        );
+    }
+    let _ = repo.set_head(&refname);
+    let mut checkout = git2::build::CheckoutBuilder::default();
+    checkout.force();
+    let _ = repo.checkout_head(Some(&mut checkout));
+    Ok(())
+}
+
 fn do_merge<'a>(
     repo: &'a Repository,
     remote_branch: &str,
     fetch_commit: git2::AnnotatedCommit<'a>,
 ) -> Result<(), anyhow::Error> {
-    let analysis = repo.merge_analysis(&[&fetch_commit])?;
+    // If index already has conflicts from a previous failed run, clean them up
+    if let Ok(idx) = repo.index() {
+        if idx.has_conflicts() {
+            log::warn!("Repository index has conflicts, resetting to upstream");
+            return hard_reset_to(repo, remote_branch, &fetch_commit);
+        }
+    }
+
+    let analysis = match repo.merge_analysis(&[&fetch_commit]) {
+        Ok(a) => a,
+        Err(e) => {
+            log::warn!("Merge analysis failed ({e}), performing hard reset");
+            return hard_reset_to(repo, remote_branch, &fetch_commit);
+        }
+    };
 
     if analysis.0.is_fast_forward() {
         let refname = format!("refs/heads/{}", remote_branch);
         match repo.find_reference(&refname) {
             Ok(mut r) => {
-                fast_forward(repo, &mut r, &fetch_commit)?;
+                if let Err(e) = fast_forward(repo, &mut r, &fetch_commit) {
+                    log::warn!("Fast-forward failed ({e}), falling back to hard reset");
+                    hard_reset_to(repo, remote_branch, &fetch_commit)?;
+                }
             }
             Err(_) => {
                 repo.reference(
@@ -190,11 +226,24 @@ fn do_merge<'a>(
             }
         };
     } else if analysis.0.is_normal() {
-        // do a normal merge
-        let head_commit = repo.reference_to_annotated_commit(&repo.head()?)?;
-        normal_merge(&repo, &head_commit, &fetch_commit)?;
-    } else {
-        // println!("Nothing to do...");
+        let head_commit = match repo.head() {
+            Ok(head) => repo.reference_to_annotated_commit(&head).ok(),
+            Err(_) => None,
+        };
+
+        let merge_res = if let Some(local) = head_commit {
+            normal_merge(repo, &local, &fetch_commit)
+        } else {
+            Err(anyhow::anyhow!("HEAD reference not found"))
+        };
+
+        if let Err(e) = merge_res {
+            log::warn!("Normal merge failed ({e}), falling back to hard reset for bucket");
+            hard_reset_to(repo, remote_branch, &fetch_commit)?;
+        }
+    } else if !analysis.0.is_up_to_date() {
+        log::warn!("Branch cannot be cleanly merged, resetting to upstream fetch commit");
+        hard_reset_to(repo, remote_branch, &fetch_commit)?;
     }
     Ok(())
 }

@@ -363,7 +363,7 @@ impl<'a> Aria2C<'a> {
         } else {
             bail!(
                 "Aria2c download failed, exit code: {},\n Error :{}",
-                status.code().unwrap(),
+                status.code().unwrap_or(-1),
                 String::from_utf8_lossy(&child.stderr).as_ref()
             )
         };
@@ -437,7 +437,7 @@ impl<'a> Aria2C<'a> {
         } else {
             bail!(
                 "Aria2c download failed, exit code: {}",
-                status.code().unwrap()
+                status.code().unwrap_or(-1)
             )
         };
         result

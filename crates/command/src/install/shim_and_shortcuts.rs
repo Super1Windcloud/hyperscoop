@@ -37,69 +37,21 @@ pub fn create_shim_or_shortcuts(
     let architecture = serde_obj.architecture;
     let shortcuts = serde_obj.shortcuts;
 
-    if bin.is_some() {
-        create_shims_file(bin.unwrap(), app_name, options)?;
+    if let Some(bin) = bin {
+        create_shims_file(bin, app_name, options)?;
     }
-    if shortcuts.is_some() {
-        create_start_menu_shortcuts(shortcuts.unwrap(), app_name.into(), options)?;
+    if let Some(shortcuts) = shortcuts {
+        create_start_menu_shortcuts(shortcuts, app_name.into(), options)?;
     }
-    if architecture.is_some() {
-        let architecture = architecture.unwrap();
+    if let Some(architecture) = architecture {
         let system_arch = get_system_default_arch()?;
-        if system_arch == "64bit" {
-            let x64 = architecture.x64bit;
-            if x64.is_none() {
-                return Ok(());
+        if let Some(arch_info) = architecture.get_specific_architecture(&system_arch) {
+            if let Some(bin) = arch_info.bin.clone() {
+                create_shims_file(bin, app_name, options)?;
             }
-            let x64 = x64.unwrap();
-            let bin = x64.bin;
-            if bin.is_none() {
-                return Ok(());
+            if let Some(shortcuts) = arch_info.shortcuts.clone() {
+                create_start_menu_shortcuts(shortcuts, app_name.into(), options)?;
             }
-            let bin = bin.unwrap();
-            create_shims_file(bin, app_name, options)?;
-            let shortcuts = x64.shortcuts;
-            if shortcuts.is_none() {
-                return Ok(());
-            }
-            let shortcuts = shortcuts.unwrap();
-            create_start_menu_shortcuts(shortcuts, app_name.into(), options)?;
-        } else if system_arch == "32bit" {
-            let x86 = architecture.x86bit;
-            if x86.is_none() {
-                return Ok(());
-            }
-            let x86 = x86.unwrap();
-            let bin = x86.bin;
-            if bin.is_none() {
-                return Ok(());
-            }
-            let bin = bin.unwrap();
-            create_shims_file(bin, app_name, options)?;
-            let shortcuts = x86.shortcuts;
-            if shortcuts.is_none() {
-                return Ok(());
-            }
-            let shortcuts = shortcuts.unwrap();
-            create_start_menu_shortcuts(shortcuts, app_name.into(), options)?;
-        } else if system_arch == "arm64" {
-            let arm64 = architecture.arm64;
-            if arm64.is_none() {
-                return Ok(());
-            }
-            let arm64 = arm64.unwrap();
-            let bin = arm64.bin;
-            if bin.is_none() {
-                return Ok(());
-            }
-            let bin = bin.unwrap();
-            create_shims_file(bin, app_name, options)?;
-            let shortcuts = arm64.shortcuts;
-            if shortcuts.is_none() {
-                return Ok(());
-            }
-            let shortcuts = shortcuts.unwrap();
-            create_start_menu_shortcuts(shortcuts, app_name.into(), options)?;
         }
     }
     Ok(())
