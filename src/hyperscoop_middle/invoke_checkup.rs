@@ -3,7 +3,9 @@
 use crate::i18n::tr;
 use anyhow::Context;
 use color_eyre::owo_colors::OwoColorize;
-use command_util_lib::init_env::{init_scoop_global, init_user_scoop};
+use command_util_lib::init_env::{
+    get_shims_root_dir, get_shims_root_dir_global, init_scoop_global, init_user_scoop,
+};
 use crossterm::style::Stylize;
 #[cfg(windows)]
 use std::process::Command;
@@ -139,6 +141,18 @@ pub async fn execute_checkup_command(global: bool) -> anyhow::Result<()> {
     if !virus_result.passed {
         total_issues += 1;
         print_result(&virus_result);
+    }
+
+    let shims_path_result = check_shims_in_path(global)?;
+    if !shims_path_result.passed {
+        total_issues += 1;
+        print_result(&shims_path_result);
+    }
+
+    let broken_shims_result = check_broken_shims(global)?;
+    if !broken_shims_result.passed {
+        total_issues += 1;
+        print_result(&broken_shims_result);
     }
     if total_issues > 0 {
         let msg = tr(
@@ -676,4 +690,99 @@ fn is_ntfs(drive: &str) -> bool {
 #[cfg(not(windows))]
 fn is_ntfs(_drive: &str) -> bool {
     true
+}
+
+fn check_shims_in_path(global: bool) -> anyhow::Result<CheckupResult> {
+    let shims_path = if global {
+        get_shims_root_dir_global()
+    } else {
+        get_shims_root_dir()
+    };
+    let path_env = env::var("PATH").unwrap_or_default();
+    let normalized_shims = shims_path.trim_end_matches('\\').to_lowercase();
+    let in_path = path_env
+        .split(';')
+        .any(|p| p.trim().trim_end_matches('\\').to_lowercase() == normalized_shims);
+
+    if in_path {
+        Ok(CheckupResult {
+            passed: true,
+            message: localized(
+                "hp shims directory is configured in PATH",
+                "hp shims 目录已配置在 PATH 环境变量中",
+            ),
+            fix_hint: None,
+        })
+    } else {
+        Ok(CheckupResult {
+            passed: false,
+            message: localized(
+                "hp shims directory is not in your PATH. Executables may not be accessible directly.",
+                "hp shims 目录未包含在 PATH 环境变量中，命令可能无法直接调用。",
+            ),
+            fix_hint: Some(localized(
+                &format!("Add '{}' to your PATH environment variable", shims_path),
+                &format!("请将 '{}' 添加到您的 PATH 环境变量中", shims_path),
+            )),
+        })
+    }
+}
+
+fn check_broken_shims(global: bool) -> anyhow::Result<CheckupResult> {
+    let shims_path = if global {
+        get_shims_root_dir_global()
+    } else {
+        get_shims_root_dir()
+    };
+    let shims_dir = Path::new(&shims_path);
+    if !shims_dir.exists() {
+        return Ok(CheckupResult {
+            passed: true,
+            message: localized("Shims directory does not exist yet", "Shims 目录尚未创建"),
+            fix_hint: None,
+        });
+    }
+
+    let mut broken_count = 0;
+    if let Ok(entries) = std::fs::read_dir(shims_dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_file() && path.extension().and_then(|e| e.to_str()) == Some("shim") {
+                if let Ok(content) = std::fs::read_to_string(&path) {
+                    if let Some(first_line) = content.lines().next() {
+                        let target = first_line
+                            .replace("path =", "")
+                            .replace('\"', "")
+                            .trim()
+                            .to_string();
+                        if !target.is_empty() && !Path::new(&target).exists() {
+                            broken_count += 1;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if broken_count > 0 {
+        let msg = tr(
+            "Found {count} broken or dangling shim(s).",
+            "发现 {count} 个失效或断开的 shim 文件。",
+        )
+        .replace("{count}", &broken_count.to_string());
+        Ok(CheckupResult {
+            passed: false,
+            message: msg,
+            fix_hint: Some(localized(
+                "Run: hp shim -c to automatically clean invalid shims",
+                "运行: hp shim -c 自动清理失效的 shim 文件",
+            )),
+        })
+    } else {
+        Ok(CheckupResult {
+            passed: true,
+            message: localized("All shim shortcuts are healthy", "所有 shim 链接状态健康"),
+            fix_hint: None,
+        })
+    }
 }

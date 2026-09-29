@@ -5,12 +5,12 @@ use clap::Args;
     author,
     version,
     about = crate::i18n::tr(
-        "🐇\t\tCheck every potential issue (alias: check)",
-        "🐇\t\t检查所有潜在问题，别名 check"
+        "🐇\t\tCheck every potential issue (alias: check, doctor)",
+        "🐇\t\t检查所有潜在问题，别名 check, doctor"
     ),
     long_about = None
 )]
-#[clap(alias = "check")]
+#[clap(alias = "check", alias = "doctor")]
 pub struct CheckupArgs {
     #[arg(from_global)]
     pub global: bool,

@@ -478,6 +478,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "clap_complete"
+version = "4.6.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3be2ad0423bdbbb0e25bc89add796f3559706d4a95e1bc98e4d9662a957b6a19"
+dependencies = [
+ "clap",
+]
+
+[[package]]
 name = "clap_derive"
 version = "4.5.49"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -567,7 +576,7 @@ dependencies = [
 
 [[package]]
 name = "command_util_lib"
-version = "4.3.2"
+version = "4.3.3"
 dependencies = [
  "anyhow",
  "bat",
@@ -2292,7 +2301,7 @@ dependencies = [
 
 [[package]]
 name = "hash"
-version = "4.3.2"
+version = "4.3.3"
 dependencies = [
  "sha2",
 ]
@@ -2360,11 +2369,12 @@ dependencies = [
 
 [[package]]
 name = "hp"
-version = "4.3.2"
+version = "4.3.3"
 dependencies = [
  "anyhow",
  "clap",
  "clap-verbosity-flag",
+ "clap_complete",
  "color-eyre",
  "comfy-table",
  "command_util_lib",
@@ -2401,7 +2411,7 @@ dependencies = [
 
 [[package]]
 name = "hscoop_macro"
-version = "4.3.2"
+version = "4.3.3"
 dependencies = [
  "quote",
  "syn",
@@ -4081,7 +4091,7 @@ checksum = "24188a676b6ae68c3b2cb3a01be17fbf7240ce009799bb56d5b1409051e78fde"
 
 [[package]]
 name = "shim"
-version = "4.3.2"
+version = "4.3.3"
 dependencies = [
  "color-eyre",
  "windows 0.61.3",

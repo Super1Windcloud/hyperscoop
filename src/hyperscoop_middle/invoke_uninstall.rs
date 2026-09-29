@@ -40,6 +40,73 @@ pub fn execute_uninstall_command(args: UninstallArgs) -> Result<(), anyhow::Erro
                 .bold()
             );
         }
+
+        // Check if other installed apps depend on this app
+        if let Ok(dependents) =
+            command_util_lib::depends::find_installed_dependents(app_name, args.global)
+        {
+            let remaining_dependents: Vec<_> = dependents
+                .into_iter()
+                .filter(|d| {
+                    !args
+                        .app_names
+                        .iter()
+                        .any(|name| name.eq_ignore_ascii_case(&d.app_name))
+                })
+                .collect();
+
+            if !remaining_dependents.is_empty() {
+                let dep_names = remaining_dependents
+                    .iter()
+                    .map(|d| format!("'{}'", d.app_name))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+
+                if !args.force {
+                    eprintln!(
+                        "{}",
+                        tr_fmt!(
+                            "⚠️ Cannot uninstall '{name}': it is required by installed app(s): [{deps}].",
+                            "⚠️ 无法卸载 '{name}'：以下已安装的应用仍依赖它: [{deps}]。",
+                            name = app_name,
+                            deps = dep_names
+                        )
+                        .dark_yellow()
+                        .bold()
+                    );
+                    eprintln!(
+                        "{}",
+                        tr_fmt!(
+                            "   Use 'hp uninstall {name} --force' (-f) to uninstall anyway.",
+                            "   可使用 'hp uninstall {name} --force' (-f) 强制卸载。",
+                            name = app_name
+                        )
+                        .dark_grey()
+                    );
+                    errors.push((
+                        app_name.clone(),
+                        anyhow::anyhow!(tr_fmt!(
+                            "App '{name}' is required by other installed packages",
+                            "应用 '{name}' 被其他已安装应用依赖",
+                            name = app_name
+                        )),
+                    ));
+                    continue;
+                } else {
+                    println!(
+                        "{}",
+                        tr_fmt!(
+                            "⚠️ Warning: '{name}' is required by [{deps}]. Proceeding due to --force.",
+                            "⚠️ 警告：'{name}' 仍被 [{deps}] 依赖。由于指定了 --force，将强制继续卸载。",
+                            name = app_name,
+                            deps = dep_names
+                        )
+                        .dark_yellow()
+                    );
+                }
+            }
+        }
+
         if let Err(e) = uninstall_single_app(app_name, args.global, args.purge) {
             eprintln!(
                 "{}",

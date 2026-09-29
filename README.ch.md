@@ -73,11 +73,14 @@ cargo  binstall  hp2
 
 - [x]  Alias
 - [x] Bucket
+- [x]  bundle (通过 Hpfile 声明式管理环境依赖: dump / install / check)
 - [x] cat
 - [x] cache
-- [x]  checkup
+- [x]  checkup (别名: check, doctor)
 - [x]  cleanup
+- [x]  completion (生成 Shell 自动补全脚本)
 - [x]  config
+- [x]  deps (查看指定 APP 依赖与树状图)
 - [x]  export
 - [x]  home
 - [x]  import
@@ -89,9 +92,10 @@ cargo  binstall  hp2
 - [x] reset
 - [x] search
 - [x] shim
-- [x] status
-- [x] uninstall
+- [x] status (别名: outdated)
+- [x] uninstall (具备反向依赖防护机制)
 - [x] update
+- [x]  uses (反向依赖查询: 查询哪些应用依赖指定软件包)
 - [x] which
 - [x] merge
 - [x] credits

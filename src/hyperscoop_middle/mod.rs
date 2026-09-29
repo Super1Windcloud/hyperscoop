@@ -52,5 +52,11 @@ pub use invoke_reset::execute_reset_command;
 mod invoke_status;
 pub use invoke_status::execute_status_command;
 mod invoke_uninstall;
-
 pub use invoke_uninstall::execute_uninstall_command;
+
+mod invoke_bundle;
+pub use invoke_bundle::execute_bundle_command;
+mod invoke_deps;
+pub use invoke_deps::execute_deps_command;
+mod invoke_uses;
+pub use invoke_uses::execute_uses_command;

@@ -6,10 +6,13 @@ use comfy_table::presets::UTF8_BORDERS_ONLY;
 use comfy_table::{Attribute, Cell, CellAlignment, Color, ContentArrangement, Table};
 use command_util_lib::init_env::{
     get_apps_path, get_apps_path_global, get_buckets_root_dir_path,
-    get_buckets_root_dir_path_global,
+    get_buckets_root_dir_path_global, is_app_held_by_path,
 };
 use command_util_lib::list::VersionJSON;
+use command_util_lib::utils::utility::compare_versions;
+use crossterm::style::Stylize;
 use rayon::prelude::*;
+use std::cmp::Ordering;
 use std::collections::HashMap;
 
 pub fn execute_status_command(status_args: StatusArgs) -> Result<(), anyhow::Error> {
@@ -26,6 +29,7 @@ pub fn execute_status_command(status_args: StatusArgs) -> Result<(), anyhow::Err
 
     let mut current_versions = Vec::new();
     let mut installed_apps = Vec::new();
+    let mut held_status = Vec::new();
     for app_path in std::fs::read_dir(apps_path).context("Failed to read apps directory")? {
         let app_path = app_path.context("Failed to read app directory")?.path();
         let app_name = app_path
@@ -33,8 +37,16 @@ pub fn execute_status_command(status_args: StatusArgs) -> Result<(), anyhow::Err
             .expect("Invalid app path")
             .to_str()
             .unwrap();
+        if app_name == "scoop" {
+            continue;
+        }
         let current = app_path.join("current");
         let manifest_path = current.join("manifest.json");
+        let install_json_path = current.join("install.json");
+
+        let is_held = install_json_path.exists()
+            && is_app_held_by_path(install_json_path.to_str().unwrap_or_default());
+        held_status.push(is_held);
 
         if !manifest_path.exists() {
             current_versions.push(tr("Not Installed Correctly", "未正确安装").to_string());
@@ -65,16 +77,27 @@ pub fn execute_status_command(status_args: StatusArgs) -> Result<(), anyhow::Err
         .collect();
 
     let mut final_installed_apps = Vec::new();
-    for (app_name, (current_version, latest_version)) in install_apps
+    for (i, (app_name, (current_version, latest_version))) in install_apps
         .iter()
         .zip(current_versions.iter().zip(latest_versions.iter()))
+        .enumerate()
     {
-        if latest_version > current_version {
+        if latest_version != &tr("Not Found", "未找到").to_string()
+            && current_version != &tr("Not Installed Correctly", "未正确安装").to_string()
+            && compare_versions(latest_version.clone(), current_version.clone())
+                == Ordering::Greater
+        {
+            let is_held = held_status.get(i).copied().unwrap_or(false);
+            let status_text = if is_held {
+                tr("🔒 Held (Skip)", "🔒 已锁定 (跳过)").to_string()
+            } else {
+                tr("Yes", "是").to_string()
+            };
             final_installed_apps.push(vec![
                 app_name.to_string(),
                 current_version.to_string(),
                 latest_version.to_string(),
-                tr("Yes", "是").to_string(),
+                status_text,
             ]);
         }
     }
@@ -84,6 +107,19 @@ pub fn execute_status_command(status_args: StatusArgs) -> Result<(), anyhow::Err
 }
 
 fn display_status_information(install_apps: &[Vec<String>]) {
+    if install_apps.is_empty() {
+        println!(
+            "{}",
+            tr(
+                "🎉 All installed apps are up-to-date!",
+                "🎉 所有已安装的应用均已是最新版本！"
+            )
+            .dark_green()
+            .bold()
+        );
+        return;
+    }
+
     let mut table = Table::new();
     table
         .load_preset(UTF8_BORDERS_ONLY)
@@ -99,12 +135,12 @@ fn display_status_information(install_apps: &[Vec<String>]) {
             Cell::new(tr("LatestVersion", "最新版本"))
                 .add_attribute(Attribute::Bold)
                 .fg(Color::DarkCyan),
-            Cell::new(tr("NeedUpdate", "需要更新"))
+            Cell::new(tr("Status", "状态"))
                 .add_attribute(Attribute::Bold)
                 .fg(Color::DarkCyan),
         ])
         .add_rows(install_apps.as_ref());
-    let column = table.column_mut(3).expect("Our table has three columns");
+    let column = table.column_mut(3).expect("Our table has four columns");
     column.set_cell_alignment(CellAlignment::Center);
     println!("{}", table);
 }

@@ -1,9 +1,12 @@
 use crate::check_self_update::auto_check_hp_update;
 use crate::command_args::alias::AliasArgs;
+use crate::command_args::bundle::BundleArgs;
 use crate::command_args::cat::CatArgs;
 use crate::command_args::checkup::CheckupArgs;
 use crate::command_args::cleanup::CleanupArgs;
+use crate::command_args::completion::CompletionArgs;
 use crate::command_args::config::ConfigArgs;
+use crate::command_args::deps::DepsArgs;
 use crate::command_args::export::ExportArgs;
 use crate::command_args::home::HomeArgs;
 use crate::command_args::import::ImportArgs;
@@ -19,6 +22,7 @@ use crate::command_args::shim::ShimArgs;
 use crate::command_args::status::StatusArgs;
 use crate::command_args::uninstall::UninstallArgs;
 use crate::command_args::update::UpdateArgs;
+use crate::command_args::uses::UsesArgs;
 use crate::command_args::which::WhichArgs;
 pub(crate) use crate::command_args::{bucket_args::BucketArgs, cache::CacheArgs};
 use crate::i18n::t;
@@ -42,11 +46,14 @@ use std::path::Path;
 pub(crate) enum Commands {
     Alias(AliasArgs),
     Bucket(BucketArgs),
+    Bundle(BundleArgs),
     Cat(CatArgs),
     Cache(CacheArgs),
     Checkup(CheckupArgs),
     Cleanup(CleanupArgs),
+    Completion(CompletionArgs),
     Config(ConfigArgs),
+    Deps(DepsArgs),
     Export(ExportArgs),
     Home(HomeArgs),
     Hold(HoldArgs),
@@ -64,6 +71,7 @@ pub(crate) enum Commands {
     #[clap(alias = "un")]
     Uninstall(UninstallArgs),
     Update(UpdateArgs),
+    Uses(UsesArgs),
     Which(WhichArgs),
     Merge(MergeArgs),
     Credits(CreditsArgs),
@@ -400,6 +408,91 @@ mod tests {
                 assert!(args.force_update_override);
             }
             _ => panic!("Expected SelfUpdate"),
+        }
+
+        // Test doctor alias for checkup
+        let cli = crate::Cli::try_parse_from(["hp", "doctor"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Checkup(_) => {}
+            _ => panic!("Expected Checkup for 'doctor'"),
+        }
+
+        // Test outdated alias for status
+        let cli = crate::Cli::try_parse_from(["hp", "outdated"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Status(_) => {}
+            _ => panic!("Expected Status for 'outdated'"),
+        }
+
+        // Test completion parsing
+        let cli = crate::Cli::try_parse_from(["hp", "completion", "powershell"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Completion(args) => {
+                assert_eq!(args.shell, clap_complete::Shell::PowerShell);
+            }
+            _ => panic!("Expected Completion"),
+        }
+
+        // Test uses parsing
+        let cli = crate::Cli::try_parse_from(["hp", "uses", "python"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Uses(args) => {
+                assert_eq!(args.app_name, "python");
+                assert!(!args.all);
+            }
+            _ => panic!("Expected Uses"),
+        }
+
+        let cli = crate::Cli::try_parse_from(["hp", "uses", "git", "--all"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Uses(args) => {
+                assert_eq!(args.app_name, "git");
+                assert!(args.all);
+            }
+            _ => panic!("Expected Uses with --all"),
+        }
+
+        // Test deps parsing
+        let cli = crate::Cli::try_parse_from(["hp", "deps", "neovim", "--tree"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Deps(args) => {
+                assert_eq!(args.app_name, "neovim");
+                assert!(args.tree);
+            }
+            _ => panic!("Expected Deps with --tree"),
+        }
+
+        // Test bundle dump parsing
+        let cli = crate::Cli::try_parse_from([
+            "hp",
+            "bundle",
+            "dump",
+            "--file",
+            "CustomHpfile",
+            "--force",
+        ])
+        .unwrap();
+        match cli.command.unwrap() {
+            Commands::Bundle(args) => match args.command {
+                crate::command_args::bundle::BundleSubcommands::Dump(dump_args) => {
+                    assert_eq!(dump_args.file, "CustomHpfile");
+                    assert!(dump_args.force);
+                }
+                _ => panic!("Expected BundleSubcommands::Dump"),
+            },
+            _ => panic!("Expected Bundle"),
+        }
+
+        // Test bundle check parsing
+        let cli = crate::Cli::try_parse_from(["hp", "bundle", "check"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Bundle(args) => match args.command {
+                crate::command_args::bundle::BundleSubcommands::Check(check_args) => {
+                    assert_eq!(check_args.file, "Hpfile");
+                }
+                _ => panic!("Expected BundleSubcommands::Check"),
+            },
+            _ => panic!("Expected Bundle"),
         }
     }
 }

@@ -24,9 +24,10 @@
 mod command_args;
 
 use crate::i18n::tr;
-use clap::Parser;
 use clap::builder::Styles;
 use clap::builder::styling::{AnsiColor, Effects};
+use clap::{CommandFactory, Parser};
+use clap_complete::generate;
 use clap_verbosity_flag;
 use crossterm::execute;
 use std::io::stdout;
@@ -190,11 +191,18 @@ async fn main() -> anyhow::Result<()> {
         Some(input_command) => match input_command {
             Commands::Alias(alias_args) => execute_alias_command(alias_args),
             Commands::Bucket(bucket) => execute_bucket_command(bucket),
+            Commands::Bundle(args) => execute_bundle_command(args),
             Commands::Cat(cat) => execute_cat_command(cat),
             Commands::Cache(cache_args) => execute_cache_command(cache_args),
             Commands::Checkup(args) => execute_checkup_command(args.global).await,
             Commands::Cleanup(args) => execute_cleanup_command(args),
+            Commands::Completion(args) => {
+                let mut cmd = Cli::command();
+                generate(args.shell, &mut cmd, "hp", &mut std::io::stdout());
+                Ok(())
+            }
             Commands::Config(args) => execute_config_command(args),
+            Commands::Deps(args) => execute_deps_command(args),
             Commands::Export(file) => execute_export_command(file),
             Commands::Home(home) => execute_home_command(home),
             Commands::Import(args) => execute_import_command(args),
@@ -209,6 +217,7 @@ async fn main() -> anyhow::Result<()> {
             Commands::Status(args) => execute_status_command(args),
             Commands::Uninstall(args) => execute_uninstall_command(args),
             Commands::Update(update_args) => execute_update_command(update_args).await,
+            Commands::Uses(args) => execute_uses_command(args),
             Commands::Which(which) => execute_which_command(which),
             Commands::Merge(args) => execute_merge_command(args),
             Commands::Credits(_) => execute_credits_command().await,

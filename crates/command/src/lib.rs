@@ -73,7 +73,9 @@ pub mod home;
 pub mod info;
 pub mod manifest;
 
+pub mod bundle;
 pub mod config;
+pub mod depends;
 pub mod import;
 pub mod install;
 pub mod reset;

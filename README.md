@@ -101,14 +101,19 @@ and add it to your `$env:Path`.
 |-----------------------|---------------------------------|
 | ✅ alias               | Manage command aliases          |
 | ✅ bucket              | Add / remove / list buckets     |
+| ✅ bundle              | Declarative environment management via Hpfile (dump / install / check) |
 | ✅ cache               | Manage download cache           |
-| ✅ checkup             | Scan and fix potential problems |
+| ✅ checkup / doctor    | Scan and diagnose potential system issues |
 | ✅ cleanup             | Clean unused files and cache    |
+| ✅ completion          | Generate shell completion scripts |
 | ✅ config              | Configure hp settings           |
+| ✅ deps                | Query dependencies and tree for an application |
 | ✅ export / import     | Backup and restore configs      |
 | ✅ hold                | Lock apps to prevent updates    |
-| ✅ install / uninstall | Full package lifecycle          |
+| ✅ install / uninstall | Full package lifecycle (with dependency safety protection) |
+| ✅ status / outdated   | Check whether installed apps need updates |
 | ✅ update              | Update single or all apps       |
+| ✅ uses                | Query packages that depend on an app (reverse dependencies) |
 | ✅ which               | Locate installed binaries       |
 | ✅ merge               | Combine configurations          |
 | ✅ credits             | Show project credits            |
