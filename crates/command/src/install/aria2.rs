@@ -1,4 +1,5 @@
 use crate::config::get_config_value_no_print;
+use crate::i18n::tr;
 use crate::utils::utility::is_valid_url;
 use anyhow::{Context, bail};
 use crossterm::style::Stylize;
@@ -215,7 +216,10 @@ impl<'a> Aria2C<'a> {
             log::debug!("max download file size: {} MB", max_size);
             Ok(*max_size)
         } else {
-            bail!("未能获取任何文件大小");
+            bail!(
+                "{}",
+                tr("Failed to get any file size", "未能获取任何文件大小")
+            );
         }
     }
 

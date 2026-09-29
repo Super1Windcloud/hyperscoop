@@ -1,4 +1,5 @@
 use crate::command_args::import::ImportArgs;
+use crate::i18n::tr;
 use anyhow::Context;
 use command_util_lib::import::*;
 use serde_json::{Map, Value};
@@ -6,8 +7,12 @@ use serde_json::{Map, Value};
 pub fn execute_import_command(args: ImportArgs) -> Result<(), anyhow::Error> {
     if let Some(path) = args.path {
         log::info!("{:?}", &path);
-        let contents = std::fs::read_to_string(&path).context("文件编码格式错误或路径错误")?;
-        let config_obj: Value = serde_json::from_str(&contents).context("配置文件格式错误")?;
+        let contents = std::fs::read_to_string(&path).context(tr(
+            "File encoding error or invalid path",
+            "文件编码格式错误或路径错误",
+        ))?;
+        let config_obj: Value = serde_json::from_str(&contents)
+            .context(tr("Configuration file format error", "配置文件格式错误"))?;
         let default_obj: Map<String, Value> = Map::new();
         let default_arr: Vec<Value> = Vec::new();
         let config = config_obj["config"].as_object().unwrap_or(&default_obj);

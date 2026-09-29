@@ -1,3 +1,4 @@
+use crate::i18n::tr;
 use std::fs::read_dir;
 use std::path::PathBuf;
 
@@ -10,7 +11,11 @@ pub fn is_directory_empty(path: &PathBuf) -> bool {
             None => true,
         },
         Err(_) => {
-            eprintln!("无法读取目录: {}", path.display());
+            eprintln!(
+                "{}: {}",
+                tr("Unable to read directory", "无法读取目录"),
+                path.display()
+            );
             false
         }
     }

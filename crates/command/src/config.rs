@@ -1,3 +1,5 @@
+use crate::i18n::tr;
+use crate::tr_fmt;
 use bat::PrettyPrinter;
 use crossterm::style::Stylize;
 use serde_json::Value;
@@ -70,7 +72,16 @@ pub fn get_config_value(name: &str) {
                 println!("{}", s.to_owned().dark_yellow().bold());
             }
             Value::Null => {
-                println!("{}", format!("{name}\t配置项不存在").dark_red().bold());
+                println!(
+                    "{}",
+                    tr_fmt!(
+                        "Config key '{name}' does not exist",
+                        "{name}\t配置项不存在",
+                        name = name
+                    )
+                    .dark_red()
+                    .bold()
+                );
             }
             Value::Bool(b) => {
                 println!("{}", b.to_string().dark_yellow().bold());
@@ -90,7 +101,16 @@ pub fn get_config_value(name: &str) {
             }
         }
     } else {
-        println!("{}", format!("{name}\t配置项不存在").dark_red().bold());
+        println!(
+            "{}",
+            tr_fmt!(
+                "Config key '{name}' does not exist",
+                "{name}\t配置项不存在",
+                name = name
+            )
+            .dark_red()
+            .bold()
+        );
     }
 }
 
@@ -121,13 +141,23 @@ pub fn set_config_value(name: &str, value: &str) {
         obj.insert(name.to_string(), Value::String(value.to_string()));
     }
     if let Err(e) = write_config(config_path, &config_json) {
-        eprintln!("{}: {}", "保存配置文件失败".dark_red().bold(), e);
+        eprintln!(
+            "{}: {}",
+            tr("Failed to save configuration file", "保存配置文件失败")
+                .dark_red()
+                .bold(),
+            e
+        );
         return;
     }
     println!(
-        "{} 设置成功为 {}",
-        name.green().bold(),
-        value.dark_yellow().bold()
+        "{}",
+        tr_fmt!(
+            "Successfully set '{name}' to '{value}'",
+            "{name} 设置成功为 {value}",
+            name = name.green().bold(),
+            value = value.dark_yellow().bold()
+        )
     );
 }
 
@@ -137,17 +167,44 @@ pub fn remove_config_value(name: &str) {
     let mut config_json = read_config_or_default(config_path);
     if let Some(obj) = config_json.as_object_mut() {
         if !obj.contains_key(name) {
-            eprintln!("{}", format!("{name} 配置不存在").dark_red().bold());
+            eprintln!(
+                "{}",
+                tr_fmt!(
+                    "Config key '{name}' does not exist",
+                    "{name} 配置不存在",
+                    name = name
+                )
+                .dark_red()
+                .bold()
+            );
             return;
         } else {
             obj.remove(name);
             if let Err(e) = write_config(config_path, &config_json) {
-                eprintln!("{}: {}", "保存配置文件失败".dark_red().bold(), e);
+                eprintln!(
+                    "{}: {}",
+                    tr("Failed to save configuration file", "保存配置文件失败")
+                        .dark_red()
+                        .bold(),
+                    e
+                );
                 return;
             }
-            println!("{} 已被删除", name.dark_red().bold());
+            println!(
+                "{}",
+                tr_fmt!(
+                    "'{name}' has been deleted",
+                    "{name} 已被删除",
+                    name = name.dark_red().bold()
+                )
+            );
         }
     } else {
-        eprintln!("{}", "config文件配置为空".dark_red().bold());
+        eprintln!(
+            "{}",
+            tr("Config file is empty", "config文件配置为空")
+                .dark_red()
+                .bold()
+        );
     }
 }

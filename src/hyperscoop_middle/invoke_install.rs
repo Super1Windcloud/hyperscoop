@@ -1,7 +1,7 @@
 use crate::check_self_update::auto_check_hp_update;
 use crate::command_args::install::InstallArgs;
 use crate::hyperscoop_middle::invoke_update::update_buckets_parallel;
-use crate::i18n::tr;
+use crate::i18n::{tr, tr_fmt};
 use anyhow::bail;
 use command_util_lib::install::*;
 use command_util_lib::utils::system::{get_system_default_arch, is_admin, request_admin};
@@ -47,17 +47,28 @@ pub async fn execute_install_command(args: InstallArgs) -> Result<(), anyhow::Er
         if total > 1 {
             println!(
                 "{}",
-                format!("\n[{}/{}] Installing '{}'...", i + 1, total, raw_name)
-                    .dark_cyan()
-                    .bold()
+                tr_fmt!(
+                    "\n[{i}/{total}] Installing '{name}'...",
+                    "\n[{i}/{total}] 正在安装 '{name}'...",
+                    i = i + 1,
+                    total = total,
+                    name = raw_name
+                )
+                .dark_cyan()
+                .bold()
             );
         }
         if let Err(e) = install_single_app(raw_name, &options, &args).await {
             eprintln!(
                 "{}",
-                format!("Failed to install '{}': {}", raw_name, e)
-                    .dark_red()
-                    .bold()
+                tr_fmt!(
+                    "Failed to install '{name}': {e}",
+                    "安装 '{name}' 失败: {e}",
+                    name = raw_name,
+                    e = e
+                )
+                .dark_red()
+                .bold()
             );
             errors.push((raw_name.clone(), e));
         }
@@ -66,9 +77,14 @@ pub async fn execute_install_command(args: InstallArgs) -> Result<(), anyhow::Er
     if !errors.is_empty() && total > 1 {
         eprintln!(
             "{}",
-            format!("\n{} of {} apps failed to install.", errors.len(), total)
-                .dark_red()
-                .bold()
+            tr_fmt!(
+                "\n{failed} of {total} apps failed to install.",
+                "\n共有 {failed} 个应用（共 {total} 个）安装失败。",
+                failed = errors.len(),
+                total = total
+            )
+            .dark_red()
+            .bold()
         );
     }
 
@@ -99,13 +115,34 @@ async fn install_single_app(
                 install_app_from_local_manifest_file(manifest_path, options.to_vec(), None)?;
                 return Ok(());
             } else {
-                bail!("{} is not a json file", app_path.display());
+                bail!(
+                    "{}",
+                    tr_fmt!(
+                        "{path} is not a json file",
+                        "{path} 不是 json 文件",
+                        path = app_path.display()
+                    )
+                );
             }
         } else {
             if app_path.is_dir() {
-                bail!("{} is not a json file", app_path.display());
+                bail!(
+                    "{}",
+                    tr_fmt!(
+                        "{path} is not a json file",
+                        "{path} 不是 json 文件",
+                        path = app_path.display()
+                    )
+                );
             } else {
-                bail!("{} is incorrect file", app_path.display());
+                bail!(
+                    "{}",
+                    tr_fmt!(
+                        "{path} is an incorrect file",
+                        "{path} 是不正确的文件",
+                        path = app_path.display()
+                    )
+                );
             }
         }
     }
@@ -116,24 +153,48 @@ async fn install_single_app(
     }
 
     if contains_special_char(app_name.as_str()) {
-        bail!("指定的APP格式错误 error char")
+        bail!(
+            "{}",
+            tr(
+                "Invalid app name format (contains invalid characters)",
+                "指定的 APP 格式错误，包含非法字符"
+            )
+        );
     }
 
     if app_name.contains("/") {
         if app_name.contains('@') {
-            bail!("指定的App格式不正确")
+            bail!(
+                "{}",
+                tr(
+                    "Invalid app format: cannot combine '/' and '@'",
+                    "指定的 App 格式不正确：不能同时包含 '/' 和 '@'"
+                )
+            );
         }
         let split_arg = app_name.split('/').collect::<Vec<&str>>();
         if split_arg.iter().count() == 2 {
             let bucket = split_arg[0].trim().to_lowercase();
             let app_name = split_arg[1].trim().to_lowercase();
             if bucket.is_empty() || app_name.is_empty() {
-                bail!("指定的App格式不正确")
+                bail!(
+                    "{}",
+                    tr(
+                        "Invalid app format: bucket or app name is empty",
+                        "指定的 App 格式不正确：bucket 或应用名为空"
+                    )
+                );
             }
             install_from_specific_bucket(&bucket, &app_name, options)?;
             return Ok(());
         } else if split_arg.iter().count() > 2 || split_arg.len() == 1 {
-            bail!("指定的APP格式错误")
+            bail!(
+                "{}",
+                tr(
+                    "Invalid app format: expected 'bucket/app'",
+                    "指定的 APP 格式错误：期望 'bucket/app'"
+                )
+            );
         }
     }
     if app_name.contains('@') {
@@ -143,16 +204,34 @@ async fn install_single_app(
             let app_version = split_version[1].trim().to_lowercase();
             log::info!("install {} specific version {}", app_name, app_version);
             if app_name.is_empty() || app_version.is_empty() {
-                bail!("指定的APP格式错误")
+                bail!(
+                    "{}",
+                    tr(
+                        "Invalid app format: app name or version is empty",
+                        "指定的 APP 格式错误：应用名或版本为空"
+                    )
+                );
             }
             install_app_specific_version(&app_name, &app_version, &options.to_vec()).await?;
             return Ok(());
         } else if split_version.len() == 1 || split_version.len() > 2 {
-            bail!("指定的APP格式错误")
+            bail!(
+                "{}",
+                tr(
+                    "Invalid app format: expected 'app@version'",
+                    "指定的 APP 格式错误：期望 'app@version'"
+                )
+            );
         }
     }
     if contains_special_char(app_name.as_str()) {
-        bail!("指定的APP格式错误")
+        bail!(
+            "{}",
+            tr(
+                "Invalid app name format (contains invalid characters)",
+                "指定的 APP 格式错误，包含非法字符"
+            )
+        );
     }
     install_app(app_name.as_str(), options)?;
     Ok(())
@@ -164,7 +243,13 @@ pub fn inject_user_options(install_args: &InstallArgs) -> anyhow::Result<Vec<Ins
         // as_ref 引用原始数据
         let arch = arch.trim();
         if arch != "64bit" && arch != "32bit" && arch != "arm64" {
-            bail!("arch 格式错误, 请使用 64bit, 32bit, arm64")
+            bail!(
+                "{}",
+                tr(
+                    "Invalid arch option, please use 64bit, 32bit, or arm64",
+                    "arch 格式错误, 请使用 64bit, 32bit, arm64"
+                )
+            );
         }
         if arch.is_empty() {
             let arch = get_system_default_arch()?;
@@ -173,7 +258,13 @@ pub fn inject_user_options(install_args: &InstallArgs) -> anyhow::Result<Vec<Ins
                 "32bit" => "32bit",
                 "arm64" => "arm64",
                 _ => {
-                    bail!("获取系统默认架构失败")
+                    bail!(
+                        "{}",
+                        tr(
+                            "Failed to get system default architecture",
+                            "获取系统默认架构失败"
+                        )
+                    );
                 }
             };
             install_options.push(InstallOptions::ArchOptions(arch));

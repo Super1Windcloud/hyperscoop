@@ -1,4 +1,6 @@
+use crate::i18n::tr;
 use crate::init_env::get_persist_dir_path_global;
+use crate::tr_fmt;
 use anyhow::{Context, bail};
 use sha2::{Digest, Sha256};
 #[cfg(windows)]
@@ -85,7 +87,10 @@ pub fn get_system_env_var(_var_key: &str) -> Result<String, anyhow::Error> {
 #[cfg(windows)]
 pub fn set_user_env_var(var_key: &str, var_value: &str) -> Result<(), anyhow::Error> {
     if var_key.is_empty() || var_value.is_empty() {
-        bail!("Environment variable  can't be empty ");
+        bail!(tr(
+            "Environment variable cannot be empty",
+            "环境变量不能为空"
+        ));
     }
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
     let environment_key = hkcu.open_subkey_with_flags("Environment", KEY_ALL_ACCESS)?;
@@ -101,7 +106,10 @@ pub fn set_user_env_var(_var_key: &str, _var_value: &str) -> Result<(), anyhow::
 #[cfg(windows)]
 pub fn set_global_env_var(var_key: &str, var_value: &str) -> Result<(), anyhow::Error> {
     if var_key.is_empty() || var_value.is_empty() {
-        bail!("Environment variable  can't be empty ");
+        bail!(tr(
+            "Environment variable cannot be empty",
+            "环境变量不能为空"
+        ));
     }
     let hkcu = RegKey::predef(HKEY_LOCAL_MACHINE);
     let key = r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment";
@@ -111,7 +119,10 @@ pub fn set_global_env_var(var_key: &str, var_value: &str) -> Result<(), anyhow::
     if (environment_key.set_value(var_key, &var_value) as Result<(), std::io::Error>).is_ok() {
         return Ok(());
     }
-    bail!("Failed to add system environment variable.");
+    bail!(tr(
+        "Failed to add system environment variable.",
+        "添加系统环境变量失败。"
+    ));
 }
 #[cfg(not(windows))]
 pub fn set_global_env_var(_var_key: &str, _var_value: &str) -> Result<(), anyhow::Error> {
@@ -212,7 +223,7 @@ pub fn get_user_env_str() -> String {
 
 #[cfg(windows)]
 pub fn request_admin(cli_args: &str) -> anyhow::Result<()> {
-    let exe_path = std::env::current_exe().expect("无法获取程序路径");
+    let exe_path = std::env::current_exe().expect("Failed to get current executable path");
 
     let exe_path_wide: Vec<u16> = exe_path.as_os_str().encode_wide().chain(once(0)).collect();
 
@@ -237,7 +248,14 @@ pub fn request_admin(cli_args: &str) -> anyhow::Result<()> {
             SW_SHOWNORMAL,
         );
         if result.0 as u32 <= 32 {
-            bail!("提权失败，ShellExecuteW 返回值: {}", result.0 as u32);
+            bail!(
+                "{}",
+                tr_fmt!(
+                    "Elevation failed, ShellExecuteW return code: {code}",
+                    "提权失败，ShellExecuteW 返回值: {code}",
+                    code = result.0 as u32
+                )
+            );
         } else {
             Ok(())
         }
@@ -245,7 +263,10 @@ pub fn request_admin(cli_args: &str) -> anyhow::Result<()> {
 }
 #[cfg(not(windows))]
 pub fn request_admin(_cli_args: &str) -> anyhow::Result<()> {
-    bail!("request_admin is only supported on Windows");
+    bail!(tr(
+        "request_admin is only supported on Windows",
+        "request_admin 仅在 Windows 上受支持"
+    ));
 }
 
 #[cfg(windows)]
@@ -259,7 +280,7 @@ pub fn is_admin() -> anyhow::Result<bool> {
 
 #[cfg(windows)]
 pub fn request_admin_and_wait(args: &str) {
-    let exe_path = std::env::current_exe().expect("无法获取程序路径");
+    let exe_path = std::env::current_exe().expect("Failed to get current executable path");
 
     let exe_wide: Vec<u16> = exe_path.as_os_str().encode_wide().chain(once(0)).collect();
     let args_wide: Vec<u16> = OsStr::new(args).encode_wide().chain(once(0)).collect();
@@ -282,7 +303,11 @@ pub fn request_admin_and_wait(args: &str) {
 
     let success = unsafe { ShellExecuteExW(&mut info) };
     if success.is_err() {
-        panic!("提权失败 {}", success.unwrap_err());
+        panic!(
+            "{}: {}",
+            tr("Elevation failed", "提权失败"),
+            success.unwrap_err()
+        );
     }
 
     let handle: HANDLE = info.hProcess;
@@ -292,12 +317,22 @@ pub fn request_admin_and_wait(args: &str) {
 }
 #[cfg(not(windows))]
 pub fn request_admin_and_wait(_args: &str) {
-    panic!("request_admin_and_wait is only supported on Windows");
+    panic!(
+        "{}",
+        tr(
+            "request_admin_and_wait is only supported on Windows",
+            "request_admin_and_wait 仅在 Windows 上受支持"
+        )
+    );
 }
 
 pub fn compute_hash_by_powershell(file_path: &str, algorithm: &str) -> anyhow::Result<String> {
     if !algorithm.eq_ignore_ascii_case("sha256") {
-        bail!("unsupported hash algorithm: {algorithm}");
+        bail!(tr_fmt!(
+            "Unsupported hash algorithm: {algorithm}",
+            "不支持的哈希算法: {algorithm}",
+            algorithm = algorithm
+        ));
     }
 
     let mut file = fs::File::open(file_path)

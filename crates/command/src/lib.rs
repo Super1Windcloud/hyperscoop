@@ -57,6 +57,7 @@
 
 pub mod buckets;
 pub mod cat;
+pub mod i18n;
 pub mod init_env;
 pub mod list;
 pub mod merge;

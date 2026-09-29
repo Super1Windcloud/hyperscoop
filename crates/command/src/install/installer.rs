@@ -1,3 +1,4 @@
+use crate::i18n::tr;
 use crate::init_env::{
     get_app_current_dir, get_app_current_dir_global, get_app_version_dir,
     get_app_version_dir_global, get_persist_dir_path, get_persist_dir_path_global,
@@ -12,6 +13,7 @@ use crate::manifest::install_manifest::{SuggestObj, SuggestObjValue};
 use crate::manifest::manifest_deserialize::{
     ArchitectureObject, PSModuleStruct, StringArrayOrString, StringOrArrayOrDoubleDimensionArray,
 };
+use crate::tr_fmt;
 use crate::utils::system::{
     get_system_default_arch, get_system_env_str, get_system_env_var, get_user_env_str,
     get_user_env_var, set_global_env_var, set_user_env_var,
@@ -35,7 +37,12 @@ use which::which;
 pub fn show_suggest(suggest: &SuggestObj) -> anyhow::Result<()> {
     println!(
         "{}",
-        "建议安装以下依赖包 :".to_string().dark_yellow().bold()
+        tr(
+            "Suggested dependencies to install :",
+            "建议安装以下依赖包 :"
+        )
+        .dark_yellow()
+        .bold()
     );
 
     for item in suggest {
@@ -69,14 +76,18 @@ pub fn show_suggest(suggest: &SuggestObj) -> anyhow::Result<()> {
 pub fn show_notes(notes: StringArrayOrString) -> anyhow::Result<()> {
     match notes {
         StringArrayOrString::StringArray(notes) => {
-            println!("{}", "Notes : ".to_string().dark_cyan().bold());
+            println!("{}", tr("Notes : ", "说明/提示 : ").dark_cyan().bold());
             println!("{}", "_____ : ".to_string().dark_cyan().bold());
             for note in notes {
                 println!(" {}", note.clone().dark_grey().bold());
             }
         }
         StringArrayOrString::String(note) => {
-            println!("Notes : {}", note.clone().dark_grey().bold());
+            println!(
+                "{} {}",
+                tr("Notes : ", "说明/提示 : ").dark_cyan().bold(),
+                note.clone().dark_grey().bold()
+            );
         }
         StringArrayOrString::Null => {}
     }
@@ -111,13 +122,25 @@ pub fn handle_arch(arch: &[InstallOptions]) -> anyhow::Result<String> {
             .collect::<Vec<&str>>();
         let option_arch = option_arch[0];
         if option_arch != "64bit" && option_arch != "32bit" && option_arch != "arm64" {
-            bail!("选择安装的架构错误 ,(64bit,32bit,arm64)")
+            bail!(
+                "{}",
+                tr(
+                    "Invalid architecture selected, choose from 64bit, 32bit, arm64",
+                    "选择安装的架构错误 ,(64bit,32bit,arm64)"
+                )
+            )
         };
         Ok(option_arch.parse()?)
     } else {
         let system_arch = get_system_default_arch()?;
         if system_arch.is_empty() {
-            bail!("获取系统默认架构失败")
+            bail!(
+                "{}",
+                tr(
+                    "Failed to get system default architecture",
+                    "获取系统默认架构失败"
+                )
+            )
         }
         Ok(system_arch)
     }
@@ -175,10 +198,14 @@ pub fn install_psmodule(
     if Path::new(&link_dir).exists() {
         eprintln!(
             "{}",
-            format!("{link_dir} is already exists. It will be replaced.")
-                .dark_grey()
-                .bold()
-                .to_string()
+            tr_fmt!(
+                "{link_dir} already exists. It will be replaced.",
+                "{link_dir} 已存在，将被替换。",
+                link_dir = link_dir
+            )
+            .dark_grey()
+            .bold()
+            .to_string()
         );
         std::fs::remove_dir_all(&link_dir).context(format!(
             "remove old module dir link failed {} at line 178",
@@ -189,7 +216,7 @@ pub fn install_psmodule(
         .context("Create ps module dir symlink failed at line 180")?;
     println!(
         "{}  {} => {}",
-        "Linking".dark_blue().bold(),
+        tr("Linking", "正在链接").dark_blue().bold(),
         link_dir.dark_green().bold(),
         app_version_dir.dark_green().bold()
     );

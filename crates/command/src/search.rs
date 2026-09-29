@@ -1,6 +1,8 @@
 use crate::buckets::{get_buckets_path, get_global_all_buckets_dir};
+use crate::i18n::tr;
 use crate::info::validate_app_name;
 use crate::list::get_all_installed_apps_name;
+use crate::tr_fmt;
 use crate::utils::detect_encoding::transform_to_only_version_manifest;
 use anyhow::{Context, bail};
 use crossterm::style::Stylize;
@@ -43,14 +45,21 @@ pub fn fuzzy_search(query: String, global: bool) -> anyhow::Result<()> {
         if count == 0 {
             println!(
                 "\t{}",
-                "No results found...\n".to_string().dark_green().bold()
+                tr("No results found...\n", "未找到匹配结果...\n")
+                    .dark_green()
+                    .bold()
             );
             return Ok(());
         }
         println!(
-            "\t\t{} {}",
-            count.to_string().dark_green().bold(),
-            "Results from local buckets...\n".dark_green().bold()
+            "\t\t{}",
+            tr_fmt!(
+                "{count} Results from local buckets...\n",
+                "本地 buckets 中匹配到 {count} 个结果...\n",
+                count = count
+            )
+            .dark_green()
+            .bold()
         );
 
         sort_result_by_bucket_name(result_info);
@@ -186,7 +195,14 @@ fn search_app_in_specific_bucket(
         })
         .collect();
     if !path.exists() {
-        bail!("Bucket '{}' dir is not exist", bucket)
+        bail!(
+            "{}",
+            tr_fmt!(
+                "Bucket '{bucket}' directory does not exist",
+                "Bucket '{bucket}' 目录不存在",
+                bucket = bucket
+            )
+        );
     };
 
     if path.is_dir() {
@@ -196,15 +212,22 @@ fn search_app_in_specific_bucket(
         if count == 0 {
             println!(
                 "\t{}",
-                "No results found...\n".to_string().dark_green().bold()
+                tr("No results found...\n", "未找到匹配结果...\n")
+                    .dark_green()
+                    .bold()
             );
             return Ok(());
         }
 
         println!(
-            "\t{} {}",
-            count.to_string().dark_green().bold(),
-            "Results from local buckets...\n".dark_green().bold()
+            "\t{}",
+            tr_fmt!(
+                "{count} Results from local buckets...\n",
+                "本地 buckets 中匹配到 {count} 个结果...\n",
+                count = count
+            )
+            .dark_green()
+            .bold()
         );
 
         sort_result_by_bucket_name(result_info);
@@ -408,9 +431,9 @@ fn display_result(result: &Vec<(String, String, String)>) {
             println!(
                 "{} {:<name_width$ }{:<version_width$}{:<bucket_width$ } {}",
                 "|".dark_magenta().bold(),
-                "Name",
-                "Version",
-                "Source",
+                tr("Name", "名称"),
+                tr("Version", "版本"),
+                tr("Source", "来源"),
                 "|".dark_magenta().bold(),
                 name_width = name_width,
                 version_width = version_width,

@@ -1,5 +1,5 @@
 use crate::command_args::which::WhichArgs;
-use crate::i18n::tr;
+use crate::i18n::{tr, tr_fmt};
 use anyhow::{Context, bail};
 use command_util_lib::init_env::{
     get_app_current_dir, get_app_current_dir_global, get_shims_root_dir, get_shims_root_dir_global,
@@ -27,7 +27,14 @@ pub fn execute_which_command(command: WhichArgs) -> Result<(), anyhow::Error> {
         }
     }
     if !errors.is_empty() {
-        bail!("Failed to locate {} command(s)", errors.len());
+        bail!(
+            "{}",
+            tr_fmt!(
+                "Failed to locate {count} command(s)",
+                "定位 {count} 个命令失败",
+                count = errors.len()
+            )
+        );
     }
     Ok(())
 }
@@ -50,19 +57,21 @@ fn which_single_command(name: &str, global: bool) -> Result<(), anyhow::Error> {
         output_current_exe(path, shim_root_dir.as_str())?;
     } else {
         if !Path::new(&current_dir).exists() {
-            bail!(format!(
-                "{} {path}",
-                tr("{path} does not exist", "{path} 不存在"),
-                path = current_dir
-            ))
+            bail!(
+                "{}",
+                tr_fmt!("{path} does not exist", "{path} 不存在", path = current_dir)
+            );
         } else {
             let manifest_json = format!("{}\\manifest.json", current_dir);
             if !Path::new(&manifest_json).exists() {
-                bail!(format!(
-                    "{} {path}",
-                    tr("{path} does not exist", "{path} 不存在"),
-                    path = manifest_json
-                ))
+                bail!(
+                    "{}",
+                    tr_fmt!(
+                        "{path} does not exist",
+                        "{path} 不存在",
+                        path = manifest_json
+                    )
+                );
             } else {
                 let manifest_json_content =
                     std::fs::read_to_string(&manifest_json).context(format!(
@@ -77,11 +86,14 @@ fn which_single_command(name: &str, global: bool) -> Result<(), anyhow::Error> {
 
                 let install_json = format!("{}\\install.json", current_dir);
                 if !Path::new(&install_json).exists() {
-                    bail!(format!(
-                        "{} {path}",
-                        tr("{path} does not exist", "{path} 不存在"),
-                        path = install_json
-                    ))
+                    bail!(
+                        "{}",
+                        tr_fmt!(
+                            "{path} does not exist",
+                            "{path} 不存在",
+                            path = install_json
+                        )
+                    );
                 }
                 let install_json_content = std::fs::read_to_string(&install_json).context(
                     format!("Failed to read install.json file {}", &install_json),
@@ -154,22 +166,24 @@ pub fn output_current_exe(path: PathBuf, shim_root_dir: &str) -> anyhow::Result<
 
     let splits = path.split(".").collect::<Vec<&str>>();
     if splits.len() != 2 {
-        bail!(format!(
-            "{} {path}",
-            tr("{path} is not a valid path", "{path} 不是有效路径"),
-            path = path
-        ))
+        bail!(
+            "{}",
+            tr_fmt!(
+                "{path} is not a valid path",
+                "{path} 不是有效路径",
+                path = path
+            )
+        );
     }
     let prefix = splits[0];
     let suffix = splits[1];
     if suffix == "exe" || suffix == "com" {
         let shim_file = format!("{}.shim", prefix);
         if !Path::new(&shim_file).exists() {
-            bail!(format!(
-                "{} {path}",
-                tr("{path} does not exist", "{path} 不存在"),
-                path = shim_file
-            ))
+            bail!(
+                "{}",
+                tr_fmt!("{path} does not exist", "{path} 不存在", path = shim_file)
+            );
         }
         let content = std::fs::read_to_string(&shim_file)
             .context(format!("Failed to read shim file {}", &shim_file))?;
@@ -179,24 +193,30 @@ pub fn output_current_exe(path: PathBuf, shim_root_dir: &str) -> anyhow::Result<
     } else if suffix == "cmd" || suffix == "bat" || suffix == "ps1" {
         let cmd_file = format!("{}.cmd", prefix);
         if !Path::new(&cmd_file).exists() {
-            bail!(format!(
-                "{} {path}",
-                tr("{path} does not exist", "{path} 不存在"),
-                path = cmd_file
-            ))
+            bail!(
+                "{}",
+                tr_fmt!("{path} does not exist", "{path} 不存在", path = cmd_file)
+            );
         }
         let content = extract_rem_comments(cmd_file.as_str());
         println!("{}", content.dark_green().bold());
     } else {
         eprintln!(
             "{}",
-            format!("{} {}", tr("Unknown suffix: {}", "未知后缀: {}"), suffix)
+            tr_fmt!(
+                "Unknown suffix: {suffix}",
+                "未知后缀: {suffix}",
+                suffix = suffix
+            )
         );
-        bail!(format!(
-            "{} {path}",
-            tr("{path} is not a valid path", "{path} 不是有效路径"),
-            path = path
-        ))
+        bail!(
+            "{}",
+            tr_fmt!(
+                "{path} is not a valid path",
+                "{path} 不是有效路径",
+                path = path
+            )
+        );
     }
 
     Ok(())
@@ -260,10 +280,10 @@ pub fn match_bin_parser(
                     _ => {
                         println!(
                             "{}",
-                            format!(
-                                "{} {:?}",
-                                tr("Unexpected bin format: {:?}", "无法识别的 bin 格式: {:?}"),
-                                nest_arr
+                            tr_fmt!(
+                                "Unexpected bin format: {arr:?}",
+                                "无法识别的 bin 格式: {arr:?}",
+                                arr = nest_arr
                             )
                         );
                     }

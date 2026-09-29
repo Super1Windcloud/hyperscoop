@@ -1,4 +1,6 @@
+use crate::i18n::tr;
 use crate::init_env::{get_cache_dir_path, get_cache_dir_path_global};
+use crate::tr_fmt;
 use anyhow::{Context, bail};
 use crossterm::style::Stylize;
 use std::path::Path;
@@ -10,10 +12,14 @@ pub fn display_all_cache_info(is_global: bool) -> anyhow::Result<()> {
         get_cache_dir_path()
     };
     if !Path::new(&cache_dir).exists() {
-        bail!("cache dir does not exist: {:?}", &cache_dir);
+        bail!(tr_fmt!(
+            "Cache directory does not exist: {dir}",
+            "缓存目录不存在: {dir}",
+            dir = cache_dir
+        ));
     }
     let cache_files =
-        std::fs::read_dir(cache_dir).context("Failed to read cache root directory at line 16 ")?;
+        std::fs::read_dir(&cache_dir).context("Failed to read cache root directory at line 16 ")?;
     let mut infos = Vec::new();
     let mut count = 0;
     for file in cache_files {
@@ -47,21 +53,24 @@ pub fn display_all_cache_info(is_global: bool) -> anyhow::Result<()> {
     let total_size = infos.iter().fold(0f64, |acc, x| acc + x.2);
     let total_size_parsed = format!("{:.2}", total_size);
     println!(
-        "{} {} {} {} {}\n",
-        "Total : ".to_string().dark_yellow().bold(),
-        count.to_string().dark_yellow().bold(),
-        "Files, ".to_string().dark_yellow().bold(),
-        total_size_parsed.to_string().dark_yellow().bold(),
-        "MB".to_string().dark_yellow().bold()
+        "{}",
+        tr_fmt!(
+            "Total: {count} Files, {size} MB\n",
+            "总计: {count} 个文件, {size} MB\n",
+            count = count,
+            size = total_size_parsed
+        )
+        .dark_yellow()
+        .bold()
     );
     if count == 0 {
         return Ok(());
     }
     println!(
         "{:<30}\t\t{:<30}\t\t{:<30}",
-        "Name".green().bold(),
-        "Version".green().bold(),
-        "Size".green().bold()
+        tr("Name", "名称").green().bold(),
+        tr("Version", "版本").green().bold(),
+        tr("Size", "大小").green().bold()
     );
     println!(
         "{:<30}\t\t{:<30}\t\t{:<30}",
@@ -93,7 +102,11 @@ pub fn display_specified_cache_info(app_name: &str, is_global: bool) -> anyhow::
         get_cache_dir_path()
     };
     if !Path::new(&cache_dir).exists() {
-        bail!("cache dir does not exist: {:?}", &cache_dir);
+        bail!(tr_fmt!(
+            "Cache directory does not exist: {dir}",
+            "缓存目录不存在: {dir}",
+            dir = cache_dir
+        ));
     }
     if app_name.is_empty() || app_name.trim() == "*" {
         rm_cache_file(cache_dir)?;
@@ -101,7 +114,7 @@ pub fn display_specified_cache_info(app_name: &str, is_global: bool) -> anyhow::
     }
     log::info!("display_specified_cache_info : {}", app_name);
     let cache_files =
-        std::fs::read_dir(cache_dir).context("Failed to read cache root directory at line 101")?;
+        std::fs::read_dir(&cache_dir).context("Failed to read cache root directory at line 101")?;
     let mut size = 0f64;
     let mut flag = false;
     for file in cache_files {
@@ -122,20 +135,35 @@ pub fn display_specified_cache_info(app_name: &str, is_global: bool) -> anyhow::
                     .len() as f64)
                     / 1024f64
                     / 1024f64;
-            println!("Removing cache file : {}", path_name.green().bold());
+            println!(
+                "{}",
+                tr_fmt!(
+                    "Removing cache file: {name}",
+                    "正在清理缓存文件: {name}",
+                    name = path_name.green().bold()
+                )
+            );
             std::fs::remove_file(t).context("Failed to remove cache file at line 120")?;
             flag = true;
         }
     }
     if !flag {
-        bail!("{} cache is not exist ", &app_name);
+        bail!(tr_fmt!(
+            "Cache for '{app_name}' does not exist",
+            "应用 '{app_name}' 的缓存不存在",
+            app_name = app_name
+        ));
     }
     let size = format!("{:.2}", size);
     println!(
-        "{} {} {}",
-        "Deleted  : 1 File,".to_string().dark_yellow().bold(),
-        size.to_string().dark_yellow().bold(),
-        "MB".dark_yellow().bold()
+        "{}",
+        tr_fmt!(
+            "Deleted: 1 File, {size} MB",
+            "已删除: 1 个文件, {size} MB",
+            size = size
+        )
+        .dark_yellow()
+        .bold()
     );
     Ok(())
 }
@@ -147,7 +175,11 @@ pub fn rm_all_cache(is_global: bool) -> anyhow::Result<()> {
         get_cache_dir_path()
     };
     if !Path::new(&cache_dir).exists() {
-        bail!("cache dir does not exist: {:?}", &cache_dir);
+        bail!(tr_fmt!(
+            "Cache directory does not exist: {dir}",
+            "缓存目录不存在: {dir}",
+            dir = cache_dir
+        ));
     }
     rm_cache_file(cache_dir)?;
     Ok(())
@@ -166,15 +198,14 @@ fn rm_cache_file(cache_dir: String) -> anyhow::Result<()> {
                 .len() as f64)
                 / 1024f64
                 / 1024f64;
+            let file_name_display = path.file_name().unwrap().to_str().unwrap().to_string();
             println!(
-                "Removing cache file : {}",
-                path.file_name()
-                    .unwrap()
-                    .to_str()
-                    .unwrap()
-                    .to_string()
-                    .green()
-                    .bold()
+                "{}",
+                tr_fmt!(
+                    "Removing cache file: {name}",
+                    "正在清理缓存文件: {name}",
+                    name = file_name_display.green().bold()
+                )
             );
             std::fs::remove_file(&path).expect("Failed to remove file");
             count += 1;
@@ -183,12 +214,15 @@ fn rm_cache_file(cache_dir: String) -> anyhow::Result<()> {
     }
     let size = format!("{:.2}", size);
     println!(
-        "{} {} {} {} {}",
-        "Deleted  : ".to_string().dark_yellow().bold(),
-        count.to_string().dark_yellow().bold(),
-        "Files, ".to_string().dark_yellow().bold(),
-        size.to_string().dark_yellow().bold(),
-        "MB".to_string().dark_yellow().bold()
+        "{}",
+        tr_fmt!(
+            "Deleted: {count} Files, {size} MB",
+            "已删除: {count} 个文件, {size} MB",
+            count = count,
+            size = size
+        )
+        .dark_yellow()
+        .bold()
     );
 
     Ok(())

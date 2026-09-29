@@ -1,3 +1,4 @@
+use crate::i18n::tr;
 use crate::init_env::{
     get_apps_path, get_apps_path_global, get_buckets_root_dir_path,
     get_buckets_root_dir_path_global,
@@ -71,18 +72,25 @@ impl Buckets {
                         let delete_path = Path::new(bucket_path);
                         self.delete_dir_recursively(&delete_path)
                             .expect("Failed to remove directory");
-                        println!("{}", "删除成功".dark_red().bold().to_string());
+                        println!(
+                            "{}",
+                            tr("Bucket deleted successfully", "删除成功")
+                                .dark_red()
+                                .bold()
+                        );
                         return Ok(());
                     }
                 }
             }
         }
-        Err(anyhow!("bucket not found").context("没有这个名字的bucket"))
+        Err(anyhow!(tr("bucket not found", "没有这个名字的bucket")))
     }
     fn delete_dir_recursively(&self, bucket_path: &Path) -> Result<(), anyhow::Error> {
         println!(
             "{}{}",
-            "正在删除目录 : ".to_string().dark_blue().bold(),
+            tr("Deleting directory : ", "正在删除目录 : ")
+                .dark_blue()
+                .bold(),
             &bucket_path.display().to_string().dark_green().bold()
         );
         remove_dir_all(bucket_path).context(format!(
@@ -107,11 +115,12 @@ impl Buckets {
         let url = if url.is_some() {
             url.clone().unwrap()
         } else {
-            bail!("URL 不能为空")
+            bail!("{}", tr("URL cannot be empty", "URL 不能为空"))
         };
         check_name_is_valid(&bucket_name)?;
         if !url.contains("http://") && !url.contains("https://") {
-            return Err(anyhow!("Invalid URL: {}", url).context("请输入正确的 URL"));
+            return Err(anyhow!("Invalid URL: {}", url)
+                .context(tr("Please enter a valid URL", "请输入正确的 URL")));
         };
         let bucket_root_dir = if is_global {
             get_buckets_root_dir_path_global()
@@ -135,7 +144,12 @@ impl Buckets {
         bucket_path: &str,
     ) -> Result<String, anyhow::Error> {
         let bucket_path = bucket_path.to_string() + "\\" + bucket_name;
-        println!("{} ", "开始下载...... ".dark_green().bold());
+        println!(
+            "{} ",
+            tr("Starting download... ", "开始下载...... ")
+                .dark_green()
+                .bold()
+        );
         let result = request_git_clone_by_git2_with_progress(url, &bucket_path)?;
         Ok(result)
     }
@@ -151,7 +165,11 @@ impl Buckets {
             .is_none()
         {
             return Err(anyhow!(
-                "当前目录已经存在文件，请先清空目录或创建新目录: {}",
+                "{} {}",
+                tr(
+                    "Directory already contains files, please empty or create a new directory:",
+                    "当前目录已经存在文件，请先清空目录或创建新目录:"
+                ),
                 bucket_path
             ));
         }
@@ -252,7 +270,11 @@ impl Buckets {
             "Failed to read directory: {} at line 224",
             current_dir.display()
         ))? {
-            let error_message = format!("无法读取目录 {}", current_dir.clone().display());
+            let error_message = format!(
+                "{} {}",
+                tr("Unable to read directory", "无法读取目录"),
+                current_dir.clone().display()
+            );
             let path = entry.expect(error_message.as_str()).path();
             let entry: &Path = path.as_ref();
             let target_path = entry.to_string_lossy().trim().replace(&repo_name, "");
@@ -274,14 +296,23 @@ impl Buckets {
             "Failed to remove directory: {} at line 240",
             current_dir.display()
         ))?;
-        Ok("下载成功!!!".dark_green().bold().to_string())
+        Ok(tr("Download succeeded!", "下载成功!!!")
+            .dark_green()
+            .bold()
+            .to_string())
     }
 }
 
 fn check_name_is_valid(app_name: &String) -> anyhow::Result<()> {
     let re = Regex::new(r"^[a-zA-Z0-9_-]+$")?;
     if !re.is_match(app_name) {
-        bail!("Repo Name 格式无效,请使用字母、数字、下划线或连字符")
+        bail!(
+            "{}",
+            tr(
+                "Invalid repo name format, please use letters, numbers, underscores, or hyphens",
+                "Repo Name 格式无效,请使用字母、数字、下划线或连字符"
+            )
+        )
     }
     Ok(())
 }
@@ -535,8 +566,15 @@ pub fn get_hp_bucket_repo_path(bucket_name: &str) -> anyhow::Result<Option<Strin
             .into_iter()
             .zip(bucket_paths.into_iter())
             .find(|(url, _)| url.contains("hyperscoop_source_bucket"))
-            .ok_or_else(|| anyhow!("未找到 hyperscoop_source_bucket 仓库"))
-            as anyhow::Result<(String, String)>;
+            .ok_or_else(|| {
+                anyhow!(
+                    "{}",
+                    tr(
+                        "Repository hyperscoop_source_bucket not found",
+                        "未找到 hyperscoop_source_bucket 仓库"
+                    )
+                )
+            }) as anyhow::Result<(String, String)>;
 
         if result.is_err() {
             bail!(result.err().unwrap())
@@ -660,7 +698,7 @@ impl Buckets {
                 let url = &captures[1]; // 提取捕获的第一个组，即 URL
                 known_source.push(url.to_string());
             } else {
-                println!("未找到 URL");
+                println!("{}", tr("URL not found", "未找到 URL"));
             };
             known_name.push(name);
         }

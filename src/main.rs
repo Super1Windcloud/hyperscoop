@@ -153,15 +153,21 @@ struct Cli {
 
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> anyhow::Result<()> {
-    if !cfg!(windows) {
-        eprintln!("Error: hyperscoop (hp) only supports Windows.");
-        std::process::exit(1);
-    }
-
     command_util_lib::disable_git2_owner_validation();
 
     let preselected_language = i18n::detect_language_choice_from_args();
     i18n::init_language(preselected_language);
+
+    if !cfg!(windows) {
+        eprintln!(
+            "{}",
+            tr(
+                "Error: hyperscoop (hp) only supports Windows.",
+                "错误: hyperscoop (hp) 仅支持 Windows 系统。"
+            )
+        );
+        std::process::exit(1);
+    }
     let cli = Cli::parse();
     init_color_output(cli.no_color);
     unsafe {

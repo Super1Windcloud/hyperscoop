@@ -1,4 +1,5 @@
 use crate::buckets::{get_buckets_name, get_buckets_path};
+use crate::tr_fmt;
 use crate::utils::git::{
     git_pull_update_repo, git_pull_update_repo_with_scoop, local_scoop_latest_commit,
     remote_latest_scoop_commit,
@@ -43,9 +44,13 @@ pub fn update_all_apps(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
         if is_app_held(&app, is_global) {
             println!(
                 "{}",
-                format!("🔒 '{app}' is held, skipping update")
-                    .dark_yellow()
-                    .bold()
+                tr_fmt!(
+                    "🔒 '{app}' is held, skipping update",
+                    "🔒 '{app}' 已锁定，跳过更新",
+                    app = app
+                )
+                .dark_yellow()
+                .bold()
             );
             continue;
         }
@@ -134,9 +139,13 @@ pub fn update_specific_app(app_name: &str, options: &[UpdateOptions]) -> Result<
     if is_app_held(app_name, is_global) && !origin_options.contains(&ForceUpdateOverride) {
         println!(
             "{}",
-            format!("🔒 '{app_name}' is held. Use 'hp hold -u {app_name}' to unhold before updating, or use --force.")
-                .dark_yellow()
-                .bold()
+            tr_fmt!(
+                "🔒 '{app_name}' is held. Use 'hp hold -u {app_name}' to unhold before updating, or use --force.",
+                "🔒 '{app_name}' 已锁定。更新前请使用 'hp hold -u {app_name}' 解除锁定，或使用 --force 强制更新。",
+                app_name = app_name
+            )
+            .dark_yellow()
+            .bold()
         );
         return Ok(());
     }
@@ -160,10 +169,14 @@ pub fn update_specific_app(app_name: &str, options: &[UpdateOptions]) -> Result<
                 let version = version.unwrap();
                 println!(
                     "{}",
-                    format!("🐉🎉🍾🐦‍🔥 {app_name}({version}) 已是最新版本,无需更新")
-                        .dark_cyan()
-                        .bold()
-                        .to_string()
+                    tr_fmt!(
+                        "🐉🎉🍾🐦‍🔥 '{app_name}' ({version}) is already up to date",
+                        "🐉🎉🍾🐦‍🔥 '{app_name}' ({version}) 已是最新版本，无需更新",
+                        app_name = app_name,
+                        version = version
+                    )
+                    .dark_cyan()
+                    .bold()
                 );
                 return Ok(());
             }

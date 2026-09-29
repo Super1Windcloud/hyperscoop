@@ -501,10 +501,7 @@ fn check_antivirus() -> anyhow::Result<CheckupResult> {
             fix_hint: None,
         }),
         Err(e) => {
-            eprintln!(
-                "{}",
-                format!("{} {}", tr("Error: {}", "错误: {}"), e.to_string())
-            );
+            eprintln!("{}: {}", tr("Error", "错误"), e);
             Err(CheckupError::ServiceError.into())
         }
     }

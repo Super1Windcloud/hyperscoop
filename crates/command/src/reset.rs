@@ -1,6 +1,8 @@
+use crate::i18n::tr;
 use crate::init_env::{get_app_dir, get_app_dir_global};
 use crate::install::{InstallOptions, create_shims_file};
 use crate::manifest::install_manifest::InstallManifest;
+use crate::tr_fmt;
 use crate::utils::system::get_system_default_arch;
 use crate::utils::utility::compare_versions;
 use anyhow::{Context, bail};
@@ -35,7 +37,7 @@ pub fn reset_latest_version(
     let app_dir = Path::new(&app_dir);
     let app_current_path = app_dir.join("current");
     if count < 1 {
-        bail!("app 文件目录为空")
+        bail!("{}", tr("App directory is empty", "app 文件目录为空"))
     } else if count == 1 {
         if app_current_path.exists() {
             std::fs::remove_dir_all(&app_current_path).context(format!(
@@ -53,9 +55,13 @@ pub fn reset_latest_version(
         }
         println!(
             "{} {} => {}",
-            format!("Resetting '{name}' successfully!")
-                .dark_blue()
-                .bold(),
+            tr_fmt!(
+                "Resetting '{name}' successfully!",
+                "重置 '{name}' 成功！",
+                name = name
+            )
+            .dark_blue()
+            .bold(),
             app_current_path.display().to_string().dark_green().bold(),
             version_path.display().to_string().dark_green().bold()
         );
@@ -79,9 +85,14 @@ pub fn reset_latest_version(
             .context("Failed to create app symlink for reset at line 80")?;
         println!(
             "{}",
-            format!("Resetting {}@{} successfully!", name, &max_version)
-                .dark_green()
-                .bold()
+            tr_fmt!(
+                "Resetting {name}@{version} successfully!",
+                "重置 {name}@{version} 成功！",
+                name = name,
+                version = max_version
+            )
+            .dark_green()
+            .bold()
         );
     }
     if shim_reset {
@@ -93,9 +104,10 @@ pub fn reset_latest_version(
 fn reset_shim_file(app_name: &str, app_current_path: PathBuf, global: bool) -> anyhow::Result<()> {
     let manifest_path = app_current_path.join("manifest.json");
     if !manifest_path.exists() {
-        bail!(format!(
-            "manifest.json not found in {} dir",
-            app_current_path.display()
+        bail!(tr_fmt!(
+            "manifest.json not found in {dir} directory",
+            "目录 {dir} 中未找到 manifest.json",
+            dir = app_current_path.display()
         ));
     }
     let manifest_json = std::fs::read_to_string(manifest_path)
@@ -140,7 +152,12 @@ pub fn reset_specific_version(
     };
     let version_path = Path::new(&app_dir).join(version);
     if !version_path.exists() {
-        bail!("special version not found in {app_dir} dir")
+        bail!(tr_fmt!(
+            "Specified version '{version}' not found in {app_dir}",
+            "在 {app_dir} 中未找到指定的版本 '{version}'",
+            version = version,
+            app_dir = app_dir
+        ));
     }
 
     let app_dir = Path::new(&app_dir);
@@ -163,9 +180,14 @@ pub fn reset_specific_version(
     }
     println!(
         "{}",
-        format!("Resetting {}@{} successfully!", name, version)
-            .dark_green()
-            .bold()
+        tr_fmt!(
+            "Resetting {name}@{version} successfully!",
+            "重置 {name}@{version} 成功！",
+            name = name,
+            version = version
+        )
+        .dark_green()
+        .bold()
     );
     if shim_reset {
         reset_shim_file(name, app_current_path, global)?;

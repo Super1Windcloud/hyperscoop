@@ -21,7 +21,7 @@ fn main() {
     let start_time = std::time::Instant::now();
     test_invoke_uninstall_hook_script();
     let end_time = std::time::Instant::now();
-    println!("程序运行时间：{:?}", end_time.duration_since(start_time));
+    println!("Elapsed time: {:?}", end_time.duration_since(start_time));
 }
 fn find_manifest_same_version_count_more_than_one() {
     let path = r"C:\Users\superuse\super\version_log";

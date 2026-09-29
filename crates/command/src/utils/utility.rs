@@ -1,7 +1,9 @@
+use crate::i18n::tr;
 use crate::init_env::init_user_scoop;
 use crate::install::InstallOptions;
 use crate::install::InstallOptions::InteractiveInstall;
 use crate::merge::Merge;
+use crate::tr_fmt;
 use crate::utils::system::get_system_current_time;
 use anyhow::{Context, bail};
 use chrono::Local;
@@ -227,10 +229,14 @@ pub fn remove_bom_and_control_chars_from_utf8_file<P: AsRef<Path>>(
 
 pub fn assume_yes_to_cover_shim(path: &str) -> anyhow::Result<bool> {
     use dialoguer::Confirm;
-    let message = format!("文件{path}已存在,建议检查,是否进行覆盖?(y/n)")
-        .dark_cyan()
-        .bold()
-        .to_string();
+    let message = tr_fmt!(
+        "File '{path}' already exists, recommend checking. Overwrite? (y/n)",
+        "文件 '{path}' 已存在，建议检查，是否进行覆盖? (y/n)",
+        path = path
+    )
+    .dark_cyan()
+    .bold()
+    .to_string();
 
     match Confirm::new()
         .with_prompt(message)
@@ -251,10 +257,14 @@ pub fn assume_yes_to_cover_shim(path: &str) -> anyhow::Result<bool> {
 
 pub fn assume_yes_to_cover_shortcuts(path: &str) -> anyhow::Result<bool> {
     use dialoguer::Confirm;
-    let message = format!("快捷方式'{path}'已存在,建议检查,是否进行覆盖?(y/n)")
-        .dark_cyan()
-        .bold()
-        .to_string();
+    let message = tr_fmt!(
+        "Shortcut '{path}' already exists, recommend checking. Overwrite? (y/n)",
+        "快捷方式 '{path}' 已存在，建议检查，是否进行覆盖? (y/n)",
+        path = path
+    )
+    .dark_cyan()
+    .bold()
+    .to_string();
 
     match Confirm::new()
         .with_prompt(message)
@@ -275,10 +285,14 @@ pub fn assume_yes_to_cover_shortcuts(path: &str) -> anyhow::Result<bool> {
 
 pub fn assume_yes_to_cover_folder(path: &str) -> anyhow::Result<bool> {
     use dialoguer::Confirm;
-    let message = format!("该目录'{path}'已存在,建议检查,是否进行删除?(y/n)")
-        .dark_cyan()
-        .bold()
-        .to_string();
+    let message = tr_fmt!(
+        "Directory '{path}' already exists, recommend checking. Delete it? (y/n)",
+        "该目录 '{path}' 已存在，建议检查，是否进行删除? (y/n)",
+        path = path
+    )
+    .dark_cyan()
+    .bold()
+    .to_string();
 
     match Confirm::new()
         .with_prompt(message)
@@ -308,7 +322,10 @@ pub fn write_utf8_file(path: &str, content: &str, option: &[InstallOptions]) -> 
         if !result {
             return Ok(());
         } else {
-            log::warn!("{}", "覆盖写入".dark_yellow().bold());
+            log::warn!(
+                "{}",
+                tr("Overwriting file", "覆盖写入").dark_yellow().bold()
+            );
         }
     }
     let mut file =
@@ -348,7 +365,13 @@ pub fn validate_version(version: &str) -> anyhow::Result<()> {
 }
 
 pub fn nightly_version() -> anyhow::Result<String> {
-    eprintln!("⚠️ This is a nightly version. Downloaded files won't be verified.");
+    eprintln!(
+        "{}",
+        tr(
+            "⚠️ This is a nightly version. Downloaded files won't be verified.",
+            "⚠️ 这是 nightly 版本，下载的文件将不会进行校验。"
+        )
+    );
     let date = Local::now().format("%Y%m%d").to_string();
     Ok(format!("nightly-{}", date))
 }
@@ -401,7 +424,13 @@ pub fn target_version_dir_to_current_dir(
         "".into()
     };
     if version.is_empty() {
-        eprintln!("No version found, will use canonicalize path to replace link dir.")
+        eprintln!(
+            "{}",
+            tr(
+                "No version found, will use canonicalize path to replace link dir.",
+                "未找到版本，将使用规范化路径替代链接目录。"
+            )
+        );
     }
     let symbolic_dir = if version.is_empty() {
         target_path.to_string()
@@ -418,7 +447,11 @@ pub fn exclude_scoop_self_scripts(
 ) -> anyhow::Result<u8> {
     let split = script_name.split(".").collect::<Vec<&str>>();
     if split.len() != 2 && split.len() != 1 {
-        bail!("shim target {script_name} 文件名格式错误, WTF?")
+        bail!(tr_fmt!(
+            "Shim target '{script_name}' filename format is invalid",
+            "shim 目标 '{script_name}' 文件名格式错误",
+            script_name = script_name
+        ));
     }
     if alias_name.is_some() {
         let script_name = alias_name.unwrap();
@@ -448,7 +481,11 @@ pub fn extract_target_path_from_shell_script(file_path: &str) -> anyhow::Result<
     if !path.is_empty() {
         Ok(path.to_string())
     } else {
-        bail!("脚本文件{}第二行为空", file_path)
+        bail!(tr_fmt!(
+            "Script file '{file_path}' second line is empty",
+            "脚本文件 '{file_path}' 第二行为空",
+            file_path = file_path
+        ));
     }
 }
 

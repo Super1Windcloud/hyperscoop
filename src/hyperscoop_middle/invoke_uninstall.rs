@@ -1,5 +1,5 @@
 use crate::command_args::uninstall::UninstallArgs;
-use crate::i18n::tr;
+use crate::i18n::{tr, tr_fmt};
 use anyhow::{Context, bail};
 use command_util_lib::init_env::{get_app_dir, get_app_dir_global};
 use command_util_lib::uninstall::*;
@@ -31,17 +31,28 @@ pub fn execute_uninstall_command(args: UninstallArgs) -> Result<(), anyhow::Erro
         if total > 1 {
             println!(
                 "{}",
-                format!("\n[{}/{}] Uninstalling '{}'...", i + 1, total, app_name)
-                    .dark_cyan()
-                    .bold()
+                tr_fmt!(
+                    "\n[{i}/{total}] Uninstalling '{name}'...",
+                    "\n[{i}/{total}] 正在卸载 '{name}'...",
+                    i = i + 1,
+                    total = total,
+                    name = app_name
+                )
+                .dark_cyan()
+                .bold()
             );
         }
         if let Err(e) = uninstall_single_app(app_name, args.global, args.purge) {
             eprintln!(
                 "{}",
-                format!("Failed to uninstall '{}': {}", app_name, e)
-                    .dark_red()
-                    .bold()
+                tr_fmt!(
+                    "Failed to uninstall '{name}': {e}",
+                    "卸载 '{name}' 失败: {e}",
+                    name = app_name,
+                    e = e
+                )
+                .dark_red()
+                .bold()
             );
             errors.push((app_name.clone(), e));
         }
@@ -50,9 +61,14 @@ pub fn execute_uninstall_command(args: UninstallArgs) -> Result<(), anyhow::Erro
     if !errors.is_empty() && total > 1 {
         eprintln!(
             "{}",
-            format!("\n{} of {} apps failed to uninstall.", errors.len(), total)
-                .dark_red()
-                .bold()
+            tr_fmt!(
+                "\n{failed} of {total} apps failed to uninstall.",
+                "\n共有 {failed} 个应用（共 {total} 个）卸载失败。",
+                failed = errors.len(),
+                total = total
+            )
+            .dark_red()
+            .bold()
         );
     }
 
@@ -74,7 +90,10 @@ fn uninstall_single_app(app_name: &str, global: bool, purge: bool) -> Result<(),
                 );
             }
             Err(e) => {
-                bail!("Failed to purge app, {}", e)
+                bail!(
+                    "{}",
+                    tr_fmt!("Failed to purge app: {e}", "彻底卸载应用失败: {e}", e = e)
+                )
             }
         }
     } else {
@@ -123,9 +142,9 @@ fn uninstall_single_app(app_name: &str, global: bool, purge: bool) -> Result<(),
                 } else {
                     bail!(
                         "{}",
-                        format!(
-                            "{} {name}",
-                            tr("'{name}' is not installed.", "'{name}' 并没有安装。"),
+                        tr_fmt!(
+                            "'{name}' is not installed.",
+                            "'{name}' 并没有安装。",
                             name = app_name
                         )
                     )

@@ -1,5 +1,7 @@
 use crate::buckets::get_buckets_path;
+use crate::i18n::tr;
 use crate::init_env::{get_apps_path, get_scoop_cfg_path};
+use crate::tr_fmt;
 use anyhow::{Context, bail};
 use chrono::{DateTime, Utc};
 use git2::Repository;
@@ -24,7 +26,14 @@ pub fn export_config_to_path(file_name: String) -> anyhow::Result<()> {
         .context("Failed to serialize JSON data into JSON at lin 25")?;
     file.write_all(pretty_json.as_bytes())
         .context("Failed to write to JSON file a line 27")?;
-    println!("成功导出配置文件到 {}", path.display());
+    println!(
+        "{}",
+        tr_fmt!(
+            "Successfully exported configuration to {path}",
+            "成功导出配置文件到 {path}",
+            path = path.display()
+        )
+    );
 
     Ok(())
 }
@@ -67,7 +76,10 @@ impl InstalledApp {
 }
 pub fn export_config_to_current_dir(file_name: String) -> anyhow::Result<()> {
     let path = Path::new(&file_name);
-    let mut file = std::fs::File::create(path).expect("路径错误无法创建文件");
+    let mut file = std::fs::File::create(path).expect(tr(
+        "Path error, unable to create file",
+        "路径错误无法创建文件",
+    ));
     let current_dir = std::env::current_dir()?;
     let path = current_dir.join(path);
     let bucket_config = get_all_buckets_info()?;
@@ -81,7 +93,14 @@ pub fn export_config_to_current_dir(file_name: String) -> anyhow::Result<()> {
     file.write_all(pretty_json.as_bytes())
         .context("Failed to write to JSON file a line 27")?;
 
-    println!("成功导出配置文件到 {}", path.display());
+    println!(
+        "{}",
+        tr_fmt!(
+            "Successfully exported configuration to {path}",
+            "成功导出配置文件到 {path}",
+            path = path.display()
+        )
+    );
 
     Ok(())
 }
@@ -196,7 +215,10 @@ fn get_repo_url(path: &Path) -> anyhow::Result<String> {
 
 pub fn export_config_to_path_width_config(file_name: String) -> anyhow::Result<()> {
     let path = Path::new(&file_name);
-    let mut file = std::fs::File::create(path).expect("路径错误无法创建文件");
+    let mut file = std::fs::File::create(path).expect(tr(
+        "Path error, unable to create file",
+        "路径错误无法创建文件",
+    ));
     let bucket_config = get_all_buckets_info()?;
     let apps = get_all_installed_apps()?;
     let config = get_scoop_config_info()?;
@@ -211,7 +233,14 @@ pub fn export_config_to_path_width_config(file_name: String) -> anyhow::Result<(
         .context("Failed to  convert JSON data to pretty JSON at lin 219")?;
     file.write_all(pretty_json.as_bytes())
         .context("Failed to write to JSON file a line 221")?;
-    println!("成功导出配置文件到 {}", path.display());
+    println!(
+        "{}",
+        tr_fmt!(
+            "Successfully exported configuration to {path}",
+            "成功导出配置文件到 {path}",
+            path = path.display()
+        )
+    );
 
     Ok(())
 }
@@ -226,7 +255,10 @@ fn get_scoop_config_info() -> anyhow::Result<String> {
 
 pub fn export_config_to_current_dir_with_config(file_name: String) -> anyhow::Result<()> {
     let path = Path::new(&file_name);
-    let mut file = std::fs::File::create(path).expect("路径错误无法创建文件");
+    let mut file = std::fs::File::create(path).expect(tr(
+        "Path error, unable to create file",
+        "路径错误无法创建文件",
+    ));
     let current_dir = std::env::current_dir()?;
     let path = current_dir.join(path);
     let bucket_config = get_all_buckets_info()?;
@@ -244,7 +276,14 @@ pub fn export_config_to_current_dir_with_config(file_name: String) -> anyhow::Re
     file.write_all(pretty_json.as_bytes())
         .context("Failed to write to JSON file a line 254")?;
 
-    println!("成功导出配置文件到 {}", path.display());
+    println!(
+        "{}",
+        tr_fmt!(
+            "Successfully exported configuration to {path}",
+            "成功导出配置文件到 {path}",
+            path = path.display()
+        )
+    );
 
     Ok(())
 }

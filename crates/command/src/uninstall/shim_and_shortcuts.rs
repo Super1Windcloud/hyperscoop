@@ -1,7 +1,9 @@
+use crate::i18n::tr;
 use crate::manifest::manifest_deserialize::{
     ArrayOrDoubleDimensionArray, StringOrArrayOrDoubleDimensionArray,
 };
 use crate::manifest::uninstall_manifest::UninstallManifest;
+use crate::tr_fmt;
 use crate::utils::system::get_system_default_arch;
 use anyhow::{Context, bail};
 use crossterm::style::Stylize;
@@ -56,9 +58,13 @@ pub fn rm_start_menu_shortcut(
                     if path.exists() {
                         println!(
                             "{} '{}'",
-                            format!("Removing start menu shortcut for '{target_name}'")
-                                .dark_blue()
-                                .bold(),
+                            tr_fmt!(
+                                "Removing start menu shortcut for '{target_name}'",
+                                "正在删除 '{target_name}' 的开始菜单快捷方式",
+                                target_name = target_name
+                            )
+                            .dark_blue()
+                            .bold(),
                             shortcut_name.to_string().dark_cyan().bold()
                         );
                         std::fs::remove_file(&path).context(format!(
@@ -99,9 +105,13 @@ pub fn rm_start_menu_shortcut(
                         if path.exists() {
                             println!(
                                 "{} '{}'",
-                                format!("Removing start menu shortcut for '{target_name}'")
-                                    .dark_blue()
-                                    .bold(),
+                                tr_fmt!(
+                                    "Removing start menu shortcut for '{target_name}'",
+                                    "正在删除 '{target_name}' 的开始菜单快捷方式",
+                                    target_name = target_name
+                                )
+                                .dark_blue()
+                                .bold(),
                                 shortcut_name.to_string().dark_cyan().bold()
                             );
                             std::fs::remove_file(&path).context(format!(
@@ -151,9 +161,13 @@ pub fn rm_start_menu_shortcut(
                         if path.exists() {
                             println!(
                                 "{} '{}'",
-                                format!("Removing start menu shortcut for '{target_name}'")
-                                    .dark_blue()
-                                    .bold(),
+                                tr_fmt!(
+                                    "Removing start menu shortcut for '{target_name}'",
+                                    "正在删除 '{target_name}' 的开始菜单快捷方式",
+                                    target_name = target_name
+                                )
+                                .dark_blue()
+                                .bold(),
                                 shortcut_name.to_string().dark_cyan().bold()
                             );
                             std::fs::remove_file(&path).context(format!(
@@ -194,9 +208,13 @@ pub fn rm_start_menu_shortcut(
                             if path.exists() {
                                 println!(
                                     "{} '{}'",
-                                    format!("Removing start menu shortcut for '{target_name}'")
-                                        .dark_blue()
-                                        .bold(),
+                                    tr_fmt!(
+                                        "Removing start menu shortcut for '{target_name}'",
+                                        "正在删除 '{target_name}' 的开始菜单快捷方式",
+                                        target_name = target_name
+                                    )
+                                    .dark_blue()
+                                    .bold(),
                                     shortcut_name.to_string().dark_cyan().bold()
                                 );
                                 std::fs::remove_file(&path).context(format!(
@@ -241,9 +259,13 @@ pub fn rm_start_menu_shortcut(
                         if path.exists() {
                             println!(
                                 "{} '{}'",
-                                format!("Removing start menu shortcut for '{target_name}'")
-                                    .dark_blue()
-                                    .bold(),
+                                tr_fmt!(
+                                    "Removing start menu shortcut for '{target_name}'",
+                                    "正在删除 '{target_name}' 的开始菜单快捷方式",
+                                    target_name = target_name
+                                )
+                                .dark_blue()
+                                .bold(),
                                 shortcut_name.to_string().dark_cyan().bold()
                             );
                             std::fs::remove_file(&path).context(format!(
@@ -284,9 +306,13 @@ pub fn rm_start_menu_shortcut(
                             if path.exists() {
                                 println!(
                                     "{} '{}'",
-                                    format!("Removing start menu shortcut for '{target_name}'")
-                                        .dark_blue()
-                                        .bold(),
+                                    tr_fmt!(
+                                        "Removing start menu shortcut for '{target_name}'",
+                                        "正在删除 '{target_name}' 的开始菜单快捷方式",
+                                        target_name = target_name
+                                    )
+                                    .dark_blue()
+                                    .bold(),
                                     shortcut_name.to_string().dark_cyan().bold()
                                 );
                                 std::fs::remove_file(&path).context(format!(
@@ -331,9 +357,13 @@ pub fn rm_start_menu_shortcut(
                         if path.exists() {
                             println!(
                                 "{} '{}'",
-                                format!("Removing start menu shortcut for '{target_name}'")
-                                    .dark_blue()
-                                    .bold(),
+                                tr_fmt!(
+                                    "Removing start menu shortcut for '{target_name}'",
+                                    "正在删除 '{target_name}' 的开始菜单快捷方式",
+                                    target_name = target_name
+                                )
+                                .dark_blue()
+                                .bold(),
                                 shortcut_name.to_string().dark_cyan().bold()
                             );
                             std::fs::remove_file(&path).context(format!(
@@ -374,9 +404,13 @@ pub fn rm_start_menu_shortcut(
                             if path.exists() {
                                 println!(
                                     "{} '{}'",
-                                    format!("Removing start menu shortcut for '{target_name}'")
-                                        .dark_blue()
-                                        .bold(),
+                                    tr_fmt!(
+                                        "Removing start menu shortcut for '{target_name}'",
+                                        "正在删除 '{target_name}' 的开始菜单快捷方式",
+                                        target_name = target_name
+                                    )
+                                    .dark_blue()
+                                    .bold(),
                                     shortcut_name.to_string().dark_cyan().bold()
                                 );
                                 std::fs::remove_file(&path).context(format!(
@@ -732,7 +766,9 @@ fn rm_alias_shim_name_file(
         if shim_file.exists() {
             println!(
                 "{} {}",
-                "Removing shim file".dark_blue().bold(),
+                tr("Removing shim file", "正在删除 shim 文件")
+                    .dark_blue()
+                    .bold(),
                 shim_file.display().to_string().dark_green().bold()
             );
             std::fs::remove_file(&shim_file)
@@ -753,7 +789,9 @@ fn rm_alias_shim_name_file(
         if shim_file.exists() {
             println!(
                 "{} {}",
-                "Removing shim file".dark_blue().bold(),
+                tr("Removing shim file", "正在删除 shim 文件")
+                    .dark_blue()
+                    .bold(),
                 shim_file.display().to_string().dark_green().bold()
             );
             std::fs::remove_file(&shim_file)
@@ -765,7 +803,9 @@ fn rm_alias_shim_name_file(
         if cmd_file.exists() {
             println!(
                 "{} {}",
-                "Removing shim file".dark_blue().bold(),
+                tr("Removing shim file", "正在删除 shim 文件")
+                    .dark_blue()
+                    .bold(),
                 cmd_file.display().to_string().dark_green().bold()
             );
             std::fs::remove_file(&cmd_file)
@@ -778,7 +818,9 @@ fn rm_alias_shim_name_file(
         if shim_file.exists() {
             println!(
                 "{} {}",
-                "Removing shim file".dark_blue().bold(),
+                tr("Removing shim file", "正在删除 shim 文件")
+                    .dark_blue()
+                    .bold(),
                 shim_file.display().to_string().dark_green().bold()
             );
             std::fs::remove_file(&shim_file)
@@ -790,7 +832,9 @@ fn rm_alias_shim_name_file(
         if shell_file.exists() {
             println!(
                 "{} {}",
-                "Removing shim file".dark_blue().bold(),
+                tr("Removing shim file", "正在删除 shim 文件")
+                    .dark_blue()
+                    .bold(),
                 shell_file.display().to_string().dark_green().bold()
             );
             std::fs::remove_file(&shell_file)

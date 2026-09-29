@@ -1,6 +1,8 @@
+use crate::i18n::tr;
 use crate::init_env::*;
 use crate::install::{InstallOptions, create_shim_or_shortcuts};
 use crate::list::VersionJSON;
+use crate::tr_fmt;
 use crate::update::{check_bucket_update_status, update_all_buckets_bar_parallel};
 use crate::utils::utility::update_scoop_config_last_update_time;
 use anyhow::{Context, bail};
@@ -18,7 +20,14 @@ pub fn get_app_old_version(app_name: &str, options: &[InstallOptions]) -> anyhow
         get_app_dir_manifest_json(app_name)
     };
     if !Path::new(&app_install_manifest).exists() {
-        bail!("Not found {app_name} install manifest file")
+        bail!(
+            "{}",
+            tr_fmt!(
+                "Not found {app_name} install manifest file",
+                "未找到 {app_name} 的安装 manifest 文件",
+                app_name = app_name
+            )
+        )
     }
     let content = std::fs::read_to_string(&app_install_manifest)
         .context("Failed to read the app install manifest file at line 21")?;
@@ -26,7 +35,14 @@ pub fn get_app_old_version(app_name: &str, options: &[InstallOptions]) -> anyhow
         .context("Failed to parse the app install manifest file at line 23")?;
     let version = version.version;
     if version.is_none() {
-        bail!("Not found version in  install manifest file for app: {app_name}")
+        bail!(
+            "{}",
+            tr_fmt!(
+                "Not found version in install manifest file for app: {app_name}",
+                "在 {app_name} 的 manifest 文件中未找到版本信息",
+                app_name = app_name
+            )
+        )
     }
     Ok(version.unwrap())
 }
@@ -82,48 +98,71 @@ pub fn check_before_install(
         if Path::new(&install_json).exists() && Path::new(&manifest_json).exists() {
             println!(
                 "{}",
-                format!("WARN  '{name }' ({old_version}) is already installed")
-                    .to_string()
-                    .dark_yellow()
-                    .bold(),
+                tr_fmt!(
+                    "WARN  '{name}' ({old_version}) is already installed",
+                    "WARN  '{name}' ({old_version}) 已经安装",
+                    name = name,
+                    old_version = old_version
+                )
+                .dark_yellow()
+                .bold(),
             );
             println!(
                 "{}",
-                format!("You can use 'hp update {name}' to  install another version")
-                    .to_string()
-                    .dark_cyan()
-                    .bold()
+                tr_fmt!(
+                    "You can use 'hp update {name}' to install another version",
+                    "您可以使用 'hp update {name}' 安装其他版本",
+                    name = name
+                )
+                .dark_cyan()
+                .bold()
             );
             Ok(1)
         } else {
             if !Path::new(&install_json).exists() {
                 eprintln!(
                     "{}",
-                    format!("WARN  '{name}'  install.json文件丢失, 建议覆盖安装")
-                        .dark_yellow()
-                        .bold()
+                    tr_fmt!(
+                        "WARN  '{name}' install.json is missing, reinstall is recommended",
+                        "WARN  '{name}' install.json 文件丢失，建议覆盖安装",
+                        name = name
+                    )
+                    .dark_yellow()
+                    .bold()
                 );
             }
 
             if !Path::new(&manifest_json).exists() {
                 eprintln!(
                     "{}",
-                    format!("WARN  '{name}'  manifest.json文件丢失, 建议覆盖安装")
-                        .dark_yellow()
-                        .bold()
+                    tr_fmt!(
+                        "WARN  '{name}' manifest.json is missing, reinstall is recommended",
+                        "WARN  '{name}' manifest.json 文件丢失，建议覆盖安装",
+                        name = name
+                    )
+                    .dark_yellow()
+                    .bold()
                 );
             }
             println!(
                 "{}",
-                format!("ERROR '{name}'  isn't installed correctly")
-                    .dark_red()
-                    .bold(),
+                tr_fmt!(
+                    "ERROR '{name}' is not installed correctly",
+                    "ERROR '{name}' 未正确安装",
+                    name = name
+                )
+                .dark_red()
+                .bold(),
             );
             println!(
                 "{}",
-                format!("WARN  '{name}'  先清除之前安装失败的文件")
-                    .dark_yellow()
-                    .bold(),
+                tr_fmt!(
+                    "WARN  '{name}' Cleaning up previously failed installation files first",
+                    "WARN  '{name}' 先清除之前安装失败的文件",
+                    name = name
+                )
+                .dark_yellow()
+                .bold(),
             );
             let target = std::fs::read_link(&app_current_dir)
                 .context("Failed to read link target at line 125")?;
@@ -136,9 +175,13 @@ pub fn check_before_install(
 
             println!(
                 "{}",
-                format!("'{name}' was already uninstalled successfully!")
-                    .dark_green()
-                    .bold(),
+                tr_fmt!(
+                    "'{name}' was already uninstalled successfully!",
+                    "'{name}' 已成功卸载！",
+                    name = name
+                )
+                .dark_green()
+                .bold(),
             );
             Ok(0)
         }
@@ -151,42 +194,65 @@ pub fn check_before_install(
         if !Path::new(&manifest_json).exists() {
             eprintln!(
                 "{}",
-                format!("'{name}'  manifest.json文件丢失, 建议覆盖安装")
-                    .dark_yellow()
-                    .bold()
+                tr_fmt!(
+                    "'{name}' manifest.json is missing, reinstall is recommended",
+                    "'{name}' manifest.json 文件丢失，建议覆盖安装",
+                    name = name
+                )
+                .dark_yellow()
+                .bold()
             );
             println!(
                 "{}",
-                format!("ERROR '{name}'  isn't installed correctly")
-                    .dark_red()
-                    .bold(),
+                tr_fmt!(
+                    "ERROR '{name}' is not installed correctly",
+                    "ERROR '{name}' 未正确安装",
+                    name = name
+                )
+                .dark_red()
+                .bold(),
             );
             println!(
                 "{}",
-                format!("WARN  '{name}'  先清除之前安装失败的文件")
-                    .dark_yellow()
-                    .bold(),
+                tr_fmt!(
+                    "WARN  '{name}' Cleaning up previously failed installation files first",
+                    "WARN  '{name}' 先清除之前安装失败的文件",
+                    name = name
+                )
+                .dark_yellow()
+                .bold(),
             );
             check_child_directory(&app_dir)?;
             println!(
                 "{}",
-                format!("'{name}' was already uninstalled successfully!")
-                    .dark_green()
-                    .bold(),
+                tr_fmt!(
+                    "'{name}' was already uninstalled successfully!",
+                    "'{name}' 已成功卸载！",
+                    name = name
+                )
+                .dark_green()
+                .bold(),
             );
         }
         println!(
             "{}",
-            "WARN  修复缺失的链接和快捷方式"
-                .to_string()
-                .dark_yellow()
-                .bold()
+            tr(
+                "WARN  Fixing missing links and shortcuts",
+                "WARN  修复缺失的链接和快捷方式"
+            )
+            .dark_yellow()
+            .bold()
         );
         println!(
             "{}",
-            format!("Resetting '{name}' ({old_version})")
-                .dark_cyan()
-                .bold()
+            tr_fmt!(
+                "Resetting '{name}' ({old_version})",
+                "正在重置 '{name}' ({old_version})",
+                name = name,
+                old_version = old_version
+            )
+            .dark_cyan()
+            .bold()
         );
         create_dir_symbolic_link(&app_version_dir, &app_current_dir)?;
         create_shim_or_shortcuts(&manifest_json, name, options)
@@ -199,44 +265,67 @@ pub fn check_before_install(
         if Path::new(&install_json).exists() {
             println!(
                 "{}",
-                format!("WARN  '{name}' ({old_version}) is already installed")
-                    .to_string()
-                    .dark_yellow()
-                    .bold(),
+                tr_fmt!(
+                    "WARN  '{name}' ({old_version}) is already installed",
+                    "WARN  '{name}' ({old_version}) 已经安装",
+                    name = name,
+                    old_version = old_version
+                )
+                .dark_yellow()
+                .bold(),
             );
             println!(
                 "{}",
-                format!("You can use 'hp update {name}' to  install another version")
-                    .to_string()
-                    .dark_cyan()
-                    .bold()
+                tr_fmt!(
+                    "You can use 'hp update {name}' to install another version",
+                    "您可以使用 'hp update {name}' 安装其他版本",
+                    name = name
+                )
+                .dark_cyan()
+                .bold()
             );
             return Ok(1);
         } else {
             eprintln!(
                 "{}",
-                format!("'{name}' install.json文件丢失, 建议覆盖安装")
-                    .dark_yellow()
-                    .bold()
+                tr_fmt!(
+                    "'{name}' install.json is missing, reinstall is recommended",
+                    "'{name}' install.json 文件丢失，建议覆盖安装",
+                    name = name
+                )
+                .dark_yellow()
+                .bold()
             );
             println!(
                 "{}",
-                format!("ERROR '{name}'  isn't installed correctly")
-                    .dark_red()
-                    .bold(),
+                tr_fmt!(
+                    "ERROR '{name}' is not installed correctly",
+                    "ERROR '{name}' 未正确安装",
+                    name = name
+                )
+                .dark_red()
+                .bold(),
             );
             println!(
                 "{}",
-                format!("WARN  '{name}'  先清除之前安装失败的文件")
-                    .dark_yellow()
-                    .bold(),
+                tr_fmt!(
+                    "WARN  '{name}' Cleaning up previously failed installation files first",
+                    "WARN  '{name}' 先清除之前安装失败的文件",
+                    name = name
+                )
+                .dark_yellow()
+                .bold(),
             );
             check_child_directory(&app_dir)?;
             println!(
                 "{}",
-                format!("'{name}' was already uninstalled successfully!")
-                    .dark_green()
-                    .bold(),
+                tr_fmt!(
+                    "'{name}' was already uninstalled successfully!",
+                    "'{name}' 已成功卸载！",
+                    name = name
+                )
+                .dark_green()
+                .bold(),
             );
             Ok(0)
         }
@@ -245,22 +334,32 @@ pub fn check_before_install(
     {
         println!(
             "{}",
-            format!("ERROR  '{name}' isn't installed correctly")
-                .dark_red()
-                .bold(),
+            tr_fmt!(
+                "ERROR  '{name}' is not installed correctly",
+                "ERROR  '{name}' 未正确安装",
+                name = name
+            )
+            .dark_red()
+            .bold(),
         );
 
         println!(
             "{}",
-            format!("WARN '{name}' 先清除之前安装失败的文件")
-                .dark_yellow()
-                .bold(),
+            tr_fmt!(
+                "WARN '{name}' Cleaning up previously failed installation files first",
+                "WARN '{name}' 先清除之前安装失败的文件",
+                name = name
+            )
+            .dark_yellow()
+            .bold(),
         );
         check_child_directory(&app_dir)?;
 
         println!(
             "{}",
-            format!("'{name}' was uninstalled ").dark_green().bold(),
+            tr_fmt!("'{name}' was uninstalled", "'{name}' 已卸载", name = name)
+                .dark_green()
+                .bold(),
         );
         std::fs::remove_dir_all(app_dir_path)
             .context("Failed to remove app directory at line 260")?;
@@ -268,21 +367,31 @@ pub fn check_before_install(
     } else if !app_version_path.exists() && std::fs::symlink_metadata(app_current_dir).is_err() {
         println!(
             "{}",
-            format!("ERROR  '{name}' isn't installed correctly")
-                .dark_red()
-                .bold(),
+            tr_fmt!(
+                "ERROR  '{name}' is not installed correctly",
+                "ERROR  '{name}' 未正确安装",
+                name = name
+            )
+            .dark_red()
+            .bold(),
         );
         println!(
             "{}",
-            format!("WARN  '{name}' 先清除之前安装失败的文件")
-                .dark_yellow()
-                .bold(),
+            tr_fmt!(
+                "WARN  '{name}' Cleaning up previously failed installation files first",
+                "WARN  '{name}' 先清除之前安装失败的文件",
+                name = name
+            )
+            .dark_yellow()
+            .bold(),
         );
         check_child_directory(&app_dir)?;
 
         println!(
             "{}",
-            format!("'{name}' was uninstalled ").dark_green().bold(),
+            tr_fmt!("'{name}' was uninstalled", "'{name}' 已卸载", name = name)
+                .dark_green()
+                .bold(),
         );
         std::fs::remove_dir_all(app_dir_path)
             .context("Failed to remove app directory at line 282")?;
@@ -290,9 +399,13 @@ pub fn check_before_install(
     } else {
         println!(
             "{}",
-            format!("ERROR  '{name}' isn't installed correctly, WTF?")
-                .dark_red()
-                .bold(),
+            tr_fmt!(
+                "ERROR  '{name}' is not installed correctly",
+                "ERROR  '{name}' 未正确安装",
+                name = name
+            )
+            .dark_red()
+            .bold(),
         );
         Ok(0)
     }
@@ -304,7 +417,11 @@ fn check_child_directory(app_dir: &String) -> anyhow::Result<()> {
         let dir = dir?;
         let path = dir.path();
         if Path::new(&path).exists() {
-            println!("Removing {}", path.to_string_lossy().dark_cyan().bold());
+            println!(
+                "{} {}",
+                tr("Removing", "正在删除").dark_cyan().bold(),
+                path.to_string_lossy().dark_cyan().bold()
+            );
         }
     }
     Ok(())
@@ -314,7 +431,8 @@ pub fn create_dir_symbolic_link(version_dir: &String, current_dir: &String) -> a
     symlink_dir(version_dir, current_dir)
         .context("Failed to create symbolic link directory at line 310")?;
     println!(
-        "Creating  Link  {}",
+        "{} {}",
+        tr("Creating Link", "正在创建链接").dark_blue().bold(),
         format!("{current_dir}  => {version_dir}")
             .dark_green()
             .bold()

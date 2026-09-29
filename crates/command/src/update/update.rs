@@ -1,4 +1,5 @@
 use crate::config::get_config_value_no_print;
+use crate::i18n::tr;
 use crate::init_env::{
     get_app_dir, get_app_dir_global, get_app_dir_manifest_json, get_app_dir_manifest_json_global,
 };
@@ -8,6 +9,7 @@ use crate::list::VersionJSON;
 use crate::manifest::manifest::{
     get_latest_app_version_from_local_bucket, get_latest_app_version_from_local_bucket_global,
 };
+use crate::tr_fmt;
 use crate::utils::utility::{get_official_bucket_path, get_official_buckets_name};
 use anyhow::{Context, bail};
 use crossterm::style::Stylize;
@@ -78,15 +80,19 @@ pub fn check_bucket_update_status<'a>() -> anyhow::Result<bool> {
     if !flag {
         println!(
             "{}",
-            "All Buckets are up to date".to_string().dark_green().bold()
+            tr("All buckets are up to date", "所有 buckets 均为最新版本")
+                .dark_green()
+                .bold()
         );
     } else {
         println!(
             "{}",
-            "Some Buckets are outData and has updates available"
-                .to_string()
-                .dark_green()
-                .bold()
+            tr(
+                "Some buckets have updates available",
+                "部分 buckets 有可用更新"
+            )
+            .dark_green()
+            .bold()
         );
     }
     Ok(flag)
@@ -105,7 +111,14 @@ pub fn check_app_version_latest(
         get_app_dir(app_name)
     };
     if !Path::new(&app_dir).exists() {
-        bail!("Not found for '{}',App并未安装", app_name);
+        bail!(
+            "{}",
+            tr_fmt!(
+                "App '{app_name}' is not installed",
+                "应用 '{app_name}' 未安装",
+                app_name = app_name
+            )
+        );
     }
     let manifest_path = if options.contains(&Global) {
         get_app_dir_manifest_json_global(app_name)
@@ -113,7 +126,14 @@ pub fn check_app_version_latest(
         get_app_dir_manifest_json(app_name)
     };
     if !Path::new(&manifest_path).exists() {
-        bail!("Manifest path {} does not exist", manifest_path);
+        bail!(
+            "{}",
+            tr_fmt!(
+                "Manifest path {manifest_path} does not exist",
+                "Manifest 路径 {manifest_path} 不存在",
+                manifest_path = manifest_path
+            )
+        );
     }
     let content = std::fs::read_to_string(&manifest_path)
         .context("Failed to read manifest.json at line 112")?;
@@ -122,7 +142,13 @@ pub fn check_app_version_latest(
     let old_version = version.version.ok_or(0);
     match old_version {
         Err(_) => {
-            bail!("该App没有找到版本信息,manifest.json格式错误")
+            bail!(
+                "{}",
+                tr(
+                    "Version info not found for this app, manifest.json format error",
+                    "该App没有找到版本信息,manifest.json格式错误"
+                )
+            );
         }
         Ok(old_version) => {
             let latest_version = if options.contains(&Global) {

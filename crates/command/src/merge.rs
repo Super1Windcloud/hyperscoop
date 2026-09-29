@@ -1,5 +1,7 @@
 use crate::buckets::{get_buckets_name, get_buckets_path};
+use crate::i18n::tr;
 use crate::manifest::search_manifest::SearchManifest;
+use crate::tr_fmt;
 use crate::utils::request::get_git_repo_remote_url;
 use crate::utils::utility::{LARGE_COMMUNITY_BUCKET, remove_bom_and_control_chars_from_utf8_file};
 use anyhow::{Context, anyhow, bail};
@@ -42,7 +44,15 @@ impl Display for Merge {
 
 pub fn merge_all_buckets() -> Result<(), anyhow::Error> {
     //  1. 读取所有bucket的manifest文件
-    println!("{ }", "正在合并所有冗余的manifest文件".dark_green().bold());
+    println!(
+        "{}",
+        tr(
+            "Merging all redundant manifest files...",
+            "正在合并所有冗余的manifest文件"
+        )
+        .dark_green()
+        .bold()
+    );
     let paths = get_buckets_path()?;
     let paths = paths
         .iter()
@@ -61,7 +71,7 @@ pub fn merge_all_buckets() -> Result<(), anyhow::Error> {
     paths.par_iter().for_each(|path| {
         let path_dir = Path::new(path);
         if path_dir.is_dir() {
-            load_bucket_info(path_dir, &all_bucket_set).expect("加载bucket失败");
+            load_bucket_info(path_dir, &all_bucket_set).expect("Failed to load bucket");
         }
     });
     let latest_buckets: Vec<Merge> = all_bucket_set.lock().unwrap().values().cloned().collect();
@@ -69,8 +79,8 @@ pub fn merge_all_buckets() -> Result<(), anyhow::Error> {
     paths.par_iter().for_each(|path| {
         let path_dir = Path::new(path);
         if path_dir.is_dir() {
-            let manifest =
-                remove_old_manifest(path_dir, &latest_buckets).expect("删除旧版本manifest失败");
+            let manifest = remove_old_manifest(path_dir, &latest_buckets)
+                .expect("Failed to remove old manifest");
 
             if !manifest.is_empty() {
                 all_manifest.lock().unwrap().push(manifest);
@@ -88,7 +98,7 @@ pub fn merge_all_buckets() -> Result<(), anyhow::Error> {
 
     merge_same_latest_version(all_manifest)?;
 
-    println!("{ }", "合并完成".dark_green().bold());
+    println!("{}", tr("Merge completed", "合并完成").dark_green().bold());
     Ok(())
 }
 
@@ -102,7 +112,8 @@ fn load_bucket_info(
     }
     let path = path?;
     println!(
-        "加载bucket：{}",
+        "{}: {}",
+        tr("Loading bucket", "加载软件库"),
         &path
             .to_str()
             .expect("Invalid path")
@@ -358,8 +369,15 @@ fn extract_info_from_manifest(path: &PathBuf) -> Result<Merge, anyhow::Error> {
     let app_version = manifest_json.version.unwrap_or_default();
     // file_stem 去掉文件的扩展名
     if app_version.is_empty() {
-        println!("删除无效文件{}", path.display());
-        remove_file(path).expect("删除文件失败");
+        println!(
+            "{}",
+            tr_fmt!(
+                "Removing invalid file {path}",
+                "删除无效文件 {path}",
+                path = path.display()
+            )
+        );
+        remove_file(path).expect("Failed to delete file");
     }
     let app_name = path
         .file_stem()
@@ -379,7 +397,14 @@ fn display_repeat_app(merge: &Merge) {
     let app_name = merge.app_name.clone();
     let mut app_set = HashSet::new();
     if !app_set.insert(&app_name) {
-        println!("{} 重复", app_name.clone().dark_blue().bold());
+        println!(
+            "{}",
+            tr_fmt!(
+                "'{app_name}' is duplicate",
+                "{app_name} 重复",
+                app_name = app_name.clone().dark_blue().bold()
+            )
+        );
     }
 }
 #[allow(dead_code)]
@@ -481,7 +506,14 @@ pub fn rm_err_manifest() -> Result<(), anyhow::Error> {
         .collect::<Vec<String>>();
     validate.par_iter().for_each(|path| {
         if !Path::new(path).exists() {
-            eprintln!("{} 不存在", path.clone().dark_red().bold());
+            eprintln!(
+                "{}",
+                tr_fmt!(
+                    "{path} does not exist",
+                    "{path} 不存在",
+                    path = path.clone().dark_red().bold()
+                )
+            );
         }
     });
     Ok(())
@@ -496,8 +528,12 @@ fn rm_err_manifest_unit(
     let repo_path = Path::new(git_repo);
     if !repo_path.exists() {
         bail!(
-            "{} 不存在",
-            repo_path.to_str().unwrap().to_string().dark_red().bold()
+            "{}",
+            tr_fmt!(
+                "{path} does not exist",
+                "{path} 不存在",
+                path = repo_path.to_str().unwrap().to_string().dark_red().bold()
+            )
         );
     }
     let bucket_path = Path::new(bucket_path);
@@ -513,8 +549,12 @@ fn rm_err_manifest_unit(
     let git_url = get_git_repo_remote_url(repo_path).unwrap_or_default();
     if git_url.is_empty() {
         bail!(
-            "{} 不是git仓库",
-            bucket_path.to_str().unwrap().to_string().dark_red().bold()
+            "{}",
+            tr_fmt!(
+                "{path} is not a git repository",
+                "{path} 不是git仓库",
+                path = bucket_path.to_str().unwrap().to_string().dark_red().bold()
+            )
         );
     }
     manifests.par_iter().for_each(|manifest_path| {
@@ -528,13 +568,17 @@ fn rm_err_manifest_unit(
             if content.is_empty() {
                 remove_file(&manifest_path).unwrap_or_else(|_| {
                     eprintln!(
-                        "{} 删除失败",
-                        manifest_path
-                            .to_str()
-                            .unwrap()
-                            .to_string()
-                            .dark_red()
-                            .bold()
+                        "{}",
+                        tr_fmt!(
+                            "Failed to delete {path}",
+                            "{path} 删除失败",
+                            path = manifest_path
+                                .to_str()
+                                .unwrap()
+                                .to_string()
+                                .dark_red()
+                                .bold()
+                        )
                     );
                 });
                 // crate::utils::utility::write_into_log_file(&manifest_path);
@@ -546,13 +590,17 @@ fn rm_err_manifest_unit(
                 if content.is_err() {
                     remove_file(&manifest_path).unwrap_or_else(|_| {
                         eprintln!(
-                            "{} 删除失败",
-                            manifest_path
-                                .to_str()
-                                .unwrap()
-                                .to_string()
-                                .dark_red()
-                                .bold()
+                            "{}",
+                            tr_fmt!(
+                                "Failed to delete {path}",
+                                "{path} 删除失败",
+                                path = manifest_path
+                                    .to_str()
+                                    .unwrap()
+                                    .to_string()
+                                    .dark_red()
+                                    .bold()
+                            )
                         );
                     });
                     // crate::utils::utility::write_into_log_file(&manifest_path);
@@ -563,13 +611,17 @@ fn rm_err_manifest_unit(
                 if content.is_null() {
                     remove_file(&manifest_path).unwrap_or_else(|_| {
                         eprintln!(
-                            "{} 删除失败",
-                            manifest_path
-                                .to_str()
-                                .unwrap()
-                                .to_string()
-                                .dark_red()
-                                .bold()
+                            "{}",
+                            tr_fmt!(
+                                "Failed to delete {path}",
+                                "{path} 删除失败",
+                                path = manifest_path
+                                    .to_str()
+                                    .unwrap()
+                                    .to_string()
+                                    .dark_red()
+                                    .bold()
+                            )
                         );
                     });
                     // crate::utils::utility::write_into_log_file(&manifest_path);
@@ -581,13 +633,17 @@ fn rm_err_manifest_unit(
             if content.is_err() {
                 remove_file(&manifest_path).unwrap_or_else(|_| {
                     eprintln!(
-                        "{} 删除失败",
-                        manifest_path
-                            .to_str()
-                            .unwrap()
-                            .to_string()
-                            .dark_red()
-                            .bold()
+                        "{}",
+                        tr_fmt!(
+                            "Failed to delete {path}",
+                            "{path} 删除失败",
+                            path = manifest_path
+                                .to_str()
+                                .unwrap()
+                                .to_string()
+                                .dark_red()
+                                .bold()
+                        )
                     );
                 });
                 // crate::utils::utility::write_into_log_file(&manifest_path);
@@ -598,13 +654,17 @@ fn rm_err_manifest_unit(
             if content.is_null() {
                 remove_file(&manifest_path).unwrap_or_else(|_| {
                     eprintln!(
-                        "{} 删除失败",
-                        manifest_path
-                            .to_str()
-                            .unwrap()
-                            .to_string()
-                            .dark_red()
-                            .bold()
+                        "{}",
+                        tr_fmt!(
+                            "Failed to delete {path}",
+                            "{path} 删除失败",
+                            path = manifest_path
+                                .to_str()
+                                .unwrap()
+                                .to_string()
+                                .dark_red()
+                                .bold()
+                        )
                     );
                 });
                 // crate::utils::utility::write_into_log_file(&manifest_path);

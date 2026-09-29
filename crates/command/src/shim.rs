@@ -1,3 +1,4 @@
+use crate::i18n::tr;
 use crate::info::validate_app_name;
 use crate::init_env::{get_shims_root_dir, get_shims_root_dir_global};
 use crate::init_hyperscoop;
@@ -5,6 +6,7 @@ use crate::install::{
     create_cmd_or_bat_shim_scripts, create_exe_type_shim_file_and_shim_bin,
     create_jar_shim_scripts, create_ps1_shim_scripts, create_py_shim_scripts,
 };
+use crate::tr_fmt;
 use crate::utils::utility::{exclude_scoop_self_scripts, extract_target_path_from_shell_script};
 use anyhow::{Context, bail};
 use comfy_table::modifiers::UTF8_ROUND_CORNERS;
@@ -21,7 +23,11 @@ pub fn list_all_shims(global: bool) -> anyhow::Result<Vec<(String, String, Strin
     };
     let shim_path = Path::new(&shim_path);
     if !shim_path.exists() {
-        bail!("{} is not exist", shim_path.display());
+        bail!(tr_fmt!(
+            "Shim directory '{path}' does not exist",
+            "shim 目录 '{path}' 不存在",
+            path = shim_path.display()
+        ));
     }
     let mut shims = vec![];
     for entry in shim_path
@@ -79,7 +85,9 @@ pub fn list_all_shims(global: bool) -> anyhow::Result<Vec<(String, String, Strin
     let count = shims.len();
     println!(
         "{}{}",
-        "\tFound shims count: ".dark_green().bold(),
+        tr("\tFound shims count: ", "\t找到 shim 数量: ")
+            .dark_green()
+            .bold(),
         count.to_string().dark_green().bold()
     );
 
@@ -94,13 +102,13 @@ pub fn list_all_shims(global: bool) -> anyhow::Result<Vec<(String, String, Strin
         .apply_modifier(UTF8_ROUND_CORNERS)
         .set_content_arrangement(ContentArrangement::Dynamic)
         .set_header(vec![
-            Cell::new("ShimName")
+            Cell::new(tr("ShimName", "Shim名称"))
                 .add_attribute(Attribute::Bold)
                 .fg(Color::DarkCyan),
-            Cell::new("Path")
+            Cell::new(tr("Path", "路径"))
                 .add_attribute(Attribute::Bold)
                 .fg(Color::DarkCyan),
-            Cell::new("Source")
+            Cell::new(tr("Source", "来源"))
                 .add_attribute(Attribute::Bold)
                 .fg(Color::DarkCyan),
         ])
@@ -185,15 +193,22 @@ pub fn list_shims_by_regex(regex: String, global: bool) -> anyhow::Result<()> {
     let count = shims.len();
     if count == 0 {
         println!(
-            "{}{}",
-            "No shims found for regex: ".dark_green().bold(),
-            regex.dark_green().bold()
+            "{}",
+            tr_fmt!(
+                "No shims found for regex: {regex}",
+                "未找到匹配正则表达式 '{regex}' 的 shim",
+                regex = regex
+            )
+            .dark_green()
+            .bold()
         );
         return Ok(());
     }
     println!(
         "{}{}",
-        "\tFound shims count: ".dark_green().bold(),
+        tr("\tFound shims count: ", "\t找到 shim 数量: ")
+            .dark_green()
+            .bold(),
         count.to_string().dark_green().bold()
     );
 
@@ -208,13 +223,13 @@ pub fn list_shims_by_regex(regex: String, global: bool) -> anyhow::Result<()> {
         .apply_modifier(UTF8_ROUND_CORNERS)
         .set_content_arrangement(ContentArrangement::Dynamic)
         .set_header(vec![
-            Cell::new("ShimName")
+            Cell::new(tr("ShimName", "Shim名称"))
                 .add_attribute(Attribute::Bold)
                 .fg(Color::DarkCyan),
-            Cell::new("Path")
+            Cell::new(tr("Path", "路径"))
                 .add_attribute(Attribute::Bold)
                 .fg(Color::DarkCyan),
-            Cell::new("Source")
+            Cell::new(tr("Source", "来源"))
                 .add_attribute(Attribute::Bold)
                 .fg(Color::DarkCyan),
         ])
@@ -255,7 +270,11 @@ pub fn list_shim_info(name: Option<String>, global: bool) -> anyhow::Result<()> 
     };
     let shim_path = Path::new(&shim_path);
     if !shim_path.exists() {
-        bail!("{} is not exist", shim_path.display());
+        bail!(tr_fmt!(
+            "Shim directory '{path}' does not exist",
+            "shim 目录 '{path}' 不存在",
+            path = shim_path.display()
+        ));
     }
     for entry in shim_path
         .read_dir()
@@ -284,33 +303,46 @@ pub fn list_shim_info(name: Option<String>, global: bool) -> anyhow::Result<()> 
         let shim_path = path.to_str().unwrap().to_owned();
         println!(
             "{:<10} : {}",
-            "Name ",
+            tr("Name", "名称"),
             shim_name.clone().dark_green().bold()
         );
         println!(
             "{:<10} : {}",
-            "Path ",
+            tr("Path", "路径"),
             shim_path.clone().dark_green().bold()
         );
         println!(
             "{:<10} : {}",
-            "Source ",
+            tr("Source", "来源"),
             shim_name.clone().dark_green().bold()
         );
-        println!("{:<10} : {}", "Type ", app_type.dark_green().bold());
         println!(
             "{:<10} : {}",
-            "IsGlobal ",
+            tr("Type", "类型"),
+            app_type.dark_green().bold()
+        );
+        println!(
+            "{:<10} : {}",
+            tr("IsGlobal", "是否全局"),
             if global { "True" } else { "False" }.dark_green().bold()
         );
-        println!("{:<10} : {}", "IsHidden ", "False".dark_green().bold());
+        println!(
+            "{:<10} : {}",
+            tr("IsHidden", "是否隐藏"),
+            "False".dark_green().bold()
+        );
         return Ok(());
     }
 
     println!(
-        "{}{}",
-        "No shim found for app: ".dark_red().bold(),
-        shim_name.dark_cyan().bold()
+        "{}",
+        tr_fmt!(
+            "No shim found for app: {name}",
+            "未找到应用的 shim: {name}",
+            name = shim_name.dark_cyan().bold()
+        )
+        .dark_red()
+        .bold()
     );
 
     Ok(())
@@ -323,14 +355,14 @@ pub fn execute_add_shim(
     global: bool,
 ) -> anyhow::Result<()> {
     if command_path.is_none() {
-        bail!("Command path is must required");
+        bail!(tr("Command path is required", "命令路径为必填项"));
     }
     let shim_name = shim_name.unwrap();
 
     validate_app_name(&shim_name)?;
     let target_path = command_path.unwrap().trim().to_string();
     if target_path.is_empty() {
-        bail!("Command path is empty");
+        bail!(tr("Command path is empty", "命令路径为空"));
     }
 
     let shim_path = if global {
@@ -350,10 +382,13 @@ pub fn execute_add_shim(
     }
     println!(
         "{}",
-        format!("Shim '{}' has been created successfully!", shim_name)
-            .dark_green()
-            .bold()
-            .to_owned()
+        tr_fmt!(
+            "Shim '{name}' has been created successfully!",
+            "Shim '{name}' 创建成功！",
+            name = shim_name
+        )
+        .dark_green()
+        .bold()
     );
     Ok(())
 }
@@ -370,16 +405,43 @@ pub fn create_shims<'a>(
     let suffix = target_path.split('.').last().unwrap();
     // log::debug!("Origin file type {}", suffix);
     if suffix.is_empty() {
-        bail!(format!("shim 文件名 {shim_name} 后缀为空 WTF?"))
+        bail!(
+            "{}",
+            tr_fmt!(
+                "Shim name '{shim_name}' has empty extension",
+                "shim 文件名 {shim_name} 后缀为空",
+                shim_name = shim_name
+            )
+        );
     }
     if !out_dir.exists() {
-        bail!(format!("shim 目录 {shim_dir} 不存在"));
+        bail!(
+            "{}",
+            tr_fmt!(
+                "Shim directory '{shim_dir}' does not exist",
+                "shim 目录 {shim_dir} 不存在",
+                shim_dir = shim_dir
+            )
+        );
     }
     if shim_name == "hp" {
-        bail!("hp 不能作为 shim 名称")
+        bail!(
+            "{}",
+            tr(
+                "'hp' cannot be used as a shim name",
+                "hp 不能作为 shim 名称"
+            )
+        );
     }
     if !Path::new(target_path).exists() {
-        bail!(format!("链接目标路径 {target_path} 不存在"))
+        bail!(
+            "{}",
+            tr_fmt!(
+                "Target path '{target_path}' does not exist",
+                "链接目标路径 {target_path} 不存在",
+                target_path = target_path
+            )
+        );
     };
     if suffix == "exe" || suffix == "com" {
         if !args.is_empty() {
@@ -403,8 +465,13 @@ pub fn create_shims<'a>(
         let result = exclude_scoop_self_scripts(target_path, Some(shim_name))?;
         if result != 0 {
             bail!(
-                "Origin 二进制名或者该二进制别名 '{shim_name}' 与scoop 内置脚本的shim 冲突, 禁止覆盖"
-            )
+                "{}",
+                tr_fmt!(
+                    "Binary name or alias '{shim_name}' conflicts with scoop built-in script shim, overwrite prohibited",
+                    "Origin 二进制名或者该二进制别名 '{shim_name}' 与scoop 内置脚本的shim 冲突, 禁止覆盖",
+                    shim_name = shim_name
+                )
+            );
         }
         if !args.is_empty() {
             create_cmd_or_bat_shim_scripts(
@@ -427,8 +494,13 @@ pub fn create_shims<'a>(
         let result = exclude_scoop_self_scripts(target_path, Some(shim_name))?;
         if result != 0 {
             bail!(
-                "Origin 二进制名或者该二进制别名 '{shim_name}' 与scoop 内置脚本的shim 冲突, 禁止覆盖"
-            )
+                "{}",
+                tr_fmt!(
+                    "Binary name or alias '{shim_name}' conflicts with scoop built-in script shim, overwrite prohibited",
+                    "Origin 二进制名或者该二进制别名 '{shim_name}' 与scoop 内置脚本的shim 冲突, 禁止覆盖",
+                    shim_name = shim_name
+                )
+            );
         }
         if !args.is_empty() {
             create_ps1_shim_scripts(
@@ -484,7 +556,14 @@ pub fn create_shims<'a>(
             )?;
         }
     } else {
-        bail!(format!(" 后缀{suffix}类型文件不支持, WTF?"))
+        bail!(
+            "{}",
+            tr_fmt!(
+                "File extension '.{suffix}' is not supported",
+                "后缀.{suffix}类型文件不支持",
+                suffix = suffix
+            )
+        )
     }
     Ok(())
 }
@@ -512,7 +591,11 @@ pub fn remove_shim(name: Option<String>, global: bool) -> anyhow::Result<()> {
     };
     let shim_path = Path::new(&shim_path);
     if !shim_path.exists() {
-        bail!("{} is not exist", shim_path.display());
+        bail!(tr_fmt!(
+            "Shim directory '{path}' does not exist",
+            "shim 目录 '{path}' 不存在",
+            path = shim_path.display()
+        ));
     }
     let shim_dir =
         std::fs::read_dir(&shim_path).context("Failed to read  shim root dir at line 366")?;
@@ -534,14 +617,25 @@ pub fn remove_shim(name: Option<String>, global: bool) -> anyhow::Result<()> {
         .collect::<Vec<_>>();
     matched_shims.iter().for_each(|shim_path| {
         if !shim_path.exists() {
-            eprintln!("{} is not exist", shim_path.display());
+            eprintln!(
+                "{}",
+                tr_fmt!(
+                    "'{path}' does not exist",
+                    "'{path}' 不存在",
+                    path = shim_path.display()
+                )
+            );
             return;
         }
         println!(
             "{}",
-            format!("Removing shim: {} ", shim_path.display())
-                .dark_green()
-                .bold()
+            tr_fmt!(
+                "Removing shim: {path}",
+                "正在删除 shim: {path}",
+                path = shim_path.display()
+            )
+            .dark_green()
+            .bold()
         );
         std::fs::remove_file(shim_path).unwrap();
     });
@@ -578,15 +672,23 @@ pub fn clear_invalid_shims(global: bool) -> anyhow::Result<()> {
             if !Path::new(&target_path).exists() {
                 println!(
                     "{}",
-                    format!("Removing invalid shim: {}", path.display())
-                        .dark_green()
-                        .bold()
+                    tr_fmt!(
+                        "Removing invalid shim: {path}",
+                        "正在删除无效 shim: {path}",
+                        path = path.display()
+                    )
+                    .dark_green()
+                    .bold()
                 );
                 println!(
                     "{}",
-                    format!("Removing invalid shim: {}", exe_path.display())
-                        .dark_green()
-                        .bold()
+                    tr_fmt!(
+                        "Removing invalid shim: {path}",
+                        "正在删除无效 shim: {path}",
+                        path = exe_path.display()
+                    )
+                    .dark_green()
+                    .bold()
                 );
                 std::fs::remove_file(&path).unwrap();
                 if exe_path.exists() {
@@ -600,15 +702,23 @@ pub fn clear_invalid_shims(global: bool) -> anyhow::Result<()> {
             if !Path::new(&target_path).exists() {
                 println!(
                     "{}",
-                    format!("Removing invalid shim: {}", path.display())
-                        .dark_green()
-                        .bold()
+                    tr_fmt!(
+                        "Removing invalid shim: {path}",
+                        "正在删除无效 shim: {path}",
+                        path = path.display()
+                    )
+                    .dark_green()
+                    .bold()
                 );
                 println!(
                     "{}",
-                    format!("Removing invalid shim: {}", shell_path.display())
-                        .dark_green()
-                        .bold()
+                    tr_fmt!(
+                        "Removing invalid shim: {path}",
+                        "正在删除无效 shim: {path}",
+                        path = shell_path.display()
+                    )
+                    .dark_green()
+                    .bold()
                 );
                 std::fs::remove_file(&path).unwrap();
                 if !shell_path.exists() {
@@ -624,16 +734,24 @@ pub fn clear_invalid_shims(global: bool) -> anyhow::Result<()> {
             if !Path::new(&target_path).exists() {
                 println!(
                     "{}",
-                    format!("Removing invalid shim: {}", path.display())
-                        .dark_green()
-                        .bold()
+                    tr_fmt!(
+                        "Removing invalid shim: {path}",
+                        "正在删除无效 shim: {path}",
+                        path = path.display()
+                    )
+                    .dark_green()
+                    .bold()
                 );
 
                 println!(
                     "{}",
-                    format!("Removing invalid shim: {}", cmd_path.display())
-                        .dark_green()
-                        .bold()
+                    tr_fmt!(
+                        "Removing invalid shim: {path}",
+                        "正在删除无效 shim: {path}",
+                        path = cmd_path.display()
+                    )
+                    .dark_green()
+                    .bold()
                 );
                 std::fs::remove_file(&path).unwrap();
                 std::fs::remove_file(&cmd_path).unwrap();

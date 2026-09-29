@@ -1,3 +1,4 @@
+use crate::i18n::tr;
 use crate::init_env::{get_app_current_bin_path, get_shims_root_dir, get_shims_root_dir_global};
 use crate::install::InstallOptions;
 use crate::install::InstallOptions::InteractiveInstall;
@@ -5,6 +6,7 @@ use crate::manifest::install_manifest::InstallManifest;
 use crate::manifest::manifest_deserialize::{
     ArrayOrDoubleDimensionArray, StringOrArrayOrDoubleDimensionArray,
 };
+use crate::tr_fmt;
 use crate::utils::system::get_system_default_arch;
 use crate::utils::utility::{
     assume_yes_to_cover_shortcuts, exclude_scoop_self_scripts, strip_extended_prefix,
@@ -304,7 +306,9 @@ pub fn start_create_shortcut<P: AsRef<Path>>(
 
     println!(
         "{} '{}' => '{}'",
-        "Creating  Shortcuts for".to_string().dark_blue().bold(),
+        tr("Creating Shortcuts for", "正在创建快捷方式")
+            .dark_blue()
+            .bold(),
         app_name.to_string().dark_cyan().bold(),
         link_alias_name.to_string().dark_green().bold()
     );
@@ -374,7 +378,12 @@ pub fn create_alias_shim_name_file(
         let result = exclude_scoop_self_scripts(&exe_name, Some(alias_name.as_str()))?;
         if result != 0 {
             bail!(
-                "Origin 二进制名或者该二进制别名 '{exe_name}' 与scoop 内置脚本的shim 冲突, 禁止覆盖"
+                "{}",
+                tr_fmt!(
+                    "Binary name or alias '{exe_name}' conflicts with scoop built-in script shim, overwrite prohibited",
+                    "Origin 二进制名或者该二进制别名 '{exe_name}' 与scoop 内置脚本的shim 冲突, 禁止覆盖",
+                    exe_name = exe_name
+                )
             )
         }
         create_cmd_or_bat_shim_scripts(
@@ -388,7 +397,12 @@ pub fn create_alias_shim_name_file(
         let result = exclude_scoop_self_scripts(&exe_name, Some(alias_name.as_str()))?;
         if result != 0 {
             bail!(
-                "Origin 二进制名或者该二进制别名 '{exe_name}' 与scoop 内置脚本的shim 冲突, 禁止覆盖"
+                "{}",
+                tr_fmt!(
+                    "Binary name or alias '{exe_name}' conflicts with scoop built-in script shim, overwrite prohibited",
+                    "Origin 二进制名或者该二进制别名 '{exe_name}' 与scoop 内置脚本的shim 冲突, 禁止覆盖",
+                    exe_name = exe_name
+                )
             )
         }
         create_ps1_shim_scripts(
@@ -419,7 +433,12 @@ pub fn create_alias_shim_name_file(
         let result = exclude_scoop_self_scripts(&exe_name, Some(alias_name.as_str()))?;
         if result != 0 {
             bail!(
-                "Origin 二进制名或者该二进制别名 '{exe_name}' 与scoop 内置脚本的shim 冲突, 禁止覆盖"
+                "{}",
+                tr_fmt!(
+                    "Binary name or alias '{exe_name}' conflicts with scoop built-in script shim, overwrite prohibited",
+                    "Origin 二进制名或者该二进制别名 '{exe_name}' 与scoop 内置脚本的shim 冲突, 禁止覆盖",
+                    exe_name = exe_name
+                )
             )
         }
         create_shell_shim_scripts(
@@ -430,7 +449,14 @@ pub fn create_alias_shim_name_file(
             options,
         )?;
     } else {
-        bail!(format!(" 后缀{suffix}类型文件不支持, WTF?"))
+        bail!(
+            "{}",
+            tr_fmt!(
+                "File extension '.{suffix}' is not supported",
+                "后缀.{suffix}类型文件不支持",
+                suffix = suffix
+            )
+        )
     }
 
     Ok(())
@@ -471,7 +497,12 @@ pub fn create_default_shim_name_file(
         let result = exclude_scoop_self_scripts(&exe_name, None)?;
         if result != 0 {
             bail!(
-                "Origin 二进制名或者该二进制别名 '{exe_name}' 与scoop 内置脚本的shim 冲突, 禁止覆盖"
+                "{}",
+                tr_fmt!(
+                    "Binary name or alias '{exe_name}' conflicts with scoop built-in script shim, overwrite prohibited",
+                    "Origin 二进制名或者该二进制别名 '{exe_name}' 与scoop 内置脚本的shim 冲突, 禁止覆盖",
+                    exe_name = exe_name
+                )
             )
         }
         create_cmd_or_bat_shim_scripts(target_path.as_str(), out_dir, None, None, options)?;
@@ -479,7 +510,12 @@ pub fn create_default_shim_name_file(
         let result = exclude_scoop_self_scripts(&exe_name, None)?;
         if result != 0 {
             bail!(
-                "Origin 二进制名或者该二进制别名 '{exe_name}' 与scoop 内置脚本的shim 冲突, 禁止覆盖"
+                "{}",
+                tr_fmt!(
+                    "Binary name or alias '{exe_name}' conflicts with scoop built-in script shim, overwrite prohibited",
+                    "Origin 二进制名或者该二进制别名 '{exe_name}' 与scoop 内置脚本的shim 冲突, 禁止覆盖",
+                    exe_name = exe_name
+                )
             )
         }
         create_ps1_shim_scripts(&target_path, out_dir, None, None, options)?;
@@ -492,12 +528,24 @@ pub fn create_default_shim_name_file(
         let result = exclude_scoop_self_scripts(&exe_name, None)?;
         if result != 0 {
             bail!(
-                "Origin 二进制名或者该二进制别名 '{exe_name}' 与scoop 内置脚本的shim 冲突, 禁止覆盖"
+                "{}",
+                tr_fmt!(
+                    "Binary name or alias '{exe_name}' conflicts with scoop built-in script shim, overwrite prohibited",
+                    "Origin 二进制名或者该二进制别名 '{exe_name}' 与scoop 内置脚本的shim 冲突, 禁止覆盖",
+                    exe_name = exe_name
+                )
             )
         }
         create_shell_shim_scripts(target_path.as_str(), out_dir, None, None, options)?;
     } else {
-        bail!(format!(" 后缀{suffix}类型文件不支持, WTF?"))
+        bail!(
+            "{}",
+            tr_fmt!(
+                "File extension '.{suffix}' is not supported",
+                "后缀.{suffix}类型文件不支持",
+                suffix = suffix
+            )
+        )
     }
     Ok(())
 }
@@ -531,19 +579,36 @@ pub fn create_py_shim_scripts(
     let out_shim_dir: Result<&str, anyhow::Error> = if out_shim_dir.exists() {
         Ok(out_shim_dir.to_str().unwrap())
     } else {
-        bail!("shim 根目录 {} 不存在", out_shim_dir.display());
+        bail!(
+            "{}",
+            tr_fmt!(
+                "Shim root directory '{dir}' does not exist",
+                "shim 根目录 '{dir}' 不存在",
+                dir = out_shim_dir.display()
+            )
+        );
     };
     let out_shim_dir = out_shim_dir?;
     let shim_cmd_script = format!("{out_shim_dir}\\{target_name}.cmd");
     println!(
         "{} {}",
-        "Creating  shim  proxy launcher =>".dark_blue().bold(),
+        tr(
+            "Creating shim proxy launcher =>",
+            "正在创建 shim 代理启动器 =>"
+        )
+        .dark_blue()
+        .bold(),
         &shim_cmd_script.to_string().dark_green().bold()
     );
     let shim_shell_script = format!("{out_shim_dir}\\{target_name}");
     println!(
         "{} {}",
-        "Creating  shim  proxy launcher =>".dark_blue().bold(),
+        tr(
+            "Creating shim proxy launcher =>",
+            "正在创建 shim 代理启动器 =>"
+        )
+        .dark_blue()
+        .bold(),
         &shim_shell_script.to_string().dark_green().bold()
     );
 
@@ -612,13 +677,25 @@ pub fn create_jar_shim_scripts(
     let out_shim_dir: Result<&str, anyhow::Error> = if out_shim_dir.exists() {
         Ok(out_shim_dir.to_str().unwrap())
     } else {
-        bail!("shim 根目录 {} 不存在", out_shim_dir.display());
+        bail!(
+            "{}",
+            tr_fmt!(
+                "Shim root directory '{dir}' does not exist",
+                "shim 根目录 '{dir}' 不存在",
+                dir = out_shim_dir.display()
+            )
+        );
     };
     let out_shim_dir = out_shim_dir?;
     let shim_cmd_script = format!("{out_shim_dir}\\{target_name}.cmd");
     println!(
         "{} {}",
-        "Creating  shim  proxy launcher =>".dark_blue().bold(),
+        tr(
+            "Creating shim proxy launcher =>",
+            "正在创建 shim 代理启动器 =>"
+        )
+        .dark_blue()
+        .bold(),
         &shim_cmd_script.to_string().dark_green().bold()
     );
     let parent_dir = Path::new(&target_path).parent().unwrap().to_str().unwrap();
@@ -646,7 +723,12 @@ pub fn create_jar_shim_scripts(
     let shim_shell_script = format!("{out_shim_dir}\\{target_name}");
     println!(
         "{} {}",
-        "Creating  shim  proxy launcher =>".dark_blue().bold(),
+        tr(
+            "Creating shim proxy launcher =>",
+            "正在创建 shim 代理启动器 =>"
+        )
+        .dark_blue()
+        .bold(),
         &shim_shell_script.to_string().dark_green().bold()
     );
 
@@ -714,13 +796,25 @@ pub fn create_ps1_shim_scripts(
     let out_shim_dir: Result<&str, anyhow::Error> = if out_shim_dir.exists() {
         Ok(out_shim_dir.to_str().unwrap())
     } else {
-        bail!("shim 根目录 {} 不存在", out_shim_dir.display());
+        bail!(
+            "{}",
+            tr_fmt!(
+                "Shim root directory '{dir}' does not exist",
+                "shim 根目录 '{dir}' 不存在",
+                dir = out_shim_dir.display()
+            )
+        );
     };
     let out_shim_dir = out_shim_dir?;
     let shim_ps1_path = format!("{out_shim_dir}\\{target_name}.ps1");
     println!(
         "{} {}",
-        "Creating  shim  proxy launcher =>".dark_blue().bold(),
+        tr(
+            "Creating shim proxy launcher =>",
+            "正在创建 shim 代理启动器 =>"
+        )
+        .dark_blue()
+        .bold(),
         &shim_ps1_path.to_string().dark_green().bold()
     );
 
@@ -748,7 +842,12 @@ exit $LASTEXITCODE
     let shim_cmd_path = format!("{out_shim_dir}\\{target_name}.cmd");
     println!(
         "{} {}",
-        "Creating  shim  proxy launcher =>".dark_blue().bold(),
+        tr(
+            "Creating shim proxy launcher =>",
+            "正在创建 shim 代理启动器 =>"
+        )
+        .dark_blue()
+        .bold(),
         &shim_cmd_path.to_string().dark_green().bold()
     );
 
@@ -770,7 +869,12 @@ if %errorlevel% equ 0 (
     let shim_shell_path = format!("{out_shim_dir}\\{target_name}");
     println!(
         "{} {}",
-        "Creating  shim  proxy launcher =>".dark_blue().bold(),
+        tr(
+            "Creating shim proxy launcher =>",
+            "正在创建 shim 代理启动器 =>"
+        )
+        .dark_blue()
+        .bold(),
         &shim_shell_path.to_string().dark_green().bold()
     );
     let sh_content = format!(
@@ -824,13 +928,25 @@ pub fn create_cmd_or_bat_shim_scripts(
     let out_shim_dir: Result<&str, anyhow::Error> = if out_shim_dir.exists() {
         Ok(out_shim_dir.to_str().unwrap())
     } else {
-        bail!("shim 根目录 {} 不存在", out_shim_dir.display());
+        bail!(
+            "{}",
+            tr_fmt!(
+                "Shim root directory '{dir}' does not exist",
+                "shim 根目录 '{dir}' 不存在",
+                dir = out_shim_dir.display()
+            )
+        );
     };
     let out_shim_dir = out_shim_dir?;
     let shim_cmd_path = format!("{out_shim_dir}\\{target_name}.cmd");
     println!(
         "{} {}",
-        "Creating  shim  proxy launcher =>".dark_blue().bold(),
+        tr(
+            "Creating shim proxy launcher =>",
+            "正在创建 shim 代理启动器 =>"
+        )
+        .dark_blue()
+        .bold(),
         &shim_cmd_path.to_string().dark_green().bold()
     );
 
@@ -841,7 +957,12 @@ pub fn create_cmd_or_bat_shim_scripts(
     let shim_shell_path = format!("{out_shim_dir}\\{target_name}");
     println!(
         "{} {}",
-        "Creating  shim  proxy launcher =>".dark_blue().bold(),
+        tr(
+            "Creating shim proxy launcher =>",
+            "正在创建 shim 代理启动器 =>"
+        )
+        .dark_blue()
+        .bold(),
         &shim_shell_path.to_string().dark_green().bold()
     );
     let sh_content = if program_args.is_none() {
@@ -896,7 +1017,12 @@ pub fn create_shell_shim_scripts(
     let shim_cmd_path = format!("{out_shim_dir}\\{target_name}.cmd");
     println!(
         "{} {}",
-        "Creating  shim  proxy launcher =>".dark_blue().bold(),
+        tr(
+            "Creating shim proxy launcher =>",
+            "正在创建 shim 代理启动器 =>"
+        )
+        .dark_blue()
+        .bold(),
         &shim_cmd_path.to_string().dark_green().bold()
     );
     let shell_args = program_args.unwrap_or(String::new());
@@ -920,7 +1046,12 @@ pub fn create_shell_shim_scripts(
     let shim_shell_path = format!("{out_shim_dir}\\{target_name}");
     println!(
         "{} {}",
-        "Creating  shim  proxy launcher =>".dark_blue().bold(),
+        tr(
+            "Creating shim proxy launcher =>",
+            "正在创建 shim 代理启动器 =>"
+        )
+        .dark_blue()
+        .bold(),
         &shim_shell_path.to_string().dark_green().bold()
     );
     let sh_lines = vec![
@@ -1001,7 +1132,12 @@ pub fn create_exe_type_shim_file_and_shim_bin<P1: AsRef<Path>, P2: AsRef<Path>>(
     );
     println!(
         "{} {}",
-        "Creating  shim  proxy launcher =>".dark_blue().bold(),
+        tr(
+            "Creating shim proxy launcher =>",
+            "正在创建 shim 代理启动器 =>"
+        )
+        .dark_blue()
+        .bold(),
         &shim_path2.display().to_string().dark_green().bold()
     );
 

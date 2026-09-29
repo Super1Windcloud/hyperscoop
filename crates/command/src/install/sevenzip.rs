@@ -1,9 +1,11 @@
+use crate::i18n::tr;
 use crate::init_env::{
     get_cache_dir_path, get_cache_dir_path_global, get_shims_root_dir, get_shims_root_dir_global,
 };
 use crate::install::InstallOptions::NoUseDownloadCache;
 use crate::install::{ArchiveFormat, InstallOptions, install_app};
 use crate::manifest::manifest_deserialize::StringArrayOrString;
+use crate::tr_fmt;
 use crate::utils::system::{is_broken_symlink, kill_processes_using_app};
 use anyhow::{Context, bail};
 use crossterm::style::Stylize;
@@ -336,7 +338,7 @@ impl<'a> SevenZipStruct<'a> {
         let archive_items = self.get_archive_names();
         let archive_paths = self.get_archive_cache_files_path().to_vec();
         if archive_items.is_empty() || archive_paths.is_empty() {
-            bail!("No archive files found.");
+            bail!("{}", tr("No archive files found.", "未找到压缩文件。"));
         }
         let _7z: String = self.load_7z_to_temp_dir()?;
         if !self.target_is_valid() {
@@ -664,7 +666,7 @@ Expand-InnoArchive "{inno_file}" "{target_dir}"{extract_dir_param}  -Removal
         let archive_items = self.get_archive_names();
         let archive_paths = self.get_archive_cache_files_path().to_vec();
         if archive_items.is_empty() || archive_paths.is_empty() {
-            bail!("No archive files found.");
+            bail!("{}", tr("No archive files found.", "未找到压缩文件。"));
         }
         let _7z: String = self.load_7z_to_temp_dir()?;
         let archive_counts = archive_items.len();
@@ -830,7 +832,7 @@ Expand-InnoArchive "{inno_file}" "{target_dir}"{extract_dir_param}  -Removal
         let archive_items = self.get_archive_names();
         let archive_paths = self.get_archive_cache_files_path().to_vec();
         if archive_items.is_empty() || archive_paths.is_empty() {
-            bail!("No archive files found.");
+            bail!("{}", tr("No archive files found.", "未找到压缩文件。"));
         }
 
         let _7z: String = self.load_7z_to_temp_dir().expect("Failed to load 7z.exe");
@@ -847,7 +849,13 @@ Expand-InnoArchive "{inno_file}" "{target_dir}"{extract_dir_param}  -Removal
             };
             println!(
                 "{}",
-                format!("Extracting to {}", target_dir).dark_blue().bold()
+                tr_fmt!(
+                    "Extracting to {target_dir}",
+                    "正在解压到 {target_dir}",
+                    target_dir = target_dir
+                )
+                .dark_blue()
+                .bold()
             );
 
             let result = archive_items

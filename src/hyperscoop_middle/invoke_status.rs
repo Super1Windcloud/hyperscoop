@@ -1,4 +1,5 @@
 use crate::command_args::status::StatusArgs;
+use crate::i18n::tr;
 use anyhow::Context;
 use comfy_table::modifiers::UTF8_ROUND_CORNERS;
 use comfy_table::presets::UTF8_BORDERS_ONLY;
@@ -40,7 +41,7 @@ pub fn execute_status_command(status_args: StatusArgs) -> Result<(), anyhow::Err
         let manifest_path = current.join("manifest.json");
 
         if !manifest_path.exists() {
-            current_versions.push("Not Install Correctly".to_string());
+            current_versions.push(tr("Not Installed Correctly", "未正确安装").to_string());
             installed_apps.push(app_name.to_string());
             continue;
         }
@@ -48,7 +49,9 @@ pub fn execute_status_command(status_args: StatusArgs) -> Result<(), anyhow::Err
             .context("Failed to read manifest.json at line 45")?;
         let manifest: VersionJSON = serde_json::from_str(&manifest)
             .context("Failed to parse manifest.json to VersionJSON at line 47")?;
-        let current_version = manifest.version.unwrap_or("Not Found".to_string());
+        let current_version = manifest
+            .version
+            .unwrap_or_else(|| tr("Not Found", "未找到").to_string());
         current_versions.push(current_version.to_string());
         installed_apps.push(app_name.to_string());
     }
@@ -61,16 +64,10 @@ pub fn execute_status_command(status_args: StatusArgs) -> Result<(), anyhow::Err
             version_map
                 .get(app_name.to_lowercase().as_str())
                 .cloned()
-                .unwrap_or_else(|| "Not Found".to_string())
+                .unwrap_or_else(|| tr("Not Found", "未找到").to_string())
         })
         .collect();
-    // let max_installed_len = current_versions.iter().map(|s| s.len()).max().unwrap_or(0) + 4;
-    // let max_latest_len = latest_versions.iter().map(|s| s.len()).max().unwrap_or(0) + 4;
-    // let max_name_len = install_apps.iter().map(|s| s.len()).max().unwrap_or(0) + 4;
-    //
-    // let name_interval = max_name_len - 4;
-    // let installed_interval = max_installed_len - 9;
-    // let latest_interval = max_latest_len - 6;
+
     let mut final_installed_apps = Vec::new();
     for (app_name, (current_version, latest_version)) in install_apps
         .iter()
@@ -81,7 +78,7 @@ pub fn execute_status_command(status_args: StatusArgs) -> Result<(), anyhow::Err
                 app_name.to_string(),
                 current_version.to_string(),
                 latest_version.to_string(),
-                "Yes".to_string(),
+                tr("Yes", "是").to_string(),
             ]);
         }
     }
@@ -97,16 +94,16 @@ fn display_status_information(install_apps: &[Vec<String>]) {
         .apply_modifier(UTF8_ROUND_CORNERS)
         .set_content_arrangement(ContentArrangement::Dynamic)
         .set_header(vec![
-            Cell::new("AppName")
+            Cell::new(tr("AppName", "应用名称"))
                 .add_attribute(Attribute::Bold)
                 .fg(Color::DarkCyan),
-            Cell::new("InstalledVersion")
+            Cell::new(tr("InstalledVersion", "已安装版本"))
                 .add_attribute(Attribute::Bold)
                 .fg(Color::DarkCyan),
-            Cell::new("LatestVersion")
+            Cell::new(tr("LatestVersion", "最新版本"))
                 .add_attribute(Attribute::Bold)
                 .fg(Color::DarkCyan),
-            Cell::new("NeedUpdate")
+            Cell::new(tr("NeedUpdate", "需要更新"))
                 .add_attribute(Attribute::Bold)
                 .fg(Color::DarkCyan),
         ])

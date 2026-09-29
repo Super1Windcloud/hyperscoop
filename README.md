@@ -70,6 +70,7 @@ and add it to your `$env:Path`.
 |--------------------------|------------------------------------------------------------|
 | 🎨 **Beautiful CLI**     | Multi-threaded progress bars, rich colors, auto-completion |
 | ⚡ **Adaptive Speed**     | Dynamically optimizes Aria2 shards & threads               |
+| 🌐 **Bilingual (i18n)** | Native English and Chinese support with seamless switching |
 | 🌍 **Freedom Mode**      | Supports direct URL installation, no region restrictions   |
 | 🧩 **Smart Buckets**     | `hp b k` to view, `hp i aria2` to install dependencies     |
 | 💾 **Lifecycle Scripts** | Full scoop lifecycle integration                           |

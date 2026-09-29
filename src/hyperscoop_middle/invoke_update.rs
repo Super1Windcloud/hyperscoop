@@ -1,7 +1,7 @@
 use crate::check_self_update::{auto_check_hp_update, get_app_old_version, is_version_newer};
 use crate::command_args::self_update::SelfUpdateArgs;
 use crate::command_args::update::UpdateArgs;
-use crate::i18n::tr;
+use crate::i18n::{tr, tr_fmt};
 use anyhow::{Context, bail};
 use command_util_lib::init_env::{
     get_app_current_bin_path, get_app_current_dir, get_app_current_dir_global, get_app_version_dir,
@@ -67,9 +67,15 @@ pub async fn execute_update_command(update_args: UpdateArgs) -> Result<(), anyho
         if total > 1 {
             println!(
                 "{}",
-                format!("\n[{}/{}] Updating '{}'...", idx + 1, total, app_name)
-                    .dark_cyan()
-                    .bold()
+                tr_fmt!(
+                    "\n[{idx}/{total}] Updating '{name}'...",
+                    "\n[{idx}/{total}] 正在更新 '{name}'...",
+                    idx = idx + 1,
+                    total = total,
+                    name = app_name
+                )
+                .dark_cyan()
+                .bold()
             );
         }
         if app_name.to_lowercase() == "hp" {
@@ -91,9 +97,13 @@ pub async fn execute_update_command(update_args: UpdateArgs) -> Result<(), anyho
 
     if !errors.is_empty() {
         bail!(
-            "Failed to update {} app(s):\n{}",
-            errors.len(),
-            errors.join("\n")
+            "{}",
+            tr_fmt!(
+                "Failed to update {count} app(s):\n{errors}",
+                "更新 {count} 个应用失败:\n{errors}",
+                count = errors.len(),
+                errors = errors.join("\n")
+            )
         );
     }
 
@@ -238,9 +248,9 @@ pub async fn update_hp(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
     if !result {
         println!(
             "{}",
-            format!(
-                "{} {ver}",
-                tr("hp is up to date for", "hp 已是最新版本"),
+            tr_fmt!(
+                "hp is up to date for {ver}",
+                "hp 已是最新版本 {ver}",
                 ver = old_version
             )
             .dark_green()
@@ -273,16 +283,10 @@ pub async fn update_hp(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
     }
     println!(
         "{}",
-        format!(
-            "{}",
-            format!(
-                "{} {ver}",
-                tr(
-                    "Hp latest version ('{ver}') installed successfully! ❤️‍🔥💝🐉🍾🎉",
-                    "Hp 最新版本 ('{ver}') 安装成功！❤️‍🔥💝🐉🍾🎉"
-                ),
-                ver = version
-            ),
+        tr_fmt!(
+            "Hp latest version ('{ver}') installed successfully! ❤️‍🔥💝🐉🍾🎉",
+            "Hp 最新版本 ('{ver}') 安装成功！❤️‍🔥💝🐉🍾🎉",
+            ver = version
         )
         .dark_green()
         .bold()
@@ -343,7 +347,7 @@ if exist "hp.exe" (
 if exist "hp_updater.exe" (
     rename "hp_updater.exe" "hp.exe"
 ) else (
-    echo ERROR: hp_updater.exe 不存在！
+    echo ERROR: hp_updater.exe does not exist!
     exit /b 1
 )
 

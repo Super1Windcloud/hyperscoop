@@ -1,4 +1,6 @@
 use crate::config::get_config_value_no_print;
+use crate::i18n::tr;
+use crate::tr_fmt;
 use anyhow::{Context, bail};
 use crossterm::style::Stylize;
 use dialoguer::Confirm;
@@ -95,7 +97,10 @@ pub async fn request_download_git_repo(
         }
     }
     remove_dir_all(current_dir)?;
-    Ok("下载成功!!!".dark_green().bold().to_string())
+    Ok(tr("Download succeeded!", "下载成功!!!")
+        .dark_green()
+        .bold()
+        .to_string())
 }
 
 pub fn request_download_git_clone(
@@ -110,7 +115,8 @@ pub fn request_download_git_clone(
     }
 
     println!(
-        "正在下载 {} =>  {}",
+        "{} {} => {}",
+        tr("Downloading", "正在下载"),
         repo_url.dark_green().bold(),
         destination.dark_green().bold()
     );
@@ -217,7 +223,10 @@ pub fn request_download_git_clone(
     pb.finish_with_message("downloaded");
 
     if status.success() {
-        Ok("下载成功!!!".dark_green().bold().to_string())
+        Ok(tr("Download succeeded!", "下载成功!!!")
+            .dark_green()
+            .bold()
+            .to_string())
     } else {
         let mut stderr_bytes = Vec::new();
         stderr
@@ -225,7 +234,7 @@ pub fn request_download_git_clone(
             .expect("Failed to read stderr");
 
         let error_message = String::from_utf8_lossy(&stderr_bytes).to_string();
-        log::error!("克隆失败: {}", error_message);
+        log::error!("Clone failed: {}", error_message);
         bail!(error_message);
     }
 }
@@ -241,10 +250,20 @@ pub fn request_git_clone_by_git2(
         create_dir_all(&destination).expect("Failed to create directory for bucket ");
     }
     match Repository::clone(repo_url, &destination) {
-        Ok(_) => println!("✅ 仓库已克隆到 {}", destination.dark_green().bold()),
-        Err(e) => log::error!("❌ 克隆失败: {}", e),
+        Ok(_) => println!(
+            "{}",
+            tr_fmt!(
+                "Repository cloned to {dest}",
+                "仓库已克隆到 {dest}",
+                dest = destination.dark_green().bold()
+            )
+        ),
+        Err(e) => log::error!("Clone failed: {}", e),
     }
-    Ok("下载成功!!!".dark_green().bold().to_string())
+    Ok(tr("Download succeeded!", "下载成功!!!")
+        .dark_green()
+        .bold()
+        .to_string())
 }
 
 pub fn request_git_clone_by_git2_with_progress(
@@ -252,18 +271,33 @@ pub fn request_git_clone_by_git2_with_progress(
     destination: &String,
 ) -> Result<String, anyhow::Error> {
     if Path::new(destination).exists() {
+        let prompt = tr_fmt!(
+            "Directory '{dir}' already exists. Delete it?",
+            "目录 '{dir}' 已存在，是否删除?",
+            dir = destination
+        );
         let proceed = Confirm::with_theme(&ColorfulTheme::default())
-            .with_prompt(format!("目录 {} 已存在，是否删除?", destination))
+            .with_prompt(prompt)
             .interact()?;
         if proceed {
             remove_dir_all(destination)?;
-            println!("已删除目录 {}", destination);
+            println!(
+                "{}",
+                tr_fmt!(
+                    "Deleted directory '{dir}'",
+                    "已删除目录 '{dir}'",
+                    dir = destination
+                )
+            );
         } else {
-            return Ok("保留原目录，操作取消"
-                .to_string()
-                .dark_green()
-                .bold()
-                .to_string());
+            return Ok(tr(
+                "Kept original directory, operation cancelled",
+                "保留原目录，操作取消",
+            )
+            .to_string()
+            .dark_green()
+            .bold()
+            .to_string());
         }
     }
     if !Path::new(destination).exists() {
@@ -337,18 +371,25 @@ pub fn request_git_clone_by_git2_with_progress(
 
     match builder.clone(repo_url, Path::new(destination)) {
         Ok(_) => {
-            pb.finish_with_message("✅ 成功".to_string());
+            pb.finish_with_message(tr("Success", "成功").to_string());
             println!(
-                "✅ 仓库已克隆到 {}",
-                destination.to_string().dark_green().bold()
+                "{}",
+                tr_fmt!(
+                    "Repository cloned to {dest}",
+                    "仓库已克隆到 {dest}",
+                    dest = destination.to_string().dark_green().bold()
+                )
             );
             pb.finish_and_clear();
-            Ok("下载成功!!!".dark_green().bold().to_string())
+            Ok(tr("Download succeeded!", "下载成功!!!")
+                .dark_green()
+                .bold()
+                .to_string())
         }
         Err(e) => {
-            pb.finish_with_message("❌ 克隆失败！");
+            pb.finish_with_message(tr("Clone failed!", "克隆失败！").to_string());
             pb.finish_and_clear();
-            bail!("❌ 失败: {}", e);
+            bail!("{}", tr_fmt!("Failed: {e}", "失败: {e}", e = e));
         }
     }
 }
@@ -395,7 +436,10 @@ pub fn download_third_party_buckets() -> Result<String, anyhow::Error> {
         request_download_git_clone(url, &download_path)?;
     }
 
-    Ok("下载成功!!!".dark_green().bold().to_string())
+    Ok(tr("Download succeeded!", "下载成功!!!")
+        .dark_green()
+        .bold()
+        .to_string())
 }
 
 pub fn get_git_repo_remote_url<P: AsRef<Path>>(repo_path: P) -> Result<String, anyhow::Error> {

@@ -1,5 +1,7 @@
+use crate::i18n::tr;
 use crate::init_hyperscoop;
 use crate::manifest::uninstall_manifest::UninstallManifest;
+use crate::tr_fmt;
 use anyhow::{Context, bail};
 use crossterm::style::Stylize;
 use std::path::Path;
@@ -39,13 +41,25 @@ pub fn uninstall_app_with_purge(app_name: &str, global: bool) -> Result<(), anyh
                 ))?;
             }
         } else {
-            bail!("'{app_name}' 并没有安装")
+            bail!(
+                "{}",
+                tr_fmt!(
+                    "'{app_name}' is not installed",
+                    "'{app_name}' 并没有安装",
+                    app_name = app_name
+                )
+            );
         }
     }
     println!(
-        "{} '{}'",
-        "Removing Persisted data for".to_string().dark_blue().bold(),
-        app_name.dark_cyan().bold()
+        "{}",
+        tr_fmt!(
+            "Removing persisted data for '{app_name}'",
+            "正在删除 '{app_name}' 的持久化数据",
+            app_name = app_name.dark_cyan().bold()
+        )
+        .dark_blue()
+        .bold()
     );
     let persist_path = if global {
         get_persist_dir_path_global()
@@ -57,7 +71,9 @@ pub fn uninstall_app_with_purge(app_name: &str, global: bool) -> Result<(), anyh
     if !app_persist_path.exists() {
         eprintln!(
             "{} {}",
-            "persisted data is not  having".dark_red().bold(),
+            tr("Persisted data does not exist:", "持久化数据不存在:")
+                .dark_red()
+                .bold(),
             app_persist_path.to_str().unwrap().dark_green().bold()
         );
         return Ok(());
@@ -115,33 +131,64 @@ pub fn uninstall_app(app_name: &str, is_global: bool) -> Result<(), anyhow::Erro
             .arg(uninstall_script)
             .output()?;
         if !output.status.success() {
-            bail!("Scoop Uninstall script failed");
+            bail!(
+                "{}",
+                tr("Scoop uninstall script failed", "Scoop 卸载脚本执行失败")
+            );
         }
-        println!("Scoop Uninstall script completed successfully");
+        println!(
+            "{}",
+            tr(
+                "Scoop uninstall script completed successfully",
+                "Scoop 卸载脚本执行成功"
+            )
+        );
         std::process::exit(0);
     }
     if let Err(e) = check_installed_status(app_name) {
         eprintln!("{}", e);
-        bail!("checked installed status, {e}");
+        bail!(
+            "{}",
+            tr_fmt!(
+                "Checked installed status failed: {e}",
+                "检查安装状态失败: {e}",
+                e = e
+            )
+        );
     }
     let result = uninstall_matched_app(&app_path, app_name, &shim_path, is_global);
     if let Err(e) = result {
         eprintln!("{}", e);
         let app_path = Path::new(&app_path).join(app_name);
         if !app_path.exists() {
-            eprintln!("{} is not exists", app_path.display());
+            eprintln!(
+                "{}",
+                tr_fmt!(
+                    "{path} does not exist",
+                    "{path} 不存在",
+                    path = app_path.display()
+                )
+            );
             return Ok(());
         }
         let app_path = app_path.to_str().unwrap();
         println!(
             "{}",
-            format!("Removing Error  Installation of '{app_name}' => {app_path}")
+            tr_fmt!(
+                "Removing failed installation of '{app_name}' => {app_path}",
+                "正在清理 '{app_name}' 的异常安装目录 => {app_path}",
+                app_name = app_name,
+                app_path = app_path
+            )
         );
         rm_all_dir(app_path)?;
         bail!(
-            "'{}' {}",
-            app_name.to_string().dark_cyan().bold(),
-            "was not uninstalled as expect".dark_green().bold()
+            "{}",
+            tr_fmt!(
+                "'{app_name}' was not uninstalled as expected",
+                "'{app_name}' 未按预期卸载完成",
+                app_name = app_name.dark_cyan().bold()
+            )
         );
     }
 
@@ -201,7 +248,7 @@ fn uninstall_matched_app(
                 .expect("Failed to run pre-uninstall lifecycle script");
                 println!(
                     "{} '{}'  ({})",
-                    "Uninstalling".to_string().dark_blue().bold(),
+                    tr("Uninstalling", "正在卸载").dark_blue().bold(),
                     app_name.dark_red().bold(),
                     version.dark_red().bold()
                 );
@@ -227,7 +274,7 @@ fn uninstall_matched_app(
                 rm_start_menu_shortcut(&manifest, is_global)?;
                 println!(
                     "{} {}",
-                    "Unlinking".dark_blue().bold(),
+                    tr("Unlinking", "正在取消链接").dark_blue().bold(),
                     &current_path.display().to_string().dark_green().bold()
                 );
                 rm_all_dir(path.clone())?;
@@ -251,12 +298,24 @@ fn uninstall_psmodule(manifest: &UninstallManifest, is_global: bool) -> Result<(
     };
     let module_name = psmodule.name;
     println!(
-        "Uninstalling PowerShell module  '{}'",
+        "{} '{}'",
+        tr("Uninstalling PowerShell module", "正在卸载 PowerShell 模块")
+            .dark_blue()
+            .bold(),
         module_name.clone().dark_red().bold()
     );
     let lind_path = Path::new(&psmodule_dir).join(module_name);
     if lind_path.exists() {
-        println!("Removing psmodule path {}", &lind_path.display());
+        println!(
+            "{} {}",
+            tr(
+                "Removing PowerShell module path",
+                "正在删除 PowerShell 模块路径"
+            )
+            .dark_blue()
+            .bold(),
+            &lind_path.display()
+        );
         std::fs::remove_dir_all(lind_path).context("Failed to remove psmodule path at line 235")?;
     }
     Ok(())

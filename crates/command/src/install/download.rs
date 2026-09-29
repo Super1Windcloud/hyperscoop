@@ -1,3 +1,4 @@
+use crate::i18n::tr;
 use crate::init_env::{
     get_app_current_dir, get_app_current_dir_global, get_app_version_dir,
     get_app_version_dir_global, get_apps_path, get_apps_path_global, get_cache_dir_path,
@@ -10,6 +11,7 @@ use crate::install::InstallOptions::{
 use crate::install::{ArchiveFormat, Aria2C, HashFormat, InstallOptions, SevenZipStruct};
 use crate::manifest::install_manifest::InstallManifest;
 use crate::manifest::manifest_deserialize::{ArchitectureObject, StringArrayOrString};
+use crate::tr_fmt;
 use crate::utils::system::{compute_hash_by_powershell, get_system_default_arch};
 use crate::utils::utility::{assume_yes_to_cover_folder, get_parse_url_query, is_valid_url};
 use anyhow::{Context, bail};
@@ -346,7 +348,14 @@ impl<'a> DownloadManager<'a> {
                     Ok(())
                 }) as anyhow::Result<_>;
         if result.is_err() {
-            bail!("创建缓存输入文件{}失败", self.get_input_file())
+            bail!(
+                "{}",
+                tr_fmt!(
+                    "Failed to create cache input file {file}",
+                    "创建缓存输入文件{file}失败",
+                    file = self.get_input_file()
+                )
+            );
         }
         log::debug!("create input file {}", self.get_input_file());
 
@@ -383,7 +392,14 @@ impl<'a> DownloadManager<'a> {
             };
             let dir = self.app_current_dir.as_str();
             if env_path.contains(dir) && !dir.is_empty() {
-                log::warn!("{} 已经存在于 PATH 环境变量中, 请检查", dir)
+                log::warn!(
+                    "{}",
+                    tr_fmt!(
+                        "{dir} already exists in PATH environment variable, please check",
+                        "{dir} 已经存在于 PATH 环境变量中, 请检查",
+                        dir = dir
+                    )
+                );
             }
         }
         Ok(())
@@ -489,7 +505,9 @@ impl<'a> DownloadManager<'a> {
             "Failed to parse manifest file {} at line 467",
             manifest_path
         ))?;
-        let version = serde_obj.version.expect("version 不能为空");
+        let version = serde_obj
+            .version
+            .expect(tr("Version cannot be empty", "version 不能为空"));
         let innosetup = serde_obj.innosetup;
         let exe_setup = innosetup.unwrap_or(false);
         self.set_whether_exe_setup_installer(exe_setup);
@@ -540,7 +558,7 @@ impl<'a> DownloadManager<'a> {
                     self.set_cache_file_name(app_name, &version, &url)?;
                 }
             } else {
-                bail!("架构选项错误");
+                bail!("{}", tr("Architecture option error", "架构选项错误"));
             }
             self.set_app_download_architecture(&final_arch);
         }
@@ -634,7 +652,7 @@ impl<'a> DownloadManager<'a> {
                 vec![url.trim().to_string()]
             }
             StringArrayOrString::Null => {
-                bail!("url 不能为空");
+                bail!("{}", tr("URL cannot be empty", "url 不能为空"));
             }
         }
         .into_iter()
@@ -745,7 +763,13 @@ impl<'a> DownloadManager<'a> {
                 }
                 println!(
                     "{}",
-                    format!("Override Cache File '{path}'").dark_grey().bold()
+                    tr_fmt!(
+                        "Overwriting cache file '{path}'",
+                        "正在覆盖缓存文件 '{path}'",
+                        path = path
+                    )
+                    .dark_grey()
+                    .bold()
                 );
                 std::fs::remove_file(path)?;
                 let aria2_file = format!("{path}.aria2");
@@ -755,7 +779,14 @@ impl<'a> DownloadManager<'a> {
                 Ok(())
             });
             if let Err(e) = result {
-                bail!("Failed to override cache file: {}", e);
+                bail!(
+                    "{}",
+                    tr_fmt!(
+                        "Failed to override cache file: {e}",
+                        "覆盖缓存文件失败: {e}",
+                        e = e
+                    )
+                );
             }
         }
         if self
@@ -763,15 +794,26 @@ impl<'a> DownloadManager<'a> {
             .contains(&InstallOptions::OnlyDownloadNoInstall)
         {
             let end_message = if self.bucket_source.is_none() {
-                format!("from manifest file '{}'", self.manifest_path)
+                tr_fmt!(
+                    "from manifest file '{path}'",
+                    "来自 manifest 文件 '{path}'",
+                    path = self.manifest_path
+                )
             } else {
-                format!("from bucket '{}'", self.bucket_source.clone().unwrap())
+                tr_fmt!(
+                    "from bucket '{bucket}'",
+                    "来自仓库 '{bucket}'",
+                    bucket = self.bucket_source.clone().unwrap()
+                )
             };
             println!(
                 "{}",
-                format!(
-                    "Downloading '{}' [{}] {}",
-                    self.app_name, self.install_arch, end_message
+                tr_fmt!(
+                    "Downloading '{name}' [{arch}] {msg}",
+                    "正在下载 '{name}' [{arch}] {msg}",
+                    name = self.app_name,
+                    arch = self.install_arch,
+                    msg = end_message
                 )
                 .dark_blue()
                 .bold()
@@ -783,10 +825,11 @@ impl<'a> DownloadManager<'a> {
             log::info!("cache file already exist, skip download");
             self.origin_cache_file_names.iter().for_each(|name| {
                 println!(
-                    "{} {} {}",
-                    "Loading".dark_blue().bold(),
-                    name.to_string().dark_cyan().bold(),
-                    "from cache".blue().bold()
+                    "{} {}",
+                    tr("Loading from cache:", "正在从缓存加载:")
+                        .dark_blue()
+                        .bold(),
+                    name.to_string().dark_cyan().bold()
                 )
             });
             if Path::new(input_file).exists() && !is_valid_url(self.manifest_path) {

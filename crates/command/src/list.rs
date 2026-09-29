@@ -1,8 +1,10 @@
+use crate::i18n::tr;
 use crate::init_env::{
     get_app_dir_install_json, get_app_dir_install_json_global, get_app_dir_manifest_json,
     get_app_dir_manifest_json_global, get_apps_path, get_apps_path_global, is_app_held_by_path,
 };
 use crate::init_hyperscoop;
+use crate::tr_fmt;
 use crate::utils::get_file_or_dir_metadata::get_dir_updated_time;
 use crate::utils::safe_check::is_directory_empty;
 use anyhow::Context;
@@ -188,7 +190,12 @@ pub fn list_specific_installed_apps_extra(
 
     let count = filtered_apps.len();
     if count == 0 {
-        println!("{}", "No app To Found !".to_string().dark_cyan().bold());
+        println!(
+            "{}",
+            tr("No installed apps found!", "未找到已安装的应用！")
+                .dark_cyan()
+                .bold()
+        );
         return Ok(());
     }
 
@@ -209,16 +216,16 @@ pub fn list_specific_installed_apps_extra(
         .apply_modifier(UTF8_ROUND_CORNERS)
         .set_content_arrangement(ContentArrangement::Dynamic)
         .set_header(vec![
-            Cell::new("AppName")
+            Cell::new(tr("AppName", "应用名称"))
                 .add_attribute(Attribute::Bold)
                 .fg(Color::Green),
-            Cell::new("AppVersion")
+            Cell::new(tr("AppVersion", "版本"))
                 .add_attribute(Attribute::Bold)
                 .fg(Color::Green),
-            Cell::new("SourceBucket")
+            Cell::new(tr("SourceBucket", "来源软件库"))
                 .add_attribute(Attribute::Bold)
                 .fg(Color::Green),
-            Cell::new("UpdatedTime")
+            Cell::new(tr("UpdatedTime", "更新时间"))
                 .add_attribute(Attribute::Bold)
                 .fg(Color::Green),
         ])
@@ -239,15 +246,20 @@ pub fn list_specific_installed_apps(query: Vec<String>, is_global: bool) -> anyh
         return flag;
     });
     if !found_flag {
-        println!("{}", "No app To Found !".to_string().dark_cyan().bold());
+        println!(
+            "{}",
+            tr("No installed apps found!", "未找到已安装的应用！")
+                .dark_cyan()
+                .bold()
+        );
         return Ok(());
     }
     println!(
         "{:<30}\t\t\t\t{:<30}\t\t\t{:<30}\t\t\t{:<30} ",
-        "Name".dark_green().bold(),
-        "Version".dark_green().bold(),
-        "Bucket".dark_green().bold(),
-        "UpDate".dark_green().bold()
+        tr("Name", "名称").dark_green().bold(),
+        tr("Version", "版本").dark_green().bold(),
+        tr("Bucket", "软件库").dark_green().bold(),
+        tr("UpDate", "更新时间").dark_green().bold()
     );
     println!(
         "{:<30}\t\t\t\t{:<30}\t\t\t{:<30}\t\t\t{:<30} ",
@@ -367,7 +379,9 @@ pub fn display_apps_info_extra(is_global: bool) -> anyhow::Result<()> {
     let counts = package.len();
     println!(
         "{} :{} \n",
-        "Installed Apps Count".dark_cyan().bold(),
+        tr("Installed Apps Count", "已安装应用数量")
+            .dark_cyan()
+            .bold(),
         counts.to_string().dark_cyan().bold()
     );
 
@@ -377,16 +391,16 @@ pub fn display_apps_info_extra(is_global: bool) -> anyhow::Result<()> {
         .apply_modifier(UTF8_ROUND_CORNERS)
         .set_content_arrangement(ContentArrangement::Dynamic)
         .set_header(vec![
-            Cell::new("AppName")
+            Cell::new(tr("AppName", "应用名称"))
                 .add_attribute(Attribute::Bold)
                 .fg(Color::Green),
-            Cell::new("AppVersion")
+            Cell::new(tr("AppVersion", "版本"))
                 .add_attribute(Attribute::Bold)
                 .fg(Color::Green),
-            Cell::new("SourceBucket")
+            Cell::new(tr("SourceBucket", "来源软件库"))
                 .add_attribute(Attribute::Bold)
                 .fg(Color::Green),
-            Cell::new("UpdatedTime")
+            Cell::new(tr("UpdatedTime", "更新时间"))
                 .add_attribute(Attribute::Bold)
                 .fg(Color::Green),
         ])
@@ -414,7 +428,9 @@ pub fn display_app_info(is_global: bool) -> anyhow::Result<()> {
     ];
     println!(
         "{} :{} \n",
-        "Installed Apps Count".dark_cyan().bold(),
+        tr("Installed Apps Count", "已安装应用数量")
+            .dark_cyan()
+            .bold(),
         counts.to_string().dark_cyan().bold()
     );
 
@@ -423,12 +439,16 @@ pub fn display_app_info(is_global: bool) -> anyhow::Result<()> {
         "{}",
         "-".to_string().repeat(all_widths + 8).dark_green().bold()
     );
+    let name_header = format!("| {}", tr("Name", "名称"));
+    let version_header = format!("| {}", tr("Version", "版本"));
+    let bucket_header = format!("| {}", tr("Bucket", "软件库"));
+    let update_header = format!("| {}", tr("Update", "更新时间"));
     println!(
         "{:<width1$} {:<width2$} {:<width3$} {:<width4$}",
-        "| Name",
-        "| Version",
-        "| Bucket",
-        "| Update",
+        name_header,
+        version_header,
+        bucket_header,
+        update_header,
         width1 = col_widths[0],
         width2 = col_widths[1],
         width3 = col_widths[2],
@@ -491,7 +511,14 @@ fn get_apps_source_bucket(apps_path: &String) -> Vec<String> {
         if file_type.is_dir() {
             //检测目录安全性
             if is_directory_empty(&apps_file) {
-                println!("{} is empty, removing it", apps_file.to_str().unwrap());
+                println!(
+                    "{}",
+                    tr_fmt!(
+                        "{path} is empty, removing it",
+                        "{path} 为空，正在清理",
+                        path = apps_file.to_string_lossy()
+                    )
+                );
                 remove_dir_all(&apps_file).unwrap(); // 删除空目录
                 continue;
             }
@@ -508,7 +535,7 @@ fn get_apps_source_bucket(apps_path: &String) -> Vec<String> {
                     .expect("Unable to parse install file");
                 let version = source
                     .get("bucket")
-                    .expect("获取 Source Bucket 失败 ")
+                    .expect("Failed to get Source Bucket")
                     .to_string();
                 let re = Regex::new(r#"^"|"$"#).unwrap(); // 匹配字符串开头和结尾的双引号
                 let mut unquoted_str = re.replace_all(&version, "").to_string();
@@ -533,7 +560,14 @@ fn get_apps_version(apps_path: &String) -> Vec<String> {
         let path = entry.path();
 
         if is_directory_empty(&path) {
-            println!("{} is empty, removing it", path.to_str().unwrap());
+            println!(
+                "{}",
+                tr_fmt!(
+                    "{path} is empty, removing it",
+                    "{path} 为空，正在清理",
+                    path = path.to_string_lossy()
+                )
+            );
             remove_dir_all(&path).unwrap(); // 删除空目录
             continue;
         }
@@ -551,7 +585,14 @@ fn get_apps_version(apps_path: &String) -> Vec<String> {
                 if file_type.is_dir() {
                     // 检查目录安全性
                     if is_directory_empty(&version_path) {
-                        println!("{} is empty, removing it", version_path.to_str().unwrap());
+                        println!(
+                            "{}",
+                            tr_fmt!(
+                                "{path} is empty, removing it",
+                                "{path} 为空，正在清理",
+                                path = version_path.to_string_lossy()
+                            )
+                        );
                         remove_dir_all(&version_path).unwrap(); // 删除空目录
                         continue;
                     }
