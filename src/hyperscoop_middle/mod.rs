@@ -60,3 +60,10 @@ mod invoke_deps;
 pub use invoke_deps::execute_deps_command;
 mod invoke_uses;
 pub use invoke_uses::execute_uses_command;
+
+mod invoke_autoremove;
+pub use invoke_autoremove::execute_autoremove_command;
+mod invoke_leaves;
+pub use invoke_leaves::execute_leaves_command;
+mod invoke_size;
+pub use invoke_size::execute_size_command;

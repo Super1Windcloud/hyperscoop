@@ -100,6 +100,7 @@ and add it to your `$env:Path`.
 | Command               | Description                     |
 |-----------------------|---------------------------------|
 | ✅ alias               | Manage command aliases          |
+| ✅ autoremove          | Clean up unused packages installed as dependencies |
 | ✅ bucket              | Add / remove / list buckets     |
 | ✅ bundle              | Declarative environment management via Hpfile (dump / install / check) |
 | ✅ cache               | Manage download cache           |
@@ -109,8 +110,11 @@ and add it to your `$env:Path`.
 | ✅ config              | Configure hp settings           |
 | ✅ deps                | Query dependencies and tree for an application |
 | ✅ export / import     | Backup and restore configs      |
-| ✅ hold                | Lock apps to prevent updates    |
+| ✅ hold / pin          | Lock apps to prevent updates    |
+| ✅ unpin / unhold      | Unlock apps to allow updates    |
 | ✅ install / uninstall | Full package lifecycle (with dependency safety protection) |
+| ✅ leaves              | List top-level installed applications (not required by others) |
+| ✅ size / disk-usage   | Analyze disk space usage for apps, cache, and persist data |
 | ✅ status / outdated   | Check whether installed apps need updates |
 | ✅ update              | Update single or all apps       |
 | ✅ uses                | Query packages that depend on an app (reverse dependencies) |

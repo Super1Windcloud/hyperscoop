@@ -311,6 +311,18 @@ pub fn assume_yes_to_cover_folder(path: &str) -> anyhow::Result<bool> {
     }
 }
 
+pub fn prompt_confirm(prompt: &str, default: bool) -> anyhow::Result<bool> {
+    use dialoguer::Confirm;
+    match Confirm::new()
+        .with_prompt(prompt)
+        .default(default)
+        .interact()
+    {
+        Ok(yes) => Ok(yes),
+        Err(_) => Ok(default),
+    }
+}
+
 pub fn write_utf8_file(path: &str, content: &str, option: &[InstallOptions]) -> anyhow::Result<()> {
     // log::info!("shim content :{}", content);
     if content.is_empty() {

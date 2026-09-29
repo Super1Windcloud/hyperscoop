@@ -80,6 +80,7 @@ pub mod import;
 pub mod install;
 pub mod reset;
 pub mod shim;
+pub mod size;
 pub mod uninstall;
 pub mod update;
 

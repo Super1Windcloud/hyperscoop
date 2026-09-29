@@ -287,6 +287,153 @@ pub fn print_dependency_tree(node: &DependencyNode, prefix: &str, is_last: bool,
     }
 }
 
+/// An installed application representation for leaf analysis
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InstalledAppLeaf {
+    pub app_name: String,
+    pub version: String,
+    pub bucket: String,
+    pub is_global: bool,
+}
+
+/// Find all leaf applications (installed applications that are not dependencies of any other installed app)
+pub fn find_leaf_apps(global_only: bool) -> anyhow::Result<Vec<InstalledAppLeaf>> {
+    let scan_dirs = if global_only {
+        vec![(get_apps_path_global(), true)]
+    } else {
+        vec![(get_apps_path(), false), (get_apps_path_global(), true)]
+    };
+
+    let mut all_apps = Vec::new();
+    let mut all_declared_deps: HashSet<String> = HashSet::new();
+
+    for (root_dir, is_global) in &scan_dirs {
+        let p = Path::new(root_dir);
+        if !p.is_dir() {
+            continue;
+        }
+        let entries = match read_dir(p) {
+            Ok(e) => e,
+            Err(_) => continue,
+        };
+
+        for entry in entries.flatten() {
+            let app_name = entry.file_name().to_string_lossy().to_string();
+            if app_name.eq_ignore_ascii_case("scoop") {
+                continue;
+            }
+
+            let manifest_path = if *is_global {
+                get_app_dir_manifest_json_global(&app_name)
+            } else {
+                get_app_dir_manifest_json(&app_name)
+            };
+
+            let install_json_path = if *is_global {
+                get_app_dir_install_json_global(&app_name)
+            } else {
+                get_app_dir_install_json(&app_name)
+            };
+
+            let m_path = Path::new(&manifest_path);
+            if !m_path.is_file() {
+                continue;
+            }
+
+            let bucket = get_install_json_bucket(&install_json_path)
+                .unwrap_or_else(|_| "unknown".to_string());
+            let version =
+                get_install_json_version(&manifest_path).unwrap_or_else(|_| "unknown".to_string());
+
+            if let Ok(content) = std::fs::read_to_string(m_path) {
+                if let Ok(manifest) = serde_json::from_str::<InstallManifest>(&content) {
+                    for dep in get_manifest_dependencies(&manifest) {
+                        all_declared_deps.insert(normalize_dep_name(&dep).to_lowercase());
+                    }
+                }
+            }
+
+            all_apps.push(InstalledAppLeaf {
+                app_name,
+                version,
+                bucket,
+                is_global: *is_global,
+            });
+        }
+    }
+
+    let mut leaves: Vec<InstalledAppLeaf> = all_apps
+        .into_iter()
+        .filter(|app| !all_declared_deps.contains(&app.app_name.to_lowercase()))
+        .collect();
+
+    leaves.sort_by(|a, b| a.app_name.cmp(&b.app_name));
+    leaves.dedup_by(|a, b| a.app_name == b.app_name && a.is_global == b.is_global);
+
+    Ok(leaves)
+}
+
+/// Check if an app was marked as installed as a dependency in install.json
+pub fn is_app_installed_as_dependency(install_json_path: &str) -> bool {
+    let p = Path::new(install_json_path);
+    if !p.is_file() {
+        return false;
+    }
+    if let Ok(content) = std::fs::read_to_string(p) {
+        if let Ok(val) = serde_json::from_str::<serde_json::Value>(&content) {
+            return val
+                .get("installed_as_dependency")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(false);
+        }
+    }
+    false
+}
+
+/// Mark or unmark an app as installed as a dependency in install.json
+pub fn set_installed_as_dependency(install_json_path: &str, as_dep: bool) {
+    let p = Path::new(install_json_path);
+    if !p.is_file() {
+        return;
+    }
+    if let Ok(content) = std::fs::read_to_string(p) {
+        if let Ok(mut val) = serde_json::from_str::<serde_json::Value>(&content) {
+            if let Some(map) = val.as_object_mut() {
+                if as_dep {
+                    map.insert(
+                        "installed_as_dependency".to_string(),
+                        serde_json::Value::Bool(true),
+                    );
+                } else {
+                    map.remove("installed_as_dependency");
+                }
+                if let Ok(serialized) = serde_json::to_string_pretty(&val) {
+                    let _ = std::fs::write(p, serialized);
+                }
+            }
+        }
+    }
+}
+
+/// Find orphaned dependencies (apps installed as dependencies that no longer have any installed dependents)
+pub fn find_orphaned_dependencies(global_only: bool) -> anyhow::Result<Vec<InstalledAppLeaf>> {
+    let leaves = find_leaf_apps(global_only)?;
+    let mut orphans = Vec::new();
+
+    for leaf in leaves {
+        let install_json = if leaf.is_global {
+            get_app_dir_install_json_global(&leaf.app_name)
+        } else {
+            get_app_dir_install_json(&leaf.app_name)
+        };
+        if is_app_installed_as_dependency(&install_json) {
+            orphans.push(leaf);
+        }
+    }
+
+    Ok(orphans)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

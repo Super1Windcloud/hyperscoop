@@ -72,6 +72,7 @@ cargo  binstall  hp2
 ## ☑️ TODO (功能全部完成, 尽情使用)
 
 - [x]  Alias
+- [x]  autoremove (清理无用的孤儿依赖包)
 - [x] Bucket
 - [x]  bundle (通过 Hpfile 声明式管理环境依赖: dump / install / check)
 - [x] cat
@@ -85,13 +86,15 @@ cargo  binstall  hp2
 - [x]  home
 - [x]  import
 - [x]  info
-- [x]  hold
+- [x]  hold (别名: pin; 解锁: unpin, unhold)
 - [x] install
+- [x]  leaves (查看所有顶层独立应用，即叶子节点)
 - [x] list
 - [x] prefix
 - [x] reset
 - [x] search
 - [x] shim
+- [x]  size (别名: disk-usage, 分析应用、缓存与数据占用)
 - [x] status (别名: outdated)
 - [x] uninstall (具备反向依赖防护机制)
 - [x] update

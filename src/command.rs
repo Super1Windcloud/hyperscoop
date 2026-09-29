@@ -1,5 +1,6 @@
 use crate::check_self_update::auto_check_hp_update;
 use crate::command_args::alias::AliasArgs;
+use crate::command_args::autoremove::AutoremoveArgs;
 use crate::command_args::bundle::BundleArgs;
 use crate::command_args::cat::CatArgs;
 use crate::command_args::checkup::CheckupArgs;
@@ -12,6 +13,7 @@ use crate::command_args::home::HomeArgs;
 use crate::command_args::import::ImportArgs;
 use crate::command_args::info::InfoArgs;
 use crate::command_args::install::InstallArgs;
+use crate::command_args::leaves::LeavesArgs;
 use crate::command_args::list::ListArgs;
 use crate::command_args::merge_bucket::MergeArgs;
 use crate::command_args::prefix::PrefixArgs;
@@ -19,6 +21,7 @@ use crate::command_args::reset::ResetArgs;
 use crate::command_args::search::SearchArgs;
 use crate::command_args::self_update::SelfUpdateArgs;
 use crate::command_args::shim::ShimArgs;
+use crate::command_args::size::SizeArgs;
 use crate::command_args::status::StatusArgs;
 use crate::command_args::uninstall::UninstallArgs;
 use crate::command_args::update::UpdateArgs;
@@ -45,6 +48,7 @@ use std::path::Path;
 )]
 pub(crate) enum Commands {
     Alias(AliasArgs),
+    Autoremove(AutoremoveArgs),
     Bucket(BucketArgs),
     Bundle(BundleArgs),
     Cat(CatArgs),
@@ -56,10 +60,12 @@ pub(crate) enum Commands {
     Deps(DepsArgs),
     Export(ExportArgs),
     Home(HomeArgs),
+    #[clap(alias = "pin")]
     Hold(HoldArgs),
     Import(ImportArgs),
     Info(InfoArgs),
     Install(InstallArgs),
+    Leaves(LeavesArgs),
     List(ListArgs),
     Prefix(PrefixArgs),
     Reset(ResetArgs),
@@ -67,9 +73,12 @@ pub(crate) enum Commands {
     Search(SearchArgs),
     SelfUpdate(SelfUpdateArgs),
     Shim(ShimArgs),
+    Size(SizeArgs),
     Status(StatusArgs),
     #[clap(alias = "un")]
     Uninstall(UninstallArgs),
+    #[clap(alias = "unhold")]
+    Unpin(UnpinArgs),
     Update(UpdateArgs),
     Uses(UsesArgs),
     Which(WhichArgs),
@@ -134,6 +143,36 @@ pub struct HoldArgs {
         long,
         required = false,
         help = crate::i18n::tr("Hold or unhold globally installed apps", "锁定或解锁全局安装的应用")
+    )]
+    pub global: bool,
+}
+
+#[derive(Args, Debug)]
+#[clap(
+    author,
+    version,
+    about = crate::i18n::tr(
+        "🔓\t\tUnhold (unpin) apps to allow version updates",
+        "🔓\t\t解除锁定（Unpin）指定 APP，允许后续版本更新"
+    ),
+    long_about = None
+)]
+#[command(arg_required_else_help = true)]
+pub struct UnpinArgs {
+    #[arg(
+        required = true,
+        num_args = 1..,
+        help = crate::i18n::tr(
+            "Names of the apps to unpin/unhold",
+            "要解除锁定的 APP 名称"
+        ),
+        value_parser = clap_args_to_lowercase
+    )]
+    pub app_names: Vec<String>,
+    #[arg(
+        short = 'g',
+        long,
+        help = crate::i18n::tr("Unhold globally installed apps", "解除锁定全局安装的应用")
     )]
     pub global: bool,
 }
@@ -493,6 +532,68 @@ mod tests {
                 _ => panic!("Expected BundleSubcommands::Check"),
             },
             _ => panic!("Expected Bundle"),
+        }
+
+        // Test pin alias for hold
+        let cli = crate::Cli::try_parse_from(["hp", "pin", "python"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Hold(args) => {
+                assert_eq!(args.app_names.unwrap(), vec!["python"]);
+                assert!(!args.cancel_hold);
+            }
+            _ => panic!("Expected Hold for 'pin'"),
+        }
+
+        // Test unpin command
+        let cli = crate::Cli::try_parse_from(["hp", "unpin", "python"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Unpin(args) => {
+                assert_eq!(args.app_names, vec!["python"]);
+            }
+            _ => panic!("Expected Unpin"),
+        }
+
+        // Test unhold alias for unpin
+        let cli = crate::Cli::try_parse_from(["hp", "unhold", "python"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Unpin(args) => {
+                assert_eq!(args.app_names, vec!["python"]);
+            }
+            _ => panic!("Expected Unpin for 'unhold'"),
+        }
+
+        // Test leaves parsing
+        let cli = crate::Cli::try_parse_from(["hp", "leaves"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Leaves(_) => {}
+            _ => panic!("Expected Leaves"),
+        }
+
+        // Test size parsing and disk-usage alias
+        let cli = crate::Cli::try_parse_from(["hp", "size", "git"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Size(args) => {
+                assert_eq!(args.app_name.as_deref(), Some("git"));
+            }
+            _ => panic!("Expected Size"),
+        }
+
+        let cli = crate::Cli::try_parse_from(["hp", "disk-usage"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Size(args) => {
+                assert_eq!(args.app_name, None);
+            }
+            _ => panic!("Expected Size for 'disk-usage'"),
+        }
+
+        // Test autoremove parsing
+        let cli = crate::Cli::try_parse_from(["hp", "autoremove", "-n", "-y"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Autoremove(args) => {
+                assert!(args.dry_run);
+                assert!(args.yes);
+            }
+            _ => panic!("Expected Autoremove"),
         }
     }
 }

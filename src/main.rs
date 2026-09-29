@@ -40,7 +40,7 @@ use logger_err::init_logger;
 mod check_self_update;
 mod i18n;
 rust_i18n::i18n!("locales");
-use crate::command::{Commands, execute_credits_command, execute_hold_command};
+use crate::command::{Commands, HoldArgs, execute_credits_command, execute_hold_command};
 use crate::command_args::alias::execute_alias_command;
 #[allow(unused_imports)]
 use crate::logger_err::{init_color_output, invoke_admin_process};
@@ -190,6 +190,7 @@ async fn main() -> anyhow::Result<()> {
         }
         Some(input_command) => match input_command {
             Commands::Alias(alias_args) => execute_alias_command(alias_args),
+            Commands::Autoremove(args) => execute_autoremove_command(args),
             Commands::Bucket(bucket) => execute_bucket_command(bucket),
             Commands::Bundle(args) => execute_bundle_command(args),
             Commands::Cat(cat) => execute_cat_command(cat),
@@ -205,23 +206,30 @@ async fn main() -> anyhow::Result<()> {
             Commands::Deps(args) => execute_deps_command(args),
             Commands::Export(file) => execute_export_command(file),
             Commands::Home(home) => execute_home_command(home),
+            Commands::Hold(hold_args) => execute_hold_command(hold_args),
             Commands::Import(args) => execute_import_command(args),
             Commands::Info(info) => execute_info_command(info),
             Commands::Install(args) => execute_install_command(args).await,
+            Commands::Leaves(args) => execute_leaves_command(args),
             Commands::List(query_app) => execute_list_installed_apps(query_app),
             Commands::Prefix(prefix) => execute_prefix_command(prefix),
             Commands::Reset(args) => execute_reset_command(args),
             Commands::Search(search_app) => execute_search_command(search_app),
             Commands::SelfUpdate(args) => execute_self_update_command(args).await,
             Commands::Shim(args) => execute_shim_command(args),
+            Commands::Size(args) => execute_size_command(args),
             Commands::Status(args) => execute_status_command(args),
             Commands::Uninstall(args) => execute_uninstall_command(args),
+            Commands::Unpin(args) => execute_hold_command(HoldArgs {
+                app_names: Some(args.app_names),
+                cancel_hold: true,
+                global: args.global,
+            }),
             Commands::Update(update_args) => execute_update_command(update_args).await,
             Commands::Uses(args) => execute_uses_command(args),
             Commands::Which(which) => execute_which_command(which),
             Commands::Merge(args) => execute_merge_command(args),
             Commands::Credits(_) => execute_credits_command().await,
-            Commands::Hold(hold_args) => execute_hold_command(hold_args),
         },
     };
     if let Err(err) = result {

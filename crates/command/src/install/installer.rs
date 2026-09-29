@@ -95,7 +95,7 @@ pub fn show_notes(notes: StringArrayOrString) -> anyhow::Result<()> {
 }
 
 pub fn handle_depends(depends: String, options: &[InstallOptions<'_>]) -> anyhow::Result<()> {
-    if depends.contains('/') {
+    let app_name = if depends.contains('/') {
         let arr = depends.split('/').collect::<Vec<&str>>();
         if arr.len() != 2 {
             bail!("manifest depends format error")
@@ -103,9 +103,21 @@ pub fn handle_depends(depends: String, options: &[InstallOptions<'_>]) -> anyhow
         let bucket = arr[0].to_string();
         let app_name = arr[1].to_string();
         install_from_specific_bucket(&bucket, &app_name, options)?;
+        app_name
     } else {
+        let name = depends.clone();
         install_app(&depends, options)?;
-    }
+        name
+    };
+
+    let is_global = options.contains(&InstallOptions::Global);
+    let install_json = if is_global {
+        crate::init_env::get_app_dir_install_json_global(&app_name)
+    } else {
+        crate::init_env::get_app_dir_install_json(&app_name)
+    };
+    crate::depends::set_installed_as_dependency(&install_json, true);
+
     Ok(())
 }
 pub fn handle_arch(arch: &[InstallOptions]) -> anyhow::Result<String> {
