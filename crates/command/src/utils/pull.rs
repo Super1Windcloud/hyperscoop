@@ -92,8 +92,6 @@ fn do_fetch<'a>(
     fo.remote_callbacks(cb);
     fo.proxy_options(proxy_option);
     fo.download_tags(git2::AutotagOption::All);
-    let headers = ["User-Agent: git/2.43.0 (hyperscoop)"];
-    fo.custom_headers(&headers);
     remote.fetch(refs, Some(&mut fo), None)?;
 
     let stats = remote.stats();

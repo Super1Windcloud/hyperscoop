@@ -89,6 +89,8 @@ def main():
 
     import time
     import urllib.request
+    if str(ROOT / "script") not in sys.path:
+        sys.path.insert(0, str(ROOT / "script"))
     from hash import update_manifest
 
     check_url = f"https://github.com/Super1Windcloud/hyperscoop/releases/download/{tag_name}/hp.exe.sha256"

@@ -207,7 +207,7 @@ async fn main() -> anyhow::Result<()> {
         },
     };
     if let Err(err) = result {
-        let red_err = err.to_string().dark_red().bold();
+        let red_err = format!("{:#}", err).dark_red().bold();
         execute!(stdout(), Print(red_err))?;
         println!();
     }
