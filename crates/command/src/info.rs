@@ -76,12 +76,16 @@ pub fn display_app_info(app_name: String, bucket_paths: Vec<String>) -> anyhow::
 }
 
 pub fn validate_app_name(app_name: &str) -> anyhow::Result<()> {
-    let re = Regex::new(r"^[a-zA-Z0-9]+([_\-/][a-zA-Z0-9]*)*$")?;
-    if !re.is_match(app_name) {
+    if app_name.is_empty()
+        || app_name.contains("..")
+        || app_name.starts_with('/')
+        || app_name.ends_with('/')
+        || app_name.contains('\\')
+    {
         bail!("Invalid app name: {}", app_name);
     }
-    let count = app_name.split('/').count();
-    if count > 2 {
+    let re = Regex::new(r"^[a-zA-Z0-9._+@]+(/[a-zA-Z0-9._+@]+)?$")?;
+    if !re.is_match(app_name) {
         bail!("Invalid app name: {}", app_name);
     }
     Ok(())
@@ -656,5 +660,21 @@ mod test_align {
         let text = "textwrap: a small library for wrapping text.";
         let text = textwrap::wrap(text, 18);
         println!("{:?}", text);
+    }
+
+    #[test]
+    fn test_validate_app_name() {
+        use super::validate_app_name;
+        assert!(validate_app_name("7zip").is_ok());
+        assert!(validate_app_name("notepad++").is_ok());
+        assert!(validate_app_name("gh@2.7.0").is_ok());
+        assert!(validate_app_name("node.js").is_ok());
+        assert!(validate_app_name("main/git").is_ok());
+        assert!(validate_app_name("extras/notepad++").is_ok());
+
+        assert!(validate_app_name("../etc/passwd").is_err());
+        assert!(validate_app_name("/root").is_err());
+        assert!(validate_app_name("foo/bar/baz").is_err());
+        assert!(validate_app_name("").is_err());
     }
 }

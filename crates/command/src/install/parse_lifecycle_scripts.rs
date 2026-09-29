@@ -459,6 +459,7 @@ fn installer_uninstaller_parser(
             log::info!("Executing builtin  uninstaller.exe");
             let status = Command::new("powershell")
                 .arg("-NoProfile")
+                .args(&["-ExecutionPolicy", "Bypass"])
                 .arg("-Command")
                 .arg(format!("& '{}' {}", prog_path.display(), fn_args))
                 .status()?;
@@ -576,7 +577,6 @@ fn invoke_ps_scripts(
     let manifest_path = temp.join("manifest.ps1");
     let system_path = temp.join("system.ps1");
     let buckets_path = temp.join("buckets.ps1");
-    let temp_str = temp.to_str().unwrap();
     if !core_path.exists() {
         std::fs::write(&core_path, core_script).context(format!(
             "Failed to write core.ps1 file {}",
@@ -646,11 +646,15 @@ fn invoke_ps_scripts(
     );
 
     let include_header = format!(
-        r#". "{temp_str}core.ps1";
-. "{temp_str}decompress.ps1";
-. "{temp_str}manifest.ps1"
-. "{temp_str}system.ps1"
- "#
+        r#". "{}";
+. "{}";
+. "{}";
+. "{}";
+ "#,
+        core_path.display(),
+        decompress_path.display(),
+        manifest_path.display(),
+        system_path.display()
     );
     let ps_script = format!(
         r#"
@@ -663,21 +667,21 @@ fn invoke_ps_scripts(
     );
     #[cfg(debug_assertions)]
     println!("\nscript: {}", scripts);
-    let output = if scripts.contains("Start-Process") {
-        Command::new("powershell.exe")
-            .args(&["-NoProfile", "-Command"])
-            .arg(ps_script)
-            .output()
-            .context("Failed to execute powershell script")?
-    } else {
-        Command::new("powershell.exe")
-            .args(&["-NoProfile", "-Command"])
-            .arg(ps_script)
-            .stdout(std::process::Stdio::piped())
-            .stderr(std::process::Stdio::piped())
-            .output()
-            .context("Failed to execute powershell script")?
-    };
+
+    let script_runner_path = temp.join(format!("hp_run_{}_{}.ps1", app_name, std::process::id()));
+    std::fs::write(&script_runner_path, &ps_script)
+        .context("Failed to write temporary lifecycle script")?;
+
+    let output = Command::new("powershell.exe")
+        .args(&["-NoProfile", "-ExecutionPolicy", "Bypass", "-File"])
+        .arg(&script_runner_path)
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .output();
+
+    let _ = std::fs::remove_file(&script_runner_path);
+    let output = output.context("Failed to execute powershell script")?;
+
     if output.status.success() {
         println!("✅!")
     } else {

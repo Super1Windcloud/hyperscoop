@@ -81,6 +81,7 @@ pub fn uninstall_app_with_purge(app_name: &str, global: bool) -> Result<(), anyh
 }
 
 pub fn uninstall_app(app_name: &str, is_global: bool) -> Result<(), anyhow::Error> {
+    let _lock = crate::utils::lock::HpProcessLock::acquire(is_global, "uninstall")?;
     let app_path = if is_global {
         get_apps_path_global()
     } else {
@@ -140,7 +141,7 @@ pub fn uninstall_app(app_name: &str, is_global: bool) -> Result<(), anyhow::Erro
                 "Scoop 卸载脚本执行成功"
             )
         );
-        std::process::exit(0);
+        return Ok(());
     }
     if let Err(e) = check_installed_status(app_name) {
         eprintln!("{}", e);

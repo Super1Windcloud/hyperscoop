@@ -43,6 +43,8 @@ pub fn install_app_from_local_manifest_file<P: AsRef<Path>>(
     bucket_source: Option<&str>,
 ) -> Result<()> {
     let options: Box<[InstallOptions]> = options.into_boxed_slice();
+    let is_global = options.contains(&InstallOptions::Global);
+    let _lock = crate::utils::lock::HpProcessLock::acquire(is_global, "install")?;
     add_scoop_shim_root_dir_to_env_path(&options)
         .context("add scoop shim root to env path failed")?;
 

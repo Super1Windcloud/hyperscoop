@@ -825,7 +825,23 @@ impl<'a> DownloadManager<'a> {
             }
             return Ok(());
         }
-        // !!only not exist cache file
+        let aria2_config = crate::config::get_config_value_no_print("aria2-enabled");
+        let aria2_enabled =
+            aria2_config.is_empty() || aria2_config.to_lowercase() == "true" || aria2_config == "1";
+
+        if !aria2_enabled {
+            println!(
+                "{}",
+                tr(
+                    "aria2 is disabled in configuration, downloading via native HTTP client...",
+                    "配置中已禁用 aria2，使用原生 HTTP 下载..."
+                )
+                .dark_yellow()
+                .bold()
+            );
+            return self.download_files_native();
+        }
+
         aria2c.init_aria2c_config()?;
 
         let output = aria2c.invoke_aria2c_download();
@@ -835,20 +851,82 @@ impl<'a> DownloadManager<'a> {
                 println!("{}", output);
                 if Path::new(&input_file).exists() {
                     log::debug!("start remove aria2 input file");
-                    std::fs::remove_file(input_file)
-                        .context("failed to remove aria2 input file")?;
+                    let _ = std::fs::remove_file(&input_file);
                 }
                 Ok(())
             }
             Err(e) => {
                 if Path::new(&input_file).exists() {
                     log::debug!("start remove aria2 input file");
-                    let _ = std::fs::remove_file(input_file);
+                    let _ = std::fs::remove_file(&input_file);
                 }
-                eprintln!("Aria2 Error : {}", e.to_string().dark_red().bold());
-                Err(e)
+                eprintln!(
+                    "{} ({}), {}",
+                    tr("Aria2 download failed", "Aria2 下载失败")
+                        .dark_red()
+                        .bold(),
+                    e,
+                    tr(
+                        "falling back to native HTTP download...",
+                        "正在回退到原生 HTTP 下载..."
+                    )
+                    .dark_yellow()
+                    .bold()
+                );
+                self.download_files_native()
             }
         }
+    }
+
+    pub fn download_files_native(&self) -> anyhow::Result<()> {
+        let client = reqwest::blocking::Client::builder()
+            .timeout(std::time::Duration::from_secs(600))
+            .build()
+            .context("Failed to build HTTP client")?;
+        for (i, url) in self.download_urls.iter().enumerate() {
+            let target_cache = &self.final_cache_file_path[i];
+            if Path::new(target_cache).exists() {
+                continue;
+            }
+            println!(
+                "{} {}",
+                tr("Downloading via native HTTP:", "正在通过原生 HTTP 下载:")
+                    .dark_blue()
+                    .bold(),
+                url.as_str().dark_cyan().bold()
+            );
+            let mut resp = client
+                .get(url)
+                .send()
+                .with_context(|| format!("Failed to download from {}", url))?;
+            if !resp.status().is_success() {
+                bail!("Download failed with HTTP status: {}", resp.status());
+            }
+            if let Some(parent) = Path::new(target_cache).parent() {
+                let _ = std::fs::create_dir_all(parent);
+            }
+            let total_size = resp.content_length().unwrap_or(0);
+            let pb = indicatif::ProgressBar::new(total_size);
+            pb.set_style(
+                indicatif::ProgressStyle::with_template("{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({bytes_per_sec}, {eta})")?
+                .progress_chars("#>-")
+            );
+            let mut file = std::fs::File::create(target_cache)
+                .with_context(|| format!("Failed to create cache file: {}", target_cache))?;
+            let mut downloaded: u64 = 0;
+            let mut buffer = [0u8; 16384];
+            loop {
+                let bytes_read = resp.read(&mut buffer)?;
+                if bytes_read == 0 {
+                    break;
+                }
+                file.write_all(&buffer[..bytes_read])?;
+                downloaded += bytes_read as u64;
+                pb.set_position(downloaded);
+            }
+            pb.finish_with_message("downloaded");
+        }
+        Ok(())
     }
 
     pub fn check_cache_file_hash(&self) -> anyhow::Result<()> {
@@ -1079,19 +1157,11 @@ impl<'a> DownloadManager<'a> {
             std::fs::remove_file(&current_dir).context("failed to remove app current link file")?;
         }
 
-        #[cfg(windows)]
-        let result = std::os::windows::fs::symlink_dir(version_dir, current_dir);
-        #[cfg(not(windows))]
-        let result = std::os::unix::fs::symlink(version_dir, current_dir);
+        let result = crate::utils::system::create_dir_link(version_dir, &current_dir);
         if result.is_err() {
-            std::fs::remove_dir_all(current_dir)
-                .context("failed to remove app current link dir")?;
-            #[cfg(windows)]
-            std::os::windows::fs::symlink_dir(version_dir, current_dir)
-                .context("failed to create app current symlink dir")?;
-            #[cfg(not(windows))]
-            std::os::unix::fs::symlink(version_dir, current_dir)
-                .context("failed to create app current symlink dir")?;
+            let _ = std::fs::remove_dir_all(&current_dir);
+            crate::utils::system::create_dir_link(version_dir, &current_dir)
+                .context("failed to create app current link dir")?;
         }
         println!(
             "{}  {} => {}",

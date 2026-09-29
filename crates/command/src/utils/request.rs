@@ -7,7 +7,6 @@ use dialoguer::Confirm;
 use dialoguer::theme::ColorfulTheme;
 use git2::{FetchOptions, Progress, ProxyOptions, RemoteCallbacks, Repository};
 use indicatif::{ProgressBar, ProgressDrawTarget, ProgressStyle};
-use regex::Regex;
 use reqwest::get;
 use std::fs::{File, create_dir_all, read_dir, remove_dir_all, remove_file, rename};
 use std::io::{Read, Write, copy};
@@ -133,94 +132,12 @@ pub fn request_download_git_clone(
     }
     let mut output = output?;
 
-    let status = output.wait().expect("Failed to wait on child process");
+    let status = output.wait().context("Failed to wait on child process")?;
 
-    let mut stderr = output.stderr.unwrap();
-    let mut str = String::new();
-    stderr.read_to_string(&mut str)?;
-
-    let mut downloaded: f32 = 0.0;
-    let size_re = Regex::new(r"(\d+\.\d+\s\w+)")?;
-    let speed_regex = Regex::new(r"(\d+\.\d+)\s\w+/s")?;
-    let total_size = (|| {
-        // 从输出中提取下载大小  KB 或者MB
-        return if let Some(size_caps) = size_re.captures(&str) {
-            let result = &size_caps[1].trim(); // 提取总大小
-            let result = (|| {
-                return if result.contains("KiB") {
-                    result
-                        .replace("KiB", "")
-                        .trim()
-                        .to_string()
-                        .parse::<f32>()
-                        .unwrap()
-                        * 1024.0
-                } else {
-                    result
-                        .replace("MiB", "")
-                        .trim()
-                        .to_string()
-                        .parse::<f32>()
-                        .unwrap()
-                        * 1024.0
-                        * 1024.0
-                };
-            })();
-            result
-        } else {
-            log::debug!("failed to extract total size from git clone output");
-            0.0
-        };
-    })();
-    let downloaded_speed = (|| {
-        // KB/S 或者 MB/S 的下载速度
-        return if let Some(speed_caps) = speed_regex.captures(&str) {
-            let result = &speed_caps[0].trim(); // 提取下载速度
-            // 提取字符串中的数字
-            // let result = result.replace("KB/s", ""); // &str 存在栈区会被释放 ,需要返回String
-            // let result = result.replace("MiB/s", "").trim().to_string();
-            let result = (|| {
-                return if result.contains("KiB/s") {
-                    result
-                        .replace("KiB/s", "")
-                        .trim()
-                        .to_string()
-                        .parse::<f32>()
-                        .unwrap()
-                        * 1024.0
-                } else {
-                    result
-                        .replace("MiB/s", "")
-                        .trim()
-                        .to_string()
-                        .parse::<f32>()
-                        .unwrap()
-                        * 1024.0
-                        * 1024.0
-                };
-            })();
-
-            result
-        } else {
-            log::debug!("failed to extract download speed from git clone output");
-            0.0
-        };
-    })();
-    // ---
-    let pb = ProgressBar::new(total_size as u64);
-    pb.set_draw_target(ProgressDrawTarget::stdout());
-
-    pb.set_style(ProgressStyle::with_template("{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({bytes_per_sec}, {eta})")?
-    .progress_chars("#>-"));
-    while downloaded < total_size {
-        let new = (downloaded + downloaded_speed).min(total_size);
-        downloaded = new;
-        pb.set_position(new as u64);
-        // 更新进度条的信息
-        //pb.set_message(format!("{:.2} KB / {:.2} MB", downloaded_mb, total_size_mb));
+    let mut stderr_content = String::new();
+    if let Some(mut stderr) = output.stderr.take() {
+        let _ = stderr.read_to_string(&mut stderr_content);
     }
-
-    pb.finish_with_message("downloaded");
 
     if status.success() {
         Ok(tr("Download succeeded!", "下载成功!!!")
@@ -228,12 +145,11 @@ pub fn request_download_git_clone(
             .bold()
             .to_string())
     } else {
-        let mut stderr_bytes = Vec::new();
-        stderr
-            .read_to_end(&mut stderr_bytes)
-            .expect("Failed to read stderr");
-
-        let error_message = String::from_utf8_lossy(&stderr_bytes).to_string();
+        let error_message = if stderr_content.trim().is_empty() {
+            format!("git clone exited with code: {:?}", status.code())
+        } else {
+            stderr_content
+        };
         log::error!("Clone failed: {}", error_message);
         bail!(error_message);
     }
@@ -244,26 +160,36 @@ pub fn request_git_clone_by_git2(
     destination: String,
 ) -> Result<String, anyhow::Error> {
     if Path::new(&destination).exists() {
-        remove_dir_all(&destination).expect("Failed to delete directory for bucket ");
+        remove_dir_all(&destination).context("Failed to delete directory for bucket")?;
     }
     if !Path::new(&destination).exists() {
-        create_dir_all(&destination).expect("Failed to create directory for bucket ");
+        create_dir_all(&destination).context("Failed to create directory for bucket")?;
     }
     match Repository::clone(repo_url, &destination) {
-        Ok(_) => println!(
-            "{}",
-            tr_fmt!(
-                "Repository cloned to {dest}",
-                "仓库已克隆到 {dest}",
-                dest = destination.dark_green().bold()
-            )
-        ),
-        Err(e) => log::error!("Clone failed: {}", e),
+        Ok(_) => {
+            println!(
+                "{}",
+                tr_fmt!(
+                    "Repository cloned to {dest}",
+                    "仓库已克隆到 {dest}",
+                    dest = destination.dark_green().bold()
+                )
+            );
+            Ok(tr("Download succeeded!", "下载成功!!!")
+                .dark_green()
+                .bold()
+                .to_string())
+        }
+        Err(e) => {
+            log::error!("Clone failed: {}", e);
+            bail!(tr_fmt!(
+                "Failed to clone repository '{url}': {err}",
+                "克隆仓库 '{url}' 失败: {err}",
+                url = repo_url,
+                err = e
+            ));
+        }
     }
-    Ok(tr("Download succeeded!", "下载成功!!!")
-        .dark_green()
-        .bold()
-        .to_string())
 }
 
 pub fn request_git_clone_by_git2_with_progress(

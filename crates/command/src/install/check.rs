@@ -7,10 +7,6 @@ use crate::update::{check_bucket_update_status, update_all_buckets_bar_parallel}
 use crate::utils::utility::update_scoop_config_last_update_time;
 use anyhow::{Context, bail};
 use crossterm::style::Stylize;
-#[cfg(not(windows))]
-use std::os::unix::fs::symlink as symlink_dir;
-#[cfg(windows)]
-use std::os::windows::fs::symlink_dir;
 use std::path::Path;
 
 pub fn get_app_old_version(app_name: &str, options: &[InstallOptions]) -> anyhow::Result<String> {
@@ -424,7 +420,8 @@ fn check_child_directory(app_dir: &String) -> anyhow::Result<()> {
 }
 
 pub fn create_dir_symbolic_link(version_dir: &String, current_dir: &String) -> anyhow::Result<()> {
-    symlink_dir(version_dir, current_dir).context("Failed to create symbolic link directory")?;
+    crate::utils::system::create_dir_link(version_dir, current_dir)
+        .context("Failed to create link directory")?;
     println!(
         "{} {}",
         tr("Creating Link", "正在创建链接").dark_blue().bold(),

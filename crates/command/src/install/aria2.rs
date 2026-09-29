@@ -482,27 +482,22 @@ impl<'a> Aria2C<'a> {
 }
 
 pub fn write_message_to_aria2_log(message: &str) {
-    let cwd = env::current_dir().unwrap();
-    let log = cwd
-        .parent()
-        .unwrap()
-        .parent()
-        .unwrap()
-        .join("log")
-        .join("aria2.log");
-    let log_path = log.as_path();
-    if !log_path.exists() {
-        File::create(log_path).unwrap();
-    }
-    let file = fs::OpenOptions::new()
+    let Ok(cwd) = env::current_dir() else {
+        return;
+    };
+    let parent = cwd.parent().unwrap_or(&cwd);
+    let grandparent = parent.parent().unwrap_or(parent);
+    let log_dir = grandparent.join("log");
+    let _ = fs::create_dir_all(&log_dir);
+    let log_path = log_dir.join("aria2.log");
+    if let Ok(file) = fs::OpenOptions::new()
         .append(true)
         .create(true)
-        .open(log_path)
-        .unwrap();
-    let mut writer = std::io::BufWriter::new(file);
-    writer
-        .write_all((message.to_string() + "\n").as_bytes())
-        .unwrap();
+        .open(&log_path)
+    {
+        let mut writer = std::io::BufWriter::new(file);
+        let _ = writer.write_all((message.to_string() + "\n").as_bytes());
+    }
 }
 
 #[cfg(test)]

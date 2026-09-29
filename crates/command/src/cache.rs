@@ -23,30 +23,24 @@ pub fn display_all_cache_info(is_global: bool) -> anyhow::Result<()> {
     let mut infos = Vec::new();
     let mut count = 0;
     for file in cache_files {
-        let path = file.context("Failed to read cache file")?;
-        let path1 = path
-            .path()
-            .clone()
-            .file_name()
-            .unwrap()
-            .to_str()
-            .unwrap()
-            .to_string();
-        let path2 = path.path().clone().to_string_lossy().to_string();
-        let app_name = path1.split("#").collect::<Vec<&str>>()[0].to_string();
-        let zip_size = (std::fs::metadata(&path2)
-            .context("Failed to read cache file metadata")?
-            .len() as f64)
-            / 1024f64
-            / 1024f64;
-        log::info!("cache file : {}", &app_name);
-        log::info!("cache file : {}", &path2);
-        log::info!("cache size : {} MB", &zip_size);
-        if !path1.contains("#") {
+        let entry = file.context("Failed to read cache file")?;
+        let file_path = entry.path();
+        let Some(file_name) = file_path.file_name().and_then(|s| s.to_str()) else {
+            continue;
+        };
+        let parts: Vec<&str> = file_name.split('#').collect();
+        if parts.len() < 2 {
             continue;
         }
-        let version = path1.split("#").collect::<Vec<&str>>()[1].to_string();
-        log::info!("cache version : {}", &version);
+        let app_name = parts[0].to_string();
+        let version = parts[1].to_string();
+        let zip_size = match std::fs::metadata(&file_path) {
+            Ok(m) => m.len() as f64 / 1024.0 / 1024.0,
+            Err(_) => continue,
+        };
+        log::info!("cache file: {}", &app_name);
+        log::info!("cache path: {}", file_path.display());
+        log::info!("cache size: {} MB", &zip_size);
         infos.push((app_name, version, zip_size));
         count += 1;
     }
@@ -118,23 +112,17 @@ pub fn display_specified_cache_info(app_name: &str, is_global: bool) -> anyhow::
     let mut size = 0f64;
     let mut flag = false;
     for file in cache_files {
-        let path = file.context("Failed to read cache file")?;
-        let t = path.path().clone().to_string_lossy().to_string();
-        let path_name = path
-            .path()
-            .file_name()
-            .unwrap()
-            .to_str()
-            .unwrap()
-            .to_string();
-        let app = path_name.split("#").collect::<Vec<&str>>()[0].to_string();
+        let entry = file.context("Failed to read cache file")?;
+        let file_path = entry.path();
+        let Some(path_name) = file_path.file_name().and_then(|s| s.to_str()) else {
+            continue;
+        };
+        let app = path_name.split('#').next().unwrap_or("").to_string();
         if app.trim().to_lowercase() == app_name {
-            size = size
-                + (std::fs::metadata(path.path().clone())
-                    .context("Failed to read cache file metadata")?
-                    .len() as f64)
-                    / 1024f64
-                    / 1024f64;
+            size += match std::fs::metadata(&file_path) {
+                Ok(m) => m.len() as f64 / 1024.0 / 1024.0,
+                Err(_) => 0.0,
+            };
             println!(
                 "{}",
                 tr_fmt!(
@@ -143,7 +131,7 @@ pub fn display_specified_cache_info(app_name: &str, is_global: bool) -> anyhow::
                     name = path_name.green().bold()
                 )
             );
-            std::fs::remove_file(t).context("Failed to remove cache file")?;
+            std::fs::remove_file(&file_path).context("Failed to remove cache file")?;
             flag = true;
         }
     }
@@ -196,7 +184,10 @@ fn rm_cache_file(cache_dir: String) -> anyhow::Result<()> {
                 .len() as f64)
                 / 1024f64
                 / 1024f64;
-            let file_name_display = path.file_name().unwrap().to_str().unwrap().to_string();
+            let file_name_display = path
+                .file_name()
+                .map(|s| s.to_string_lossy().to_string())
+                .unwrap_or_default();
             println!(
                 "{}",
                 tr_fmt!(
@@ -205,7 +196,7 @@ fn rm_cache_file(cache_dir: String) -> anyhow::Result<()> {
                     name = file_name_display.green().bold()
                 )
             );
-            std::fs::remove_file(&path).expect("Failed to remove file");
+            std::fs::remove_file(&path).context("Failed to remove cache file")?;
             count += 1;
             log::warn!("cache file : {}", path.to_string_lossy().to_string());
         }

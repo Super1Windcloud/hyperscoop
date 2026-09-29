@@ -399,13 +399,42 @@ pub fn kill_processes_using_app(app_name: &str) {
     }
 }
 
+pub fn create_dir_link<P: AsRef<Path>, Q: AsRef<Path>>(target: P, link: Q) -> std::io::Result<()> {
+    let target = target.as_ref();
+    let link = link.as_ref();
+    #[cfg(windows)]
+    {
+        // First try to create an NTFS Junction (no Developer Mode or Admin required)
+        if let Ok(()) = junction::create(target, link) {
+            return Ok(());
+        }
+        // Fallback to directory symlink (requires Developer Mode or Admin)
+        std::os::windows::fs::symlink_dir(target, link)
+    }
+    #[cfg(not(windows))]
+    {
+        std::os::unix::fs::symlink(target, link)
+    }
+}
+
 pub fn is_broken_symlink(path: &str) -> anyhow::Result<bool> {
     let path = Path::new(path);
-    if !path.exists() && !fs::symlink_metadata(path).is_ok() {
+    #[cfg(windows)]
+    {
+        if junction::exists(path).unwrap_or(false) {
+            if let Ok(target) = junction::get_target(path) {
+                return Ok(!target.exists());
+            }
+            return Ok(true);
+        }
+    }
+    if !path.exists() && fs::symlink_metadata(path).is_err() {
         return Ok(false);
     }
-    let metadata = fs::symlink_metadata(path)
-        .with_context(|| format!("Failed to get metadata for: {:?}", path))?;
+    let metadata = match fs::symlink_metadata(path) {
+        Ok(m) => m,
+        Err(_) => return Ok(false),
+    };
 
     if metadata.file_type().is_symlink() {
         let target_path =

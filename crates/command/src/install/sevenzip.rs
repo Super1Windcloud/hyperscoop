@@ -160,7 +160,8 @@ impl<'a> SevenZipStruct<'a> {
             std::fs::remove_dir_all(&current) // can't use remove_file here
                 .context("remove current dir failed")?;
         }
-        fs::symlink_dir(target, &current).context("create current dir symlink failed")?;
+        crate::utils::system::create_dir_link(target, &current)
+            .context("create current dir link failed")?;
 
         println!(
             "{} {} => {}",
@@ -406,16 +407,14 @@ impl<'a> SevenZipStruct<'a> {
                     } else if *archive_format == ArchiveFormat::INNO {
                         println!("✅");
 
-                        let output = Command::new("innounp").output();
-                        if output.is_err() {
-                            install_app("innounp", vec![].as_ref())
-                                .expect("Failed to install innounp");
-                        } else {
-                            let output = output.unwrap();
-                            if !output.status.success() {
-                                install_app("innounp", vec![].as_ref())
-                                    .expect("Failed to install innounp");
-                            }
+                        let need_install = match Command::new("innounp").output() {
+                            Ok(out) => !out.status.success(),
+                            Err(_) => true,
+                        };
+                        if need_install {
+                            install_app("innounp", vec![].as_ref()).context(
+                                "Failed to auto-install innounp for inno archive extraction",
+                            )?;
                         }
                         self.invoke_innounp_extract(
                             extract_to.as_str(),
@@ -717,16 +716,14 @@ Expand-InnoArchive "{inno_file}" "{target_dir}"{extract_dir_param}  -Removal
                         Ok(())
                     } else if *archive_format == ArchiveFormat::INNO {
                         println!("✅");
-                        let output = Command::new("innounp").output();
-                        if output.is_err() {
-                            install_app("innounp", vec![].as_ref())
-                                .expect("Failed to install innounp");
-                        } else {
-                            let output = output.unwrap();
-                            if !output.status.success() {
-                                install_app("innounp", vec![].as_ref())
-                                    .expect("Failed to install innounp");
-                            }
+                        let need_install = match Command::new("innounp").output() {
+                            Ok(out) => !out.status.success(),
+                            Err(_) => true,
+                        };
+                        if need_install {
+                            install_app("innounp", vec![].as_ref()).context(
+                                "Failed to auto-install innounp for inno archive extraction",
+                            )?;
                         }
 
                         self.invoke_innounp_extract(target_dir, path.as_str(), Some(&child_dir))?;
@@ -1050,14 +1047,13 @@ Expand-InnoArchive "{inno_file}" "{target_dir}"{extract_dir_param}  -Removal
         } else if *archive_format == ArchiveFormat::INNO {
             println!("✅");
 
-            let output = Command::new("innounp").output();
-            if output.is_err() {
-                install_app("innounp", vec![].as_ref()).expect("Failed to install innounp");
-            } else {
-                let output = output?;
-                if !output.status.success() {
-                    install_app("innounp", vec![].as_ref()).expect("Failed to install innounp");
-                }
+            let need_install = match Command::new("innounp").output() {
+                Ok(out) => !out.status.success(),
+                Err(_) => true,
+            };
+            if need_install {
+                install_app("innounp", vec![].as_ref())
+                    .context("Failed to auto-install innounp for inno archive extraction")?;
             }
             self.invoke_innounp_extract(target_dir, path.as_str(), None)?;
 
@@ -1065,14 +1061,13 @@ Expand-InnoArchive "{inno_file}" "{target_dir}"{extract_dir_param}  -Removal
         } else if *archive_format == ArchiveFormat::MSI {
             println!("✅");
 
-            let output = Command::new("lessmsi").arg("h").output();
-            if output.is_err() {
-                install_app("lessmsi", vec![].as_ref()).expect("Failed to lessmsi innonounp");
-            } else {
-                let output = output?;
-                if !output.status.success() {
-                    install_app("lessmsi", vec![].as_ref()).expect("Failed to install lessmsi");
-                }
+            let need_install = match Command::new("lessmsi").arg("h").output() {
+                Ok(out) => !out.status.success(),
+                Err(_) => true,
+            };
+            if need_install {
+                install_app("lessmsi", vec![].as_ref())
+                    .context("Failed to auto-install lessmsi for MSI archive extraction")?;
             }
             self.invoke_lessmsi_extract(target_dir, path.as_str(), None)?;
 

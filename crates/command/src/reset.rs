@@ -8,10 +8,6 @@ use crate::utils::utility::compare_versions;
 use anyhow::{Context, bail};
 use crossterm::style::Stylize;
 use std::cmp::Ordering;
-#[cfg(not(windows))]
-use std::os::unix::fs::symlink as symlink_dir;
-#[cfg(windows)]
-use std::os::windows::fs::symlink_dir;
 use std::path::{Path, PathBuf};
 
 pub fn reset_latest_version(
@@ -19,6 +15,7 @@ pub fn reset_latest_version(
     global: bool,
     shim_reset: bool,
 ) -> Result<(), anyhow::Error> {
+    let _lock = crate::utils::lock::HpProcessLock::acquire(global, "reset")?;
     let app_dir = if global {
         get_app_dir_global(&name)
     } else {
@@ -44,11 +41,15 @@ pub fn reset_latest_version(
                 .context(format!("remove old app dir {}", app_current_path.display()))?;
         };
         let version_path = child_dirs.first().unwrap();
-        let result = symlink_dir(version_path, app_current_path.as_path());
+        let result =
+            crate::utils::system::create_dir_link(version_path, app_current_path.as_path());
         if result.is_err() {
             std::fs::remove_dir_all(&app_current_path).context("failed remove current dir")?;
-            symlink_dir(&version_path.as_path(), app_current_path.as_path())
-                .context("failed to create app symlink")?;
+            crate::utils::system::create_dir_link(
+                version_path.as_path(),
+                app_current_path.as_path(),
+            )
+            .context("failed to create app link")?;
         }
         println!(
             "{} {} => {}",
@@ -78,8 +79,8 @@ pub fn reset_latest_version(
         });
         let max_version_path = app_dir.join(&max_version);
         log::info!("Resetting app: {}", max_version_path.display());
-        symlink_dir(max_version_path, app_current_path.as_path())
-            .context("Failed to create app symlink for reset")?;
+        crate::utils::system::create_dir_link(&max_version_path, app_current_path.as_path())
+            .context("Failed to create app link for reset")?;
         println!(
             "{}",
             tr_fmt!(
@@ -141,6 +142,7 @@ pub fn reset_specific_version(
     global: bool,
     shim_reset: bool,
 ) -> Result<(), anyhow::Error> {
+    let _lock = crate::utils::lock::HpProcessLock::acquire(global, "reset")?;
     log::info!("Resetting app: {}@{}", name, version);
     let app_dir = if global {
         get_app_dir_global(&name)
@@ -166,11 +168,12 @@ pub fn reset_specific_version(
             app_current_path.display()
         ))?;
     };
-    let result = symlink_dir(&version_path, app_current_path.as_path());
+    let result = crate::utils::system::create_dir_link(&version_path, app_current_path.as_path());
     if result.is_err() {
         std::fs::remove_dir_all(&app_current_path).context("failed remove app current dir")?;
-        symlink_dir(version_path.as_path(), app_current_path.as_path()).context(format!(
-            "Failed to create app symlink {}",
+        crate::utils::system::create_dir_link(version_path.as_path(), app_current_path.as_path())
+            .context(format!(
+            "Failed to create app link {}",
             version_path.display()
         ))?;
     }

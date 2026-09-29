@@ -222,7 +222,8 @@ pub fn install_psmodule(
         std::fs::remove_dir_all(&link_dir)
             .context(format!("remove old module dir link failed {}", link_dir))?;
     }
-    fs::symlink_dir(&app_version_dir, &link_dir).context("Create ps module dir symlink failed")?;
+    crate::utils::system::create_dir_link(&app_version_dir, &link_dir)
+        .context("Create ps module dir link failed")?;
     println!(
         "{}  {} => {}",
         tr("Linking", "正在链接").dark_blue().bold(),
@@ -406,10 +407,12 @@ pub fn start_create_file_and_dir_link(
 
     // !create persist data link
     if Path::new(&target_persist_dir).is_dir() {
-        fs::symlink_dir(&target_persist_dir, &source_dir).context(format!(
-            "create target persisted dir failed {}",
-            target_persist_dir
-        ))?;
+        crate::utils::system::create_dir_link(&target_persist_dir, &source_dir).context(
+            format!(
+                "create target persisted dir link failed {}",
+                target_persist_dir
+            ),
+        )?;
     } else {
         std::fs::hard_link(&target_persist_dir, &source_dir).context(format!(
             "create target persisted hard file failed {}",

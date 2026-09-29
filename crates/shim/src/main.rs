@@ -21,7 +21,6 @@ mod windows_shim {
     use windows::Win32::Foundation::*;
     use windows::Win32::Storage::FileSystem::FILE_FLAGS_AND_ATTRIBUTES;
     use windows::Win32::System::Console::*;
-    use windows::Win32::System::JobObjects::CreateJobObjectW;
     use windows::Win32::System::JobObjects::*;
     use windows::Win32::System::LibraryLoader::*;
     use windows::Win32::UI::Shell::{
@@ -96,39 +95,94 @@ mod windows_shim {
     }
 
     fn is_elevation_required(error: &std::io::Error) -> bool {
-        #[cfg(windows)]
-        {
-            error.raw_os_error() == Some(740) // ERROR_ELEVATION_REQUIRED
-        }
-        #[cfg(not(windows))]
-        {
-            false
-        }
+        error.raw_os_error() == Some(740) // ERROR_ELEVATION_REQUIRED
     }
 
     fn remove_extra_quotes(value: &str) -> String {
         value.trim_matches(|c| c == '\'' || c == '"').to_string()
     }
-    fn make_process(info: &ShimInfo) -> Option<std::process::Child> {
-        let path = info.path.as_ref()?;
-        let path = remove_extra_quotes(path);
-        let args = info.args.as_ref()?.to_string();
-        let args = remove_extra_quotes(&args);
-        let process = Command::new(&path).args(args.split_whitespace()).spawn();
+
+    pub(crate) fn parse_args_string(s: &str) -> Vec<OsString> {
+        let mut args = Vec::new();
+        let mut current = String::new();
+        let mut in_quotes = false;
+        let mut quote_char = '"';
+        let mut chars = s.chars().peekable();
+
+        while let Some(c) = chars.next() {
+            match c {
+                '\\' => {
+                    if let Some(&next) = chars.peek() {
+                        if next == '"' || next == '\'' || next == '\\' {
+                            current.push(next);
+                            chars.next();
+                            continue;
+                        }
+                    }
+                    current.push('\\');
+                }
+                '"' | '\'' if !in_quotes => {
+                    in_quotes = true;
+                    quote_char = c;
+                }
+                c if in_quotes && c == quote_char => {
+                    in_quotes = false;
+                }
+                c if c.is_whitespace() && !in_quotes => {
+                    if !current.is_empty() {
+                        args.push(OsString::from(std::mem::take(&mut current)));
+                    }
+                }
+                _ => {
+                    current.push(c);
+                }
+            }
+        }
+        if !current.is_empty() {
+            args.push(OsString::from(current));
+        }
+        args
+    }
+
+    pub(crate) fn format_args_for_shellexecute(args: &[OsString]) -> String {
+        let mut result = String::new();
+        for (i, arg) in args.iter().enumerate() {
+            if i > 0 {
+                result.push(' ');
+            }
+            let s = arg.to_string_lossy();
+            if s.contains(' ') || s.contains('\t') || s.contains('"') {
+                result.push('"');
+                for c in s.chars() {
+                    if c == '"' {
+                        result.push('\\');
+                    }
+                    result.push(c);
+                }
+                result.push('"');
+            } else {
+                result.push_str(&s);
+            }
+        }
+        result
+    }
+
+    fn make_process(path: &str, all_args: &[OsString]) -> Option<std::process::Child> {
+        let clean_path = remove_extra_quotes(path);
+        let process = Command::new(&clean_path).args(all_args).spawn();
         match process {
             Ok(child) => Some(child),
             Err(e) => {
                 eprintln!("Error starting process: {}. Trying as admin...", e);
-                //  **尝试使用管理员权限启动**
                 if is_elevation_required(&e) {
-                    if elevate_process(&path, &args) {
-                        None // 进程已提权启动，不返回 `Child`
+                    if elevate_process(&clean_path, all_args) {
+                        None
                     } else {
                         eprintln!("Failed to start process as administrator.");
                         None
                     }
                 } else {
-                    eprintln!("Failed to start process. {:?}", e);
+                    eprintln!("Failed to start process: {:?}", e);
                     None
                 }
             }
@@ -136,18 +190,21 @@ mod windows_shim {
     }
 
     /// *以管理员权限启动进程*
-    fn elevate_process(exe_path: &str, params: &str) -> bool {
+    fn elevate_process(exe_path: &str, args: &[OsString]) -> bool {
+        let params_str = format_args_for_shellexecute(args);
         let path_wide: Vec<u16> = exe_path.encode_utf16().chain(std::iter::once(0)).collect();
-        let args_wide: Vec<u16> = params.encode_utf16().chain(std::iter::once(0)).collect();
+        let args_wide: Vec<u16> = params_str
+            .encode_utf16()
+            .chain(std::iter::once(0))
+            .collect();
 
-        // 初始化 SHELLEXECUTEINFOW 结构体
         let mut sei = SHELLEXECUTEINFOW {
             cbSize: size_of::<SHELLEXECUTEINFOW>() as u32,
             fMask: SEE_MASK_NOCLOSEPROCESS,
             hwnd: Default::default(),
             lpVerb: Default::default(),
             lpFile: PCWSTR(path_wide.as_ptr()),
-            lpParameters: if args_wide.is_empty() {
+            lpParameters: if args_wide.len() <= 1 {
                 PCWSTR::null()
             } else {
                 PCWSTR(args_wide.as_ptr())
@@ -185,7 +242,7 @@ mod windows_shim {
     }
 
     fn create_job_object() -> Option<HANDLE> {
-        let job = unsafe { CreateJobObjectW(None, None) }.unwrap();
+        let job = unsafe { CreateJobObjectW(None, None) }.ok()?;
         if job.is_invalid() {
             return None;
         }
@@ -203,13 +260,14 @@ mod windows_shim {
             )
         };
         if let Err(err) = result {
-            println!("Error setting job object limit. {:?}", err);
+            eprintln!("Error setting job object limit: {:?}", err);
         }
         Some(job)
     }
+
     fn set_console_ctrl_handler() {
         unsafe {
-            SetConsoleCtrlHandler(Some(ctrl_handler), TRUE.into()).expect("TODO: panic message");
+            let _ = SetConsoleCtrlHandler(Some(ctrl_handler), TRUE.into());
         }
     }
 
@@ -218,13 +276,12 @@ mod windows_shim {
     /// Windows invokes this callback from the console control handler context.
     /// The implementation does not dereference pointers or touch shared Rust state.
     pub unsafe extern "system" fn ctrl_handler(_ctrl_type: u32) -> BOOL {
-        TRUE // 忽略所有 Ctrl+C 等信号
+        TRUE // 忽略所有 Ctrl+C 等信号，交由子进程处理
     }
 
     fn is_windows_gui_app(exe_path: &str) -> bool {
         let mut wide_path: Vec<u16> = OsString::from(exe_path).encode_wide().collect();
         wide_path.push(0); // Null 终止符
-        // 去除路径中的引号
         unsafe {
             let _ = PathUnquoteSpacesW(PWSTR(wide_path.as_mut_ptr()));
         }
@@ -245,21 +302,21 @@ mod windows_shim {
     pub fn run() -> color_eyre::Result<()> {
         let shim_info = get_shim_info()?;
 
-        if shim_info.path.is_none() {
+        let Some(path) = shim_info.path else {
             eprintln!("Error: Could not read shim file.");
             std::process::exit(1);
-        }
-
-        let path = shim_info.path.clone().unwrap();
-        let args = shim_info.args.clone().unwrap_or_default();
-
-        // 解析当前命令行参数并追加
-        let cmd_line = std::env::args().skip(1).collect::<Vec<String>>().join(" ");
-        let full_args = if args.is_empty() {
-            cmd_line
-        } else {
-            format!("{} {}", args, cmd_line)
         };
+
+        // 收集参数：先组合 shim 配置的预设参数，再加上当前调用的命令行参数（完整保留空格与引号）
+        let mut all_args: Vec<OsString> = Vec::new();
+        if let Some(configured_args) = shim_info.args {
+            let clean_args = remove_extra_quotes(&configured_args);
+            if !clean_args.is_empty() {
+                all_args.extend(parse_args_string(&clean_args));
+            }
+        }
+        // 直接使用系统原生切片，绝不进行 join(" ") 序列化与空格二次分割
+        all_args.extend(std::env::args_os().skip(1));
 
         let is_gui = is_windows_gui_app(&path);
         if is_gui {
@@ -269,13 +326,10 @@ mod windows_shim {
         set_console_ctrl_handler();
         let job = create_job_object();
 
-        if let Some(mut child) = make_process(&ShimInfo {
-            path: Some(path),
-            args: Some(full_args),
-        }) {
+        if let Some(mut child) = make_process(&path, &all_args) {
             if let Some(job) = job {
                 unsafe {
-                    AssignProcessToJobObject(job, HANDLE(child.as_raw_handle()))?;
+                    let _ = AssignProcessToJobObject(job, HANDLE(child.as_raw_handle()));
                 }
             }
 
@@ -290,17 +344,31 @@ mod windows_shim {
     }
 
     #[test]
-    fn test_create_process() {
-        let path = r#""A:\Scoop\apps\zigmod\current\zigmod.exe""#;
-        println!("{}", path);
-        let result = Command::new(path).spawn();
-        match result {
-            Ok(child) => {
-                println!("Process started successfully. PID: {}", child.id());
-            }
-            Err(e) => {
-                eprintln!("Failed to start process: {}", e);
-            }
-        }
+    fn test_parse_args_string() {
+        let parsed = parse_args_string("-m \"commit message with spaces\" --flag 'another value'");
+        let strings: Vec<String> = parsed
+            .into_iter()
+            .map(|s| s.to_string_lossy().to_string())
+            .collect();
+        assert_eq!(
+            strings,
+            vec![
+                "-m",
+                "commit message with spaces",
+                "--flag",
+                "another value"
+            ]
+        );
+    }
+
+    #[test]
+    fn test_format_args_for_shellexecute() {
+        let args = vec![
+            OsString::from("commit"),
+            OsString::from("-m"),
+            OsString::from("hello world"),
+        ];
+        let formatted = format_args_for_shellexecute(&args);
+        assert_eq!(formatted, "commit -m \"hello world\"");
     }
 }

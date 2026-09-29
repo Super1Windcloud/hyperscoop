@@ -2,6 +2,7 @@ pub mod detect_encoding;
 pub mod get_file_or_dir_metadata;
 pub mod git;
 pub mod invoke_hook_script;
+pub mod lock;
 pub mod progrees_bar;
 pub mod pull;
 pub mod repair_dirty_json;
