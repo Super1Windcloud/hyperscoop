@@ -44,17 +44,10 @@ scoop install -u -s hp/hp
 irm -useb https://raw.githubusercontent.com/Super1Windcloud/hyperscoop/refs/heads/main/install.ps1 | iex
 ```
 
-### 🧩 Via Cargo Binstall
+### 🧩 Via Cargo (Git)
 
 ```bash
-cargo install binstall
-cargo binstall hp2
-```
-
-### 🧩 Via Cargo
-
-```bash
-cargo install hp2
+cargo install --git https://github.com/super1windcloud/hyperscoop
 ```
 
 ### 🧩 Manual Installation

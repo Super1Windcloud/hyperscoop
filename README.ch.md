@@ -33,19 +33,14 @@
 irm -useb https://raw.githubusercontent.com/Super1Windcloud/hyperscoop/refs/heads/main/install.ps1 | iex
 ```
 ---
-### 3. By Cargo Binstall
+### 3. By Cargo (Git)
+
 ```bash
-cargo  install  binstall
-cargo  binstall  hp2
+cargo install --git https://github.com/super1windcloud/hyperscoop
 ```
 
 ---
-### 4. By Cargo
-`cargo  install  hp2`
-
-
----
-### 5. 下载[exe](https://github.com/Super1Windcloud/hyperscoop/releases)使用,并添加到 `$env:Path`
+### 4. 下载[exe](https://github.com/Super1Windcloud/hyperscoop/releases)使用,并添加到 `$env:Path`
 
 ## 使用前提
 

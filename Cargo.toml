@@ -96,7 +96,7 @@ resolver = "2"
 [workspace.package]
 version = "4.4.1"
 edition = "2024"
-publish = true
+publish = false
 authors = ["superwindcloud<<1178933440@qq.com>"]
 description = "一个更快更强更精美的Windows包管理器 "
 license = "MIT OR Apache-2.0"
