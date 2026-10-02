@@ -77,7 +77,6 @@ pub fn check_before_install(
     };
     let app_version_path = Path::new(&app_version_dir);
     let app_current_path = Path::new(&app_current_dir);
-    let old_version = get_app_old_version(name, options)?;
     if app_current_path.exists() {
         let install_json = if options.contains(&InstallOptions::Global) {
             get_app_dir_install_json_global(name)
@@ -91,6 +90,8 @@ pub fn check_before_install(
         };
 
         if Path::new(&install_json).exists() && Path::new(&manifest_json).exists() {
+            let old_version =
+                get_app_old_version(name, options).unwrap_or_else(|_| "unknown".to_string());
             println!(
                 "{}",
                 tr_fmt!(
@@ -235,8 +236,9 @@ pub fn check_before_install(
                 "WARN  修复缺失的链接和快捷方式"
             )
             .dark_yellow()
-            .bold()
+            .bold(),
         );
+        let old_version = version;
         println!(
             "{}",
             tr_fmt!(

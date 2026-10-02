@@ -876,6 +876,10 @@ Expand-InnoArchive "{inno_file}" "{target_dir}"{extract_dir_param}  -Removal
                     return result;
                 });
             if result.is_err() {
+                let target_dir = self.get_target_app_version_dir();
+                if Path::new(target_dir).exists() {
+                    let _ = std::fs::remove_dir_all(target_dir);
+                }
                 bail!("Failed to extract archive: {}", result.unwrap_err());
             }
         } else {
@@ -932,6 +936,10 @@ Expand-InnoArchive "{inno_file}" "{target_dir}"{extract_dir_param}  -Removal
                     },
                 );
             if result.is_err() {
+                let target_current_dir = self.get_target_app_version_dir();
+                if Path::new(target_current_dir).exists() {
+                    let _ = std::fs::remove_dir_all(target_current_dir);
+                }
                 bail!("Failed to extract archive: {}", result.unwrap_err());
             }
         };
@@ -946,8 +954,7 @@ Expand-InnoArchive "{inno_file}" "{target_dir}"{extract_dir_param}  -Removal
         extract_to: Option<StringArrayOrString>,
     ) -> anyhow::Result<()> {
         if extract_dir.is_none() && extract_to.is_none() {
-            self.extract_archive_to_target_dir(None)
-                .expect("extract archive to target directory");
+            self.extract_archive_to_target_dir(None)?;
             Ok(())
         } else if extract_dir.is_none() && extract_to.is_some() {
             log::debug!("extract zip to child of target version dir");
@@ -1077,12 +1084,34 @@ Expand-InnoArchive "{inno_file}" "{target_dir}"{extract_dir_param}  -Removal
             let target = format!("-o{}", target_dir);
             let output = Command::new(_7z)
                 .arg("x")
-                .arg(path)
+                .arg(&path)
                 .arg(target)
                 .arg("-aoa") // *!自动覆盖同名文件
                 .output()?;
             if !output.status.success() {
-                let error = String::from_utf8_lossy(&output.stderr);
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                let error = if !stderr.trim().is_empty() {
+                    stderr.trim().to_string()
+                } else {
+                    stdout
+                        .lines()
+                        .filter(|l| l.contains("Error") || l.contains("ERROR"))
+                        .collect::<Vec<_>>()
+                        .join("\n")
+                };
+                let error = if error.is_empty() {
+                    stdout.trim().to_string()
+                } else {
+                    error
+                };
+                if error.contains("Data Error") || error.contains("CRC Failed") {
+                    let _ = std::fs::remove_file(&path);
+                    let aria2_file = format!("{}.aria2", path);
+                    if Path::new(&aria2_file).exists() {
+                        let _ = std::fs::remove_file(&aria2_file);
+                    }
+                }
                 bail!("7z command failed: {}", error)
             } else {
                 Self::unpack_nested_tar_if_needed(_7z, target_dir)?;

@@ -8,6 +8,7 @@ use crate::command_args::cleanup::CleanupArgs;
 use crate::command_args::completion::CompletionArgs;
 use crate::command_args::config::ConfigArgs;
 use crate::command_args::deps::DepsArgs;
+use crate::command_args::edit::EditArgs;
 use crate::command_args::export::ExportArgs;
 use crate::command_args::home::HomeArgs;
 use crate::command_args::import::ImportArgs;
@@ -15,11 +16,15 @@ use crate::command_args::info::InfoArgs;
 use crate::command_args::install::InstallArgs;
 use crate::command_args::leaves::LeavesArgs;
 use crate::command_args::list::ListArgs;
+use crate::command_args::log::LogArgs;
 use crate::command_args::merge_bucket::MergeArgs;
 use crate::command_args::prefix::PrefixArgs;
+use crate::command_args::reinstall::ReinstallArgs;
 use crate::command_args::reset::ResetArgs;
 use crate::command_args::search::SearchArgs;
 use crate::command_args::self_update::SelfUpdateArgs;
+use crate::command_args::service::ServiceArgs;
+use crate::command_args::shellenv::ShellenvArgs;
 use crate::command_args::shim::ShimArgs;
 use crate::command_args::size::SizeArgs;
 use crate::command_args::status::StatusArgs;
@@ -58,6 +63,7 @@ pub(crate) enum Commands {
     Completion(CompletionArgs),
     Config(ConfigArgs),
     Deps(DepsArgs),
+    Edit(EditArgs),
     Export(ExportArgs),
     Home(HomeArgs),
     #[clap(alias = "pin")]
@@ -67,11 +73,17 @@ pub(crate) enum Commands {
     Install(InstallArgs),
     Leaves(LeavesArgs),
     List(ListArgs),
+    Log(LogArgs),
     Prefix(PrefixArgs),
+    #[clap(alias = "re")]
+    Reinstall(ReinstallArgs),
     Reset(ResetArgs),
     #[clap(alias = "s")]
     Search(SearchArgs),
     SelfUpdate(SelfUpdateArgs),
+    #[clap(alias = "services")]
+    Service(ServiceArgs),
+    Shellenv(ShellenvArgs),
     Shim(ShimArgs),
     Size(SizeArgs),
     Status(StatusArgs),
@@ -594,6 +606,106 @@ mod tests {
                 assert!(args.yes);
             }
             _ => panic!("Expected Autoremove"),
+        }
+
+        // Test reinstall parsing
+        let cli = crate::Cli::try_parse_from(["hp", "reinstall", "git", "-k"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Reinstall(args) => {
+                assert_eq!(args.app_names, vec!["git"]);
+                assert!(args.no_use_download_cache);
+            }
+            _ => panic!("Expected Reinstall"),
+        }
+
+        // Test re alias for reinstall
+        let cli = crate::Cli::try_parse_from(["hp", "re", "curl"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Reinstall(args) => {
+                assert_eq!(args.app_names, vec!["curl"]);
+            }
+            _ => panic!("Expected Reinstall for 're' alias"),
+        }
+
+        // Test cleanup --dry-run parsing
+        let cli = crate::Cli::try_parse_from(["hp", "cleanup", "-a", "-n"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Cleanup(args) => {
+                assert!(args.all);
+                assert!(args.dry_run);
+            }
+            _ => panic!("Expected Cleanup"),
+        }
+
+        // Test uninstall --dry-run parsing
+        let cli = crate::Cli::try_parse_from(["hp", "uninstall", "git", "-n"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Uninstall(args) => {
+                assert_eq!(args.app_names, vec!["git"]);
+                assert!(args.dry_run);
+            }
+            _ => panic!("Expected Uninstall"),
+        }
+
+        // Test bundle cleanup parsing
+        let cli = crate::Cli::try_parse_from(["hp", "bundle", "cleanup", "--force"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Bundle(args) => match args.command {
+                crate::command_args::bundle::BundleSubcommands::Cleanup(c_args) => {
+                    assert!(c_args.force);
+                }
+                _ => panic!("Expected BundleSubcommands::Cleanup"),
+            },
+            _ => panic!("Expected Bundle"),
+        }
+
+        // Test edit parsing
+        let cli = crate::Cli::try_parse_from(["hp", "edit", "curl"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Edit(args) => {
+                assert_eq!(args.app_name, "curl");
+            }
+            _ => panic!("Expected Edit"),
+        }
+
+        // Test log parsing
+        let cli = crate::Cli::try_parse_from(["hp", "log", "git", "-n", "5"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Log(args) => {
+                assert_eq!(args.app_name, "git");
+                assert_eq!(args.max_count, Some(5));
+            }
+            _ => panic!("Expected Log"),
+        }
+
+        // Test shellenv parsing
+        let cli = crate::Cli::try_parse_from(["hp", "shellenv", "zsh"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Shellenv(args) => {
+                assert_eq!(args.shell, Some("zsh".to_string()));
+            }
+            _ => panic!("Expected Shellenv"),
+        }
+
+        // Test service parsing and alias services
+        let cli = crate::Cli::try_parse_from(["hp", "service", "start", "redis"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Service(args) => match args.command {
+                Some(crate::command_args::service::ServiceSubcommands::Start { name }) => {
+                    assert_eq!(name, "redis");
+                }
+                _ => panic!("Expected ServiceSubcommands::Start"),
+            },
+            _ => panic!("Expected Service"),
+        }
+
+        let cli = crate::Cli::try_parse_from(["hp", "services", "list"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Service(args) => match args.command {
+                Some(crate::command_args::service::ServiceSubcommands::List) => {}
+                _ => panic!("Expected ServiceSubcommands::List"),
+            },
+            _ => panic!("Expected Service for 'services' alias"),
         }
     }
 }

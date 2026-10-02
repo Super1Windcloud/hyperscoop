@@ -1,7 +1,7 @@
 use crate::command_args::bundle::{BundleArgs, BundleSubcommands};
 use crate::i18n::{tr, tr_fmt};
 use anyhow::bail;
-use command_util_lib::bundle::{Hpfile, check_bundle, install_bundle};
+use command_util_lib::bundle::{Hpfile, check_bundle, cleanup_bundle, install_bundle};
 use crossterm::style::Stylize;
 use std::path::Path;
 
@@ -158,6 +158,85 @@ pub fn execute_bundle_command(args: BundleArgs) -> Result<(), anyhow::Error> {
                         "Hpfile 中仍有 {count} 项依赖未满足。可运行 'hp bundle install' 进行安装补充。",
                         count = missing_count
                     )
+                );
+            }
+        }
+
+        BundleSubcommands::Cleanup(cleanup_args) => {
+            let path = Path::new(&cleanup_args.file);
+            if !path.is_file() {
+                bail!(
+                    "{}",
+                    tr_fmt!(
+                        "Hpfile '{path}' not found.",
+                        "未找到 Hpfile 配置文件 '{path}'。",
+                        path = cleanup_args.file
+                    )
+                );
+            }
+
+            println!(
+                "{}",
+                tr_fmt!(
+                    "==> Comparing installed apps with '{path}'...",
+                    "==> 正在对比已安装应用与 '{path}'...",
+                    path = cleanup_args.file
+                )
+                .dark_cyan()
+                .bold()
+            );
+
+            let hpfile = Hpfile::from_file(path)?;
+            let result = cleanup_bundle(&hpfile, cleanup_args.force)?;
+
+            if result.unlisted_apps.is_empty() {
+                println!(
+                    "\n{}",
+                    tr(
+                        "✔ All installed apps are defined in Hpfile. Nothing to clean up!",
+                        "✔ 所有已安装应用均在 Hpfile 中记录，无需清理！"
+                    )
+                    .dark_green()
+                    .bold()
+                );
+            } else if !cleanup_args.force {
+                println!(
+                    "\n{}",
+                    tr(
+                        "Found unlisted apps (not in Hpfile):",
+                        "发现未在 Hpfile 中列出的应用："
+                    )
+                    .dark_yellow()
+                    .bold()
+                );
+                for app in &result.unlisted_apps {
+                    let global_tag = if app.global { " [global]" } else { "" };
+                    println!(
+                        "  {} {}{}",
+                        "✖".red().bold(),
+                        app.name.as_str().dark_yellow(),
+                        global_tag
+                    );
+                }
+                println!(
+                    "\n{}",
+                    tr(
+                        "Run 'hp bundle cleanup --force' to uninstall these unlisted apps.",
+                        "运行 'hp bundle cleanup --force' 即可卸载这些未记录的应用。"
+                    )
+                    .dark_cyan()
+                    .bold()
+                );
+            } else {
+                println!(
+                    "\n{}",
+                    tr_fmt!(
+                        "🎉 Cleaned up {count} unlisted app(s) successfully!",
+                        "🎉 成功清理 {count} 个未列出应用！",
+                        count = result.unlisted_apps.len()
+                    )
+                    .dark_green()
+                    .bold()
                 );
             }
         }

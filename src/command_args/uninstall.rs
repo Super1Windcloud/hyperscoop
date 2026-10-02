@@ -44,4 +44,13 @@ pub struct UninstallArgs {
         )
     )]
     pub force: bool,
+    #[arg(
+        short = 'n',
+        long,
+        help = crate::i18n::tr(
+            "Show what would be uninstalled without actually deleting anything",
+            "演练模式：展示卸载检查及将要移除的内容，不实际执行删除"
+        )
+    )]
+    pub dry_run: bool,
 }

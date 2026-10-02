@@ -95,18 +95,23 @@ and add it to your `$env:Path`.
 | ✅ alias               | Manage command aliases          |
 | ✅ autoremove          | Clean up unused packages installed as dependencies |
 | ✅ bucket              | Add / remove / list buckets     |
-| ✅ bundle              | Declarative environment management via Hpfile (dump / install / check) |
+| ✅ bundle              | Declarative environment management via Hpfile (dump / install / check / cleanup) |
 | ✅ cache               | Manage download cache           |
-| ✅ checkup / doctor    | Scan and diagnose potential system issues |
-| ✅ cleanup             | Clean unused files and cache    |
+| ✅ checkup / doctor    | Scan and diagnose system issues (PATH, antivirus, broken junctions, invalid shims) |
+| ✅ cleanup             | Clean unused files and cache (supports `--dry-run` / `-n`) |
 | ✅ completion          | Generate shell completion scripts |
 | ✅ config              | Configure hp settings           |
 | ✅ deps                | Query dependencies and tree for an application |
+| ✅ edit                | Open app manifest directly in default or configured editor |
 | ✅ export / import     | Backup and restore configs      |
 | ✅ hold / pin          | Lock apps to prevent updates    |
 | ✅ unpin / unhold      | Unlock apps to allow updates    |
-| ✅ install / uninstall | Full package lifecycle (with dependency safety protection) |
+| ✅ install / uninstall | Full package lifecycle with `--dry-run` and dependency safety protection |
 | ✅ leaves              | List top-level installed applications (not required by others) |
+| ✅ log                 | View git commit history of an app manifest |
+| ✅ reinstall / re      | Reinstall one or more applications |
+| ✅ service / services  | Background service management (list, status, start, stop, restart) |
+| ✅ shellenv            | Output shell environment configuration (PowerShell, CMD, Bash, Zsh, Nu) |
 | ✅ size / disk-usage   | Analyze disk space usage for apps, cache, and persist data |
 | ✅ status / outdated   | Check whether installed apps need updates |
 | ✅ update              | Update single or all apps       |

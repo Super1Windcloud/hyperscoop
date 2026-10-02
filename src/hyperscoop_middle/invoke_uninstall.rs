@@ -107,6 +107,22 @@ pub fn execute_uninstall_command(args: UninstallArgs) -> Result<(), anyhow::Erro
             }
         }
 
+        if args.dry_run {
+            println!(
+                "{} {}",
+                "[dry-run] Would uninstall:".dark_yellow().bold(),
+                tr_fmt!(
+                    "'{name}' (global={global}, purge={purge})",
+                    "'{name}' (global={global}, purge={purge})",
+                    name = app_name,
+                    global = args.global,
+                    purge = args.purge
+                )
+                .dark_cyan()
+            );
+            continue;
+        }
+
         if let Err(e) = uninstall_single_app(app_name, args.global, args.purge) {
             eprintln!(
                 "{}",

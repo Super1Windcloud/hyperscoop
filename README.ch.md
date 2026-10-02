@@ -69,29 +69,34 @@ cargo install --git https://github.com/super1windcloud/hyperscoop
 - [x]  Alias
 - [x]  autoremove (清理无用的孤儿依赖包)
 - [x] Bucket
-- [x]  bundle (通过 Hpfile 声明式管理环境依赖: dump / install / check)
+- [x]  bundle (通过 Hpfile 声明式管理环境依赖: dump / install / check / cleanup)
 - [x] cat
 - [x] cache
-- [x]  checkup (别名: check, doctor)
-- [x]  cleanup
+- [x]  checkup (别名: check, doctor, 诊断环境、PATH 长度、断开软链与无效 Shim)
+- [x]  cleanup (支持 `--dry-run` / `-n` 预演清理)
 - [x]  completion (生成 Shell 自动补全脚本)
 - [x]  config
 - [x]  deps (查看指定 APP 依赖与树状图)
+- [x]  edit (在默认或指定编辑器中直接编辑应用 Manifest)
 - [x]  export
 - [x]  home
 - [x]  import
 - [x]  info
 - [x]  hold (别名: pin; 解锁: unpin, unhold)
-- [x] install
+- [x] install (支持 `--dry-run` / `-n`)
 - [x]  leaves (查看所有顶层独立应用，即叶子节点)
 - [x] list
+- [x]  log (查看应用 Manifest 的 Git 提交与变更历史)
 - [x] prefix
+- [x]  reinstall (别名: re, 一键重新安装应用)
 - [x] reset
 - [x] search
+- [x]  service (别名: services, 后台系统服务管理: list / status / start / stop / restart)
+- [x]  shellenv (输出各 Shell 环境配置命令: PowerShell, CMD, Bash, Zsh, Nushell)
 - [x] shim
 - [x]  size (别名: disk-usage, 分析应用、缓存与数据占用)
 - [x] status (别名: outdated)
-- [x] uninstall (具备反向依赖防护机制)
+- [x] uninstall (具备反向依赖防护机制，支持 `--dry-run` / `-n`)
 - [x] update
 - [x]  uses (反向依赖查询: 查询哪些应用依赖指定软件包)
 - [x] which

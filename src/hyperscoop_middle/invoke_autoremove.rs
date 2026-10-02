@@ -118,6 +118,7 @@ pub fn execute_autoremove_command(args: AutoremoveArgs) -> Result<(), anyhow::Er
         purge: true,
         global: args.global,
         force: true,
+        dry_run: false,
     };
 
     execute_uninstall_command(uninstall_args)?;

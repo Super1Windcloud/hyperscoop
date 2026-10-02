@@ -67,3 +67,12 @@ mod invoke_leaves;
 pub use invoke_leaves::execute_leaves_command;
 mod invoke_size;
 pub use invoke_size::execute_size_command;
+
+mod invoke_edit;
+pub use invoke_edit::execute_edit_command;
+mod invoke_log;
+pub use invoke_log::execute_log_command;
+mod invoke_service;
+pub use invoke_service::execute_service_command;
+mod invoke_shellenv;
+pub use invoke_shellenv::execute_shellenv_command;

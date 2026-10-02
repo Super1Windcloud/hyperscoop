@@ -23,6 +23,7 @@
 
 mod command_args;
 
+use crate::command_args::install::InstallArgs;
 use crate::i18n::tr;
 use clap::builder::Styles;
 use clap::builder::styling::{AnsiColor, Effects};
@@ -204,6 +205,7 @@ async fn main() -> anyhow::Result<()> {
             }
             Commands::Config(args) => execute_config_command(args),
             Commands::Deps(args) => execute_deps_command(args),
+            Commands::Edit(args) => execute_edit_command(args),
             Commands::Export(file) => execute_export_command(file),
             Commands::Home(home) => execute_home_command(home),
             Commands::Hold(hold_args) => execute_hold_command(hold_args),
@@ -212,10 +214,31 @@ async fn main() -> anyhow::Result<()> {
             Commands::Install(args) => execute_install_command(args).await,
             Commands::Leaves(args) => execute_leaves_command(args),
             Commands::List(query_app) => execute_list_installed_apps(query_app),
+            Commands::Log(args) => execute_log_command(args),
             Commands::Prefix(prefix) => execute_prefix_command(prefix),
+            Commands::Reinstall(args) => {
+                let install_args = InstallArgs {
+                    app_names: args.app_names,
+                    skip_download_hash_check: args.skip_download_hash_check,
+                    no_use_download_cache: args.no_use_download_cache,
+                    no_auto_download_dependencies: args.no_auto_download_dependencies,
+                    only_download_no_install: false,
+                    only_download_no_install_with_override_cache: false,
+                    update_hp_and_buckets: args.update_hp_and_buckets,
+                    check_version_up_to_date: false,
+                    interactive: false,
+                    force_install_override: true,
+                    arch: args.arch,
+                    app_alias_from_url_install: None,
+                    global: args.global,
+                };
+                execute_install_command(install_args).await
+            }
             Commands::Reset(args) => execute_reset_command(args),
             Commands::Search(search_app) => execute_search_command(search_app),
             Commands::SelfUpdate(args) => execute_self_update_command(args).await,
+            Commands::Service(args) => execute_service_command(args),
+            Commands::Shellenv(args) => execute_shellenv_command(args),
             Commands::Shim(args) => execute_shim_command(args),
             Commands::Size(args) => execute_size_command(args),
             Commands::Status(args) => execute_status_command(args),

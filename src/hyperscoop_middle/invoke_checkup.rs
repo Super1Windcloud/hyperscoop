@@ -154,6 +154,18 @@ pub async fn execute_checkup_command(global: bool) -> anyhow::Result<()> {
         total_issues += 1;
         print_result(&broken_shims_result);
     }
+
+    let path_length_result = check_path_length()?;
+    if !path_length_result.passed {
+        total_issues += 1;
+        print_result(&path_length_result);
+    }
+
+    let broken_junctions_result = check_broken_junctions(global)?;
+    if !broken_junctions_result.passed {
+        total_issues += 1;
+        print_result(&broken_junctions_result);
+    }
     if total_issues > 0 {
         let msg = tr(
             "Found {count} potential issues.",
@@ -782,6 +794,93 @@ fn check_broken_shims(global: bool) -> anyhow::Result<CheckupResult> {
         Ok(CheckupResult {
             passed: true,
             message: localized("All shim shortcuts are healthy", "所有 shim 链接状态健康"),
+            fix_hint: None,
+        })
+    }
+}
+
+fn check_path_length() -> anyhow::Result<CheckupResult> {
+    let path_env = env::var("PATH").unwrap_or_default();
+    let len = path_env.len();
+    if len > 2048 {
+        Ok(CheckupResult {
+            passed: false,
+            message: localized(
+                &format!(
+                    "PATH environment variable is very long ({} characters, recommended <= 2048).",
+                    len
+                ),
+                &format!("PATH 环境变量过长 (当前 {} 字符，建议 <= 2048)。", len),
+            ),
+            fix_hint: Some(localized(
+                "Consider removing redundant directories from your PATH environment variable.",
+                "建议精简并移除 PATH 环境变量中冗余或无效的路径。",
+            )),
+        })
+    } else {
+        Ok(CheckupResult {
+            passed: true,
+            message: localized(
+                "PATH environment variable length is within safe limits",
+                "PATH 环境变量长度在安全范围内",
+            ),
+            fix_hint: None,
+        })
+    }
+}
+
+fn check_broken_junctions(global: bool) -> anyhow::Result<CheckupResult> {
+    let scoop_home = if global {
+        init_scoop_global()
+    } else {
+        init_user_scoop()
+    };
+    let apps_dir = Path::new(&scoop_home).join("apps");
+    if !apps_dir.exists() {
+        return Ok(CheckupResult {
+            passed: true,
+            message: localized("Apps directory does not exist yet", "Apps 目录尚未创建"),
+            fix_hint: None,
+        });
+    }
+
+    let mut broken_apps = Vec::new();
+    if let Ok(entries) = std::fs::read_dir(apps_dir) {
+        for entry in entries.flatten() {
+            let app_path = entry.path();
+            if app_path.is_dir() {
+                let current_link = app_path.join("current");
+                if current_link.is_symlink() || current_link.read_link().is_ok() {
+                    if !current_link.exists() {
+                        let name = entry.file_name().to_string_lossy().to_string();
+                        broken_apps.push(name);
+                    }
+                }
+            }
+        }
+    }
+
+    if !broken_apps.is_empty() {
+        let msg = tr(
+            "Found broken 'current' link for apps: {apps}.",
+            "发现以下应用的 'current' 链接已损坏: {apps}。",
+        )
+        .replace("{apps}", &broken_apps.join(", "));
+        Ok(CheckupResult {
+            passed: false,
+            message: msg,
+            fix_hint: Some(localized(
+                "Run 'hp reset <app>' to relink the current version.",
+                "运行 'hp reset <app>' 重新链接当前版本。",
+            )),
+        })
+    } else {
+        Ok(CheckupResult {
+            passed: true,
+            message: localized(
+                "All app 'current' links are intact",
+                "所有应用的 'current' 链接状态正常",
+            ),
             fix_hint: None,
         })
     }

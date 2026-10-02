@@ -158,7 +158,6 @@ impl<'a> DownloadManager<'a> {
         &mut self,
         hash: Option<StringArrayOrString>,
         architecture: Option<ArchitectureObject>,
-        skip_hash: bool,
     ) -> anyhow::Result<()> {
         let hash_format = if hash.is_some() {
             hash.unwrap()
@@ -166,34 +165,25 @@ impl<'a> DownloadManager<'a> {
             let arch = architecture.unwrap();
             let options_arch = self.get_user_options_arch()?;
             if options_arch == "64bit" {
-                let x64 = arch.x64bit.unwrap();
-                let hash = if skip_hash {
-                    bail!("hash str is empty")
-                } else {
-                    x64.hash.unwrap()
-                };
-                hash
+                let x64 = arch
+                    .x64bit
+                    .context("Missing 64bit architecture definition")?;
+                x64.hash.context("Missing 64bit hash")?
             } else if options_arch == "32bit" {
-                let x86 = arch.x86bit.unwrap();
-                let hash = if skip_hash {
-                    bail!("hash str is empty")
-                } else {
-                    x86.hash.unwrap()
-                };
-                hash
+                let x86 = arch
+                    .x86bit
+                    .context("Missing 32bit architecture definition")?;
+                x86.hash.context("Missing 32bit hash")?
             } else if options_arch == "arm64" {
-                let arm64 = arch.arm64.unwrap();
-                let hash = if skip_hash {
-                    bail!("hash str is empty")
-                } else {
-                    arm64.hash.unwrap()
-                };
-                hash
+                let arm64 = arch
+                    .arm64
+                    .context("Missing arm64 architecture definition")?;
+                arm64.hash.context("Missing arm64 hash")?
             } else {
                 bail!("Unsupported architecture");
             }
         } else {
-            bail!("hash str is empty")
+            bail!("hash str is empty");
         };
         let (format, values) = match hash_format {
             StringArrayOrString::String(s) => {
@@ -512,12 +502,10 @@ impl<'a> DownloadManager<'a> {
             .options
             .contains(&InstallOptions::SkipDownloadHashCheck)
         {
-            let result = self.set_hash_format(hash, architecture.clone(), true);
-            if let Err(e) = result {
-                eprintln!("{}", e.to_string().dark_red().bold());
-            }
+            self.hash_format = Box::new([]);
+            self.set_hash_value(Box::new([]));
         } else {
-            self.set_hash_format(hash, architecture.clone(), false)?;
+            self.set_hash_format(hash, architecture.clone())?;
         }
 
         let url = serde_obj.url;
@@ -985,11 +973,16 @@ impl<'a> DownloadManager<'a> {
                 };
 
                 if caculate_hash.to_lowercase() != *hash_value.to_lowercase() {
+                    let _ = std::fs::remove_file(file);
+                    let aria2_file = format!("{}.aria2", file);
+                    if Path::new(&aria2_file).exists() {
+                        let _ = std::fs::remove_file(&aria2_file);
+                    }
                     bail!(
                         "{}",
                         tr_fmt!(
-                            "Hash validation failed for '{file}'\nExpected: {expected}\nActual:   {actual}",
-                            "{file} 文件哈希校验失败\n期望hash: {expected}\n实际hash: {actual}",
+                            "Hash validation failed for '{file}'\nExpected: {expected}\nActual:   {actual}\n(Corrupted cache file was deleted; re-run to download again)",
+                            "{file} 文件哈希校验失败\n期望hash: {expected}\n实际hash: {actual}\n(已自动清除损坏的缓存文件，再次运行将重新下载)",
                             file = file,
                             expected = hash_value,
                             actual = caculate_hash

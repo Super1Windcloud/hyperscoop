@@ -18,19 +18,23 @@ use std::sync::{Arc, Mutex};
 pub fn execute_cleanup_command(args: CleanupArgs) -> Result<(), anyhow::Error> {
     if let Some(name) = args.app_names {
         if args.all {
-            clean_all_old_versions(args.global)?
+            clean_all_old_versions(args.global, args.dry_run)?
         } else {
-            clean_specific_old_version(name, args.global)?
+            clean_specific_old_version(name, args.global, args.dry_run)?
         }
     } else {
         if args.all {
-            clean_all_old_versions(args.global)?
+            clean_all_old_versions(args.global, args.dry_run)?
         }
     }
     Ok(())
 }
 
-fn clean_specific_old_version(app_name: Vec<String>, is_global: bool) -> anyhow::Result<()> {
+fn clean_specific_old_version(
+    app_name: Vec<String>,
+    is_global: bool,
+    dry_run: bool,
+) -> anyhow::Result<()> {
     log::info!("Run cleanup command '{:?}'", app_name);
     let app_dirs = app_name
         .iter()
@@ -53,7 +57,7 @@ fn clean_specific_old_version(app_name: Vec<String>, is_global: bool) -> anyhow:
                 let binding = dir.file_name();
                 let name = binding.to_str().unwrap();
                 if name == "current" {
-                    return None;
+                    None
                 } else {
                     Some(dir.path())
                 }
@@ -72,12 +76,22 @@ fn clean_specific_old_version(app_name: Vec<String>, is_global: bool) -> anyhow:
         let flag = Arc::new(Mutex::new(false));
         let result = child_dirs.par_iter().try_for_each(|dir| {
             if dir != retain_dir {
-                log::info!("Removing old version: {}", dir.display());
-                let result = std::fs::remove_dir_all(dir).context("Failed to remove old version");
-                *flag.lock().unwrap() = true;
-                if result.is_err() {
-                    kill_processes_using_app(app_name);
-                    std::fs::remove_dir_all(dir).context("Failed to remove old version")?;
+                if dry_run {
+                    println!(
+                        "{} {}",
+                        "[dry-run] Would remove old version:".dark_yellow().bold(),
+                        dir.display().to_string().dark_cyan()
+                    );
+                    *flag.lock().unwrap() = true;
+                } else {
+                    log::info!("Removing old version: {}", dir.display());
+                    let result =
+                        std::fs::remove_dir_all(dir).context("Failed to remove old version");
+                    *flag.lock().unwrap() = true;
+                    if result.is_err() {
+                        kill_processes_using_app(app_name);
+                        std::fs::remove_dir_all(dir).context("Failed to remove old version")?;
+                    }
                 }
             }
             Ok(())
@@ -100,7 +114,7 @@ fn clean_specific_old_version(app_name: Vec<String>, is_global: bool) -> anyhow:
     Ok(())
 }
 
-fn clean_all_old_versions(is_global: bool) -> anyhow::Result<()> {
+fn clean_all_old_versions(is_global: bool, dry_run: bool) -> anyhow::Result<()> {
     let apps_dir = if is_global {
         get_apps_path_global()
     } else {
@@ -183,14 +197,22 @@ fn clean_all_old_versions(is_global: bool) -> anyhow::Result<()> {
                     if version == "current" {
                         continue;
                     }
-                    log::info!("Removing old version: {}", path.display());
-                    if std::fs::remove_dir_all(path.as_path())
-                        .context("Failed to remove old version")
-                        .is_err()
-                    {
-                        kill_processes_using_app(&app_name);
-                        std::fs::remove_dir_all(path.as_path())
-                            .context("Failed to remove old version")?;
+                    if dry_run {
+                        println!(
+                            "{} {}",
+                            "[dry-run] Would remove old version:".dark_yellow().bold(),
+                            path.display().to_string().dark_cyan()
+                        );
+                    } else {
+                        log::info!("Removing old version: {}", path.display());
+                        if std::fs::remove_dir_all(path.as_path())
+                            .context("Failed to remove old version")
+                            .is_err()
+                        {
+                            kill_processes_using_app(&app_name);
+                            std::fs::remove_dir_all(path.as_path())
+                                .context("Failed to remove old version")?;
+                        }
                     }
                 }
             }

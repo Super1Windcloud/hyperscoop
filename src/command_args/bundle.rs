@@ -41,6 +41,14 @@ pub enum BundleSubcommands {
         )
     )]
     Check(BundleCheckArgs),
+
+    #[command(
+        about = crate::i18n::tr(
+            "Uninstall all apps not listed in Hpfile (run with --force to execute)",
+            "卸载所有未在 Hpfile 中列出的应用（配合 --force 执行实际卸载）"
+        )
+    )]
+    Cleanup(BundleCleanupArgs),
 }
 
 #[derive(Args, Debug, Clone)]
@@ -90,4 +98,27 @@ pub struct BundleCheckArgs {
         )
     )]
     pub file: String,
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct BundleCleanupArgs {
+    #[arg(
+        long,
+        default_value = "Hpfile",
+        help = crate::i18n::tr(
+            "Path to the Hpfile to compare against (defaults to ./Hpfile)",
+            "用于对比基准的 Hpfile 路径（默认为 ./Hpfile）"
+        )
+    )]
+    pub file: String,
+
+    #[arg(
+        short,
+        long,
+        help = crate::i18n::tr(
+            "Actually perform uninstallation of unlisted apps",
+            "真正执行卸载未列出应用的删除操作"
+        )
+    )]
+    pub force: bool,
 }

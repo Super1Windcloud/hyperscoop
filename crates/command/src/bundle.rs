@@ -456,6 +456,86 @@ pub fn set_app_hold(app_name: &str, is_global: bool, hold: bool) {
     }
 }
 
+/// Result of bundle cleanup
+#[derive(Debug, Default)]
+pub struct BundleCleanupResult {
+    pub unlisted_apps: Vec<BundleApp>,
+}
+
+/// Check or perform bundle cleanup against an Hpfile
+pub fn cleanup_bundle(hpfile: &Hpfile, force: bool) -> anyhow::Result<BundleCleanupResult> {
+    let hpfile_apps: HashSet<(String, bool)> = hpfile
+        .apps
+        .iter()
+        .map(|a| (a.name.to_lowercase(), a.global))
+        .collect();
+
+    let mut unlisted = Vec::new();
+    let mut seen = HashSet::new();
+    let scan_targets = [(get_apps_path(), false), (get_apps_path_global(), true)];
+
+    for (dir, is_global) in scan_targets {
+        let p = Path::new(&dir);
+        if !p.is_dir() {
+            continue;
+        }
+        let entries = match read_dir(p) {
+            Ok(e) => e,
+            Err(_) => continue,
+        };
+
+        for entry in entries.flatten() {
+            let app_name = entry.file_name().to_string_lossy().to_string();
+            let app_lower = app_name.to_lowercase();
+            // Protect system apps
+            if app_lower == "scoop" || app_lower == "hp" {
+                continue;
+            }
+
+            let install_json_path = if is_global {
+                get_app_dir_install_json_global(&app_name)
+            } else {
+                get_app_dir_install_json(&app_name)
+            };
+
+            if !Path::new(&install_json_path).is_file() {
+                continue;
+            }
+
+            let key = (app_lower.clone(), is_global);
+            if !hpfile_apps.contains(&key) && !seen.contains(&key) {
+                seen.insert(key);
+                unlisted.push(BundleApp {
+                    name: app_name,
+                    bucket: get_install_json_bucket(&install_json_path).ok(),
+                    global: is_global,
+                    hold: is_app_held_by_path(&install_json_path),
+                });
+            }
+        }
+    }
+
+    if force {
+        for app in &unlisted {
+            println!(
+                "  {} {}",
+                "-".red().bold(),
+                tr_fmt!(
+                    "Uninstalling unlisted app '{name}' (global={global})...",
+                    "正在卸载未列出应用 '{name}' (global={global})...",
+                    name = &app.name,
+                    global = app.global
+                )
+            );
+            let _ = crate::uninstall::uninstall_app(&app.name, app.global);
+        }
+    }
+
+    Ok(BundleCleanupResult {
+        unlisted_apps: unlisted,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -500,5 +580,36 @@ app neovim --bucket extras --hold
         assert!(formatted.contains("app git"));
         assert!(formatted.contains("app 7zip --global"));
         assert!(formatted.contains("app neovim --bucket extras --hold"));
+    }
+
+    #[test]
+    fn test_hpfile_cleanup_diff() {
+        let input = r#"
+bucket main
+app git
+app curl
+"#;
+        let hpfile = Hpfile::parse(input).unwrap();
+        // Installed: git, curl, neovim, wget
+        let installed = vec![
+            ("git".to_string(), false),
+            ("curl".to_string(), false),
+            ("neovim".to_string(), false),
+            ("wget".to_string(), true),
+        ];
+
+        let to_remove: Vec<(String, bool)> = installed
+            .into_iter()
+            .filter(|(app, is_global)| {
+                !hpfile
+                    .apps
+                    .iter()
+                    .any(|a| a.name.eq_ignore_ascii_case(app) && a.global == *is_global)
+            })
+            .collect();
+
+        assert_eq!(to_remove.len(), 2);
+        assert_eq!(to_remove[0], ("neovim".to_string(), false));
+        assert_eq!(to_remove[1], ("wget".to_string(), true));
     }
 }

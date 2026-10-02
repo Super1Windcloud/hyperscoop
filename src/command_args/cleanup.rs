@@ -1,4 +1,4 @@
-﻿use clap::Args;
+use clap::Args;
 use command_util_lib::utils::utility::clap_args_to_lowercase;
 
 #[derive(Args, Debug)]
@@ -30,4 +30,14 @@ pub struct CleanupArgs {
 
     #[arg(from_global)]
     pub global: bool,
+
+    #[arg(
+        short = 'n',
+        long,
+        help = crate::i18n::tr(
+            "Show what old versions would be cleaned up without deleting",
+            "演练模式：仅展示将要清理的旧版本目录，不实际删除"
+        )
+    )]
+    pub dry_run: bool,
 }
