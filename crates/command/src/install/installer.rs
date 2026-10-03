@@ -95,22 +95,42 @@ pub fn show_notes(notes: StringArrayOrString) -> anyhow::Result<()> {
 }
 
 pub fn handle_depends(depends: String, options: &[InstallOptions<'_>]) -> anyhow::Result<()> {
-    let app_name = if depends.contains('/') {
+    let (bucket, app_name) = if depends.contains('/') {
         let arr = depends.split('/').collect::<Vec<&str>>();
         if arr.len() != 2 {
             bail!("manifest depends format error")
         }
-        let bucket = arr[0].to_string();
-        let app_name = arr[1].to_string();
-        install_from_specific_bucket(&bucket, &app_name, options)?;
-        app_name
+        (Some(arr[0].to_string()), arr[1].to_string())
     } else {
-        let name = depends.clone();
-        install_app(&depends, options)?;
-        name
+        (None, depends.clone())
     };
 
     let is_global = options.contains(&InstallOptions::Global);
+    let install_manifest = if is_global {
+        crate::init_env::get_app_dir_manifest_json_global(&app_name)
+    } else {
+        crate::init_env::get_app_dir_manifest_json(&app_name)
+    };
+
+    if std::path::Path::new(&install_manifest).exists() {
+        println!(
+            "{}",
+            tr_fmt!(
+                "==> Dependency '{name}' is already satisfied.",
+                "==> 依赖项 '{name}' 已满足。",
+                name = app_name
+            )
+            .dark_grey()
+        );
+        return Ok(());
+    }
+
+    if let Some(bucket) = bucket {
+        install_from_specific_bucket(&bucket, &app_name, options)?;
+    } else {
+        install_app(&depends, options)?;
+    }
+
     let install_json = if is_global {
         crate::init_env::get_app_dir_install_json_global(&app_name)
     } else {

@@ -92,27 +92,54 @@ pub fn check_before_install(
         if Path::new(&install_json).exists() && Path::new(&manifest_json).exists() {
             let old_version =
                 get_app_old_version(name, options).unwrap_or_else(|_| "unknown".to_string());
-            println!(
-                "{}",
-                tr_fmt!(
-                    "WARN  '{name}' ({old_version}) is already installed",
-                    "WARN  '{name}' ({old_version}) 已经安装",
-                    name = name,
-                    old_version = old_version
-                )
-                .dark_yellow()
-                .bold(),
-            );
-            println!(
-                "{}",
-                tr_fmt!(
-                    "You can use 'hp update {name}' to install another version",
-                    "您可以使用 'hp update {name}' 安装其他版本",
-                    name = name
-                )
-                .dark_cyan()
-                .bold()
-            );
+            if old_version == version {
+                println!(
+                    "{}",
+                    tr_fmt!(
+                        "Warning: '{name}' ({version}) is already installed and up-to-date.",
+                        "警告: '{name}' ({version}) 已经安装且为最新版本。",
+                        name = name,
+                        version = version
+                    )
+                    .dark_yellow()
+                    .bold(),
+                );
+                println!(
+                    "{}",
+                    tr_fmt!(
+                        "To reinstall {version}, run:\n  hp reinstall {name}",
+                        "如需重新安装 {version}，请运行:\n  hp reinstall {name}",
+                        name = name,
+                        version = version
+                    )
+                    .dark_cyan()
+                    .bold()
+                );
+            } else {
+                println!(
+                    "{}",
+                    tr_fmt!(
+                        "Warning: '{name}' ({old_version}) is already installed, but {version} is available.",
+                        "警告: '{name}' ({old_version}) 已安装，但有新版本 {version} 可用。",
+                        name = name,
+                        old_version = old_version,
+                        version = version
+                    )
+                    .dark_yellow()
+                    .bold(),
+                );
+                println!(
+                    "{}",
+                    tr_fmt!(
+                        "To upgrade to {version}, run:\n  hp upgrade {name}",
+                        "如需升级到 {version}，请运行:\n  hp upgrade {name}",
+                        name = name,
+                        version = version
+                    )
+                    .dark_cyan()
+                    .bold()
+                );
+            }
             Ok(1)
         } else {
             if !Path::new(&install_json).exists() {

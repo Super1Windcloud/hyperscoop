@@ -315,7 +315,7 @@ pub fn install_app_from_local_manifest_file<P: AsRef<Path>>(
     }
     println!(
         "{}",
-        format!("'{app_name}' ({version}) was installed successfully!")
+        format!("🍺  '{app_name}' ({version}) was installed successfully!")
             .dark_green()
             .bold()
     );

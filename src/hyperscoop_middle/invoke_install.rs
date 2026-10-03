@@ -40,6 +40,22 @@ pub async fn execute_install_command(args: InstallArgs) -> Result<(), anyhow::Er
         update_buckets_parallel()?;
     }
 
+    if args.dry_run {
+        println!(
+            "{}\n",
+            tr(
+                "Running in dry-run mode (preview only, no changes will be made):",
+                "正在以预演模式运行（仅供预览，不会做任何实际更改）："
+            )
+            .dark_yellow()
+            .bold()
+        );
+        for raw_name in &args.app_names {
+            dry_run_install_app(raw_name, &args)?;
+        }
+        return Ok(());
+    }
+
     let total = args.app_names.len();
     let mut errors = Vec::new();
 
@@ -328,4 +344,126 @@ fn contains_special_char(s: &str) -> bool {
 fn convert_path(path: &str) -> String {
     let path = path.replace("\\", "/");
     path
+}
+
+fn dry_run_install_app(raw_name: &str, args: &InstallArgs) -> anyhow::Result<()> {
+    let clean_name = convert_path(raw_name.trim()).to_lowercase();
+    let manifest_path = if args.global {
+        command_util_lib::manifest::manifest::get_best_manifest_from_local_bucket_global(
+            &clean_name,
+        )
+        .or_else(|_| {
+            command_util_lib::manifest::manifest::get_best_manifest_from_local_bucket(&clean_name)
+        })?
+    } else {
+        command_util_lib::manifest::manifest::get_best_manifest_from_local_bucket(&clean_name)?
+    };
+
+    let content = std::fs::read_to_string(&manifest_path)?;
+    let json: serde_json::Value = serde_json::from_str(&content)?;
+
+    let version = json
+        .get("version")
+        .and_then(|v| v.as_str())
+        .unwrap_or("unknown");
+    let desc = json
+        .get("description")
+        .and_then(|d| d.as_str())
+        .unwrap_or("");
+    let bucket = manifest_path
+        .parent()
+        .and_then(|p| p.parent())
+        .and_then(|p| p.file_name())
+        .and_then(|n| n.to_str())
+        .unwrap_or("unknown");
+
+    let arch = args.arch.as_deref().unwrap_or("64bit");
+
+    println!(
+        "{} {}",
+        tr("==> Dry-run: would install", "==> 预演: 将要安装")
+            .dark_cyan()
+            .bold(),
+        format!("'{clean_name}' ({version}) [{arch}] from bucket '{bucket}'").bold()
+    );
+
+    if !desc.is_empty() {
+        println!(
+            "    {}: {}",
+            tr("Description", "应用描述").dark_grey(),
+            desc
+        );
+    }
+
+    if let Some(deps) = json.get("depends") {
+        let mut dep_list = Vec::new();
+        match deps {
+            serde_json::Value::String(s) => dep_list.push(s.clone()),
+            serde_json::Value::Array(arr) => {
+                for item in arr {
+                    if let Some(s) = item.as_str() {
+                        dep_list.push(s.to_string());
+                    }
+                }
+            }
+            _ => {}
+        }
+        if !dep_list.is_empty() {
+            println!(
+                "    {}: {}",
+                tr("Dependencies", "前置依赖").yellow(),
+                dep_list.join(", ")
+            );
+        }
+    }
+
+    if let Some(bin) = json.get("bin") {
+        let mut bin_list = Vec::new();
+        match bin {
+            serde_json::Value::String(s) => bin_list.push(s.clone()),
+            serde_json::Value::Array(arr) => {
+                for item in arr {
+                    match item {
+                        serde_json::Value::String(s) => bin_list.push(s.clone()),
+                        serde_json::Value::Array(inner) => {
+                            if let Some(alias) = inner.get(1).and_then(|a| a.as_str()) {
+                                bin_list.push(alias.to_string());
+                            } else if let Some(target) = inner.first().and_then(|t| t.as_str()) {
+                                bin_list.push(target.to_string());
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            _ => {}
+        }
+        if !bin_list.is_empty() {
+            println!(
+                "    {}: {}",
+                tr("Will create shims", "将生成可执行入口").green(),
+                bin_list.join(", ")
+            );
+        }
+    }
+
+    if json.get("shortcuts").is_some() {
+        println!(
+            "    {}: {}",
+            tr("Package Type", "软件形态").magenta(),
+            tr(
+                "GUI Desktop Application (Start Menu shortcut)",
+                "GUI 桌面程序 (创建开始菜单快捷方式)"
+            )
+        );
+    } else {
+        println!(
+            "    {}: {}",
+            tr("Package Type", "软件形态").cyan(),
+            tr("CLI Tool", "命令行工具")
+        );
+    }
+
+    println!();
+    Ok(())
 }

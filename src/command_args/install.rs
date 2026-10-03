@@ -65,16 +65,31 @@ pub struct InstallArgs {
     pub no_use_download_cache: bool,
     #[arg(
         short = 'i',
-        long,
+        long = "no-auto-download-dependencies",
+        alias = "no-deps",
+        alias = "ignore-dependencies",
         help = crate::i18n::tr(
-            "Do not auto-download manifest dependencies (likely to break apps)",
-            "不自动下载 manifest 里的依赖，极易导致软件异常"
+            "Do not auto-download manifest dependencies (alias: --no-deps)",
+            "不自动下载 manifest 里的依赖 (别名: --no-deps)"
         ),
         required = false,
         action = ArgAction::SetTrue,
         help_heading = crate::i18n::tr("Install Options", "安装选项")
     )]
     pub no_auto_download_dependencies: bool,
+
+    #[arg(
+        short = 'n',
+        long = "dry-run",
+        help = crate::i18n::tr(
+            "Show what would be downloaded and installed without making changes",
+            "预演安装流程，仅查看安装信息与依赖，不实际执行下载与安装"
+        ),
+        required = false,
+        action = ArgAction::SetTrue,
+        help_heading = crate::i18n::tr("Install Options", "安装选项")
+    )]
+    pub dry_run: bool,
 
     #[arg(
         short = 'o',
@@ -137,8 +152,9 @@ pub struct InstallArgs {
     pub interactive: bool,
 
     #[arg(
-        short,
-        long,
+        short = 'f',
+        long = "force",
+        alias = "force-install-override",
         help_heading = crate::i18n::tr("Install Options", "安装选项"),
         required = false,
         help = crate::i18n::tr(

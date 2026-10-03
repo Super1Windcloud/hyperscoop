@@ -795,5 +795,43 @@ mod tests {
             }
             _ => panic!("Expected Desc"),
         }
+
+        // Test install flags: --dry-run (-n), --force (-f), --no-deps, --ignore-dependencies
+        let cli = crate::Cli::try_parse_from(["hp", "install", "git", "-n"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Install(args) => {
+                assert_eq!(args.app_names, vec!["git"]);
+                assert!(args.dry_run);
+            }
+            _ => panic!("Expected Install"),
+        }
+
+        let cli = crate::Cli::try_parse_from(["hp", "install", "git", "--force"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Install(args) => {
+                assert_eq!(args.app_names, vec!["git"]);
+                assert!(args.force_install_override);
+            }
+            _ => panic!("Expected Install"),
+        }
+
+        let cli = crate::Cli::try_parse_from(["hp", "install", "git", "--no-deps"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Install(args) => {
+                assert_eq!(args.app_names, vec!["git"]);
+                assert!(args.no_auto_download_dependencies);
+            }
+            _ => panic!("Expected Install"),
+        }
+
+        let cli =
+            crate::Cli::try_parse_from(["hp", "install", "git", "--ignore-dependencies"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Install(args) => {
+                assert_eq!(args.app_names, vec!["git"]);
+                assert!(args.no_auto_download_dependencies);
+            }
+            _ => panic!("Expected Install"),
+        }
     }
 }
