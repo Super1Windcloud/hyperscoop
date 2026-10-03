@@ -94,7 +94,7 @@ resolver = "2"
 
 
 [workspace.package]
-version = "4.4.2"
+version = "4.5.0"
 edition = "2024"
 publish = false
 authors = ["superwindcloud<<1178933440@qq.com>"]
