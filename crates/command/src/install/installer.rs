@@ -36,36 +36,30 @@ use which::which;
 
 pub fn show_suggest(suggest: &SuggestObj) -> anyhow::Result<()> {
     println!(
-        "{}",
+        "==> {}",
         tr(
-            "Suggested dependencies to install :",
-            "建议安装以下依赖包 :"
+            "Suggested dependencies to install:",
+            "建议安装的相关依赖/工具:"
         )
         .dark_yellow()
         .bold()
     );
 
-    for item in suggest {
-        let name = item.0;
-        let value = item.1;
+    for (name, value) in suggest {
         match value {
             SuggestObjValue::Null => {}
             SuggestObjValue::String(value) => {
                 println!(
-                    "{}",
-                    format!("{} : {}", name, value)
-                        .dark_grey()
-                        .bold()
-                        .to_string()
+                    "  • {}: {}",
+                    name.as_str().bold(),
+                    value.as_str().dark_grey()
                 );
             }
             SuggestObjValue::StringArray(arr) => {
                 println!(
-                    "{}",
-                    format!("{} : {:?}", name, arr)
-                        .dark_grey()
-                        .bold()
-                        .to_string()
+                    "  • {}: {}",
+                    name.as_str().bold(),
+                    arr.join(", ").dark_grey()
                 );
             }
         }
@@ -76,18 +70,20 @@ pub fn show_suggest(suggest: &SuggestObj) -> anyhow::Result<()> {
 pub fn show_notes(notes: StringArrayOrString) -> anyhow::Result<()> {
     match notes {
         StringArrayOrString::StringArray(notes) => {
-            println!("{}", tr("Notes : ", "说明/提示 : ").dark_cyan().bold());
-            println!("{}", "_____ : ".to_string().dark_cyan().bold());
+            println!(
+                "==> {}",
+                tr("Caveats / Notes:", "使用说明 / 提示:").yellow().bold()
+            );
             for note in notes {
-                println!(" {}", note.clone().dark_grey().bold());
+                println!("  {}", note);
             }
         }
         StringArrayOrString::String(note) => {
             println!(
-                "{} {}",
-                tr("Notes : ", "说明/提示 : ").dark_cyan().bold(),
-                note.clone().dark_grey().bold()
+                "==> {}",
+                tr("Caveats / Notes:", "使用说明 / 提示:").yellow().bold()
             );
+            println!("  {}", note);
         }
         StringArrayOrString::Null => {}
     }
