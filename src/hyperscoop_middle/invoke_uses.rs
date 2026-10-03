@@ -36,6 +36,13 @@ pub fn execute_uses_command(args: UsesArgs) -> Result<(), anyhow::Error> {
             return Ok(());
         }
 
+        if args.quiet {
+            for (manifest_path, _) in &bucket_dependents {
+                println!("{manifest_path}");
+            }
+            return Ok(());
+        }
+
         let mut table = Table::new();
         table
             .load_preset(UTF8_BORDERS_ONLY)
@@ -82,6 +89,13 @@ pub fn execute_uses_command(args: UsesArgs) -> Result<(), anyhow::Error> {
                 )
                 .dark_grey()
             );
+            return Ok(());
+        }
+
+        if args.quiet {
+            for dep in &dependents {
+                println!("{}", dep.app_name);
+            }
             return Ok(());
         }
 

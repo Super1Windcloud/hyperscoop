@@ -40,6 +40,14 @@ pub fn execute_status_command(status_args: StatusArgs) -> Result<(), anyhow::Err
         if app_name == "scoop" {
             continue;
         }
+        if !status_args.app_names.is_empty()
+            && !status_args
+                .app_names
+                .iter()
+                .any(|q| q.eq_ignore_ascii_case(app_name))
+        {
+            continue;
+        }
         let current = app_path.join("current");
         let manifest_path = current.join("manifest.json");
         let install_json_path = current.join("install.json");
@@ -101,6 +109,30 @@ pub fn execute_status_command(status_args: StatusArgs) -> Result<(), anyhow::Err
             ]);
         }
     }
+
+    if status_args.quiet {
+        for row in &final_installed_apps {
+            println!("{}", row[0]);
+        }
+        return Ok(());
+    }
+
+    if status_args.json {
+        let json_list: Vec<serde_json::Value> = final_installed_apps
+            .iter()
+            .map(|row| {
+                serde_json::json!({
+                    "name": &row[0],
+                    "installed_version": &row[1],
+                    "latest_version": &row[2],
+                    "held": row[3].contains("Held") || row[3].contains("锁定"),
+                })
+            })
+            .collect();
+        println!("{}", serde_json::to_string_pretty(&json_list)?);
+        return Ok(());
+    }
+
     display_status_information(final_installed_apps.as_slice());
 
     Ok(())

@@ -35,6 +35,7 @@ use crate::command_args::status::StatusArgs;
 use crate::command_args::switch::SwitchArgs;
 use crate::command_args::uninstall::UninstallArgs;
 use crate::command_args::unlink::UnlinkArgs;
+use crate::command_args::untap::UntapArgs;
 use crate::command_args::update::UpdateArgs;
 use crate::command_args::uses::UsesArgs;
 use crate::command_args::which::WhichArgs;
@@ -60,6 +61,7 @@ use std::path::Path;
 pub(crate) enum Commands {
     Alias(AliasArgs),
     Autoremove(AutoremoveArgs),
+    #[clap(alias = "tap")]
     Bucket(BucketArgs),
     Bundle(BundleArgs),
     Cat(CatArgs),
@@ -104,6 +106,7 @@ pub(crate) enum Commands {
     #[clap(alias = "unhold")]
     Unpin(UnpinArgs),
     Unlink(UnlinkArgs),
+    Untap(UntapArgs),
     #[clap(alias = "upgrade")]
     Update(UpdateArgs),
     Uses(UsesArgs),
@@ -485,8 +488,30 @@ mod tests {
         // Test outdated alias for status
         let cli = crate::Cli::try_parse_from(["hp", "outdated"]).unwrap();
         match cli.command.unwrap() {
-            Commands::Status(_) => {}
+            Commands::Status(args) => {
+                assert!(!args.quiet);
+                assert!(!args.json);
+                assert!(args.app_names.is_empty());
+            }
             _ => panic!("Expected Status for 'outdated'"),
+        }
+
+        let cli = crate::Cli::try_parse_from(["hp", "outdated", "git", "-q"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Status(args) => {
+                assert_eq!(args.app_names, vec!["git"]);
+                assert!(args.quiet);
+                assert!(!args.json);
+            }
+            _ => panic!("Expected Status for 'outdated git -q'"),
+        }
+
+        let cli = crate::Cli::try_parse_from(["hp", "status", "--json"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Status(args) => {
+                assert!(args.json);
+            }
+            _ => panic!("Expected Status for '--json'"),
         }
 
         // Test completion parsing
@@ -517,14 +542,34 @@ mod tests {
             _ => panic!("Expected Uses with --all"),
         }
 
+        let cli = crate::Cli::try_parse_from(["hp", "uses", "git", "-q", "--installed"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Uses(args) => {
+                assert_eq!(args.app_name, "git");
+                assert!(args.quiet);
+                assert!(args.installed);
+            }
+            _ => panic!("Expected Uses with -q --installed"),
+        }
+
         // Test deps parsing
         let cli = crate::Cli::try_parse_from(["hp", "deps", "neovim", "--tree"]).unwrap();
         match cli.command.unwrap() {
             Commands::Deps(args) => {
                 assert_eq!(args.app_name, "neovim");
                 assert!(args.tree);
+                assert!(!args.reverse);
             }
             _ => panic!("Expected Deps with --tree"),
+        }
+
+        let cli = crate::Cli::try_parse_from(["hp", "deps", "python", "-r"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Deps(args) => {
+                assert_eq!(args.app_name, "python");
+                assert!(args.reverse);
+            }
+            _ => panic!("Expected Deps with -r"),
         }
 
         // Test bundle dump parsing
@@ -850,6 +895,24 @@ mod tests {
                 assert!(args.no_upgrade);
             }
             _ => panic!("Expected Install"),
+        }
+
+        // Test tap alias for bucket
+        let cli = crate::Cli::try_parse_from(["hp", "tap"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Bucket(args) => {
+                assert!(args.command.is_none());
+            }
+            _ => panic!("Expected Bucket for 'tap'"),
+        }
+
+        // Test untap command
+        let cli = crate::Cli::try_parse_from(["hp", "untap", "extras"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Untap(args) => {
+                assert_eq!(args.name, "extras");
+            }
+            _ => panic!("Expected Untap"),
         }
     }
 }

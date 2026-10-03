@@ -27,6 +27,9 @@ pub fn execute_bucket_command(args: BucketArgs) -> Result<(), anyhow::Error> {
     execute_init_bucket_command(&args, &buckets, global)?;
 
     if args.command.is_none() {
+        if !args.init_office_bucket && !args.init_official_bucket_with_social {
+            buckets.display_all_buckets_extra(global)?;
+        }
         return Ok(());
     }
     let command = args.command;
@@ -141,5 +144,13 @@ fn execute_init_bucket_command(
         }
     }
 
+    Ok(())
+}
+
+pub fn execute_untap_command(
+    args: crate::command_args::untap::UntapArgs,
+) -> Result<(), anyhow::Error> {
+    let buckets = Buckets::new()?;
+    buckets.rm_buckets(&args.name, args.global)?;
     Ok(())
 }

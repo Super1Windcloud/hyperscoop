@@ -12,6 +12,18 @@ use std::path::Path;
 pub fn execute_deps_command(args: DepsArgs) -> Result<(), anyhow::Error> {
     let app_name = &args.app_name;
 
+    if args.reverse {
+        return crate::hyperscoop_middle::invoke_uses::execute_uses_command(
+            crate::command_args::uses::UsesArgs {
+                app_name: args.app_name,
+                all: false,
+                installed: true,
+                quiet: false,
+                global: args.global,
+            },
+        );
+    }
+
     if args.tree {
         println!(
             "{}",

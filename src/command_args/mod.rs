@@ -36,6 +36,7 @@ pub mod status;
 pub mod switch;
 pub mod uninstall;
 pub mod unlink;
+pub mod untap;
 pub mod update;
 pub mod uses;
 pub mod which;

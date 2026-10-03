@@ -29,7 +29,6 @@ use clap::builder::Styles;
 use clap::builder::styling::{AnsiColor, Effects};
 use clap::{CommandFactory, Parser};
 use clap_complete::generate;
-use clap_verbosity_flag;
 use crossterm::execute;
 use std::io::stdout;
 
@@ -122,8 +121,6 @@ struct Cli {
         help_heading = tr("Global Options", "全局选项")
     )]
     pub error: bool,
-    #[command(flatten)]
-    verbose: clap_verbosity_flag::Verbosity,
 
     #[arg(
         short = 'N',
@@ -272,6 +269,7 @@ async fn main() -> anyhow::Result<()> {
             Commands::Switch(args) => execute_switch_command(args),
             Commands::Uninstall(args) => execute_uninstall_command(args),
             Commands::Unlink(args) => execute_unlink_command(args),
+            Commands::Untap(args) => execute_untap_command(args),
             Commands::Unpin(args) => execute_hold_command(HoldArgs {
                 app_names: Some(args.app_names),
                 cancel_hold: true,

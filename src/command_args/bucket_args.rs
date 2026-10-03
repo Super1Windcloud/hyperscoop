@@ -7,10 +7,10 @@ use command_util_lib::utils::utility::clap_args_to_lowercase;
     "Subcommands: add|list|known|rm",
     "子命令  add|list|known|rm"
 ))]
-#[command(arg_required_else_help = true, subcommand_negates_reqs = true)]
+#[command(arg_required_else_help = false, subcommand_negates_reqs = true)]
 #[clap(about = crate::i18n::tr(
-    "🔫\t\tManage all hp buckets",
-    "🔫\t\t管理 hp 的所有 bucket"
+    "🔫\t\tManage all hp buckets/taps (alias: tap)",
+    "🔫\t\t管理 hp 的所有 bucket/tap，别名 tap"
 ))]
 pub struct BucketArgs {
     #[command(subcommand)]

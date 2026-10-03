@@ -33,6 +33,16 @@ pub struct DepsArgs {
     )]
     pub tree: bool,
 
+    #[arg(
+        short = 'r',
+        long,
+        help = crate::i18n::tr(
+            "Show reverse dependencies (alias for 'hp uses')",
+            "反向查找依赖此软件的应用（等同于 'hp uses'）"
+        )
+    )]
+    pub reverse: bool,
+
     #[arg(from_global)]
     pub global: bool,
 }

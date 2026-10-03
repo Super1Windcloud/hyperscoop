@@ -33,6 +33,25 @@ pub struct UsesArgs {
     )]
     pub all: bool,
 
+    #[arg(
+        long,
+        help = crate::i18n::tr(
+            "Only check installed applications (default behavior)",
+            "仅查询已安装的应用程序（默认行为）"
+        )
+    )]
+    pub installed: bool,
+
+    #[arg(
+        short = 'q',
+        long,
+        help = crate::i18n::tr(
+            "Only display names of dependent apps",
+            "仅输出依赖此软件的应用名称（适合管道传参）"
+        )
+    )]
+    pub quiet: bool,
+
     #[arg(from_global)]
     pub global: bool,
 }
