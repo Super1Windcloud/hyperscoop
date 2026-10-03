@@ -191,7 +191,12 @@ pub async fn execute_checkup_command(global: bool) -> anyhow::Result<()> {
     } else {
         println!(
             "{}",
-            tr("No problems identified!", "未发现任何问题。").green()
+            tr(
+                "Your system is ready to scoop! No problems identified.",
+                "🎉 您的系统环境完好，未发现任何问题！"
+            )
+            .green()
+            .bold()
         );
     }
 
