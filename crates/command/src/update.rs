@@ -8,7 +8,7 @@ use crate::utils::git::{
 use rayon::prelude::*;
 use std::fs;
 use std::path::Path;
-pub(crate) mod update;
+pub mod update;
 use crate::init_env::{
     get_app_current_dir, get_app_current_dir_global, get_app_dir, get_app_dir_global, is_app_held,
 };

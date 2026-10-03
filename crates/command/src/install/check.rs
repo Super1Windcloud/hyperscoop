@@ -113,34 +113,48 @@ pub fn check_before_install(
                         version = version
                     )
                     .dark_cyan()
-                    .bold()
-                );
-            } else {
-                println!(
-                    "{}",
-                    tr_fmt!(
-                        "Warning: '{name}' ({old_version}) is already installed, but {version} is available.",
-                        "警告: '{name}' ({old_version}) 已安装，但有新版本 {version} 可用。",
-                        name = name,
-                        old_version = old_version,
-                        version = version
-                    )
-                    .dark_yellow()
                     .bold(),
                 );
-                println!(
-                    "{}",
-                    tr_fmt!(
-                        "To upgrade to {version}, run:\n  hp upgrade {name}",
-                        "如需升级到 {version}，请运行:\n  hp upgrade {name}",
-                        name = name,
-                        version = version
-                    )
-                    .dark_cyan()
-                    .bold()
-                );
+                Ok(1)
+            } else {
+                let no_install_upgrade = std::env::var("HYPERSCOOP_NO_INSTALL_UPGRADE").is_ok()
+                    || std::env::var("HOMEBREW_NO_INSTALL_UPGRADE").is_ok()
+                    || options.contains(&InstallOptions::NoInstallUpgrade);
+
+                if no_install_upgrade {
+                    println!(
+                        "{}",
+                        tr_fmt!(
+                            "Warning: '{name}' ({old_version}) is already installed, but {version} is available.",
+                            "警告: '{name}' ({old_version}) 已安装，但有新版本 {version} 可用。",
+                            name = name,
+                            old_version = old_version,
+                            version = version
+                        )
+                        .dark_yellow()
+                        .bold(),
+                    );
+                    println!(
+                        "{}",
+                        tr_fmt!(
+                            "To upgrade to {version}, run:\n  hp upgrade {name}",
+                            "如需升级到 {version}，请运行:\n  hp upgrade {name}",
+                            name = name,
+                            version = version
+                        )
+                        .dark_cyan()
+                        .bold()
+                    );
+                    Ok(1)
+                } else {
+                    println!(
+                        "{} {}",
+                        tr("==> Upgrading", "==> 正在自动升级").dark_cyan().bold(),
+                        format!("'{name}' ({old_version} -> {version})").bold()
+                    );
+                    Ok(0)
+                }
             }
-            Ok(1)
         } else {
             if !Path::new(&install_json).exists() {
                 eprintln!(

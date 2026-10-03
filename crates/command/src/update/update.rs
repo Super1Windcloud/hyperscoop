@@ -165,6 +165,33 @@ pub fn check_app_version_latest(
     }
 }
 
+pub fn should_auto_update_buckets() -> bool {
+    if std::env::var("HYPERSCOOP_NO_AUTO_UPDATE").is_ok()
+        || std::env::var("HOMEBREW_NO_AUTO_UPDATE").is_ok()
+    {
+        return false;
+    }
+
+    let last_update_str = get_config_value_no_print("last_update");
+    if last_update_str.is_empty() {
+        return true;
+    }
+
+    let threshold_secs: i64 = std::env::var("HYPERSCOOP_AUTO_UPDATE_SECS")
+        .or_else(|_| std::env::var("HOMEBREW_AUTO_UPDATE_SECS"))
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(86400);
+
+    if let Ok(last_time) = chrono::DateTime::parse_from_rfc3339(&last_update_str) {
+        let now = chrono::Local::now();
+        let elapsed = now.signed_duration_since(last_time.with_timezone(&chrono::Local));
+        elapsed.num_seconds() >= threshold_secs
+    } else {
+        true
+    }
+}
+
 mod test {
     #[allow(unused)]
     use super::*;

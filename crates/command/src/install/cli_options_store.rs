@@ -20,6 +20,8 @@ pub enum InstallOptions<'a> {
         app_version: String,
     }, // 结构体变体
     AppName(Option<String>), //元组变体
+    NoInstallUpgrade,
+    NoAutoUpdate,
 }
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]

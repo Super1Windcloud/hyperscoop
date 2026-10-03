@@ -833,5 +833,23 @@ mod tests {
             }
             _ => panic!("Expected Install"),
         }
+
+        let cli = crate::Cli::try_parse_from(["hp", "install", "git", "--no-auto-update"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Install(args) => {
+                assert_eq!(args.app_names, vec!["git"]);
+                assert!(args.no_auto_update);
+            }
+            _ => panic!("Expected Install"),
+        }
+
+        let cli = crate::Cli::try_parse_from(["hp", "install", "git", "--no-upgrade"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Install(args) => {
+                assert_eq!(args.app_names, vec!["git"]);
+                assert!(args.no_upgrade);
+            }
+            _ => panic!("Expected Install"),
+        }
     }
 }

@@ -30,14 +30,33 @@ pub async fn execute_install_command(args: InstallArgs) -> Result<(), anyhow::Er
     if options.contains(&InstallOptions::CheckCurrentVersionIsLatest) {
         auto_check_hp_update(None).await?;
     }
-    if options.contains(&InstallOptions::UpdateHpAndBuckets) {
+
+    let should_update_buckets = if args.no_auto_update
+        || std::env::var("HYPERSCOOP_NO_AUTO_UPDATE").is_ok()
+        || std::env::var("HOMEBREW_NO_AUTO_UPDATE").is_ok()
+        || args.dry_run
+        || args.only_download_no_install
+    {
+        args.update_hp_and_buckets
+    } else {
+        args.update_hp_and_buckets || command_util_lib::update::should_auto_update_buckets()
+    };
+
+    if should_update_buckets {
         println!(
             "{}",
-            tr("Starting bucket updates", "开始更新 buckets")
-                .dark_cyan()
-                .bold()
+            tr(
+                "==> Auto-updating buckets...",
+                "==> 正在自动更新 buckets..."
+            )
+            .dark_cyan()
+            .bold()
         );
-        update_buckets_parallel()?;
+        if let Err(e) = update_buckets_parallel() {
+            log::warn!("Auto-update buckets warning: {}", e);
+        } else {
+            command_util_lib::utils::utility::update_scoop_config_last_update_time();
+        }
     }
 
     if args.dry_run {
@@ -331,6 +350,12 @@ pub fn inject_user_options(install_args: &InstallArgs) -> anyhow::Result<Vec<Ins
     }
     if install_args.interactive {
         install_options.push(InstallOptions::InteractiveInstall)
+    }
+    if install_args.no_upgrade {
+        install_options.push(InstallOptions::NoInstallUpgrade);
+    }
+    if install_args.no_auto_update {
+        install_options.push(InstallOptions::NoAutoUpdate);
     }
 
     Ok(install_options)

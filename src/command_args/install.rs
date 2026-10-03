@@ -128,6 +128,30 @@ pub struct InstallArgs {
         help_heading = crate::i18n::tr("Install Options", "安装选项")
     )]
     pub update_hp_and_buckets: bool,
+
+    #[arg(
+        long = "no-auto-update",
+        help = crate::i18n::tr(
+            "Do not auto-update buckets before installing (can also set HYPERSCOOP_NO_AUTO_UPDATE=1)",
+            "安装前不自动更新 bucket（也可设置 HYPERSCOOP_NO_AUTO_UPDATE=1）"
+        ),
+        required = false,
+        action = ArgAction::SetTrue,
+        help_heading = crate::i18n::tr("Install Options", "安装选项")
+    )]
+    pub no_auto_update: bool,
+
+    #[arg(
+        long = "no-upgrade",
+        help = crate::i18n::tr(
+            "Do not auto-upgrade if the app is already installed but outdated",
+            "如果软件已安装但有新版本，不自动升级（也可设置 HYPERSCOOP_NO_INSTALL_UPGRADE=1）"
+        ),
+        required = false,
+        action = ArgAction::SetTrue,
+        help_heading = crate::i18n::tr("Install Options", "安装选项")
+    )]
+    pub no_upgrade: bool,
     #[arg(
         short = 'c',
         long,
