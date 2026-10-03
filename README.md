@@ -102,19 +102,24 @@ and add it to your `$env:Path`.
 | ✅ completion          | Generate shell completion scripts |
 | ✅ config              | Configure hp settings           |
 | ✅ deps                | Query dependencies and tree for an application |
+| ✅ desc                | Show package description or search across descriptions |
 | ✅ edit                | Open app manifest directly in default or configured editor |
 | ✅ export / import     | Backup and restore configs      |
+| ✅ fetch / download    | Download app package(s) into cache without installing |
 | ✅ hold / pin          | Lock apps to prevent updates    |
 | ✅ unpin / unhold      | Unlock apps to allow updates    |
 | ✅ install / uninstall | Full package lifecycle with `--dry-run` and dependency safety protection |
 | ✅ leaves              | List top-level installed applications (not required by others) |
+| ✅ link / unlink       | Link or unlink app shims and shortcuts without uninstalling |
 | ✅ log                 | View git commit history of an app manifest |
+| ✅ missing             | Verify dependency integrity and report missing requirements |
 | ✅ reinstall / re      | Reinstall one or more applications |
 | ✅ service / services  | Background service management (list, status, start, stop, restart) |
 | ✅ shellenv            | Output shell environment configuration (PowerShell, CMD, Bash, Zsh, Nu) |
 | ✅ size / disk-usage   | Analyze disk space usage for apps, cache, and persist data |
 | ✅ status / outdated   | Check whether installed apps need updates |
-| ✅ update              | Update single or all apps       |
+| ✅ switch              | Switch active version of an installed app or list versions |
+| ✅ update / upgrade    | Update single or all apps (supports `--cleanup` / `-c` and auto-cleanup) |
 | ✅ uses                | Query packages that depend on an app (reverse dependencies) |
 | ✅ which               | Locate installed binaries       |
 | ✅ merge               | Combine configurations          |

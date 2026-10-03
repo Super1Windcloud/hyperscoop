@@ -7,7 +7,7 @@ use crossterm::style::Stylize;
 use std::path::Path;
 mod env_set;
 use env_set::*;
-pub(crate) mod shim_and_shortcuts;
+pub mod shim_and_shortcuts;
 use crate::init_env::{
     get_app_dir, get_app_dir_global, get_apps_path, get_apps_path_global, get_persist_dir_path,
     get_persist_dir_path_global, get_psmodules_root_dir, get_psmodules_root_global_dir,

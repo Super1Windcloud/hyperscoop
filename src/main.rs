@@ -205,16 +205,37 @@ async fn main() -> anyhow::Result<()> {
             }
             Commands::Config(args) => execute_config_command(args),
             Commands::Deps(args) => execute_deps_command(args),
+            Commands::Desc(args) => execute_desc_command(args),
             Commands::Edit(args) => execute_edit_command(args),
             Commands::Export(file) => execute_export_command(file),
+            Commands::Fetch(args) => {
+                let install_args = InstallArgs {
+                    app_names: args.app_names,
+                    skip_download_hash_check: args.skip_download_hash_check,
+                    no_use_download_cache: args.no_use_download_cache,
+                    no_auto_download_dependencies: false,
+                    only_download_no_install: true,
+                    only_download_no_install_with_override_cache: false,
+                    update_hp_and_buckets: args.update_hp_and_buckets,
+                    check_version_up_to_date: false,
+                    interactive: false,
+                    force_install_override: false,
+                    arch: args.arch,
+                    app_alias_from_url_install: None,
+                    global: args.global,
+                };
+                execute_install_command(install_args).await
+            }
             Commands::Home(home) => execute_home_command(home),
             Commands::Hold(hold_args) => execute_hold_command(hold_args),
             Commands::Import(args) => execute_import_command(args),
             Commands::Info(info) => execute_info_command(info),
             Commands::Install(args) => execute_install_command(args).await,
             Commands::Leaves(args) => execute_leaves_command(args),
+            Commands::Link(args) => execute_link_command(args),
             Commands::List(query_app) => execute_list_installed_apps(query_app),
             Commands::Log(args) => execute_log_command(args),
+            Commands::Missing(args) => execute_missing_command(args),
             Commands::Prefix(prefix) => execute_prefix_command(prefix),
             Commands::Reinstall(args) => {
                 let install_args = InstallArgs {
@@ -242,7 +263,9 @@ async fn main() -> anyhow::Result<()> {
             Commands::Shim(args) => execute_shim_command(args),
             Commands::Size(args) => execute_size_command(args),
             Commands::Status(args) => execute_status_command(args),
+            Commands::Switch(args) => execute_switch_command(args),
             Commands::Uninstall(args) => execute_uninstall_command(args),
+            Commands::Unlink(args) => execute_unlink_command(args),
             Commands::Unpin(args) => execute_hold_command(HoldArgs {
                 app_names: Some(args.app_names),
                 cancel_hold: true,

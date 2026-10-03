@@ -8,16 +8,20 @@ use crate::command_args::cleanup::CleanupArgs;
 use crate::command_args::completion::CompletionArgs;
 use crate::command_args::config::ConfigArgs;
 use crate::command_args::deps::DepsArgs;
+use crate::command_args::desc::DescArgs;
 use crate::command_args::edit::EditArgs;
 use crate::command_args::export::ExportArgs;
+use crate::command_args::fetch::FetchArgs;
 use crate::command_args::home::HomeArgs;
 use crate::command_args::import::ImportArgs;
 use crate::command_args::info::InfoArgs;
 use crate::command_args::install::InstallArgs;
 use crate::command_args::leaves::LeavesArgs;
+use crate::command_args::link::LinkArgs;
 use crate::command_args::list::ListArgs;
 use crate::command_args::log::LogArgs;
 use crate::command_args::merge_bucket::MergeArgs;
+use crate::command_args::missing::MissingArgs;
 use crate::command_args::prefix::PrefixArgs;
 use crate::command_args::reinstall::ReinstallArgs;
 use crate::command_args::reset::ResetArgs;
@@ -28,7 +32,9 @@ use crate::command_args::shellenv::ShellenvArgs;
 use crate::command_args::shim::ShimArgs;
 use crate::command_args::size::SizeArgs;
 use crate::command_args::status::StatusArgs;
+use crate::command_args::switch::SwitchArgs;
 use crate::command_args::uninstall::UninstallArgs;
+use crate::command_args::unlink::UnlinkArgs;
 use crate::command_args::update::UpdateArgs;
 use crate::command_args::uses::UsesArgs;
 use crate::command_args::which::WhichArgs;
@@ -63,8 +69,11 @@ pub(crate) enum Commands {
     Completion(CompletionArgs),
     Config(ConfigArgs),
     Deps(DepsArgs),
+    Desc(DescArgs),
     Edit(EditArgs),
     Export(ExportArgs),
+    #[clap(alias = "download")]
+    Fetch(FetchArgs),
     Home(HomeArgs),
     #[clap(alias = "pin")]
     Hold(HoldArgs),
@@ -72,8 +81,10 @@ pub(crate) enum Commands {
     Info(InfoArgs),
     Install(InstallArgs),
     Leaves(LeavesArgs),
+    Link(LinkArgs),
     List(ListArgs),
     Log(LogArgs),
+    Missing(MissingArgs),
     Prefix(PrefixArgs),
     #[clap(alias = "re")]
     Reinstall(ReinstallArgs),
@@ -87,10 +98,13 @@ pub(crate) enum Commands {
     Shim(ShimArgs),
     Size(SizeArgs),
     Status(StatusArgs),
+    Switch(SwitchArgs),
     #[clap(alias = "un")]
     Uninstall(UninstallArgs),
     #[clap(alias = "unhold")]
     Unpin(UnpinArgs),
+    Unlink(UnlinkArgs),
+    #[clap(alias = "upgrade")]
     Update(UpdateArgs),
     Uses(UsesArgs),
     Which(WhichArgs),
@@ -706,6 +720,80 @@ mod tests {
                 _ => panic!("Expected ServiceSubcommands::List"),
             },
             _ => panic!("Expected Service for 'services' alias"),
+        }
+
+        // Test upgrade alias and -c/--cleanup
+        let cli = crate::Cli::try_parse_from(["hp", "upgrade", "git", "-c"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Update(args) => {
+                assert_eq!(args.app_names, vec!["git"]);
+                assert!(args.remove_old_app);
+            }
+            _ => panic!("Expected Update for 'upgrade' alias"),
+        }
+
+        // Test switch parsing
+        let cli = crate::Cli::try_parse_from(["hp", "switch", "node", "20.9.0"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Switch(args) => {
+                assert_eq!(args.app_name, "node");
+                assert_eq!(args.version, Some("20.9.0".to_string()));
+            }
+            _ => panic!("Expected Switch"),
+        }
+
+        // Test link parsing
+        let cli = crate::Cli::try_parse_from(["hp", "link", "git"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Link(args) => {
+                assert_eq!(args.app_names, vec!["git"]);
+            }
+            _ => panic!("Expected Link"),
+        }
+
+        // Test unlink parsing
+        let cli = crate::Cli::try_parse_from(["hp", "unlink", "git"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Unlink(args) => {
+                assert_eq!(args.app_names, vec!["git"]);
+            }
+            _ => panic!("Expected Unlink"),
+        }
+
+        // Test fetch parsing and download alias
+        let cli = crate::Cli::try_parse_from(["hp", "fetch", "curl"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Fetch(args) => {
+                assert_eq!(args.app_names, vec!["curl"]);
+            }
+            _ => panic!("Expected Fetch"),
+        }
+
+        let cli = crate::Cli::try_parse_from(["hp", "download", "curl"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Fetch(args) => {
+                assert_eq!(args.app_names, vec!["curl"]);
+            }
+            _ => panic!("Expected Fetch for 'download' alias"),
+        }
+
+        // Test missing parsing
+        let cli = crate::Cli::try_parse_from(["hp", "missing"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Missing(args) => {
+                assert_eq!(args.app_name, None);
+            }
+            _ => panic!("Expected Missing"),
+        }
+
+        // Test desc parsing
+        let cli = crate::Cli::try_parse_from(["hp", "desc", "git"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Desc(args) => {
+                assert_eq!(args.query, "git");
+                assert!(!args.search);
+            }
+            _ => panic!("Expected Desc"),
         }
     }
 }

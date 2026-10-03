@@ -180,7 +180,9 @@ fn inject_update_user_options(args: &UpdateArgs) -> anyhow::Result<Vec<UpdateOpt
     if args.skip_hash_check {
         options.push(UpdateOptions::SkipDownloadHashCheck);
     }
-    if args.remove_old_app {
+    let auto_cleanup_cfg = command_util_lib::config::get_config_value_no_print("auto_cleanup")
+        .eq_ignore_ascii_case("true");
+    if args.remove_old_app || auto_cleanup_cfg {
         options.push(UpdateOptions::RemoveOldVersionApp);
     }
     if args.no_auto_download_dependencies {

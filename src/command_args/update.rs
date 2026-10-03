@@ -73,11 +73,13 @@ pub struct UpdateArgs {
     pub no_auto_download_dependencies: bool,
 
     #[arg(
-        short = 'r',
-        long,
+        short = 'c',
+        short_alias = 'r',
+        long = "cleanup",
+        alias = "remove-old-app",
         help = crate::i18n::tr(
-            "Remove previous installed versions (keep by default)",
-            "删除旧的 App 安装版本，默认保留旧目录"
+            "Remove previous installed versions after update (cleanup, alias: -r)",
+            "更新后自动删除旧的 App 安装版本 (自动清理，别名: -r)"
         )
     )]
     pub remove_old_app: bool,

@@ -77,16 +77,20 @@ cargo install --git https://github.com/super1windcloud/hyperscoop
 - [x]  completion (生成 Shell 自动补全脚本)
 - [x]  config
 - [x]  deps (查看指定 APP 依赖与树状图)
+- [x]  desc (查看应用简短描述或通过关键词全文检索描述)
 - [x]  edit (在默认或指定编辑器中直接编辑应用 Manifest)
 - [x]  export
+- [x]  fetch (别名: download, 仅下载安装包到缓存并校验哈希，不执行安装)
 - [x]  home
 - [x]  import
 - [x]  info
 - [x]  hold (别名: pin; 解锁: unpin, unhold)
 - [x] install (支持 `--dry-run` / `-n`)
 - [x]  leaves (查看所有顶层独立应用，即叶子节点)
+- [x]  link (为已安装应用重新生成并挂载 shim 与快捷方式)
 - [x] list
 - [x]  log (查看应用 Manifest 的 Git 提交与变更历史)
+- [x]  missing (检查并报告已安装应用中缺失的依赖项)
 - [x] prefix
 - [x]  reinstall (别名: re, 一键重新安装应用)
 - [x] reset
@@ -96,8 +100,10 @@ cargo install --git https://github.com/super1windcloud/hyperscoop
 - [x] shim
 - [x]  size (别名: disk-usage, 分析应用、缓存与数据占用)
 - [x] status (别名: outdated)
+- [x]  switch (在已安装的多个历史/可用版本之间切换当前活动版本)
 - [x] uninstall (具备反向依赖防护机制，支持 `--dry-run` / `-n`)
-- [x] update
+- [x]  unlink (安全断开应用的 shim 与快捷方式，保留软件本体文件)
+- [x] update (别名: upgrade, 支持 `--cleanup` / `-c` 自动清理升级前的旧版本)
 - [x]  uses (反向依赖查询: 查询哪些应用依赖指定软件包)
 - [x] which
 - [x] merge
