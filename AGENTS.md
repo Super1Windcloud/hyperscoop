@@ -7,10 +7,10 @@
 
 ## Build, Test, and Development Commands
 - `cargo build --workspace --all-features` compiles every crate; run `cargo build --release` before distributing binaries.
-- `cargo fmt --all` and `cargo clippy --workspace --all-targets -D warnings` enforce formatting and lint compliance.
+- `cargo fmt --all` and `cargo clippy --workspace --all-targets -- -D warnings` enforce formatting and lint compliance.
 - `cargo test --workspace --all-features` executes unit/integration suites; `cargo bench --bench hash` triggers the Criterion benchmark.
 - `just release` drives the `cargo br` release pipeline, `just cross` builds the Windows/MSVC matrix, and `just update_hash` refreshes bucket metadata plus pushes remotes.
-- Use `cargo run --example pg_bar` for quick progress-bar regressions without touching the main CLI.
+- Use `cargo run --example multi` for quick progress-bar regressions without touching the main CLI.
 
 ## Coding Style & Naming Conventions
 - Default to Rust 2021 with 4-space indents and `rustfmt` formatting; keep modules single-purpose and favor dependency injection over global state.
@@ -19,7 +19,7 @@
 
 ## Testing Guidelines
 - Co-locate unit tests inside each module under `#[cfg(test)]`; async flows should use `#[tokio::test(flavor = "multi_thread")]` to match runtime defaults.
-- Integration tests that touch real buckets belong in `tests/` or `examples/`; mock filesystem paths under `resources/testdata` to keep runs deterministic.
+- Integration tests that touch real buckets belong in `tests/` or `examples/`; mock filesystem paths under a temporary directory to keep runs deterministic.
 - Maintain coverage for CLI parsing, manifest hashing, and shim generation before triggering release jobs; refresh Criterion baselines when performance-critical code changes.
 
 ## Commit & Pull Request Guidelines
