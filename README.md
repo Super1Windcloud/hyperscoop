@@ -52,7 +52,7 @@
 | **Download Engine** | Manual or fixed Aria2 parameters | **Self-adaptive bandwidth saturation (Auto thread/shard tuning)** | `curl` backend |
 | **Safety & Reverse Deps** | Accidental breaks when removing shared deps | **`hp uses` reverse dependency safety guard** | `brew uses` guard |
 | **Declarative Backup** | ❌ Not available natively | **`hp bundle` (`Hpfile`) one-click backup & restore** | `brew bundle` (`Brewfile`) |
-| **Environment Diagnostics** | Basic checks | **`hp doctor` (Auto-detects broken junctions, invalid shims, PATH)** | `brew doctor` |
+| **Environment Diagnostics** | Basic checks | **`hp doctor` / `checkup -f` (Auto-detects & automatically repairs broken junctions, shims, long paths, PATH)** | `brew doctor` |
 | **Preview Mode** | ❌ No `--dry-run` | **Native `-n / --dry-run` for install/uninstall/cleanup/autoremove** | Supported |
 | **Internationalization** | English only | **Native English & Simplified Chinese (`i18n`) auto-adaptive** | English only |
 
@@ -68,9 +68,13 @@ scoop bucket add hp https://github.com/Super1Windcloud/hyperscoop_source_bucket.
 scoop install -u -s hp/hp
 ```
 
-### Method 2: Via PowerShell One-Liner (Instant Install)
+### Method 2: Via PowerShell One-Liner (Instant Install & Zero Config)
 ```powershell
+# Standard installation (Auto-configures PATH, official 'main' bucket & PowerShell Profile autocompletions):
 irm -useb https://raw.githubusercontent.com/Super1Windcloud/hyperscoop/refs/heads/main/install.ps1 | iex
+
+# Mainland China mirror accelerated installation:
+& ([scriptblock]::Create((irm -useb https://raw.githubusercontent.com/Super1Windcloud/hyperscoop/refs/heads/main/install.ps1))) -China
 ```
 
 ### Method 3: Via Cargo (Compile directly from GitHub)
@@ -90,12 +94,12 @@ Zero startup latency. Hyperscoop eliminates all PowerShell overhead by managing 
 
 ### 2. 🍏 Seamless Homebrew Migration Experience
 If you've used macOS Homebrew, your fingers already know `hp`:
-* `hp install <app>` / `hp reinstall <app>` / `hp upgrade <app>`
+* `hp install <app>` / `hp reinstall <app>` / `hp upgrade <app>` (Auto self-heals by initializing official `main` bucket if none exists)
 * `hp outdated` (supports `-q` for clean pipelines and `--json` for scripts)
-* `hp tap` (no args lists all taps, just like `brew tap`) & `hp untap <bucket>`
+* `hp tap` (no args lists all taps, just like `brew tap`) & `hp tap <name>` / `hp untap <bucket>` (Well-known buckets like `extras`, `versions` need no URL)
 * `hp uses <app>` (reverse dependency inspection before uninstallation)
 * `hp leaves` (list standalone top-level apps that aren't dependencies)
-* `hp doctor` (thorough diagnostics of shims, junctions, and PATH order)
+* `hp doctor` / `hp doctor --fix` (thorough diagnostics with one-click automatic self-healing repair)
 
 ### 3. 📦 Declarative Environment Management (`Hpfile`)
 Migrating to a brand new Windows workstation? Recreate your entire development toolchain with a single command:
@@ -124,7 +128,7 @@ hp [COMMAND] [OPTIONS]
 ### 📦 Package Operations
 | Command | Alias | Description |
 | :--- | :--- | :--- |
-| `hp install <app>` | `hp i` | Install application(s). Supports `-n / --dry-run`, `-f / --force`, `--no-deps` |
+| `hp install <app>` | `hp i` | Install application(s). Supports `-n / --dry-run`, `-f / --force`, `--no-deps` (with cold-start self-healing) |
 | `hp reinstall <app>` | `hp re` | Reinstall application(s) cleanly |
 | `hp uninstall <app>` | `hp rm`, `un` | Uninstall application with reverse-dependency safety check |
 | `hp update [app]` | `hp upgrade` | Update packages; pass `-c / --cleanup` to auto-delete older versions |
@@ -134,7 +138,7 @@ hp [COMMAND] [OPTIONS]
 ### 🔍 Search & Inspection
 | Command | Alias | Description |
 | :--- | :--- | :--- |
-| `hp search <query>` | `hp s` | Blazing-fast parallel fuzzy & exact manifest search across all buckets |
+| `hp search <query>` | `hp s` | Blazing-fast parallel fuzzy & exact manifest search across all buckets (with cold-start self-healing) |
 | `hp info <app>` | `hp desc` | Show detailed package manifest metadata, license, and post-install caveats |
 | `hp cat <app>` | — | Print colorized manifest JSON definition in terminal |
 | `hp edit <app>` | — | Open the local manifest in your default editor (`$EDITOR` / VS Code / Notepad) |
@@ -154,14 +158,14 @@ hp [COMMAND] [OPTIONS]
 | Command | Alias | Description |
 | :--- | :--- | :--- |
 | `hp tap` | `hp bucket` | List all subscribed bucket sources (URL, last updated, manifest count) |
-| `hp tap <name> [url]` | `hp bucket add` | Add an official or custom git bucket |
+| `hp tap <name> [url]` | `hp bucket add` | Add an official or custom git bucket (URL optional for known buckets like `main`, `extras`) |
 | `hp untap <name>` | `hp bucket rm` | Remove a bucket repository |
 | `hp bucket known` | `hp b k` | List all well-known community and official buckets |
 
 ### ⚙️ System & Environment
 | Command | Description |
 | :--- | :--- |
-| `hp doctor` / `checkup` | Diagnose Windows PATH ordering, broken symlinks, orphaned shims, and antivirus conflicts |
+| `hp doctor` / `checkup` | Diagnose Windows PATH, broken symlinks, orphaned shims, long paths; add `-f / --fix` to auto-repair |
 | `hp cleanup` | Reclaim disk space by purging old versions and download caches (`-n` for preview) |
 | `hp size` / `disk-usage` | Breakdown disk space consumed by apps, cache, and persistent directories |
 | `hp hold <app>` / `hp pin` | Lock an app's version to prevent unintended updates (`hp unpin` to unlock) |

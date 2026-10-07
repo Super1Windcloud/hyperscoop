@@ -52,7 +52,7 @@
 | **下载并发加速** | 需繁琐手动配置 Aria2 参数 | **自适应网络带宽最大化（动态优化分片与线程）** | 系统 curl 下载 |
 | **反向依赖安全保护** | 卸载基础包极易连带弄坏其他软件 | **内置 `hp uses` 反向依赖智能防护与警示** | `brew uses` 防护 |
 | **声明式环境装机** | ❌ 官方无开箱即用方案 | **`hp bundle` (`Hpfile`) 一键导出与秒级还原** | `brew bundle` (`Brewfile`) |
-| **系统体检与修复** | 依赖简单诊断 | **`hp doctor`（自动定位断开软链、无效 Shim、PATH 污染）** | `brew doctor` |
+| **系统体检与修复** | 依赖简单诊断 | **`hp doctor` / `checkup -f`（自动定位并支持一键就地修复断开软链、无效 Shim、长路径与 PATH）** | `brew doctor` |
 | **流程预演支持** | ❌ 不支持无损预览 | **原生全流程 `-n / --dry-run` 预演** | 广泛支持 |
 | **多语言本地化** | 仅支持英文 | **原生中英双语国际化 (`i18n`)，开箱即用** | 仅英文 |
 
@@ -68,9 +68,13 @@ scoop bucket add hp https://github.com/Super1Windcloud/hyperscoop_source_bucket.
 scoop install -u -s hp/hp
 ```
 
-### 方式二：PowerShell 一键免配置安装（推荐新机）
+### 方式二：PowerShell 一键免配置安装（推荐新机，开箱即用）
 ```powershell
+# 标准安装（全自动配置环境变量、初始化官方 main 桶与 PowerShell 自动补全）：
 irm -useb https://raw.githubusercontent.com/Super1Windcloud/hyperscoop/refs/heads/main/install.ps1 | iex
+
+# 中国大陆网络镜像加速安装（免除 GitHub 连通性困扰）：
+& ([scriptblock]::Create((irm -useb https://raw.githubusercontent.com/Super1Windcloud/hyperscoop/refs/heads/main/install.ps1))) -China
 ```
 
 ### 方式三：通过 Cargo 源码安装（Rust 开发者）
@@ -90,12 +94,12 @@ cargo install --git https://github.com/super1windcloud/hyperscoop
 
 ### 2. 🍏 对齐 macOS Homebrew 的现代命令行体验
 如果你习惯了 macOS 下的 `brew`，你的肌肉记忆无需改变：
-* `hp install <app>` / `hp reinstall <app>` / `hp upgrade <app>`
+* `hp install <app>` / `hp reinstall <app>` / `hp upgrade <app>`（首次运行若无软件源，自动触发冷启动自愈拉取 `main` 桶）
 * `hp outdated`（支持 `-q` 管道输出与 `--json` 格式化导出）
-* `hp tap`（无参数直接列出已订阅仓库，与 `brew tap` 完全一致）与 `hp untap <bucket>`
+* `hp tap`（无参数直接列出已订阅仓库，与 `brew tap` 完全一致）与 `hp tap <name>` / `hp untap <bucket>`（知名官方桶如 `extras`、`versions` 无需填写 URL，直接添加）
 * `hp uses <app>`（卸载基础软件前反查谁依赖了它）
 * `hp leaves`（列出所有顶层软件，排查无用孤儿软件）
-* `hp doctor`（全系统环境体检，发现软链与 Shim 隐患）
+* `hp doctor` / `hp doctor --fix`（全系统环境体检，并支持 `-f / --fix` 一键就地自动修复）
 
 ### 3. 📦 声明式环境一键备份与迁移（`Hpfile`）
 新买了一台 Windows 电脑，或者需要为同事配置一模一样的开发环境？
@@ -124,7 +128,7 @@ hp [COMMAND] [OPTIONS]
 ### 📦 软件安装与生命周期
 | 命令 | 别名 | 功能说明 |
 | :--- | :--- | :--- |
-| `hp install <app>` | `hp i` | 安装应用。支持 `-n / --dry-run` 预演、`-f / --force` 覆盖、`--no-deps` 跳过依赖 |
+| `hp install <app>` | `hp i` | 安装应用。支持 `-n / --dry-run` 预演、`-f / --force` 覆盖、`--no-deps` 跳过依赖（空库自愈） |
 | `hp reinstall <app>` | `hp re` | 重新安装已有应用（保留配置与数据） |
 | `hp uninstall <app>` | `hp rm`, `un` | 卸载应用（内置反向依赖安全保护） |
 | `hp update [app]` | `hp upgrade` | 升级软件；支持 `-c / --cleanup` 自动清理升级前的历史遗留版本 |
@@ -134,7 +138,7 @@ hp [COMMAND] [OPTIONS]
 ### 🔍 搜索与信息探查
 | 命令 | 别名 | 功能说明 |
 | :--- | :--- | :--- |
-| `hp search <query>` | `hp s` | 跨所有 Bucket 毫秒级多线程模糊 / 精准搜索 |
+| `hp search <query>` | `hp s` | 跨所有 Bucket 毫秒级多线程模糊 / 精准搜索（空库自愈） |
 | `hp info <app>` | `hp desc` | 查看软件详细元数据、许可证、安装说明与 Caveats 提示 |
 | `hp cat <app>` | — | 在终端中高亮显示对应软件的 Manifest JSON 原始内容 |
 | `hp edit <app>` | — | 在默认编辑器（VS Code / Notepad / `$EDITOR`）中直接打开清单文件 |
@@ -154,14 +158,14 @@ hp [COMMAND] [OPTIONS]
 | 命令 | 别名 | 功能说明 |
 | :--- | :--- | :--- |
 | `hp tap` | `hp bucket` | 无参数时直接列出所有已添加的 Bucket（名称、URL、更新时间、应用数） |
-| `hp tap <name> [url]` | `hp bucket add` | 添加官方或第三方 Git 清单仓库 |
+| `hp tap <name> [url]` | `hp bucket add` | 添加官方或第三方 Git 清单仓库（已知官方桶如 `main`、`extras` 免输 URL） |
 | `hp untap <name>` | `hp bucket rm` | 移除指定的 Bucket 仓库 |
 | `hp bucket known` | `hp b k` | 列出社区与官方已知的热门 Bucket 清单 |
 
 ### ⚙️ 环境体检与系统维护
 | 命令 | 功能说明 |
 | :--- | :--- |
-| `hp doctor` / `checkup` | 全面体检：检测断开的软链（Junction）、无效 Shim、PATH 环境变量顺序与杀毒拦截 |
+| `hp doctor` / `checkup` | 全面体检与自愈：检测断开软链、无效 Shim、PATH 环境变量与长路径支持，加 `-f / --fix` 一键自动修复 |
 | `hp cleanup` | 清理旧版本软件与安装包缓存，释放宝贵硬盘空间（支持 `-n` 预演） |
 | `hp size` / `disk-usage` | 可视化分析各应用、缓存和持久化数据的磁盘占用排行 |
 | `hp hold <app>` / `hp pin` | 锁定应用版本，禁止其被更新（解锁命令：`hp unpin` / `hp unhold`） |
