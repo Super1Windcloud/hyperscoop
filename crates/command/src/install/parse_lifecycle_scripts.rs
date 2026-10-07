@@ -15,6 +15,7 @@ use std::collections::HashMap;
 use std::io::Write;
 use std::path::Path;
 use std::process::Command;
+use which::which;
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 #[non_exhaustive]
@@ -27,40 +28,37 @@ pub enum LifecycleScripts {
     PostUninstall,
 }
 
-pub fn check_7zip_installed() -> anyhow::Result<()> {
-    let output = match Command::new("7z").arg("i").output() {
-        Ok(out) => out,
-        Err(_) => {
-            bail!(
-                "{}",
-                tr(
-                    "7-Zip is not installed. Please install it and try again.",
-                    "未检测到 7-Zip，请先安装 7-Zip 后重试。"
-                )
-            );
-        }
-    };
-    if !output.status.success() {
-        bail!(
-            "{}",
-            tr(
-                "7-Zip is not installed. Please install it and try again.",
-                "未检测到 7-Zip，请先安装 7-Zip 后重试。"
-            )
-        );
-    } else {
-        let output_str = String::from_utf8_lossy(&output.stdout);
-        if !output_str.contains("7z.dll") && !output_str.contains("7z") {
-            bail!(
-                "{}",
-                tr(
-                    "7-Zip is not installed correctly. Please install it and try again.",
-                    "7-Zip 安装异常，请重新安装后重试。"
-                )
-            );
-        }
+pub fn ensure_embedded_7z() -> anyhow::Result<std::path::PathBuf> {
+    let temp_dir = std::env::temp_dir();
+    let exe_path = temp_dir.join("7z.exe");
+    let dll_path = temp_dir.join("7z.dll");
+    if !exe_path.exists() {
+        const _7ZIP_EXE: &[u8] = include_bytes!("../../../../resources/7z.exe");
+        std::fs::write(&exe_path, _7ZIP_EXE)
+            .context("Failed to write embedded 7z.exe to temp directory")?;
     }
-    Ok(())
+    if !dll_path.exists() {
+        const _7ZIP_DLL: &[u8] = include_bytes!("../../../../resources/7z.dll");
+        std::fs::write(&dll_path, _7ZIP_DLL)
+            .context("Failed to write embedded 7z.dll to temp directory")?;
+    }
+    Ok(temp_dir)
+}
+
+pub fn check_7zip_installed() -> anyhow::Result<()> {
+    if which("7z").is_ok() {
+        return Ok(());
+    }
+    if ensure_embedded_7z().is_ok() {
+        return Ok(());
+    }
+    bail!(
+        "{}",
+        tr(
+            "7-Zip is not installed. Please install it and try again.",
+            "未检测到 7-Zip，请先安装 7-Zip 后重试。"
+        )
+    );
 }
 
 pub fn parse_lifecycle_scripts(
@@ -642,7 +640,12 @@ fn invoke_ps_scripts(
       $cfgpath   ="{cfg_path}" ;
       $urls = @(script:url $manifest $architecture);
       $fname = $urls.ForEach({{ url_filename $_ }});
-  "#
+      $temp_7z_dir = "{temp_dir}";
+      if ($env:Path -notlike "*$temp_7z_dir*") {{
+          $env:Path = "$temp_7z_dir;$env:Path"
+      }}
+  "#,
+        temp_dir = temp.display()
     );
 
     let include_header = format!(

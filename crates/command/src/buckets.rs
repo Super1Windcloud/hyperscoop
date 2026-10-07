@@ -55,7 +55,47 @@ pub fn get_buckets_name() -> Result<Vec<String>, anyhow::Error> {
     let buckets_name = bucket.buckets_name;
     Ok(buckets_name)
 }
+
+pub fn ensure_default_bucket(is_global: bool) -> Result<bool, anyhow::Error> {
+    let mut bucket = Buckets::new()?;
+    bucket.ensure_default_bucket(is_global)
+}
+
 impl Buckets {
+    pub fn ensure_default_bucket(&mut self, is_global: bool) -> Result<bool, anyhow::Error> {
+        let (bucket_paths, _) = if is_global {
+            self.get_global_bucket_self()?
+        } else {
+            self.get_bucket_self()?
+        };
+        if bucket_paths.is_empty() {
+            println!(
+                "{}",
+                tr(
+                    "==> No buckets found. Initializing official 'main' bucket...",
+                    "==> 未检测到任何已配置的 bucket，正在自动初始化官方 'main' 桶..."
+                )
+                .dark_cyan()
+                .bold()
+            );
+            self.add_buckets(Some("main".to_string()), None, is_global)?;
+            let (fresh_paths, fresh_names) = if is_global {
+                self.get_global_bucket_self()?
+            } else {
+                self.get_bucket_self()?
+            };
+            if is_global {
+                self.global_buckets_paths = fresh_paths;
+                self.global_buckets_names = fresh_names;
+            } else {
+                self.buckets_path = fresh_paths;
+                self.buckets_name = fresh_names;
+            }
+            return Ok(true);
+        }
+        Ok(false)
+    }
+
     pub fn rm_buckets(&self, name: &String, is_global: bool) -> Result<(), anyhow::Error> {
         let (bucket_paths, buckets_names) = if is_global {
             self.get_global_bucket_self()?
@@ -112,10 +152,25 @@ impl Buckets {
             .clone()
             .unwrap_or_else(|| url.clone().unwrap().split("/").last().unwrap().to_string());
 
-        let url = if url.is_some() {
-            url.clone().unwrap()
+        let url = if let Some(u) = url {
+            u
         } else {
-            bail!("{}", tr("URL cannot be empty", "URL 不能为空"))
+            let (known_names, known_sources) = self.get_bucket_known(is_global)?;
+            if let Some(idx) = known_names
+                .iter()
+                .position(|k| k.eq_ignore_ascii_case(&bucket_name))
+            {
+                known_sources[idx].clone()
+            } else {
+                bail!(
+                    "{}",
+                    crate::tr_fmt!(
+                        "Bucket '{name}' is not a known bucket, please provide a URL.",
+                        "Bucket '{name}' 不是已知官方桶，请提供对应的仓库 URL。",
+                        name = bucket_name
+                    )
+                );
+            }
         };
         check_name_is_valid(&bucket_name)?;
         if !url.contains("http://") && !url.contains("https://") {
@@ -130,9 +185,7 @@ impl Buckets {
         if !Path::new(&bucket_root_dir).exists() || !Path::new(&bucket_root_dir).is_dir() {
             bail!("bucket root dir not exist or not dir")
         }
-        let result = self
-            .download_bucket(&url, &bucket_name, &bucket_root_dir)
-            .expect("Failed to download bucket");
+        let result = self.download_bucket(&url, &bucket_name, &bucket_root_dir)?;
         println!("{}", result);
         Ok(())
     }

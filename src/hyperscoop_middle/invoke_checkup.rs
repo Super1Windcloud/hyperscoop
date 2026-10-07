@@ -46,7 +46,7 @@ fn localized(en: &str, zh: &str) -> String {
 }
 
 #[cfg(not(windows))]
-pub async fn execute_checkup_command(_global: bool) -> anyhow::Result<()> {
+pub async fn execute_checkup_command(_args: crate::command_args::checkup::CheckupArgs) -> anyhow::Result<()> {
     eprintln!(
         "{}",
         tr(
@@ -59,14 +59,41 @@ pub async fn execute_checkup_command(_global: bool) -> anyhow::Result<()> {
 }
 
 #[cfg(windows)]
-pub async fn execute_checkup_command(global: bool) -> anyhow::Result<()> {
+pub async fn execute_checkup_command(args: crate::command_args::checkup::CheckupArgs) -> anyhow::Result<()> {
+    let global = args.global;
+    let fix = args.fix;
     let mut total_issues = 0;
     let defender_issues = 0;
 
     let main_bucket_result = check_main_bucket(global)?;
     if !main_bucket_result.passed {
-        total_issues += 1;
-        print_result(&main_bucket_result);
+        if fix {
+            println!(
+                "{}",
+                localized(
+                    "Attempting to auto-fix: initializing official main bucket...",
+                    "正在尝试自动修复：初始化官方 main 桶..."
+                )
+                .cyan()
+            );
+            if let Ok(true) = command_util_lib::buckets::ensure_default_bucket(global) {
+                println!(
+                    "{} {}",
+                    "[✓]".green(),
+                    localized(
+                        "Fixed: official main bucket initialized successfully",
+                        "已修复：成功初始化官方 main 桶"
+                    )
+                    .green()
+                );
+            } else {
+                total_issues += 1;
+                print_result(&main_bucket_result);
+            }
+        } else {
+            total_issues += 1;
+            print_result(&main_bucket_result);
+        }
     }
     let lessmsi_result = check_lessmsi()?;
     if !lessmsi_result.passed {
@@ -115,8 +142,36 @@ pub async fn execute_checkup_command(global: bool) -> anyhow::Result<()> {
 
     let long_paths_result = check_long_paths()?;
     if !long_paths_result.passed {
-        total_issues += 1;
-        print_result(&long_paths_result);
+        if fix {
+            println!(
+                "{}",
+                localized(
+                    "Attempting to auto-fix: enabling long paths support...",
+                    "正在尝试自动修复：启用系统长路径支持..."
+                )
+                .cyan()
+            );
+            let output = Command::new("powershell")
+                .args(["-NoProfile", "-Command", "Set-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\FileSystem' -Name 'LongPathsEnabled' -Value 1"])
+                .output();
+            if output.map(|o| o.status.success()).unwrap_or(false) {
+                println!(
+                    "{} {}",
+                    "[✓]".green(),
+                    localized(
+                        "Fixed: enabled LongPathsEnabled in registry",
+                        "已修复：已在注册表中开启长路径支持"
+                    )
+                    .green()
+                );
+            } else {
+                total_issues += 1;
+                print_result(&long_paths_result);
+            }
+        } else {
+            total_issues += 1;
+            print_result(&long_paths_result);
+        }
     }
 
     let dev_mode_result = check_developer_mode()?;
@@ -145,14 +200,79 @@ pub async fn execute_checkup_command(global: bool) -> anyhow::Result<()> {
 
     let shims_path_result = check_shims_in_path(global)?;
     if !shims_path_result.passed {
-        total_issues += 1;
-        print_result(&shims_path_result);
+        if fix {
+            let shims_path = if global {
+                get_shims_root_dir_global()
+            } else {
+                get_shims_root_dir()
+            };
+            println!(
+                "{}",
+                localized(
+                    "Attempting to auto-fix: adding shims to PATH...",
+                    "正在尝试自动修复：将 shims 添加至 PATH..."
+                )
+                .cyan()
+            );
+            let target = if global { "Machine" } else { "User" };
+            let script = format!(
+                "$p = [Environment]::GetEnvironmentVariable('PATH', '{target}'); \
+                if ($p -notlike '*{shims_path}*') {{ \
+                    [Environment]::SetEnvironmentVariable('PATH', '{shims_path};' + $p, '{target}'); \
+                }}"
+            );
+            let output = Command::new("powershell")
+                .args(["-NoProfile", "-Command", &script])
+                .output();
+            if output.map(|o| o.status.success()).unwrap_or(false) {
+                println!(
+                    "{} {}",
+                    "[✓]".green(),
+                    localized(
+                        "Fixed: shims path added to PATH",
+                        "已修复：已将 shims 路径添加至 PATH"
+                    )
+                    .green()
+                );
+            } else {
+                total_issues += 1;
+                print_result(&shims_path_result);
+            }
+        } else {
+            total_issues += 1;
+            print_result(&shims_path_result);
+        }
     }
 
     let broken_shims_result = check_broken_shims(global)?;
     if !broken_shims_result.passed {
-        total_issues += 1;
-        print_result(&broken_shims_result);
+        if fix {
+            println!(
+                "{}",
+                localized(
+                    "Attempting to auto-fix: cleaning broken shims...",
+                    "正在尝试自动修复：清理损坏的 shims..."
+                )
+                .cyan()
+            );
+            if command_util_lib::shim::clear_invalid_shims(global).is_ok() {
+                println!(
+                    "{} {}",
+                    "[✓]".green(),
+                    localized(
+                        "Fixed: dangling shims cleaned successfully",
+                        "已修复：成功清理失效的 shims"
+                    )
+                    .green()
+                );
+            } else {
+                total_issues += 1;
+                print_result(&broken_shims_result);
+            }
+        } else {
+            total_issues += 1;
+            print_result(&broken_shims_result);
+        }
     }
 
     let path_length_result = check_path_length()?;

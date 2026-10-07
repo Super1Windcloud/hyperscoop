@@ -31,6 +31,10 @@ pub async fn execute_install_command(args: InstallArgs) -> Result<(), anyhow::Er
         auto_check_hp_update(None).await?;
     }
 
+    if !args.dry_run {
+        let _ = command_util_lib::buckets::ensure_default_bucket(args.global);
+    }
+
     let should_update_buckets = if args.no_auto_update
         || std::env::var("HYPERSCOOP_NO_AUTO_UPDATE").is_ok()
         || std::env::var("HOMEBREW_NO_AUTO_UPDATE").is_ok()

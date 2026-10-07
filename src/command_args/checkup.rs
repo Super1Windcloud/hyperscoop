@@ -14,4 +14,14 @@ use clap::Args;
 pub struct CheckupArgs {
     #[arg(from_global)]
     pub global: bool,
+
+    #[arg(
+        short,
+        long,
+        help = crate::i18n::tr(
+            "Automatically attempt to fix detected issues",
+            "自动尝试修复检测到的问题"
+        )
+    )]
+    pub fix: bool,
 }

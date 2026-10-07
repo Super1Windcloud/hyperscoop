@@ -193,7 +193,7 @@ async fn main() -> anyhow::Result<()> {
             Commands::Bundle(args) => execute_bundle_command(args),
             Commands::Cat(cat) => execute_cat_command(cat),
             Commands::Cache(cache_args) => execute_cache_command(cache_args),
-            Commands::Checkup(args) => execute_checkup_command(args.global).await,
+            Commands::Checkup(args) => execute_checkup_command(args).await,
             Commands::Cleanup(args) => execute_cleanup_command(args),
             Commands::Completion(args) => {
                 let mut cmd = Cli::command();
