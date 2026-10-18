@@ -5,8 +5,8 @@ use clap::Args;
     author,
     version,
     about = crate::i18n::tr(
-        "🐧\t\tRemove redundant or invalid manifests in buckets",
-        "🐧\t\t移除 buckets 中冗余和错误的 manifest 文件"
+        "🐧  Remove redundant or invalid manifests in buckets",
+        "🐧  移除 buckets 中冗余和错误的 manifest 文件"
     ),
     long_about = None
 )]

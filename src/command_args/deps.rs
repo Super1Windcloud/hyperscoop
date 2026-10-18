@@ -6,8 +6,8 @@ use command_util_lib::utils::utility::clap_args_to_lowercase;
     author,
     version,
     about = crate::i18n::tr(
-        "🌲\t\tDisplay dependencies of the specified app",
-        "🌲\t\t查看指定 APP 的依赖项"
+        "🌲  Display dependencies of the specified app",
+        "🌲  查看指定 APP 的依赖项"
     ),
     long_about = None
 )]

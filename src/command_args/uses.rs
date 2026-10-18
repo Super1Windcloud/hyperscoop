@@ -6,8 +6,8 @@ use command_util_lib::utils::utility::clap_args_to_lowercase;
     author,
     version,
     about = crate::i18n::tr(
-        "🔍\t\tShow which applications depend on the specified app",
-        "🔍\t\t查询哪些应用程序依赖了指定的 APP（反向依赖）"
+        "🔍  Show which applications depend on the specified app",
+        "🔍  查询哪些应用程序依赖了指定的 APP（反向依赖）"
     ),
     long_about = None
 )]

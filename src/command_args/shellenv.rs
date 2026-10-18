@@ -6,8 +6,8 @@ use command_util_lib::utils::utility::clap_args_to_lowercase;
     author = "superwindcloud",
     version,
     about = crate::i18n::tr(
-        "🐚\t\tPrint shell environment setup commands (similar to brew shellenv)",
-        "🐚\t\t输出终端环境初始化脚本（类似 brew shellenv）"
+        "🐚  Print shell environment setup commands (similar to brew shellenv)",
+        "🐚  输出终端环境初始化脚本（类似 brew shellenv）"
     ),
     long_about = None
 )]

@@ -5,8 +5,8 @@ use clap::Args;
     author,
     version,
     about = crate::i18n::tr(
-        "🧹\t\tUninstall unused packages that were installed as dependencies",
-        "🧹\t\t清理所有不再被任何应用依赖的孤儿依赖包"
+        "🧹  Uninstall unused packages that were installed as dependencies",
+        "🧹  清理所有不再被任何应用依赖的孤儿依赖包"
     ),
     long_about = None
 )]

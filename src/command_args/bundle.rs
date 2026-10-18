@@ -5,8 +5,8 @@ use clap::{Args, Subcommand};
     author,
     version,
     about = crate::i18n::tr(
-        "📦\t\tManage dependencies via Hpfile (Brewfile equivalent)",
-        "📦\t\t通过 Hpfile 声明式管理环境依赖（类似 Brewfile）"
+        "📦  Manage dependencies via Hpfile (Brewfile equivalent)",
+        "📦  通过 Hpfile 声明式管理环境依赖（类似 Brewfile）"
     ),
     long_about = None
 )]

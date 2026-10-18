@@ -6,8 +6,8 @@ use command_util_lib::utils::utility::clap_args_to_lowercase;
     author,
     version,
     about = crate::i18n::tr(
-        "⛓️‍💥\t\tRemove shims and shortcuts without uninstalling (similar to brew unlink)",
-        "⛓️‍💥\t\t移除应用的 shim 与快捷方式，但不删除应用文件 (类似 brew unlink)"
+        "🔌  Remove shims and shortcuts without uninstalling (similar to brew unlink)",
+        "🔌  移除应用的 shim 与快捷方式，但不删除应用文件 (类似 brew unlink)"
     ),
     long_about = None
 )]

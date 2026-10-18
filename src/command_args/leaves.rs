@@ -5,8 +5,8 @@ use clap::Args;
     author,
     version,
     about = crate::i18n::tr(
-        "🍃\t\tList installed apps that are not dependencies of any other app",
-        "🍃\t\t列出所有顶层已安装应用（不被其他应用依赖的叶子应用）"
+        "🍃  List installed apps that are not dependencies of any other app",
+        "🍃  列出所有顶层已安装应用（不被其他应用依赖的叶子应用）"
     ),
     long_about = None
 )]

@@ -7,8 +7,8 @@ use command_util_lib::utils::utility::clap_args_to_lowercase;
     name = "install",
     alias = "i",
     about = crate::i18n::tr(
-        "🐘\t\tInstall an app (alias: i)",
-        "🐘\t\t安装指定 APP，别名 i"
+        "🐘  Install an app (alias: i)",
+        "🐘  安装指定 APP，别名 i"
     )
 )]
 #[clap(author = "superwindcloud", version, long_about = None)]

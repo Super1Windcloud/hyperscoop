@@ -6,8 +6,8 @@ use command_util_lib::utils::utility::clap_args_to_lowercase;
     author = "superwindcloud",
     version,
     about = crate::i18n::tr(
-        "📜\t\tShow git commit history of an app manifest",
-        "📜\t\t显示指定 APP Manifest 的 Git 提交变更历史"
+        "📜  Show git commit history of an app manifest",
+        "📜  显示指定 APP Manifest 的 Git 提交变更历史"
     ),
     long_about = None
 )]

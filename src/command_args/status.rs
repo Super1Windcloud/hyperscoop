@@ -6,8 +6,8 @@ use command_util_lib::utils::utility::clap_args_to_lowercase;
     author,
     version,
     about = crate::i18n::tr(
-        "🍅\t\tCheck whether installed apps are up-to-date (alias: outdated)",
-        "🍅\t\t检查已安装 APP 是否为最新版本，别名 outdated"
+        "🍅  Check whether installed apps are up-to-date (alias: outdated)",
+        "🍅  检查已安装 APP 是否为最新版本，别名 outdated"
     ),
     long_about = None
 )]

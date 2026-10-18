@@ -6,8 +6,8 @@ use command_util_lib::utils::utility::clap_args_to_lowercase;
     author,
     version,
     about = crate::i18n::tr(
-        "🔍\t\tCheck for missing dependencies among installed apps (similar to brew missing)",
-        "🔍\t\t检查已安装应用中缺失的依赖项 (类似 brew missing)"
+        "🔍  Check for missing dependencies among installed apps (similar to brew missing)",
+        "🔍  检查已安装应用中缺失的依赖项 (类似 brew missing)"
     ),
     long_about = None
 )]

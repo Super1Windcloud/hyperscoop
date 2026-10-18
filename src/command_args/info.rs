@@ -4,8 +4,8 @@ use command_util_lib::utils::utility::clap_args_to_lowercase;
 #[derive(Args, Debug)]
 #[command(arg_required_else_help = true, subcommand_negates_reqs = true)]
 #[command(about = crate::i18n::tr(
-    "🍺\t\tShow information about an app",
-    "🍺\t\t显示指定 APP 的信息"
+    "🍺  Show information about an app",
+    "🍺  显示指定 APP 的信息"
 ))]
 #[command(override_usage = crate::i18n::tr(
     "hp info [app_name]",

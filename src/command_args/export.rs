@@ -6,8 +6,8 @@ use clap::Args;
     author,
     version,
     about = crate::i18n::tr(
-        "🎅\t\tExport installed apps and buckets to a JSON file",
-        "🎅\t\t导出已安装的 APP 和 bucket 列表为 JSON 文件"
+        "🎅  Export installed apps and buckets to a JSON file",
+        "🎅  导出已安装的 APP 和 bucket 列表为 JSON 文件"
     ),
     long_about = None
 )]

@@ -4,8 +4,8 @@ use clap::Args;
 #[clap(
     name = "import",
     about = crate::i18n::tr(
-        "⚽\t\tImport the JSON config exported by hp export",
-        "⚽\t\t导入通过 export 导出的 JSON 配置文件"
+        "⚽  Import the JSON config exported by hp export",
+        "⚽  导入通过 export 导出的 JSON 配置文件"
     )
 )]
 #[command(arg_required_else_help = true)]

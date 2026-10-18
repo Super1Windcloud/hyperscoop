@@ -6,8 +6,8 @@ use command_util_lib::utils::utility::clap_args_to_lowercase;
     author,
     version,
     about = crate::i18n::tr(
-        "📊\t\tDisplay disk space usage of installed apps, cache, and persist data",
-        "📊\t\t分析已安装应用、缓存与持久化数据的磁盘占用"
+        "📊  Display disk space usage of installed apps, cache, and persist data",
+        "📊  分析已安装应用、缓存与持久化数据的磁盘占用"
     ),
     long_about = None,
     alias = "disk-usage"

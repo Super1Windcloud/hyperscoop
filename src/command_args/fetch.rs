@@ -6,8 +6,8 @@ use command_util_lib::utils::utility::clap_args_to_lowercase;
     author,
     version,
     about = crate::i18n::tr(
-        "📥\t\tDownload app package(s) into cache without installing (similar to brew fetch)",
-        "📥\t\t下载安装包到本地缓存并校验哈希，不执行解压与安装 (类似 brew fetch)"
+        "📥  Download app package(s) into cache without installing (similar to brew fetch)",
+        "📥  下载安装包到本地缓存并校验哈希，不执行解压与安装 (类似 brew fetch)"
     ),
     long_about = None
 )]

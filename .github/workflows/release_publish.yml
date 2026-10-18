@@ -43,6 +43,7 @@ jobs:
         if: matrix.arch == 'x86_64'
         run: |
           cargo test -p command_util_lib --lib performance_tests --target x86_64-pc-windows-msvc --locked
+          cargo test -p command_util_lib --lib archive_regression_tests --target x86_64-pc-windows-msvc --locked
           cargo test -p hp --bin hp performance_tests --target x86_64-pc-windows-msvc --locked
       - run: cargo build --target ${{ matrix.arch }}-pc-windows-msvc --release --locked
 

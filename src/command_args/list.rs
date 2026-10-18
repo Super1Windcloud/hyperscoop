@@ -3,8 +3,8 @@ use command_util_lib::utils::utility::clap_args_to_lowercase;
 
 #[derive(Args, Debug, Clone)]
 #[command(about = crate::i18n::tr(
-    "🦀\t\tList all installed apps",
-    "🦀\t\t列出已安装的所有 app"
+    "🦀  List all installed apps",
+    "🦀  列出已安装的所有 app"
 ))]
 #[command(arg_required_else_help = false, subcommand_negates_reqs = true)]
 #[command(after_help = crate::i18n::tr(

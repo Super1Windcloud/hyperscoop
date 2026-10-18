@@ -6,8 +6,8 @@ use command_util_lib::utils::utility::clap_args_to_lowercase;
     author = "superwindcloud",
     version,
     about = crate::i18n::tr(
-        "📝\t\tOpen an app manifest in your default editor",
-        "📝\t\t在默认编辑器中打开指定 APP 的 Manifest 文件"
+        "📝  Open an app manifest in your default editor",
+        "📝  在默认编辑器中打开指定 APP 的 Manifest 文件"
     ),
     long_about = None
 )]

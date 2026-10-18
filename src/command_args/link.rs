@@ -6,8 +6,8 @@ use command_util_lib::utils::utility::clap_args_to_lowercase;
     author,
     version,
     about = crate::i18n::tr(
-        "🔗\t\tCreate shims and shortcuts for an app (similar to brew link)",
-        "🔗\t\t为已安装应用生成 shim 与快捷方式入口 (类似 brew link)"
+        "🔗  Create shims and shortcuts for an app (similar to brew link)",
+        "🔗  为已安装应用生成 shim 与快捷方式入口 (类似 brew link)"
     ),
     long_about = None
 )]

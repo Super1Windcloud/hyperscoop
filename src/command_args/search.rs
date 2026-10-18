@@ -5,8 +5,8 @@ use command_util_lib::utils::utility::clap_args_to_lowercase;
 #[command(
     name = "search",
     about = crate::i18n::tr(
-        "🦄\t\tSearch apps by name (alias: s)",
-        "🦄\t\t搜索可用的指定名称 APP（别名 s）"
+        "🦄  Search apps by name (alias: s)",
+        "🦄  搜索可用的指定名称 APP（别名 s）"
     )
 )]
 #[command(arg_required_else_help = true)]

@@ -3,7 +3,7 @@ use clap::Args;
 #[derive(Args, Debug)]
 #[command(
     name = "self-update",
-    about = crate::i18n::tr("🍹\t\tUpdate hp itself", "🍹\t\t更新 hp 自身")
+    about = crate::i18n::tr("🍹  Update hp itself", "🍹  更新 hp 自身")
 )]
 #[command(arg_required_else_help = false)]
 pub struct SelfUpdateArgs {

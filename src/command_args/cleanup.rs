@@ -6,8 +6,8 @@ use command_util_lib::utils::utility::clap_args_to_lowercase;
     author,
     version,
     about = crate::i18n::tr(
-        "🎠\t\tClean old versions of installed apps (alias: clean)",
-        "🎠\t\t清理移除旧版本的 APP，别名 clean"
+        "🎠  Clean old versions of installed apps (alias: clean)",
+        "🎠  清理移除旧版本的 APP，别名 clean"
     ),
     long_about = None
 )]

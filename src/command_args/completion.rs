@@ -6,8 +6,8 @@ use clap_complete::Shell;
     author,
     version,
     about = crate::i18n::tr(
-        "🐚\t\tGenerate shell completion script (PowerShell, Bash, Zsh, Fish, Elvish)",
-        "🐚\t\t生成 Shell 自动补全脚本 (PowerShell, Bash, Zsh, Fish, Elvish)"
+        "🐚  Generate shell completion script (PowerShell, Bash, Zsh, Fish, Elvish)",
+        "🐚  生成 Shell 自动补全脚本 (PowerShell, Bash, Zsh, Fish, Elvish)"
     ),
     long_about = None
 )]

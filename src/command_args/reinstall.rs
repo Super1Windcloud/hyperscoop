@@ -6,8 +6,8 @@ use command_util_lib::utils::utility::clap_args_to_lowercase;
     author = "superwindcloud",
     version,
     about = crate::i18n::tr(
-        "♻️\t\tReinstall an app (equivalent to: hp install --force)",
-        "♻️\t\t重新安装指定的 APP（等价于 hp install --force）"
+        "🔄  Reinstall an app (equivalent to: hp install --force)",
+        "🔄  重新安装指定的 APP（等价于 hp install --force）"
     ),
     long_about = None
 )]

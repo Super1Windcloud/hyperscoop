@@ -6,8 +6,8 @@ use command_util_lib::utils::utility::clap_args_to_lowercase;
     author,
     version,
     about = crate::i18n::tr(
-        "🗑️\t\tRemove a bucket/tap (alias for bucket rm)",
-        "🗑️\t\t移除指定的 bucket/tap（bucket rm 的别名）"
+        "📤  Remove a bucket/tap (alias for bucket rm)",
+        "📤  移除指定的 bucket/tap（bucket rm 的别名）"
     ),
     long_about = None
 )]

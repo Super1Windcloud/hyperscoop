@@ -5,7 +5,7 @@ use command_util_lib::utils::utility::clap_args_to_lowercase;
 #[clap(
     author = "superwindcloud",
     version,
-    about = crate::i18n::tr("⛄\t\tUninstall an app", "⛄\t\t卸载指定 APP"),
+    about = crate::i18n::tr("⛄  Uninstall an app", "⛄  卸载指定 APP"),
     long_about = None
 )]
 #[command(arg_required_else_help = true)]

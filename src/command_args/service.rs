@@ -4,7 +4,7 @@ use clap::{Args, Subcommand};
 #[clap(
     author,
     version,
-    about = crate::i18n::tr("⚙️\t\tManage background services (similar to brew services)", "⚙️\t\t管理后台服务 (类似 brew services)"),
+    about = crate::i18n::tr("🔧  Manage background services (similar to brew services)", "🔧  管理后台服务 (类似 brew services)"),
     long_about = None
 )]
 #[command(arg_required_else_help = false)]

@@ -6,8 +6,8 @@ use command_util_lib::utils::utility::clap_args_to_lowercase;
     author,
     version,
     about = crate::i18n::tr(
-        "🔀\t\tSwitch active version of an installed app (similar to brew switch)",
-        "🔀\t\t在已安装的多个版本之间切换活动版本 (类似 brew switch)"
+        "🔀  Switch active version of an installed app (similar to brew switch)",
+        "🔀  在已安装的多个版本之间切换活动版本 (类似 brew switch)"
     ),
     long_about = None
 )]

@@ -6,8 +6,8 @@ use command_util_lib::utils::utility::clap_args_to_lowercase;
     author,
     version,
     about = crate::i18n::tr(
-        "📝\t\tShow short description of an app or search by description (similar to brew desc)",
-        "📝\t\t查看应用的简短描述，或通过关键词搜索应用描述 (类似 brew desc)"
+        "📝  Show short description of an app or search by description (similar to brew desc)",
+        "📝  查看应用的简短描述，或通过关键词搜索应用描述 (类似 brew desc)"
     ),
     long_about = None
 )]

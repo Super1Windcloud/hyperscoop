@@ -4,8 +4,8 @@ use command_util_lib::utils::utility::clap_args_to_lowercase;
 #[derive(Args, Debug)]
 #[clap(name = "prefix")]
 #[clap(about = crate::i18n::tr(
-    "👻\t\tPrint the install directory of an app",
-    "👻\t\t打印指定 APP 的安装目录"
+    "👻  Print the install directory of an app",
+    "👻  打印指定 APP 的安装目录"
 ))]
 #[clap(arg_required_else_help = true)]
 pub struct PrefixArgs {

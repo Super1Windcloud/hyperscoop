@@ -1124,6 +1124,41 @@ Expand-InnoArchive "{inno_file}" "{target_dir}"{extract_dir_param}  -Removal
     }
 }
 
+#[cfg(all(test, windows))]
+mod archive_regression_tests {
+    use super::*;
+
+    #[test]
+    fn npm_tgz_extracts_binary_to_install_root() -> anyhow::Result<()> {
+        let temp = tempfile::tempdir()?;
+        let archive = temp.path().join("package.tgz");
+        std::fs::write(&archive, include_bytes!("fixtures/npm-package.tgz"))?;
+        let apps = temp.path().join("apps");
+        let mut zip = SevenZipStruct::new();
+        zip.set_apps_root_dir(apps.to_string_lossy().into_owned());
+        zip.set_app_name("tgz-regression");
+        zip.set_app_version("1.0");
+        zip.set_target_app_version_dir();
+        zip.set_archive_names(&["package.tgz".to_string()]);
+        zip.set_archive_cache_files_path(vec![archive.to_string_lossy().into_owned()]);
+        zip.set_archive_format(&[ArchiveFormat::GZIP]);
+        zip.set_target_alias_name(vec![String::new()]);
+
+        zip.invoke_7z_command(
+            Some(StringArrayOrString::String(r"package\bin".to_string())),
+            None,
+        )?;
+
+        let target = Path::new(zip.get_target_app_version_dir());
+        assert_eq!(
+            std::fs::read(target.join("opencode.exe"))?,
+            b"MZ-hyperscoop-tgz-regression\n"
+        );
+        assert!(!target.join("package.tar").exists());
+        Ok(())
+    }
+}
+
 mod test_7z {
     #[allow(unused_imports)]
     use super::*;

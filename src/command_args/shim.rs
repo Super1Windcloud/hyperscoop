@@ -6,8 +6,8 @@ use command_util_lib::utils::utility::clap_args_to_lowercase;
     author,
     version,
     about = crate::i18n::tr(
-        "🐼\t\tManage shim shortcuts",
-        "🐼\t\t管理所有的 shim 快捷方式"
+        "🐼  Manage shim shortcuts",
+        "🐼  管理所有的 shim 快捷方式"
     ),
     long_about = None
 )]

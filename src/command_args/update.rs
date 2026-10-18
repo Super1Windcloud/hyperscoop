@@ -6,8 +6,8 @@ use command_util_lib::utils::utility::clap_args_to_lowercase;
     name = "bucket",
     alias = "u",
     about = crate::i18n::tr(
-        "🍹\t\tUpdate apps (alias: u)",
-        "🍹\t\t更新指定 APP，别名 u"
+        "🍹  Update apps (alias: u)",
+        "🍹  更新指定 APP，别名 u"
     )
 )]
 #[command(

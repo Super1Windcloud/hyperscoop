@@ -5,8 +5,8 @@ use clap::Args;
     author,
     version,
     about = crate::i18n::tr(
-        "🐇\t\tCheck every potential issue (alias: check, doctor)",
-        "🐇\t\t检查所有潜在问题，别名 check, doctor"
+        "🐇  Check every potential issue (alias: check, doctor)",
+        "🐇  检查所有潜在问题，别名 check, doctor"
     ),
     long_about = None
 )]

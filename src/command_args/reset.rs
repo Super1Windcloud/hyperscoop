@@ -6,8 +6,8 @@ use command_util_lib::utils::utility::clap_args_to_lowercase;
     author,
     version,
     about = crate::i18n::tr(
-        "🍻\t\tSwitch or reset app versions",
-        "🍻\t\t切换指定 APP 版本或重置为最新版本"
+        "🍻  Switch or reset app versions",
+        "🍻  切换指定 APP 版本或重置为最新版本"
     ),
     long_about = "None"
 )]

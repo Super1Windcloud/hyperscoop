@@ -55,6 +55,30 @@ pub struct DownloadManager<'a> {
     pub seven_zip: SevenZipStruct<'a>,
 }
 
+fn archive_format_from_extension(extension: &str, exe_setup: bool) -> ArchiveFormat {
+    match extension.to_lowercase().as_str() {
+        "7z" => ArchiveFormat::SevenZip,
+        "zip" => ArchiveFormat::ZIP,
+        "gz" | "tgz" => ArchiveFormat::GZIP,
+        "xz" => ArchiveFormat::XZIP,
+        "bz2" => ArchiveFormat::BZIP2,
+        "zst" => ArchiveFormat::ZSTD,
+        "rar" => ArchiveFormat::RAR,
+        "exe" => {
+            if exe_setup {
+                ArchiveFormat::INNO
+            } else {
+                ArchiveFormat::EXE
+            }
+        }
+        "msi" => ArchiveFormat::MSI,
+        "tar" => ArchiveFormat::TAR,
+        "" => ArchiveFormat::Shell,
+        "nupkg" => ArchiveFormat::NUPKG,
+        _ => ArchiveFormat::Other,
+    }
+}
+
 impl<'a> DownloadManager<'a> {
     pub fn get_senven_zip_struct(&'a mut self) -> &'a mut SevenZipStruct<'a> {
         &mut self.seven_zip
@@ -659,27 +683,7 @@ impl<'a> DownloadManager<'a> {
             .collect::<Vec<&str>>();
         let archive_formats = extensions
             .iter()
-            .map(|extension| match extension.to_lowercase().as_str() {
-                "7z" => ArchiveFormat::SevenZip,
-                "zip" => ArchiveFormat::ZIP,
-                "gz" => ArchiveFormat::GZIP,
-                "xz" => ArchiveFormat::XZIP,
-                "bz2" => ArchiveFormat::BZIP2,
-                "zst" => ArchiveFormat::ZSTD,
-                "rar" => ArchiveFormat::RAR,
-                "exe" => {
-                    if self.exe_setup {
-                        ArchiveFormat::INNO
-                    } else {
-                        ArchiveFormat::EXE
-                    }
-                }
-                "msi" => ArchiveFormat::MSI,
-                "tar" => ArchiveFormat::TAR,
-                "" => ArchiveFormat::Shell,
-                "nupkg" => ArchiveFormat::NUPKG,
-                _ => ArchiveFormat::Other,
-            })
+            .map(|extension| archive_format_from_extension(extension, self.exe_setup))
             .collect::<Vec<_>>();
         self.set_archive_files_format(archive_formats);
 
@@ -1199,5 +1203,36 @@ mod test_download_manager {
         println!("{}", output_hash);
         let end = std::time::Instant::now();
         println!(" 用时：{:?}", end - start);
+    }
+}
+
+#[cfg(test)]
+mod archive_regression_tests {
+    use super::*;
+
+    #[test]
+    fn tgz_is_extracted_as_gzip_instead_of_copied() {
+        for extension in ["tgz", "TGZ", "gz"] {
+            assert_eq!(
+                archive_format_from_extension(extension, false),
+                ArchiveFormat::GZIP
+            );
+        }
+        assert_eq!(
+            archive_format_from_extension("zip", false),
+            ArchiveFormat::ZIP
+        );
+        assert_eq!(
+            archive_format_from_extension("exe", false),
+            ArchiveFormat::EXE
+        );
+        assert_eq!(
+            archive_format_from_extension("exe", true),
+            ArchiveFormat::INNO
+        );
+        assert_eq!(
+            archive_format_from_extension("json", false),
+            ArchiveFormat::Other
+        );
     }
 }

@@ -47,8 +47,8 @@ pub(crate) enum ConfigSubcommand {
     author,
     version,
     about = crate::i18n::tr(
-        "🐼\t\tGet or set configuration values",
-        "🐼\t\t获取或设置配置文件"
+        "🐼  Get or set configuration values",
+        "🐼  获取或设置配置文件"
     ),
     arg_required_else_help = true
 )]
