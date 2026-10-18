@@ -29,7 +29,7 @@ jobs:
 
 
       - name: Cache cargo registry
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
@@ -59,14 +59,13 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: dtolnay/rust-toolchain@stable
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-
-      - name: Install Git (for fetch tags)
-        run: git fetch --tags
 
       - name: Get version tag from Python script
         id: version
