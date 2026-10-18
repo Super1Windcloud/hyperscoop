@@ -55,24 +55,6 @@ pub fn update_all_apps(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
             );
             continue;
         }
-        let _ = match check_app_version_latest(&app, &options) {
-            Ok(version) => {
-                if version.is_some() {
-                    continue;
-                }
-            }
-            Err(err) => {
-                eprintln!("{}", err.to_string().dark_red().bold());
-                let app_current = if options.contains(&Global) {
-                    get_app_current_dir_global(&app)
-                } else {
-                    get_app_current_dir(&app)
-                };
-                fs::remove_dir_all(&app_current).context(format!(
-                    "Failed to remove broken link current {app_current} at 50"
-                ))?;
-            }
-        };
         update_specific_app(&app, options)?;
     }
     Ok(())

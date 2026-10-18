@@ -94,7 +94,7 @@ resolver = "2"
 
 
 [workspace.package]
-version = "4.5.1"
+version = "4.5.2"
 edition = "2024"
 publish = false
 authors = ["superwindcloud<<1178933440@qq.com>"]
@@ -117,13 +117,14 @@ unreachable_pub = "warn"
 [dev-dependencies] # 依赖项仅在开发和测试过程中使用，
 # 例如 `cargo test` 或 `cargo bench` , 'cargo build --tests` ,`cargo build --examples` |
 criterion = { version = "0.5.1" }
+tempfile = "=3.23.0"
 [profile.dev]
 debug = 0
 
-#最快编译时间
+# 发布构建优先运行效率；日常验证继续使用 dev 增量缓存
 [profile.release]
-lto = false
-codegen-units = 256
+lto = "thin"
+codegen-units = 16
 panic = "abort"
 debug = 0
 
@@ -180,6 +181,11 @@ unexpected_cfgs = { level = "allow" }
 name = "hash"
 path = "benches/hash_benchmark.rs"
 harness = false # 必须设置为 false 才能使用 criterion 进行基准测试
+
+[[bench]]
+name = "performance"
+path = "benches/performance.rs"
+harness = false
 
 
 

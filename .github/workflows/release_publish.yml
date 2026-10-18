@@ -39,7 +39,12 @@ jobs:
 
 
       - run: rustup target add ${{ matrix.arch }}-pc-windows-msvc
-      - run: cargo build  --target ${{ matrix.arch }}-pc-windows-msvc --release
+      - name: Verify performance regressions on Windows x64
+        if: matrix.arch == 'x86_64'
+        run: |
+          cargo test -p command_util_lib --lib performance_tests --target x86_64-pc-windows-msvc --locked
+          cargo test -p hp --bin hp performance_tests --target x86_64-pc-windows-msvc --locked
+      - run: cargo build --target ${{ matrix.arch }}-pc-windows-msvc --release --locked
 
 
       - name: Upload build artifact for ${{ matrix.arch }}  # 传递构建产物给 publish job
@@ -67,7 +72,11 @@ jobs:
         id: version
         shell: pwsh
         run: |
-          $new_tag = python script/get_latest_version.py
+          if ("${{ github.ref_type }}" -eq "tag") {
+            $new_tag = "${{ github.ref_name }}"
+          } else {
+            $new_tag = python script/get_latest_version.py
+          }
           $new_tag = $new_tag.Trim()  # 去掉换行和空格
           echo "new_tag=$new_tag" >> $env:GITHUB_OUTPUT
 
@@ -109,9 +118,9 @@ jobs:
         uses: softprops/action-gh-release@v2
         # 使用 Action自动注入的 github token
         with:
-          name:  "Here We Go!"
+          name: "hyperscoop ${{ steps.version.outputs.new_tag }}"
           tag_name:   ${{ steps.version.outputs.new_tag }}
-          body:  "Hp  '${{ steps.version.outputs.new_tag }}'  is published, 修复了一些更新和安装指定版本的bug"
+          generate_release_notes: true
           files: | #yaml 配置会把\ 当做转义字符
              hp.exe
              hp.exe.sha256

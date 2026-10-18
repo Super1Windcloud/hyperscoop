@@ -21,7 +21,7 @@ use sha1::Sha1;
 use sha2::Digest;
 use sha2::{Sha256, Sha512};
 use std::borrow::Cow;
-use std::io::{Read, Write};
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::vec;
 #[cfg(windows)]
@@ -867,54 +867,7 @@ impl<'a> DownloadManager<'a> {
     }
 
     pub fn download_files_native(&self) -> anyhow::Result<()> {
-        let client = reqwest::blocking::Client::builder()
-            .timeout(std::time::Duration::from_secs(600))
-            .build()
-            .context("Failed to build HTTP client")?;
-        for (i, url) in self.download_urls.iter().enumerate() {
-            let target_cache = &self.final_cache_file_path[i];
-            if Path::new(target_cache).exists() {
-                continue;
-            }
-            println!(
-                "{} {}",
-                tr("Downloading via native HTTP:", "正在通过原生 HTTP 下载:")
-                    .dark_blue()
-                    .bold(),
-                url.as_str().dark_cyan().bold()
-            );
-            let mut resp = client
-                .get(url)
-                .send()
-                .with_context(|| format!("Failed to download from {}", url))?;
-            if !resp.status().is_success() {
-                bail!("Download failed with HTTP status: {}", resp.status());
-            }
-            if let Some(parent) = Path::new(target_cache).parent() {
-                let _ = std::fs::create_dir_all(parent);
-            }
-            let total_size = resp.content_length().unwrap_or(0);
-            let pb = indicatif::ProgressBar::new(total_size);
-            pb.set_style(
-                indicatif::ProgressStyle::with_template("{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({bytes_per_sec}, {eta})")?
-                .progress_chars("#>-")
-            );
-            let mut file = std::fs::File::create(target_cache)
-                .with_context(|| format!("Failed to create cache file: {}", target_cache))?;
-            let mut downloaded: u64 = 0;
-            let mut buffer = [0u8; 16384];
-            loop {
-                let bytes_read = resp.read(&mut buffer)?;
-                if bytes_read == 0 {
-                    break;
-                }
-                file.write_all(&buffer[..bytes_read])?;
-                downloaded += bytes_read as u64;
-                pb.set_position(downloaded);
-            }
-            pb.finish_with_message("downloaded");
-        }
-        Ok(())
+        super::native_download::download_files(&self.download_urls, &self.final_cache_file_path)
     }
 
     pub fn check_cache_file_hash(&self) -> anyhow::Result<()> {
@@ -935,44 +888,16 @@ impl<'a> DownloadManager<'a> {
                 );
                 std::io::stdout().flush().unwrap(); // 不刷新缓冲区会等待换行
 
-                let mut open_file = std::fs::File::open(file)
-                    .context(format!("failed to open cache file {file}"))?;
-                let mut buffer = vec![];
-                // let mut reader = std::io::BufReader::new(&open_file);
+                let open_file = std::fs::File::open(file)
+                    .with_context(|| format!("failed to open cache file {file}"))?;
                 let caculate_hash = match format {
-                    HashFormat::SHA1 => {
-                        let mut hasher = Sha1::new();
-                        open_file.read_to_end(&mut buffer).unwrap();
-                        hasher.update(buffer.as_slice());
-                        let caculate_hash = hasher.finalize();
-
-                        let caculate_hash = hex::encode(caculate_hash);
-                        caculate_hash
-                    }
-                    HashFormat::SHA512 => {
-                        let mut hasher = Sha512::new();
-
-                        open_file.read_to_end(&mut buffer).unwrap();
-                        hasher.update(buffer.as_slice());
-                        let caculate_hash = hasher.finalize();
-                        let caculate_hash = hex::encode(caculate_hash);
-                        caculate_hash
-                    }
-                    HashFormat::SHA256 => {
-                        let mut hasher = Sha256::new();
-                        open_file.read_to_end(&mut buffer).unwrap();
-                        hasher.update(buffer.as_slice());
-                        let caculate_hash = hasher.finalize();
-                        let caculate_hash = hex::encode(caculate_hash);
-                        caculate_hash
-                    }
-                    HashFormat::MD5 => {
-                        let hash = compute_hash_by_powershell(file, "md5")?;
-                        hash
-                    }
+                    HashFormat::SHA1 => crate::utils::hash::hash_reader::<Sha1>(open_file)?,
+                    HashFormat::SHA512 => crate::utils::hash::hash_reader::<Sha512>(open_file)?,
+                    HashFormat::SHA256 => crate::utils::hash::hash_reader::<Sha256>(open_file)?,
+                    HashFormat::MD5 => compute_hash_by_powershell(file, "md5")?,
                 };
 
-                if caculate_hash.to_lowercase() != *hash_value.to_lowercase() {
+                if !caculate_hash.eq_ignore_ascii_case(hash_value) {
                     let _ = std::fs::remove_file(file);
                     let aria2_file = format!("{}.aria2", file);
                     if Path::new(&aria2_file).exists() {

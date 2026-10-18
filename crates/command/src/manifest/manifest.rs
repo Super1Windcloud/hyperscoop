@@ -123,23 +123,8 @@ pub fn get_best_app_version_from_local_bucket(app_name: &str) -> anyhow::Result<
     Ok(version.version.unwrap())
 }
 pub fn get_latest_app_version_from_local_bucket(app_name: &str) -> anyhow::Result<String> {
-    let better_manifest = get_latest_manifest_from_local_bucket(app_name)?;
-
-    if !Path::new(&better_manifest).exists() {
-        bail!("Manifest {}does not exist", better_manifest.display());
-    }
-    let content = std::fs::read_to_string(&better_manifest).context(format!(
-        "Failed to read manifest file: {}",
-        better_manifest.display()
-    ))?;
-    let version: VersionJSON = serde_json::from_str(&content).context(format!(
-        "Failed to parse manifest file: {}",
-        better_manifest.display()
-    ))?;
-    if version.version.is_none() {
-        bail!("该App没有找到版本信息,manifest.json格式错误")
-    }
-    Ok(version.version.unwrap())
+    let roots = get_all_buckets_dir_child_bucket_path()?;
+    Ok(latest_manifest_with_version(&roots, app_name)?.1)
 }
 
 pub fn get_best_app_version_from_local_bucket_global(app_name: &str) -> anyhow::Result<String> {
@@ -162,71 +147,67 @@ pub fn get_best_app_version_from_local_bucket_global(app_name: &str) -> anyhow::
 }
 
 pub fn get_latest_app_version_from_local_bucket_global(app_name: &str) -> anyhow::Result<String> {
-    let better_manifest = get_latest_manifest_from_local_bucket_global(app_name)?;
-    if !Path::new(&better_manifest).exists() {
-        bail!("Manifest {}does not exist", better_manifest.display());
-    }
-    let content = std::fs::read_to_string(&better_manifest).context(format!(
-        "Failed to read global manifest file: {}",
-        better_manifest.display()
-    ))?;
-    let version: VersionJSON = serde_json::from_str(&content).context(format!(
-        "Failed to parse global manifest file: {}",
-        better_manifest.display()
-    ))?;
-    if version.version.is_none() {
-        bail!("该App没有找到版本信息,manifest.json格式错误")
-    }
-    Ok(version.version.unwrap())
+    let roots = get_all_global_buckets_dir_child_bucket_path()?;
+    Ok(latest_manifest_with_version(&roots, app_name)?.1)
 }
 
 pub fn get_all_manifest_files_from_bucket<'a>(
     all_buckets_root: &'a [String],
     app_name: &'a str,
 ) -> Vec<(PathBuf, MainBucket)> {
-    let all_manifests_file = all_buckets_root
+    let app_lower = app_name.to_lowercase();
+    all_buckets_root
         .par_iter()
-        .map(|bucket_dir| {
-            let Ok(read_dir) = std::fs::read_dir(bucket_dir) else {
-                return Vec::new();
+        .flat_map_iter(|bucket_dir| {
+            let root = Path::new(bucket_dir);
+            let bucket_name = if root
+                .file_name()
+                .is_some_and(|n| n.eq_ignore_ascii_case("bucket"))
+            {
+                root.parent().and_then(Path::file_name)
+            } else {
+                root.file_name()
             };
-            read_dir
-                .filter_map(|e| e.ok())
-                .filter(|e| {
-                    e.file_type().map(|ft| ft.is_file()).unwrap_or(false)
-                        && e.path().extension().map_or(false, |ext| ext == "json")
+            let bucket = match bucket_name
+                .and_then(|n| n.to_str())
+                .map(str::to_lowercase)
+                .as_deref()
+            {
+                Some("main") => MainBucket::Main,
+                Some("extras") => MainBucket::Extras,
+                Some("versions") => MainBucket::Versions,
+                _ => MainBucket::Other,
+            };
+            // Windows bucket paths are case-insensitive. Probe the file directly instead
+            // of allocating a path for every manifest in every dependency lookup.
+            if Path::new(app_name).components().count() == 1 && !app_name.contains(['/', '\\']) {
+                for name in [app_lower.as_str(), app_name] {
+                    let path = root.join(format!("{name}.json"));
+                    if path.is_file() {
+                        return vec![(path, bucket)];
+                    }
+                }
+                #[cfg(windows)]
+                return Vec::new();
+            }
+            // Case-sensitive hosts may contain mixed-case filenames. Preserve lookup compatibility.
+            std::fs::read_dir(root)
+                .into_iter()
+                .flatten()
+                .filter_map(Result::ok)
+                .filter_map(|entry| {
+                    let path = entry.path();
+                    if path.extension()? != "json"
+                        || path.file_stem()?.to_str()?.to_lowercase() != app_lower
+                        || !entry.file_type().ok()?.is_file()
+                    {
+                        return None;
+                    }
+                    Some((path, bucket.clone()))
                 })
-                .map(|e| e.path())
                 .collect::<Vec<_>>()
         })
-        .flatten()
-        .collect::<Vec<_>>();
-    let manifest_path = all_manifests_file
-        .par_iter()
-        .filter_map(|path| {
-            let file_name = path.file_stem()?.to_str()?;
-            if file_name.to_lowercase() == app_name.to_lowercase() {
-                let parent = path.parent()?;
-                let bucket_name = if parent.file_name().map_or(false, |n| {
-                    n.to_string_lossy().eq_ignore_ascii_case("bucket")
-                }) {
-                    parent.parent()?.file_name()?.to_str()?
-                } else {
-                    parent.file_name()?.to_str()?
-                };
-                let bucket_enum = match bucket_name.to_lowercase().as_str() {
-                    "main" => MainBucket::Main,
-                    "extras" => MainBucket::Extras,
-                    "versions" => MainBucket::Versions,
-                    _ => MainBucket::Other,
-                };
-                Some((path.as_path().to_path_buf(), bucket_enum))
-            } else {
-                None
-            }
-        })
-        .collect::<Vec<_>>();
-    manifest_path
+        .collect()
 }
 
 pub fn get_best_manifest_from_local_bucket(app_name: &str) -> anyhow::Result<PathBuf> {
@@ -241,27 +222,23 @@ pub fn get_best_manifest_from_local_bucket(app_name: &str) -> anyhow::Result<Pat
 }
 
 pub fn get_latest_manifest_from_local_bucket(app_name: &str) -> anyhow::Result<PathBuf> {
-    let all_buckets_root = get_all_buckets_dir_child_bucket_path()?;
-    let result = get_all_manifest_files_from_bucket(all_buckets_root.as_slice(), app_name);
-    if result.is_empty() {
-        bail!("No app manifest found for '{app_name}'");
-    }
-    let result_with_version = result
+    let roots = get_all_buckets_dir_child_bucket_path()?;
+    Ok(latest_manifest_with_version(&roots, app_name)?.0)
+}
+
+fn latest_manifest_with_version(
+    roots: &[String],
+    app_name: &str,
+) -> anyhow::Result<(PathBuf, String)> {
+    get_all_manifest_files_from_bucket(roots, app_name)
         .into_iter()
         .filter_map(|(path, _)| {
             let content = std::fs::read_to_string(&path).ok()?;
-            let version: VersionJSON = serde_json::from_str(&content).ok()?;
-            let version = version.version?;
-            Some((path, version))
+            let manifest: VersionJSON = serde_json::from_str(&content).ok()?;
+            Some((path, manifest.version?))
         })
-        .collect::<Vec<_>>();
-    let max_result = result_with_version.iter().max_by(|a, b| a.1.cmp(&b.1));
-
-    if let Some((path, _)) = max_result {
-        Ok(path.to_owned())
-    } else {
-        bail!("No app manifest found for '{app_name}'")
-    }
+        .max_by(|a, b| a.1.cmp(&b.1))
+        .with_context(|| format!("No app manifest found for '{app_name}'"))
 }
 
 fn find_better_bucket(result: Vec<(PathBuf, MainBucket)>) -> PathBuf {
@@ -311,32 +288,53 @@ pub fn get_best_manifest_from_local_bucket_global(app_name: &str) -> anyhow::Res
 }
 
 pub fn get_latest_manifest_from_local_bucket_global(app_name: &str) -> anyhow::Result<PathBuf> {
-    let all_buckets_root = get_all_global_buckets_dir_child_bucket_path()?;
-    let result = get_all_manifest_files_from_bucket(all_buckets_root.as_slice(), app_name);
-    if result.is_empty() {
-        bail!("No manifest found for '{app_name}'");
-    }
-    let result_with_version = result
-        .into_iter()
-        .filter_map(|(path, _)| {
-            let content = std::fs::read_to_string(&path).ok()?;
-            let version: VersionJSON = serde_json::from_str(&content).ok()?;
-            let version = version.version?;
-            Some((path, version))
-        })
-        .collect::<Vec<_>>();
-    let max_result = result_with_version.iter().max_by(|a, b| a.1.cmp(&b.1));
-
-    if let Some((path, _)) = max_result {
-        Ok(path.to_owned())
-    } else {
-        bail!("No app manifest found for '{app_name}'")
-    }
+    let roots = get_all_global_buckets_dir_child_bucket_path()?;
+    Ok(latest_manifest_with_version(&roots, app_name)?.0)
 }
 mod test_manifest {
     #[test]
     fn test_output() {
         use super::*;
         get_latest_manifest_from_local_bucket("zigmod").unwrap();
+    }
+}
+
+#[cfg(test)]
+mod performance_tests {
+    use super::*;
+
+    #[test]
+    fn lookup_preserves_bucket_priority_and_latest_selection() {
+        let temp = tempfile::tempdir().unwrap();
+        let mut roots = Vec::new();
+        for (bucket, version) in [("extras", "3.0"), ("main", "2.0"), ("versions", "1.0")] {
+            let root = temp.path().join(bucket).join("bucket");
+            std::fs::create_dir_all(&root).unwrap();
+            std::fs::write(
+                root.join("tool.json"),
+                format!(r#"{{"version":"{version}"}}"#),
+            )
+            .unwrap();
+            roots.push(root.to_string_lossy().into_owned());
+        }
+        let matches = get_all_manifest_files_from_bucket(&roots, "TOOL");
+        assert_eq!(matches.len(), 3);
+        assert!(find_better_bucket(matches).ends_with("main/bucket/tool.json"));
+        assert_eq!(
+            latest_manifest_with_version(&roots, "tool").unwrap().1,
+            "3.0"
+        );
+        assert!(get_all_manifest_files_from_bucket(&roots, "missing").is_empty());
+    }
+
+    #[test]
+    fn lookup_handles_flat_buckets_mixed_case_and_invalid_entries() {
+        let temp = tempfile::tempdir().unwrap();
+        std::fs::write(temp.path().join("MiXeD.json"), r#"{"version":"1.0"}"#).unwrap();
+        std::fs::create_dir(temp.path().join("directory.json")).unwrap();
+        let roots = vec![temp.path().to_string_lossy().into_owned()];
+        assert_eq!(get_all_manifest_files_from_bucket(&roots, "mixed").len(), 1);
+        assert!(get_all_manifest_files_from_bucket(&roots, "directory").is_empty());
+        assert!(get_all_manifest_files_from_bucket(&roots, "../MiXeD").is_empty());
     }
 }

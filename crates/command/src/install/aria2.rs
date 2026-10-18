@@ -27,6 +27,36 @@ pub struct Aria2C<'a> {
     download_urls: Box<[String]>,
 }
 
+#[cfg(test)]
+mod performance_tests {
+    use super::*;
+
+    #[test]
+    fn aria_configuration_does_not_probe_download_urls() {
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        listener.set_nonblocking(true).unwrap();
+        let mut aria = Aria2C {
+            aria2c_path: Cow::Borrowed(""),
+            aria2c_download_config: vec![],
+            input_file: "",
+            cache_file_name: Box::new([]),
+            scoop_cache_dir: "",
+            final_download_path: Box::new([]),
+            download_urls: vec![format!("http://{}/file", listener.local_addr().unwrap())]
+                .into_boxed_slice(),
+        };
+        aria.init_aria2c_config().unwrap();
+        assert!(
+            aria.get_aria2c_download_config()
+                .contains(&"--min-split-size=10M")
+        );
+        assert_eq!(
+            listener.accept().unwrap_err().kind(),
+            std::io::ErrorKind::WouldBlock
+        );
+    }
+}
+
 impl<'a> Aria2C<'a> {
     pub fn get_final_download_path(&self) -> &Box<[String]> {
         &self.final_download_path
@@ -178,37 +208,28 @@ impl<'a> Aria2C<'a> {
     }
 
     pub async fn request_download_file_size_async(&self) -> anyhow::Result<u64> {
+        let client = Client::builder().timeout(Duration::from_secs(10)).build()?;
         let urls = self.get_download_urls();
         let sizes: Vec<u64> = iter(urls)
-            .map(Ok as fn(_) -> anyhow::Result<String>)
-            .then(|url| async move {
-                match url {
-                    Ok(url) => {
-                        let client = Client::new();
-                        let response = client
-                            .head(&url)
-                            .send()
-                            .await
-                            .with_context(|| format!("Failed to get response from {}", url))?;
-
-                        if let Some(content_length) =
-                            response.headers().get(reqwest::header::CONTENT_LENGTH)
-                        {
-                            let size =
-                                content_length.to_str()?.parse::<u64>().with_context(|| {
-                                    format!("Failed to parse content length from {}", url)
-                                })?;
-                            let size_mb = size / 1024 / 1024;
-                            Ok(size_mb)
-                        } else {
-                            bail!("无法获取文件大小（Content-Length 不存在）");
-                        }
-                    }
-                    Err(e) => {
-                        bail!("Failed to get file size: {}", e);
-                    }
+            .map(|url| {
+                let client = &client;
+                async move {
+                    let response = client
+                        .head(&url)
+                        .send()
+                        .await
+                        .with_context(|| format!("Failed to get response from {url}"))?
+                        .error_for_status()?;
+                    let size = response
+                        .headers()
+                        .get(reqwest::header::CONTENT_LENGTH)
+                        .context("Content-Length header is missing")?
+                        .to_str()?
+                        .parse::<u64>()?;
+                    Ok::<_, anyhow::Error>(size / 1024 / 1024)
                 }
             })
+            .buffer_unordered(4)
             .try_collect()
             .await?;
 
@@ -224,30 +245,9 @@ impl<'a> Aria2C<'a> {
     }
 
     pub fn init_aria2c_config(&mut self) -> anyhow::Result<()> {
-        let max_file_size = self
-            .request_download_file_size_by_external_command()
-            .unwrap_or_else(|e| {
-                log::debug!("failed to get download file size: {}", e);
-                0
-            });
-        let threshold = 100;
-        let split = if max_file_size > threshold {
-            "--split=16"
-        } else {
-            "--split=5"
-        };
-        let max_server = if max_file_size > threshold {
-            "--max-connection-per-server=16"
-        } else {
-            "--max-connection-per-server=5"
-        };
-        log::debug!(
-            "max_file_size: {}, threshold: {}, split: {}, max_server: {}",
-            max_file_size,
-            threshold,
-            split,
-            max_server
-        );
+        // aria2 discovers file sizes itself; avoid an extra HEAD request and process per URL.
+        let split = "--split=16";
+        let max_server = "--max-connection-per-server=16";
         let min_split_size = "--min-split-size=10M";
         let mut args = vec![
             "--optimize-concurrent-downloads=true", // 优化并行下载

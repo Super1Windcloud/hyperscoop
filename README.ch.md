@@ -236,6 +236,16 @@ hp bundle install
 
 ## 🤝 贡献与社区支持
 
+性能改动可在工程根目录运行以下局部验证，复用现有 `target/` 缓存：
+
+```bash
+cargo test -p command_util_lib --lib performance_tests --locked
+cargo test -p hp --bin hp performance_tests --locked
+cargo bench -p hp --bench performance --profile dev --locked
+```
+
+新增基准对比整文件与流式 SHA256，以及 3000 个清单下的全量枚举与直接定位。Debug 结果用于本机回归比较；发布性能请在 Windows 上使用 `cargo bench -p hp --bench performance --locked` 验证。Release 启用 Thin LTO 和 16 个 codegen units，会增加构建耗时。
+
 欢迎提交 Issue、功能建议与 Pull Request！  
 如果你喜欢 **hyperscoop**，请为项目点亮一个 ⭐️ **Star**，让更多被 Windows 包管理器折磨的开发者发现它的美好！
 

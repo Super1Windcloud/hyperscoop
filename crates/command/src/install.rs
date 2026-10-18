@@ -23,6 +23,7 @@ pub use aria2::*;
 pub mod sevenzip;
 pub use sevenzip::*;
 pub mod download;
+mod native_download;
 pub mod parse_lifecycle_scripts;
 pub use parse_lifecycle_scripts::*;
 pub mod env_operate;

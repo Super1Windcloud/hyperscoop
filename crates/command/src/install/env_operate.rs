@@ -56,52 +56,65 @@ pub fn handle_env_set(
   "#
     );
 
-    if let serde_json::Value::Object(env_set) = env_set {
-        for (key, env_value) in env_set {
-            let mut env_value = env_value.to_string().trim().to_string();
-            if env_value.is_empty() {
-                continue;
-            }
-            if env_value.contains('/') {
-                env_value = env_value.replace('/', r"\");
-            }
-            if env_value.contains(r"\\") {
-                env_value = env_value.replace(r"\\", r"\");
-            }
-            let cmd = if options.contains(&InstallOptions::Global) {
-                format!(
-                    r#"Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" -Name "{key}" -Value "{env_value}""#
-                )
-            } else {
-                format!(
-                    r#"Set-ItemProperty -Path "HKCU:\Environment" -Name "{key}" -Value "{env_value}""#
-                )
-            };
-
-            let output = Command::new("powershell")
-                .arg("-NoProfile")
-                .arg("-Command")
-                .arg(&app_dir)
-                .arg(&injects_var)
-                .arg(cmd)
-                .output()?;
-
-            if !output.status.success() {
-                let error_output = String::from_utf8_lossy(&output.stderr);
-                bail!(
-                    "powershell failed to remove environment variable: {}",
-                    error_output
-                );
-            }
-
-            println!(
-                "{} '{}'",
-                "Env set successfully for".to_string().dark_green().bold(),
-                key.to_string().dark_cyan().bold(),
-            );
-        }
+    let commands = env_set_commands(env_set, is_global);
+    if commands.is_empty() {
+        return Ok(());
     }
+    let mut script = format!("$ErrorActionPreference = 'Stop';\n{app_dir}\n{injects_var}\n");
+    for (_, command) in &commands {
+        script.push_str(command);
+        script.push_str(";\n");
+    }
+    let output = Command::new("powershell")
+        .arg("-NoProfile")
+        .arg("-Command")
+        .arg(script)
+        .output()?;
+    if !output.status.success() {
+        bail!(
+            "powershell failed to set environment variables: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+    for (key, _) in commands {
+        println!(
+            "{} '{}'",
+            "Env set successfully for".dark_green().bold(),
+            key.dark_cyan().bold()
+        );
+    }
+
     Ok(())
+}
+
+fn env_set_commands(env_set: ManifestObj, is_global: bool) -> Vec<(String, String)> {
+    let serde_json::Value::Object(env_set) = env_set else {
+        return Vec::new();
+    };
+    let registry_path = if is_global {
+        r"HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment"
+    } else {
+        r"HKCU:\Environment"
+    };
+    env_set
+        .into_iter()
+        .filter_map(|(key, value)| {
+            let value = value
+                .to_string()
+                .trim()
+                .replace('/', r"\")
+                .replace(r"\\", r"\");
+            if value.is_empty() {
+                return None;
+            }
+            // Keep PowerShell interpolation and expression handling from the original command.
+            let escaped_key = key.replace('\'', "''");
+            let command = format!(
+                r#"Set-ItemProperty -Path '{registry_path}' -Name '{escaped_key}' -Value "{value}""#
+            );
+            Some((key, command))
+        })
+        .collect()
 }
 
 pub fn handle_env_add_path(
@@ -215,5 +228,22 @@ mod test_env_operate {
         manifest.set_name("yazi");
         let env_set = manifest.env_set.clone().unwrap();
         handle_env_set(env_set, manifest, options.into_boxed_slice().as_ref()).unwrap();
+    }
+}
+
+#[cfg(test)]
+mod performance_tests {
+    use super::*;
+
+    #[test]
+    fn batched_env_commands_preserve_scope_and_powershell_values() {
+        let env = serde_json::json!({"TOOL_HOME": "$dir/bin", "TOOL_VERSION": "$version"});
+        let commands = env_set_commands(env.clone(), false);
+        assert_eq!(commands.len(), 2);
+        assert!(commands[0].1.contains(r"HKCU:\Environment"));
+        assert!(commands[0].1.contains(r"$dir\bin"));
+        assert!(commands[1].1.contains("$version"));
+        assert!(env_set_commands(env, true)[0].1.contains(r"HKLM:\SYSTEM"));
+        assert!(env_set_commands(serde_json::json!({}), false).is_empty());
     }
 }

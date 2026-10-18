@@ -13,7 +13,7 @@ use command_util_lib::utils::utility::compare_versions;
 use crossterm::style::Stylize;
 use rayon::prelude::*;
 use std::cmp::Ordering;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 pub fn execute_status_command(status_args: StatusArgs) -> Result<(), anyhow::Error> {
     let apps_path = if status_args.global {
@@ -185,7 +185,7 @@ fn build_version_map(
     let installed_app_name = installed_app_name
         .iter()
         .map(|app| app.to_lowercase())
-        .collect::<Vec<_>>();
+        .collect::<HashSet<_>>();
     let Ok(bucket_entries) = std::fs::read_dir(&bucket_path) else {
         return Ok(version_map);
     };
@@ -235,6 +235,34 @@ fn build_version_map(
         .map(|(k, v)| (k, v.to_string()))
         .collect();
     Ok(version_map)
+}
+
+#[cfg(test)]
+mod performance_tests {
+    use super::*;
+
+    #[test]
+    fn status_filters_names_case_insensitively_and_selects_latest() {
+        let temp = tempfile::tempdir().unwrap();
+        for (bucket, version) in [("main", "1.0"), ("extras", "2.0")] {
+            let root = temp.path().join(bucket).join("bucket");
+            std::fs::create_dir_all(&root).unwrap();
+            std::fs::write(
+                root.join("tool.json"),
+                format!(r#"{{"version":"{version}"}}"#),
+            )
+            .unwrap();
+            std::fs::write(root.join("ignored.json"), r#"{"version":"9.0"}"#).unwrap();
+            std::fs::write(root.join("nightly.json"), r#"{"version":"nightly"}"#).unwrap();
+        }
+        let versions = build_version_map(
+            temp.path().to_string_lossy().into_owned(),
+            &["TOOL", "nightly"],
+        )
+        .unwrap();
+        assert_eq!(versions.len(), 1);
+        assert_eq!(versions["tool"], "2.0");
+    }
 }
 
 mod test_version_map {

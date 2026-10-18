@@ -19,17 +19,43 @@ pub fn transform_to_only_version_manifest(path: &Path) -> Result<SearchManifest,
         .read_to_string(&mut content)
         .expect("读取only_version失败");
     let trimmed = content.trim_start_matches('\u{feff}');
-    // 去除控制字符
-    let cleaned = trimmed
-        .chars()
-        .filter(|c| !c.is_control())
-        .collect::<String>();
-    let result = from_str(&cleaned);
+    // Valid JSON (including whitespace and a BOM) needs no second allocation or cleanup pass.
+    let result = from_str(trimmed).or_else(|_| {
+        let cleaned = trimmed
+            .chars()
+            .filter(|c| !c.is_control())
+            .collect::<String>();
+        from_str(&cleaned)
+    });
 
     match result {
         Ok(manifest) => Ok(manifest),
         Err(e) => {
             bail!("解析only_version失败: {}", e);
+        }
+    }
+}
+
+#[cfg(test)]
+mod performance_tests {
+    use super::*;
+
+    #[test]
+    fn version_parser_handles_valid_json_bom_and_legacy_control_characters() {
+        let temp = tempfile::tempdir().unwrap();
+        let path = temp.path().join("manifest.json");
+        for content in [
+            "{\n  \"version\": \"1.0\"\n}",
+            "\u{feff}{\"version\":\"1.0\"}",
+            "{\"version\":\"1.\u{1}0\"}",
+        ] {
+            std::fs::write(&path, content).unwrap();
+            assert_eq!(
+                transform_to_only_version_manifest(&path)
+                    .unwrap()
+                    .get_version(),
+                Some("1.0")
+            );
         }
     }
 }
