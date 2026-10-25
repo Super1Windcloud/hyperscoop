@@ -137,40 +137,8 @@ pub fn install_app_from_local_manifest_file<P: AsRef<Path>>(
         && !options.contains(&InstallOptions::UpdateTransaction)
         && !options.contains(&InstallOptions::InstallSpecialVersionApp)
     {
-        match check_before_install(&app_name, &version, &options) {
-            Ok(result) => result,
-            Err(e) => {
-                eprintln!(
-                    "{}",
-                    format!("check before install failed, Error message:\n{}", e)
-                        .dark_red()
-                        .bold()
-                );
-                let special_app_dir = if options.contains(&InstallOptions::Global) {
-                    get_app_dir_global(&app_name)
-                } else {
-                    get_app_dir(&app_name)
-                };
-                log::debug!("remove app dir: {}", special_app_dir);
-                if Path::new(&special_app_dir).exists() && app_name.to_lowercase() != "hp" {
-                    let result = std::fs::remove_dir_all(&special_app_dir);
-                    match result {
-                        Ok(_) => {
-                            log::debug!("remove app dir success!");
-                        }
-                        Err(_) => {
-                            log::debug!("kill {app_name}  process");
-                            kill_processes_using_app(&app_name);
-                            std::fs::remove_dir_all(&special_app_dir).context(format!(
-                                "After kill process ,still remove app dir '{}' failed",
-                                special_app_dir
-                            ))?;
-                        }
-                    }
-                }
-                0
-            }
-        }
+        check_before_install(&app_name, &version, &options)
+            .context("Installation preflight failed")?
     } else {
         0
     };

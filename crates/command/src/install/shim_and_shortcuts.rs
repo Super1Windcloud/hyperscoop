@@ -9,8 +9,7 @@ use crate::manifest::manifest_deserialize::{
 use crate::tr_fmt;
 use crate::utils::system::get_system_default_arch;
 use crate::utils::utility::{
-    assume_yes_to_cover_shortcuts, exclude_scoop_self_scripts, strip_extended_prefix,
-    target_version_dir_to_current_dir, write_utf8_file,
+    assume_yes_to_cover_shortcuts, exclude_scoop_self_scripts, write_utf8_file,
 };
 use anyhow::{Context, bail};
 use crossterm::style::Stylize;
@@ -21,6 +20,43 @@ use std::path::{Path, PathBuf};
 use textwrap::LineEnding;
 
 const DRIVER_SHIM_BYTES: &[u8] = include_bytes!("../bin/shim.exe");
+
+#[cfg(test)]
+mod path_regression_tests {
+    use super::*;
+
+    #[test]
+    fn recreated_shim_tracks_current_after_switch_and_old_version_removal() -> anyhow::Result<()> {
+        let temp = tempfile::tempdir()?;
+        let old = temp.path().join("2025.6.0");
+        let new = temp.path().join("2026.10.19");
+        for version in [&old, &new] {
+            fs::create_dir_all(version.join("bin"))?;
+            fs::write(version.join("bin/mise.exe"), "test executable")?;
+        }
+        let current = temp.path().join("current");
+        crate::utils::system::create_dir_link(&old, &current)?;
+        let shims = temp.path().join("shims");
+        fs::create_dir(&shims)?;
+        let target = current.join("bin/mise.exe");
+        create_default_shim_for_target(
+            "mise.exe".into(),
+            &shims.to_string_lossy(),
+            "mise",
+            &[],
+            target.to_string_lossy().into_owned(),
+        )?;
+        let shim = fs::read_to_string(shims.join("mise.shim"))?;
+        assert!(shim.contains(&target.to_string_lossy().to_string()));
+        assert!(!shim.contains("2025.6.0"));
+        fs::remove_dir_all(&current)?;
+        crate::utils::system::create_dir_link(&new, &current)?;
+        fs::remove_dir_all(&old)?;
+        assert!(target.is_file());
+        assert_eq!(fs::read_to_string(shims.join("mise.shim"))?, shim);
+        Ok(())
+    }
+}
 
 pub fn create_shim_or_shortcuts(
     manifest_json: &str,
@@ -351,11 +387,6 @@ pub fn create_alias_shim_name_file(
     if !Path::new(&target_path).exists() {
         bail!(format!("链接目标文件 {target_path} 不存在"));
     }
-    let target_path = match fs::canonicalize(&target_path) {
-        Ok(p) => strip_extended_prefix(p.as_path()),
-        Err(_) => target_path,
-    };
-    let target_path = target_version_dir_to_current_dir(&target_path, options)?;
 
     log::info!("origin name {}, alias name {}", exe_name, alias_name);
 
@@ -462,6 +493,17 @@ pub fn create_default_shim_name_file(
     app_name: &str,
     options: &[InstallOptions],
 ) -> anyhow::Result<()> {
+    let target_path = get_app_current_bin_path(app_name, &exe_name, options);
+    create_default_shim_for_target(exe_name, shim_dir, app_name, options, target_path)
+}
+
+fn create_default_shim_for_target(
+    exe_name: String,
+    shim_dir: &str,
+    app_name: &str,
+    options: &[InstallOptions],
+    target_path: String,
+) -> anyhow::Result<()> {
     let out_dir = PathBuf::from(shim_dir);
     let suffix = if !exe_name.contains(".") {
         "".into()
@@ -471,19 +513,12 @@ pub fn create_default_shim_name_file(
     if app_name == "hp" {
         return Ok(());
     }
-    let target_path = get_app_current_bin_path(app_name.into(), &exe_name, options);
-
     if !out_dir.exists() {
         bail!(format!("shim 目录 {shim_dir} 不存在"));
     }
     if !Path::new(&target_path).exists() && exe_name != "hp.exe" {
         bail!(format!("链接目标文件 {target_path} 不存在"));
     }
-    let target_path = match fs::canonicalize(&target_path) {
-        Ok(p) => strip_extended_prefix(p.as_path()),
-        Err(_) => target_path,
-    };
-    let target_path = target_version_dir_to_current_dir(&target_path, options)?;
     if suffix == "exe" || suffix == "com" {
         create_exe_type_shim_file_and_shim_bin(target_path, out_dir, None, None, options)?;
     } else if suffix == "cmd" || "bat" == suffix {

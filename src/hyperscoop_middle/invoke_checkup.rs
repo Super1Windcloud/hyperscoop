@@ -46,7 +46,9 @@ fn localized(en: &str, zh: &str) -> String {
 }
 
 #[cfg(not(windows))]
-pub async fn execute_checkup_command(_args: crate::command_args::checkup::CheckupArgs) -> anyhow::Result<()> {
+pub async fn execute_checkup_command(
+    _args: crate::command_args::checkup::CheckupArgs,
+) -> anyhow::Result<()> {
     eprintln!(
         "{}",
         tr(
@@ -59,7 +61,9 @@ pub async fn execute_checkup_command(_args: crate::command_args::checkup::Checku
 }
 
 #[cfg(windows)]
-pub async fn execute_checkup_command(args: crate::command_args::checkup::CheckupArgs) -> anyhow::Result<()> {
+pub async fn execute_checkup_command(
+    args: crate::command_args::checkup::CheckupArgs,
+) -> anyhow::Result<()> {
     let global = args.global;
     let fix = args.fix;
     let mut total_issues = 0;

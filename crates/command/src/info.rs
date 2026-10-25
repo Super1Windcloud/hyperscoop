@@ -84,7 +84,7 @@ pub fn validate_app_name(app_name: &str) -> anyhow::Result<()> {
     {
         bail!("Invalid app name: {}", app_name);
     }
-    let re = Regex::new(r"^[a-zA-Z0-9._+@]+(/[a-zA-Z0-9._+@]+)?$")?;
+    let re = Regex::new(r"^[a-zA-Z0-9._+@-]+(/[a-zA-Z0-9._+@-]+)?$")?;
     if !re.is_match(app_name) {
         bail!("Invalid app name: {}", app_name);
     }
@@ -671,10 +671,16 @@ mod test_align {
         assert!(validate_app_name("node.js").is_ok());
         assert!(validate_app_name("main/git").is_ok());
         assert!(validate_app_name("extras/notepad++").is_ok());
+        assert!(validate_app_name("clash-verge").is_ok());
+        assert!(validate_app_name("extras/clash-verge").is_ok());
+        assert!(validate_app_name("my-bucket/clash-verge@2.0.0").is_ok());
 
         assert!(validate_app_name("../etc/passwd").is_err());
         assert!(validate_app_name("/root").is_err());
         assert!(validate_app_name("foo/bar/baz").is_err());
+        assert!(validate_app_name("extras/../clash-verge").is_err());
+        assert!(validate_app_name(r"extras\clash-verge").is_err());
+        assert!(validate_app_name("clash-verge;whoami").is_err());
         assert!(validate_app_name("").is_err());
     }
 }

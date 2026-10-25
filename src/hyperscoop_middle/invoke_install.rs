@@ -366,8 +366,29 @@ pub fn inject_user_options(install_args: &InstallArgs) -> anyhow::Result<Vec<Ins
 }
 
 fn contains_special_char(s: &str) -> bool {
-    let special_chars = r#"!#$%^&*()+=\[]\{}|;':",<>?~`"#;
+    let special_chars = r#"!#$%^&*()=\[]\{}|;':",<>?~`"#;
     s.chars().any(|c| special_chars.contains(c))
+}
+
+#[cfg(test)]
+mod name_regression_tests {
+    use super::contains_special_char;
+
+    #[test]
+    fn allows_scoop_names_and_rejects_shell_metacharacters() {
+        for name in [
+            "notepad++",
+            "extras/notepad++",
+            "app@1.0+build",
+            "node.js",
+            "clash-verge",
+        ] {
+            assert!(!contains_special_char(name), "{name}");
+        }
+        for name in ["app;whoami", "app|other", "app$(whoami)", "app>file"] {
+            assert!(contains_special_char(name), "{name}");
+        }
+    }
 }
 
 fn convert_path(path: &str) -> String {

@@ -224,7 +224,7 @@ fn build_version_map(
             version_map
                 .entry(file_name)
                 .and_modify(|v| {
-                    if &version > v {
+                    if compare_versions(version.clone(), v.clone()) == Ordering::Greater {
                         *v = version.clone();
                     }
                 })
@@ -240,6 +240,46 @@ fn build_version_map(
 #[cfg(test)]
 mod performance_tests {
     use super::*;
+
+    #[test]
+    fn status_selects_numeric_latest_versions_from_conflicting_buckets() -> anyhow::Result<()> {
+        let temp = tempfile::tempdir()?;
+        for (bucket, versions) in [
+            (
+                "old",
+                [
+                    ("obsidian", "1.6.7"),
+                    ("termius", "9.8.5"),
+                    ("mise", "v2024.9.4"),
+                ],
+            ),
+            (
+                "new",
+                [
+                    ("obsidian", "1.14.5"),
+                    ("termius", "10.2.1"),
+                    ("mise", "2026.10.19"),
+                ],
+            ),
+        ] {
+            let dir = temp.path().join(bucket).join("bucket");
+            std::fs::create_dir_all(&dir)?;
+            for (app, version) in versions {
+                std::fs::write(
+                    dir.join(format!("{app}.json")),
+                    format!(r#"{{"version":"{version}"}}"#),
+                )?;
+            }
+        }
+        let versions = build_version_map(
+            temp.path().to_string_lossy().into_owned(),
+            &["obsidian", "termius", "mise"],
+        )?;
+        assert_eq!(versions["obsidian"], "1.14.5");
+        assert_eq!(versions["termius"], "10.2.1");
+        assert_eq!(versions["mise"], "2026.10.19");
+        Ok(())
+    }
 
     #[test]
     fn status_filters_names_case_insensitively_and_selects_latest() {

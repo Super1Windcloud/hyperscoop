@@ -19,24 +19,63 @@ use textwrap::LineEnding;
 use url::Url;
 
 pub fn compare_versions(ver1: String, ver2: String) -> Ordering {
-    // 分割版本号并转换为数字数组
-    let v1: Vec<i32> = ver1.split('.').flat_map(|s| s.parse()).collect();
-    let v2: Vec<i32> = ver2.split('.').flat_map(|s| s.parse()).collect();
+    fn split_version(version: &str) -> (&str, Option<&str>) {
+        let version = version.trim();
+        let version = version
+            .strip_prefix(['v', 'V'])
+            .filter(|rest| rest.starts_with(|c: char| c.is_ascii_digit()))
+            .unwrap_or(version);
+        let version = version.split('+').next().unwrap_or(version);
+        version
+            .split_once('-')
+            .map_or((version, None), |(core, suffix)| (core, Some(suffix)))
+    }
+    fn suffix_rank(suffix: Option<&str>) -> u8 {
+        match suffix {
+            Some(suffix) if suffix.starts_with(|c: char| c.is_ascii_digit()) => 2,
+            None | Some("") => 1,
+            Some(_) => 0,
+        }
+    }
+    let (core1, suffix1) = split_version(&ver1);
+    let (core2, suffix2) = split_version(&ver2);
+    compare_version_tokens(core1, core2)
+        .then_with(|| suffix_rank(suffix1).cmp(&suffix_rank(suffix2)))
+        .then_with(|| compare_version_tokens(suffix1.unwrap_or(""), suffix2.unwrap_or("")))
+}
 
-    // 动态比较每一级（自动补零）
-    let max_len = v1.len().max(v2.len());
-    (0..max_len)
-        .map(|i| {
-            (
-                v1.get(i).copied().unwrap_or(0),
-                v2.get(i).copied().unwrap_or(0),
-            )
-        })
-        .find_map(|(a, b)| match a.cmp(&b) {
-            Ordering::Equal => None,
-            diff => Some(diff),
-        })
-        .unwrap_or(Ordering::Equal)
+// Compare digit runs without integer parsing, preserving large versions and Scoop revisions.
+fn compare_version_tokens(mut left: &str, mut right: &str) -> Ordering {
+    fn next_token(input: &str) -> (&str, &str) {
+        let input = input.trim_start_matches(|c: char| !c.is_ascii_alphanumeric());
+        let numeric = input.starts_with(|c: char| c.is_ascii_digit());
+        let end = input
+            .char_indices()
+            .find(|(_, c)| !c.is_ascii_alphanumeric() || c.is_ascii_digit() != numeric)
+            .map_or(input.len(), |(index, _)| index);
+        input.split_at(end)
+    }
+    loop {
+        let (a, rest_left) = next_token(left);
+        let (b, rest_right) = next_token(right);
+        if a.is_empty() && b.is_empty() {
+            return Ordering::Equal;
+        }
+        let numeric_a = a.bytes().all(|c| c.is_ascii_digit());
+        let numeric_b = b.bytes().all(|c| c.is_ascii_digit());
+        let order = if numeric_a && numeric_b {
+            let a = a.trim_start_matches('0');
+            let b = b.trim_start_matches('0');
+            a.len().cmp(&b.len()).then_with(|| a.cmp(b))
+        } else {
+            a.to_ascii_lowercase().cmp(&b.to_ascii_lowercase())
+        };
+        if order != Ordering::Equal {
+            return order;
+        }
+        left = rest_left;
+        right = rest_right;
+    }
 }
 
 pub fn add_key_value_to_json(
@@ -497,6 +536,44 @@ pub fn extract_target_path_from_shell_script(file_path: &str) -> anyhow::Result<
             "脚本文件 '{file_path}' 第二行为空",
             file_path = file_path
         ));
+    }
+}
+
+#[cfg(test)]
+mod version_regression_tests {
+    use super::*;
+
+    #[test]
+    fn orders_local_scoop_versions_without_discarding_suffixes_or_overflowing() {
+        for (older, newer) in [
+            ("1.0.9232-25", "1.0.9259-28"),
+            ("1.37.0-1", "1.37.0-2"),
+            ("14.2.0-rt_v12-rev0", "14.2.0-rt_v12-rev1"),
+            ("1.6.7", "1.14.5"),
+            ("9.8.5", "10.2.1"),
+            ("v2024.9.4", "2026.10.19"),
+            ("1.0.0-rc.9", "1.0.0-rc.10"),
+            ("1.0.0-rc.10", "1.0.0"),
+            ("1.0.0", "1.0.0-1"),
+            ("1.999999999999999999999", "1.1000000000000000000000"),
+        ] {
+            assert_eq!(
+                compare_versions(older.into(), newer.into()),
+                Ordering::Less,
+                "{older} < {newer}"
+            );
+            assert_eq!(
+                compare_versions(newer.into(), older.into()),
+                Ordering::Greater
+            );
+        }
+        for (left, right) in [
+            ("1.0", "1.0.0"),
+            ("v1.02.3", "1.2.3"),
+            ("1.2.3+build1", "1.2.3+build2"),
+        ] {
+            assert_eq!(compare_versions(left.into(), right.into()), Ordering::Equal);
+        }
     }
 }
 

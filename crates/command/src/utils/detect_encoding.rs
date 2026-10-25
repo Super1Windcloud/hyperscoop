@@ -17,7 +17,7 @@ pub fn transform_to_only_version_manifest(path: &Path) -> Result<SearchManifest,
     let mut reader = BufReader::new(file);
     reader
         .read_to_string(&mut content)
-        .expect("读取only_version失败");
+        .with_context(|| format!("Failed to read manifest file: {}", path.display()))?;
     let trimmed = content.trim_start_matches('\u{feff}');
     // Valid JSON (including whitespace and a BOM) needs no second allocation or cleanup pass.
     let result = from_str(trimmed).or_else(|_| {
@@ -39,6 +39,15 @@ pub fn transform_to_only_version_manifest(path: &Path) -> Result<SearchManifest,
 #[cfg(test)]
 mod performance_tests {
     use super::*;
+
+    #[test]
+    fn version_parser_returns_error_for_invalid_utf8() -> anyhow::Result<()> {
+        let temp = tempfile::tempdir()?;
+        let path = temp.path().join("manifest.json");
+        std::fs::write(&path, [0xff, 0xfe])?;
+        assert!(transform_to_only_version_manifest(&path).is_err());
+        Ok(())
+    }
 
     #[test]
     fn version_parser_handles_valid_json_bom_and_legacy_control_characters() {

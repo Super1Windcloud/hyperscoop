@@ -1,225 +1,190 @@
 use crate::command_args::cleanup::CleanupArgs;
-use crate::i18n::t;
-use anyhow::bail;
-use anyhow::{Context, anyhow};
+use anyhow::Context;
 use command_util_lib::init_env::{
-    get_app_dir, get_app_dir_global, get_app_version_dir, get_app_version_dir_global,
-    get_apps_path, get_apps_path_global,
+    get_app_dir, get_app_dir_global, get_apps_path, get_apps_path_global,
 };
+use command_util_lib::list::VersionJSON;
 use command_util_lib::utils::system::kill_processes_using_app;
 use command_util_lib::utils::utility::compare_versions;
 use crossterm::style::Stylize;
-use rayon::prelude::*;
-use std::cmp::Ordering;
-use std::collections::HashMap;
-use std::path::Path;
-use std::sync::{Arc, Mutex};
+use std::path::{Path, PathBuf};
 
-pub fn execute_cleanup_command(args: CleanupArgs) -> Result<(), anyhow::Error> {
-    if let Some(name) = args.app_names {
-        if args.all {
-            clean_all_old_versions(args.global, args.dry_run)?
+pub fn execute_cleanup_command(args: CleanupArgs) -> anyhow::Result<()> {
+    if args.all {
+        let root = if args.global {
+            get_apps_path_global()
         } else {
-            clean_specific_old_version(name, args.global, args.dry_run)?
-        }
-    } else {
-        if args.all {
-            clean_all_old_versions(args.global, args.dry_run)?
-        }
-    }
-    Ok(())
-}
-
-fn clean_specific_old_version(
-    app_name: Vec<String>,
-    is_global: bool,
-    dry_run: bool,
-) -> anyhow::Result<()> {
-    log::info!("Run cleanup command '{:?}'", app_name);
-    let app_dirs = app_name
-        .iter()
-        .map(|name| {
-            if is_global {
-                get_app_dir_global(name)
-            } else {
-                get_app_dir(name)
+            get_apps_path()
+        };
+        for entry in std::fs::read_dir(&root).context("Failed to read apps root directory")? {
+            let entry = entry?;
+            if entry.file_name() != "scoop" && entry.file_type()?.is_dir() {
+                cleanup_app_versions(&entry.path(), args.dry_run)?;
             }
-        })
-        .collect::<Vec<_>>();
-    let result = app_dirs.iter().try_for_each(|dir| {
-        let dir = Path::new(dir);
-        let app_name = dir.file_stem().unwrap().to_str().unwrap();
-        let child_dirs = dir
-            .read_dir()
-            .context(format!("Failed to read directory: {}", dir.display()))?
-            .filter_map(|dir| {
-                let dir = dir.unwrap();
-                let binding = dir.file_name();
-                let name = binding.to_str().unwrap();
-                if name == "current" {
-                    None
-                } else {
-                    Some(dir.path())
-                }
-            })
-            .collect::<Vec<_>>();
-        let highest_version_dir = child_dirs
-            .par_iter()
-            .max_by(|dir1, dir2| {
-                let file_name = dir1.file_name().unwrap().to_str().unwrap();
-                let file_name2 = dir2.file_name().unwrap().to_str().unwrap();
-                compare_versions(file_name.to_string(), file_name2.to_string())
-            })
-            .ok_or(anyhow!("No version directory found"))?;
-
-        let retain_dir = highest_version_dir;
-        let flag = Arc::new(Mutex::new(false));
-        let result = child_dirs.par_iter().try_for_each(|dir| {
-            if dir != retain_dir {
-                if dry_run {
-                    println!(
-                        "{} {}",
-                        "[dry-run] Would remove old version:".dark_yellow().bold(),
-                        dir.display().to_string().dark_cyan()
-                    );
-                    *flag.lock().unwrap() = true;
-                } else {
-                    log::info!("Removing old version: {}", dir.display());
-                    let result =
-                        std::fs::remove_dir_all(dir).context("Failed to remove old version");
-                    *flag.lock().unwrap() = true;
-                    if result.is_err() {
-                        kill_processes_using_app(app_name);
-                        std::fs::remove_dir_all(dir).context("Failed to remove old version")?;
-                    }
-                }
-            }
-            Ok(())
-        });
-        if !*flag.lock().unwrap() {
-            log::debug!(
-                "{}",
-                t!(
-                    "cleanup.no_old_versions_for",
-                    path = dir.display().to_string()
-                )
+        }
+    } else if let Some(names) = args.app_names {
+        for name in names {
+            command_util_lib::info::validate_app_name(&name)?;
+            anyhow::ensure!(
+                !name.contains('/') && !name.contains('@'),
+                "Expected an installed app name"
             );
+            let dir = if args.global {
+                get_app_dir_global(&name)
+            } else {
+                get_app_dir(&name)
+            };
+            cleanup_app_versions(Path::new(&dir), args.dry_run)?;
         }
-        result
-    });
-    if result.is_err() {
-        let err: anyhow::Error = result.unwrap_err();
-        bail!("Run cleanup Err '{:?}'", err);
     }
     Ok(())
 }
 
-fn clean_all_old_versions(is_global: bool, dry_run: bool) -> anyhow::Result<()> {
-    let apps_dir = if is_global {
-        get_apps_path_global()
-    } else {
-        get_apps_path()
+fn old_version_directories(app_dir: &Path) -> anyhow::Result<Vec<PathBuf>> {
+    let mut installed = Vec::new();
+    for entry in std::fs::read_dir(app_dir).context("Failed to read app directory")? {
+        let entry = entry?;
+        if entry.file_name() == "current" || !entry.file_type()?.is_dir() {
+            continue;
+        }
+        let path = entry.path();
+        if !path.join("install.json").is_file() {
+            continue;
+        }
+        let Ok(content) = std::fs::read_to_string(path.join("manifest.json")) else {
+            continue;
+        };
+        let Ok(manifest) = serde_json::from_str::<VersionJSON>(&content) else {
+            continue;
+        };
+        let Some(version) = manifest.version else {
+            continue;
+        };
+        if entry.file_name().to_str() == Some(version.as_str()) {
+            installed.push((version, path));
+        }
+    }
+    let Some((_, newest)) = installed
+        .iter()
+        .max_by(|(a, _), (b, _)| compare_versions(a.clone(), b.clone()))
+    else {
+        return Ok(Vec::new());
     };
-
-    let apps_dir = std::fs::read_dir(apps_dir).context("Failed to read apps  root directory")?;
-    let mut versions_with_name = HashMap::new();
-
-    for app_dir in apps_dir {
-        let mut dir_count = 0;
-        let mut versions_max = String::new();
-
-        let path = app_dir.context("Failed to read app directory")?.path();
-        let app_name = path
-            .clone()
-            .file_name()
-            .unwrap()
-            .to_str()
-            .unwrap()
-            .to_string();
-        if path.is_dir() {
-            for entry in path.read_dir().context("Failed to read app directory")? {
-                let entry = entry?;
-                if entry.path().is_dir() {
-                    dir_count += 1;
-                }
-            }
-            if dir_count <= 2 {
-                continue;
-            }
-            for version_dir in path
-                .read_dir()
-                .context("Failed to read version directory")?
-            {
-                let version_path = version_dir
-                    .context("Failed to read version directory")?
-                    .path();
-                if version_path.is_dir() {
-                    let version_name = version_path.file_name().unwrap().to_str().unwrap();
-                    if version_name == "current" {
-                        continue;
-                    }
-                    match compare_versions(version_name.to_string(), versions_max.clone()) {
-                        Ordering::Less => {}
-                        Ordering::Equal => {}
-                        Ordering::Greater => versions_max = version_name.to_string(),
-                    }
-                }
-            }
+    let current = app_dir.join("current");
+    let current_target = match std::fs::symlink_metadata(&current) {
+        Ok(_) => {
+            Some(std::fs::canonicalize(&current).context("Failed to resolve current app version")?)
         }
-        versions_with_name.insert(app_name, versions_max.clone());
-    }
-    if versions_with_name.is_empty() {
-        log::debug!("{}", t!("cleanup.none").as_ref().green().bold());
-    }
-    log::info!("{:?}", versions_with_name);
-    for (app_name, version) in versions_with_name {
-        let exclude_path = if is_global {
-            get_app_version_dir_global(&app_name, &version)
-        } else {
-            get_app_version_dir(&app_name, &version)
-        };
-        let exclude_path = Path::new(&exclude_path);
-        let dir = if is_global {
-            get_app_dir_global(&app_name)
-        } else {
-            get_app_dir(&app_name)
-        };
-        log::info!("{:?}", dir);
-        if exclude_path.exists() {
-            for entry in std::fs::read_dir(dir).context("Failed to read app directory")? {
-                let entry = entry?;
-                if entry.path().is_dir() {
-                    if entry.path() == exclude_path {
-                        continue;
-                    }
-                    let path = entry.path();
-                    let version = path.file_name().unwrap().to_str().unwrap();
-                    if version == "current" {
-                        continue;
-                    }
-                    if dry_run {
-                        println!(
-                            "{} {}",
-                            "[dry-run] Would remove old version:".dark_yellow().bold(),
-                            path.display().to_string().dark_cyan()
-                        );
-                    } else {
-                        log::info!("Removing old version: {}", path.display());
-                        if std::fs::remove_dir_all(path.as_path())
-                            .context("Failed to remove old version")
-                            .is_err()
-                        {
-                            kill_processes_using_app(&app_name);
-                            std::fs::remove_dir_all(path.as_path())
-                                .context("Failed to remove old version")?;
-                        }
-                    }
-                }
-            }
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
+        Err(error) => return Err(error.into()),
+    };
+    let mut old = Vec::new();
+    for (_, path) in &installed {
+        if path != newest && Some(std::fs::canonicalize(path)?) != current_target {
+            old.push(path.clone());
         }
     }
+    Ok(old)
+}
 
+fn cleanup_app_versions(app_dir: &Path, dry_run: bool) -> anyhow::Result<()> {
+    let root = std::fs::canonicalize(app_dir).context("Failed to resolve app directory")?;
+    let app_name = app_dir
+        .file_name()
+        .and_then(|name| name.to_str())
+        .context("Invalid app name")?;
+    for path in old_version_directories(app_dir)? {
+        if dry_run {
+            println!(
+                "{} {}",
+                "[dry-run] Would remove old version:".dark_yellow().bold(),
+                path.display()
+            );
+            continue;
+        }
+        // Recheck the selected directory before deleting; links must never be followed.
+        anyhow::ensure!(
+            std::fs::symlink_metadata(&path)?.file_type().is_dir()
+                && std::fs::canonicalize(&path)?.parent() == Some(root.as_path()),
+            "Refusing to clean a version outside the app directory: {}",
+            path.display()
+        );
+        if std::fs::remove_dir_all(&path).is_err() {
+            kill_processes_using_app(app_name);
+            std::fs::remove_dir_all(&path).context("Failed to remove old version")?;
+        }
+    }
     Ok(())
+}
+
+#[cfg(test)]
+mod regression_tests {
+    use super::*;
+
+    fn installed_version(root: &Path, version: &str) -> anyhow::Result<PathBuf> {
+        let dir = root.join(version);
+        std::fs::create_dir(&dir)?;
+        std::fs::write(
+            dir.join("manifest.json"),
+            format!(r#"{{"version":"{version}"}}"#),
+        )?;
+        std::fs::write(dir.join("install.json"), "{}")?;
+        Ok(dir)
+    }
+
+    #[test]
+    fn cleanup_preserves_active_version_latest_and_non_version_data() -> anyhow::Result<()> {
+        let temp = tempfile::tempdir()?;
+        let root = temp.path().join("dingtalk");
+        std::fs::create_dir(&root)?;
+        let old = installed_version(&root, "1.0")?;
+        let active = installed_version(&root, "2.0")?;
+        let newest = installed_version(&root, "10.0")?;
+        for name in ["PS", "plugin_upgrade", "incomplete"] {
+            std::fs::create_dir(root.join(name))?;
+            std::fs::write(root.join(name).join("data"), "keep")?;
+        }
+        std::fs::write(root.join("notes.txt"), "keep")?;
+        command_util_lib::utils::system::create_dir_link(&active, root.join("current"))?;
+
+        assert_eq!(old_version_directories(&root)?, vec![old.clone()]);
+        cleanup_app_versions(&root, true)?;
+        assert!(old.exists(), "dry run must preserve all versions");
+        cleanup_app_versions(&root, false)?;
+        assert!(!old.exists());
+        assert!(active.join("manifest.json").is_file());
+        assert!(newest.join("manifest.json").is_file());
+        assert!(root.join("current/manifest.json").is_file());
+        for name in ["PS", "plugin_upgrade", "incomplete"] {
+            assert!(root.join(name).join("data").is_file());
+        }
+        assert!(root.join("notes.txt").is_file());
+        Ok(())
+    }
+
+    #[test]
+    fn cleanup_skips_directory_links_and_invalid_metadata() -> anyhow::Result<()> {
+        let temp = tempfile::tempdir()?;
+        let root = temp.path().join("app");
+        std::fs::create_dir(&root)?;
+        let latest = installed_version(&root, "10.0")?;
+        let external = installed_version(temp.path(), "1.0")?;
+        command_util_lib::utils::system::create_dir_link(&external, root.join("1.0"))?;
+        let mismatched = installed_version(&root, "2.0")?;
+        std::fs::write(
+            mismatched.join("manifest.json"),
+            r#"{"version":"another-version"}"#,
+        )?;
+        let incomplete = installed_version(&root, "3.0")?;
+        std::fs::remove_file(incomplete.join("install.json"))?;
+        cleanup_app_versions(&root, false)?;
+        assert!(external.join("manifest.json").is_file());
+        assert!(root.join("1.0/manifest.json").is_file());
+        assert!(mismatched.exists());
+        assert!(incomplete.exists());
+        assert!(latest.exists());
+        Ok(())
+    }
 }
 
 mod tests {

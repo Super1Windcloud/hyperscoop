@@ -75,7 +75,7 @@ fn get_match_name_path(
     let result = paths
         .into_par_iter()
         .filter_map(|path| {
-            let file_name = path.file_stem().unwrap().to_str().unwrap().to_lowercase();
+            let file_name = path.file_stem()?.to_str()?.to_lowercase();
             if file_name == query || file_name.contains(&query) {
                 Some((file_name.to_string(), path.clone()))
             } else {
@@ -141,12 +141,9 @@ fn get_result_source_and_version(
             let path = &item.1;
             let app_name = item.0.clone();
             let source = path
-                .parent()
-                .unwrap()
-                .parent()
-                .unwrap()
-                .file_stem()
-                .unwrap()
+                .parent()?
+                .parent()?
+                .file_stem()?
                 .to_string_lossy()
                 .to_string();
 
@@ -165,7 +162,13 @@ fn get_result_source_and_version(
                 return None;
             }
             let version = version.unwrap();
-            let version = version.get_version().unwrap().to_string();
+            let version = match version.get_version().filter(|version| !version.is_empty()) {
+                Some(version) => version.to_string(),
+                None => {
+                    log::warn!("Missing version in manifest: {}", path.display());
+                    return None;
+                }
+            };
             Some((app_name, version, source))
         })
         .collect();
@@ -178,22 +181,7 @@ fn search_app_in_specific_bucket(
     bucket: &String,
     app_name: &String,
 ) -> anyhow::Result<()> {
-    let path: PathBuf = buckets_path
-        .iter()
-        .filter_map(|item| {
-            if item.contains(bucket) {
-                let p = Path::new(item);
-                let child = p.join("bucket");
-                if child.is_dir() {
-                    Some(child)
-                } else {
-                    Some(p.to_path_buf())
-                }
-            } else {
-                None
-            }
-        })
-        .collect();
+    let path = find_bucket_manifest_dir(&buckets_path, bucket)?;
     if !path.exists() {
         bail!(
             "{}",
@@ -235,6 +223,24 @@ fn search_app_in_specific_bucket(
     Ok(())
 }
 
+fn find_bucket_manifest_dir(buckets: &[String], bucket: &str) -> anyhow::Result<PathBuf> {
+    let path = buckets
+        .iter()
+        .map(Path::new)
+        .find(|path| {
+            path.file_name()
+                .and_then(|name| name.to_str())
+                .is_some_and(|name| name.eq_ignore_ascii_case(bucket))
+        })
+        .with_context(|| format!("Bucket '{bucket}' directory does not exist"))?;
+    let child = path.join("bucket");
+    Ok(if child.is_dir() {
+        child
+    } else {
+        path.to_path_buf()
+    })
+}
+
 fn sort_result_by_bucket_name(mut result: Vec<(String, String, String)>) {
     //  ( name  version source )
     let official_bucket = ["main", "extras"];
@@ -259,11 +265,11 @@ fn get_apps_names(path: &Path, query: &str) -> Result<Vec<(String, PathBuf)>, an
         .into_iter()
         .par_bridge()
         .filter_map(|entry| {
-            let entry = entry.ok().unwrap();
+            let entry = entry.ok()?;
             let path = entry.path();
-            let file_type = entry.file_type().unwrap();
+            let file_type = entry.file_type().ok()?;
             if file_type.is_file() && path.extension().unwrap_or_default() == "json" {
-                let app_name = path.file_stem().unwrap().to_str().unwrap();
+                let app_name = path.file_stem()?.to_str()?;
                 let app_name = app_name.to_lowercase();
                 if app_name == query || app_name.contains(&query) {
                     let app_path = path.clone();
@@ -338,8 +344,10 @@ fn par_read_dir(path: &Path) -> anyhow::Result<impl ParallelIterator<Item = DirE
 
 fn is_manifest(dir_entry: &DirEntry) -> bool {
     let filename = dir_entry.file_name();
-    let name = filename.to_str().unwrap();
-    let is_file = dir_entry.file_type().unwrap().is_file();
+    let Some(name) = filename.to_str() else {
+        return false;
+    };
+    let is_file = dir_entry.file_type().is_ok_and(|kind| kind.is_file());
     is_file && name.ends_with(".json") && name != "package.json"
 }
 
@@ -475,5 +483,69 @@ pub fn remove_bom(content: &str) -> String {
         content[3..].to_string()
     } else {
         content.to_string()
+    }
+}
+
+#[cfg(test)]
+mod regression_tests {
+    use super::*;
+
+    #[test]
+    fn bucket_lookup_uses_exact_names_in_both_bucket_layouts() -> anyhow::Result<()> {
+        let temp = tempfile::tempdir()?;
+        let mut buckets = Vec::new();
+        for name in ["hp", "php", "games", "scoop-games", "FlatBucket"] {
+            let path = temp.path().join(name);
+            std::fs::create_dir_all(if name == "FlatBucket" {
+                path.clone()
+            } else {
+                path.join("bucket")
+            })?;
+            buckets.push(path.to_string_lossy().into_owned());
+        }
+        assert_eq!(
+            find_bucket_manifest_dir(&buckets, "HP")?,
+            temp.path().join("hp/bucket")
+        );
+        assert_eq!(
+            find_bucket_manifest_dir(&buckets, "games")?,
+            temp.path().join("games/bucket")
+        );
+        assert_eq!(
+            find_bucket_manifest_dir(&buckets, "flatbucket")?,
+            temp.path().join("FlatBucket")
+        );
+        assert!(find_bucket_manifest_dir(&buckets, "game").is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn search_skips_broken_manifests_and_keeps_valid_results() -> anyhow::Result<()> {
+        let temp = tempfile::tempdir()?;
+        let bucket = temp.path().join("test-bucket").join("bucket");
+        std::fs::create_dir_all(&bucket)?;
+        for (name, contents) in [
+            ("clash-verge", br#"{"version":"1.0"}"#.as_slice()),
+            ("clash-no-version", b"{}".as_slice()),
+            ("clash-empty-version", br#"{"version":""}"#.as_slice()),
+            ("clash-invalid-json", b"invalid json".as_slice()),
+            ("clash-invalid-encoding", [0xff, 0xfe].as_slice()),
+        ] {
+            std::fs::write(bucket.join(format!("{name}.json")), contents)?;
+        }
+        let paths = get_all_manifest_package_name(vec![
+            bucket.parent().unwrap().to_string_lossy().into_owned(),
+        ])?;
+        let matches = get_match_name_path(&paths, "clash".into())?;
+        let result = get_result_source_and_version(matches)?;
+        assert_eq!(
+            result,
+            vec![("clash-verge".into(), "1.0".into(), "test-bucket".into())]
+        );
+
+        let matches = get_apps_names(&bucket, "clash-verge")?;
+        assert_eq!(matches.len(), 1);
+        assert_eq!(matches[0].0, "clash-verge");
+        Ok(())
     }
 }

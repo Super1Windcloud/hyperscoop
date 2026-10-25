@@ -36,14 +36,47 @@ pub fn init_scoop_global() -> String {
     if !root_path.is_empty() && Path::new(&root_path).exists() {
         return root_path;
     }
-    let path = env::var("SCOOP_GLOBAL")
-        .or_else(|_| env::var("ProgramData"))
-        .unwrap_or_else(|_| "C:\\ProgramData".to_string());
-    let global_scoop = format!("{}\\scoop", path);
+    let global_scoop = resolve_global_scoop_path(
+        env::var("SCOOP_GLOBAL").ok().as_deref(),
+        env::var("ProgramData").ok().as_deref(),
+    );
     if !global_scoop.is_empty() && !Path::new(&global_scoop).exists() {
         let _ = std::fs::create_dir_all(&global_scoop);
     }
     global_scoop
+}
+
+fn resolve_global_scoop_path(scoop_global: Option<&str>, program_data: Option<&str>) -> String {
+    match scoop_global.filter(|path| !path.is_empty()) {
+        Some(path) => path.to_string(),
+        None => format!(
+            "{}\\scoop",
+            program_data
+                .filter(|path| !path.is_empty())
+                .unwrap_or("C:\\ProgramData")
+        ),
+    }
+}
+
+#[cfg(test)]
+mod global_path_regression_tests {
+    use super::*;
+
+    #[test]
+    fn respects_custom_global_root_and_only_appends_scoop_to_program_data() {
+        assert_eq!(
+            resolve_global_scoop_path(Some(r"A:\Scoop\global"), Some(r"C:\ProgramData")),
+            r"A:\Scoop\global"
+        );
+        assert_eq!(
+            resolve_global_scoop_path(None, Some(r"D:\ProgramData")),
+            r"D:\ProgramData\scoop"
+        );
+        assert_eq!(
+            resolve_global_scoop_path(Some(""), None),
+            r"C:\ProgramData\scoop"
+        );
+    }
 }
 
 pub fn get_app_current_dir(app_name: &str) -> String {

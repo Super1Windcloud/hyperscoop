@@ -60,21 +60,22 @@ pub fn check_before_install(
     } else {
         get_app_dir(name)
     };
+    check_installation(name, version, options, app_dir)
+}
+
+fn check_installation(
+    name: &str,
+    version: &str,
+    options: &Box<[InstallOptions<'_>]>,
+    app_dir: String,
+) -> anyhow::Result<u8> {
     let app_dir_path = Path::new(&app_dir);
     if !app_dir_path.exists() {
         std::fs::create_dir_all(app_dir_path).context("Failed to create app directory")?;
         return Ok(0);
     }
-    let app_version_dir = if options.contains(&InstallOptions::Global) {
-        get_app_version_dir_global(name, &version)
-    } else {
-        get_app_version_dir(name, &version)
-    };
-    let app_current_dir = if options.contains(&InstallOptions::Global) {
-        get_app_current_dir_global(name)
-    } else {
-        get_app_current_dir(name)
-    };
+    let app_version_dir = app_dir_path.join(version).to_string_lossy().into_owned();
+    let app_current_dir = app_dir_path.join("current").to_string_lossy().into_owned();
     let app_version_path = Path::new(&app_version_dir);
     let app_current_path = Path::new(&app_current_dir);
     if app_current_path.exists() {
@@ -222,18 +223,21 @@ pub fn check_before_install(
             Ok(0)
         }
     } else if app_version_path.exists() && std::fs::symlink_metadata(&app_current_dir).is_err() {
-        let manifest_json = if options.contains(&InstallOptions::Global) {
-            get_app_dir_version_dir_manifest_global(name, version)
-        } else {
-            get_app_dir_version_dir_manifest(name, version)
-        };
-        if !Path::new(&manifest_json).exists() {
+        let manifest_json = app_version_path.join("manifest.json");
+        let install_json = app_version_path.join("install.json");
+        if !manifest_json.is_file() || !install_json.is_file() {
+            let missing_file = if !manifest_json.is_file() {
+                "manifest.json"
+            } else {
+                "install.json"
+            };
             eprintln!(
                 "{}",
                 tr_fmt!(
-                    "'{name}' manifest.json is missing, reinstall is recommended",
-                    "'{name}' manifest.json 文件丢失，建议覆盖安装",
-                    name = name
+                    "'{name}' {file} is missing, reinstall is recommended",
+                    "'{name}' {file} 文件丢失，建议覆盖安装",
+                    name = name,
+                    file = missing_file
                 )
                 .dark_yellow()
                 .bold()
@@ -258,7 +262,14 @@ pub fn check_before_install(
                 .dark_yellow()
                 .bold(),
             );
-            check_child_directory(&app_dir)?;
+            // Only remove the incomplete version; other installed versions may be valid.
+            println!(
+                "{} {}",
+                tr("Removing", "正在删除").dark_cyan().bold(),
+                app_version_path.to_string_lossy().dark_cyan().bold()
+            );
+            std::fs::remove_dir_all(app_version_path)
+                .context("Failed to remove incomplete app version directory")?;
             println!(
                 "{}",
                 tr_fmt!(
@@ -269,6 +280,7 @@ pub fn check_before_install(
                 .dark_green()
                 .bold(),
             );
+            return Ok(0);
         }
         println!(
             "{}",
@@ -292,80 +304,30 @@ pub fn check_before_install(
             .bold()
         );
         create_dir_symbolic_link(&app_version_dir, &app_current_dir)?;
-        create_shim_or_shortcuts(&manifest_json, name, options)
-            .expect("Could not create shim or shortcuts");
-        let install_json = if options.contains(&InstallOptions::Global) {
-            get_app_dir_install_json_global(name)
-        } else {
-            get_app_dir_install_json(name)
-        };
-        if Path::new(&install_json).exists() {
-            println!(
-                "{}",
-                tr_fmt!(
-                    "WARN  '{name}' ({old_version}) is already installed",
-                    "WARN  '{name}' ({old_version}) 已经安装",
-                    name = name,
-                    old_version = old_version
-                )
-                .dark_yellow()
-                .bold(),
-            );
-            println!(
-                "{}",
-                tr_fmt!(
-                    "You can use 'hp update {name}' to install another version",
-                    "您可以使用 'hp update {name}' 安装其他版本",
-                    name = name
-                )
-                .dark_cyan()
-                .bold()
-            );
-            return Ok(1);
-        } else {
-            eprintln!(
-                "{}",
-                tr_fmt!(
-                    "'{name}' install.json is missing, reinstall is recommended",
-                    "'{name}' install.json 文件丢失，建议覆盖安装",
-                    name = name
-                )
-                .dark_yellow()
-                .bold()
-            );
-            println!(
-                "{}",
-                tr_fmt!(
-                    "ERROR '{name}' is not installed correctly",
-                    "ERROR '{name}' 未正确安装",
-                    name = name
-                )
-                .dark_red()
-                .bold(),
-            );
-            println!(
-                "{}",
-                tr_fmt!(
-                    "WARN  '{name}' Cleaning up previously failed installation files first",
-                    "WARN  '{name}' 先清除之前安装失败的文件",
-                    name = name
-                )
-                .dark_yellow()
-                .bold(),
-            );
-            check_child_directory(&app_dir)?;
-            println!(
-                "{}",
-                tr_fmt!(
-                    "'{name}' was already uninstalled successfully!",
-                    "'{name}' 已成功卸载！",
-                    name = name
-                )
-                .dark_green()
-                .bold(),
-            );
-            Ok(0)
-        }
+        create_shim_or_shortcuts(&manifest_json.to_string_lossy(), name, options)
+            .context("Could not create shim or shortcuts")?;
+        println!(
+            "{}",
+            tr_fmt!(
+                "WARN  '{name}' ({old_version}) is already installed",
+                "WARN  '{name}' ({old_version}) 已经安装",
+                name = name,
+                old_version = old_version
+            )
+            .dark_yellow()
+            .bold(),
+        );
+        println!(
+            "{}",
+            tr_fmt!(
+                "You can use 'hp update {name}' to install another version",
+                "您可以使用 'hp update {name}' 安装其他版本",
+                name = name
+            )
+            .dark_cyan()
+            .bold()
+        );
+        Ok(1)
     } else if std::fs::symlink_metadata(&app_current_dir).is_ok() && !app_current_path.exists()
     //exists默认会解析符号链接
     {
@@ -390,46 +352,12 @@ pub fn check_before_install(
             .dark_yellow()
             .bold(),
         );
-        check_child_directory(&app_dir)?;
-
-        println!(
-            "{}",
-            tr_fmt!("'{name}' was uninstalled", "'{name}' 已卸载", name = name)
-                .dark_green()
-                .bold(),
-        );
-        std::fs::remove_dir_all(app_dir_path).context("Failed to remove app directory")?;
-        Ok(0)
+        // Remove only the dangling link, then inspect the requested version again.
+        std::fs::remove_dir_all(app_current_path)
+            .context("Failed to remove broken app current link")?;
+        check_installation(name, version, options, app_dir)
     } else if !app_version_path.exists() && std::fs::symlink_metadata(app_current_dir).is_err() {
-        println!(
-            "{}",
-            tr_fmt!(
-                "ERROR  '{name}' is not installed correctly",
-                "ERROR  '{name}' 未正确安装",
-                name = name
-            )
-            .dark_red()
-            .bold(),
-        );
-        println!(
-            "{}",
-            tr_fmt!(
-                "WARN  '{name}' Cleaning up previously failed installation files first",
-                "WARN  '{name}' 先清除之前安装失败的文件",
-                name = name
-            )
-            .dark_yellow()
-            .bold(),
-        );
-        check_child_directory(&app_dir)?;
-
-        println!(
-            "{}",
-            tr_fmt!("'{name}' was uninstalled", "'{name}' 已卸载", name = name)
-                .dark_green()
-                .bold(),
-        );
-        std::fs::remove_dir_all(app_dir_path).context("Failed to remove app directory")?;
+        // A different version may still be installed without a current link.
         Ok(0)
     } else {
         println!(
@@ -446,22 +374,6 @@ pub fn check_before_install(
     }
 }
 
-fn check_child_directory(app_dir: &String) -> anyhow::Result<()> {
-    let dirs = std::fs::read_dir(app_dir).context("Failed to read app directory")?;
-    for dir in dirs {
-        let dir = dir?;
-        let path = dir.path();
-        if Path::new(&path).exists() {
-            println!(
-                "{} {}",
-                tr("Removing", "正在删除").dark_cyan().bold(),
-                path.to_string_lossy().dark_cyan().bold()
-            );
-        }
-    }
-    Ok(())
-}
-
 pub fn create_dir_symbolic_link(version_dir: &String, current_dir: &String) -> anyhow::Result<()> {
     crate::utils::system::create_dir_link(version_dir, current_dir)
         .context("Failed to create link directory")?;
@@ -473,4 +385,140 @@ pub fn create_dir_symbolic_link(version_dir: &String, current_dir: &String) -> a
             .bold()
     );
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn missing_manifest_cleans_incomplete_version_and_continues_installation() -> anyhow::Result<()>
+    {
+        for options in [vec![], vec![InstallOptions::Global]] {
+            let temp = tempfile::tempdir()?;
+            let app_dir = temp.path().join("hiddify");
+            let version_dir = app_dir.join("4.1.1");
+            let previous_version_dir = app_dir.join("4.1.0");
+            std::fs::create_dir_all(&version_dir)?;
+            std::fs::write(version_dir.join("install.json"), "{}")?;
+            std::fs::write(version_dir.join("partial-download"), "incomplete")?;
+            std::fs::create_dir_all(&previous_version_dir)?;
+            std::fs::write(previous_version_dir.join("manifest.json"), "{}")?;
+
+            let result = check_installation(
+                "hiddify",
+                "4.1.1",
+                &options.into_boxed_slice(),
+                app_dir.to_string_lossy().into_owned(),
+            )?;
+
+            assert_eq!(result, 0, "the caller must resume installation");
+            assert!(!version_dir.exists());
+            assert!(std::fs::symlink_metadata(app_dir.join("current")).is_err());
+            assert!(previous_version_dir.join("manifest.json").is_file());
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn invalid_manifest_returns_error_instead_of_panicking_during_reset() -> anyhow::Result<()> {
+        let temp = tempfile::tempdir()?;
+        let app_dir = temp.path().join("hiddify");
+        let version_dir = app_dir.join("4.1.1");
+        std::fs::create_dir_all(&version_dir)?;
+        std::fs::write(version_dir.join("manifest.json"), "invalid json")?;
+        std::fs::write(version_dir.join("install.json"), "{}")?;
+
+        let error = check_installation(
+            "hiddify",
+            "4.1.1",
+            &vec![].into_boxed_slice(),
+            app_dir.to_string_lossy().into_owned(),
+        )
+        .expect_err("invalid manifest should return an error");
+
+        let message = format!("{error:#}");
+        assert!(message.contains("Could not create shim or shortcuts"));
+        assert!(message.contains("Failed to parse manifest file"));
+        Ok(())
+    }
+
+    #[test]
+    fn missing_install_metadata_does_not_create_links_or_shims() -> anyhow::Result<()> {
+        let temp = tempfile::tempdir()?;
+        let app_dir = temp.path().join("hiddify");
+        let version_dir = app_dir.join("4.1.1");
+        std::fs::create_dir_all(&version_dir)?;
+        std::fs::write(version_dir.join("manifest.json"), "{}")?;
+
+        assert_eq!(
+            check_installation(
+                "hiddify",
+                "4.1.1",
+                &vec![].into_boxed_slice(),
+                app_dir.to_string_lossy().into_owned(),
+            )?,
+            0
+        );
+        assert!(!version_dir.exists());
+        assert!(std::fs::symlink_metadata(app_dir.join("current")).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn absent_requested_version_preserves_other_installed_versions() -> anyhow::Result<()> {
+        for broken_link in [false, true] {
+            let temp = tempfile::tempdir()?;
+            let app_dir = temp.path().join("hiddify");
+            let previous_version = app_dir.join("4.1.0");
+            std::fs::create_dir_all(&previous_version)?;
+            std::fs::write(previous_version.join("manifest.json"), "{}")?;
+            if broken_link {
+                let missing_version = app_dir.join("missing");
+                std::fs::create_dir(&missing_version)?;
+                crate::utils::system::create_dir_link(&missing_version, app_dir.join("current"))?;
+                std::fs::remove_dir(&missing_version)?;
+            }
+
+            assert_eq!(
+                check_installation(
+                    "hiddify",
+                    "4.1.1",
+                    &vec![].into_boxed_slice(),
+                    app_dir.to_string_lossy().into_owned(),
+                )?,
+                0
+            );
+            assert!(previous_version.join("manifest.json").is_file());
+            assert!(std::fs::symlink_metadata(app_dir.join("current")).is_err());
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn broken_current_link_is_repaired_from_complete_requested_version() -> anyhow::Result<()> {
+        let temp = tempfile::tempdir()?;
+        let app_dir = temp.path();
+        let version_dir = app_dir.join("4.1.1");
+        std::fs::create_dir(&version_dir)?;
+        std::fs::write(version_dir.join("manifest.json"), "{}")?;
+        std::fs::write(version_dir.join("install.json"), "{}")?;
+        let missing_version = app_dir.join("missing");
+        std::fs::create_dir(&missing_version)?;
+        crate::utils::system::create_dir_link(&missing_version, app_dir.join("current"))?;
+        std::fs::remove_dir(&missing_version)?;
+
+        assert_eq!(
+            check_installation(
+                "hiddify",
+                "4.1.1",
+                &vec![].into_boxed_slice(),
+                app_dir.to_string_lossy().into_owned(),
+            )?,
+            1
+        );
+        assert!(app_dir.join("current").join("manifest.json").is_file());
+        assert!(version_dir.join("install.json").is_file());
+        Ok(())
+    }
 }
