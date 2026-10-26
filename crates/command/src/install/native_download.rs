@@ -1,3 +1,4 @@
+use crate::cache::download::{is_complete, publish};
 use anyhow::{Context, bail};
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use rayon::prelude::*;
@@ -18,7 +19,7 @@ pub(super) fn download_files(urls: &[String], targets: &[String]) -> anyhow::Res
     let pending: Vec<_> = urls
         .iter()
         .zip(targets)
-        .filter(|(_, target)| !Path::new(target).exists() && seen.insert(target.as_str()))
+        .filter(|(_, target)| !is_complete(Path::new(target)) && seen.insert(target.as_str()))
         .collect();
     if pending.is_empty() {
         return Ok(());
@@ -100,7 +101,7 @@ fn download_file(
         bar.abandon_with_message("download failed");
         return Err(error);
     }
-    std::fs::rename(&pending.0, target)?;
+    publish(&pending.0, target)?;
     bar.finish_with_message("downloaded");
     Ok(())
 }
@@ -219,6 +220,45 @@ mod performance_tests {
         assert_eq!(std::fs::read(&target).unwrap(), b"abc");
         download_files(&["invalid-url".into()], std::slice::from_ref(&target)).unwrap();
         assert_eq!(std::fs::read_dir(temp.path()).unwrap().count(), 1);
+    }
+
+    #[test]
+    fn cache_regression_native_fallback_replaces_aria2_partial_and_preserves_other_hits() {
+        use crate::cache::download::with_suffix;
+        let temp = tempfile::tempdir().unwrap();
+        let target = temp.path().join("partial.zip");
+        let cached = temp.path().join("cached.zip");
+        std::fs::write(&target, b"preallocated partial").unwrap();
+        std::fs::write(with_suffix(&target, ".aria2"), b"resume").unwrap();
+        std::fs::write(with_suffix(&target, ".incomplete"), b"partial").unwrap();
+        std::fs::write(with_suffix(&target, ".incomplete.aria2"), b"resume").unwrap();
+        std::fs::write(&cached, b"keep").unwrap();
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let url = format!("http://{}/file", listener.local_addr().unwrap());
+        let server = std::thread::spawn(move || {
+            let (mut socket, _) = listener.accept().unwrap();
+            socket
+                .set_read_timeout(Some(Duration::from_secs(3)))
+                .unwrap();
+            let mut request = [0; 1024];
+            socket.read(&mut request).unwrap();
+            socket
+                .write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 3\r\nConnection: close\r\n\r\nabc")
+                .unwrap();
+        });
+        download_files(
+            &["invalid-url".into(), url],
+            &[
+                cached.to_string_lossy().into_owned(),
+                target.to_string_lossy().into_owned(),
+            ],
+        )
+        .unwrap();
+        server.join().unwrap();
+        assert_eq!(std::fs::read(&target).unwrap(), b"abc");
+        assert_eq!(std::fs::read(&cached).unwrap(), b"keep");
+        assert!(is_complete(&target));
+        assert_eq!(std::fs::read_dir(temp.path()).unwrap().count(), 2);
     }
 
     #[test]

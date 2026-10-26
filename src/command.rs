@@ -376,6 +376,35 @@ mod tests {
             _ => panic!("Expected Cache"),
         }
 
+        for args in [
+            vec!["hp", "cache", "rm", "--all", "--dry-run"],
+            vec!["hp", "cache", "rm", "git", "-n"],
+        ] {
+            let cli = crate::Cli::try_parse_from(args).unwrap();
+            match cli.command.unwrap() {
+                Commands::Cache(args) => match args.command.unwrap() {
+                    crate::command_args::cache::CacheSubcommand::Rm(args) => assert!(args.dry_run),
+                    _ => panic!("Expected Cache Rm"),
+                },
+                _ => panic!("Expected Cache"),
+            }
+        }
+        let cli = crate::Cli::try_parse_from([
+            "hp", "cache", "prune", "git", "--days", "30", "-n", "--global",
+        ])
+        .unwrap();
+        match cli.command.unwrap() {
+            Commands::Cache(args) => match args.command.unwrap() {
+                crate::command_args::cache::CacheSubcommand::Prune(args) => {
+                    assert_eq!(args.apps, vec!["git"]);
+                    assert_eq!(args.days, 30);
+                    assert!(args.dry_run && args.global);
+                }
+                _ => panic!("Expected Cache Prune"),
+            },
+            _ => panic!("Expected Cache"),
+        }
+
         // Info
         let cli = crate::Cli::try_parse_from(["hp", "info", "git", "curl"]).unwrap();
         match cli.command.unwrap() {

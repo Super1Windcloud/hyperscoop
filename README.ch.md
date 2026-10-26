@@ -166,13 +166,36 @@ hp [COMMAND] [OPTIONS]
 | 命令 | 功能说明 |
 | :--- | :--- |
 | `hp doctor` / `checkup` | 全面体检与自愈：检测断开软链、无效 Shim、PATH 环境变量与长路径支持，加 `-f / --fix` 一键自动修复 |
-| `hp cleanup` | 清理旧版本软件与安装包缓存，释放宝贵硬盘空间（支持 `-n` 预演） |
+| `hp cleanup` | 清理已安装软件的旧版本（支持 `-n` 预演）；安装包缓存通过 `hp cache` 管理 |
+| `hp cache show / rm / prune` | 查看完整下载、删除指定应用缓存或清理过期包（支持 `-n` 预演） |
 | `hp size` / `disk-usage` | 可视化分析各应用、缓存和持久化数据的磁盘占用排行 |
 | `hp hold <app>` / `hp pin` | 锁定应用版本，禁止其被更新（解锁命令：`hp unpin` / `hp unhold`） |
 | `hp switch <app> [ver]` | 多版本共存管理：在已安装的多个历史版本之间无缝切换活动版本 |
 | `hp services` / `service` | 管理软件注册的 Windows 后台服务（启动 / 停止 / 重启 / 状态查看） |
 | `hp shellenv` | 导出当前环境 PATH 配置，支持 PowerShell, CMD, Bash, Zsh, Nushell |
 | `hp bundle` | 声明式环境管理（`dump` 导出、`install` 一键装机、`check` 对齐检测） |
+
+---
+
+## 下载缓存机制
+
+完整安装包继续使用兼容 Scoop 的 `<应用名>#<版本>#<URL哈希>.<扩展名>` 命名，存放在 Scoop 的 `cache` 目录或配置的 `cache_path`。已有完整缓存可直接复用，默认仍按清单校验内容哈希；显式跳过哈希校验时除外。
+
+借鉴 Homebrew 对下载中与下载完成状态的隔离：aria2 写入 `.incomplete` 文件，仅在下载成功后重命名为正式缓存；旧版 `.aria2` 半成品会连同续传状态迁移。原生 HTTP 回退先写独立 `.part` 文件，再重命名发布，避免将 aria2 中断文件误判为缓存。相同安装包的下载通过文件锁协调，清理等待正在使用缓存的 hp 操作完成；Scoop 自身不参与这些 hp 文件锁。
+
+```powershell
+hp fetch git curl                   # 仅下载并校验，不安装
+hp cache show                       # 仅列出已完成的安装包
+hp cache rm git curl -n              # 预览指定应用的缓存清理
+hp cache rm git curl                 # 删除对应安装包及半成品
+hp cache prune --days 120 -n         # 预览过期缓存
+hp cache prune git --days 30         # 仅清理 git 超过 30 天的缓存
+hp cache rm --all -n                 # 预览全部受管理安装包缓存的清理
+```
+
+添加 `--global` 可管理全局缓存。过期清理将安装包与半成品、控制文件作为一组，按组内最新修改时间判断；保留未知文件、目录和链接。`--all` 删除受管理的安装包缓存，保留 hp 的锁文件与维护标记。
+
+安装、升级或 fetch 成功后会刷新当前安装包的缓存时间，并尝试每天最多执行一次自动清理，默认保留 120 天。当前包受保护；缓存正被其他 hp 操作使用时跳过自动清理。使用 `hp config set cache_max_age_days 60` 调整保留天数，或通过 `hp config set cache_auto_cleanup false` 关闭自动清理；手动 `hp cache prune` 仍可使用。原生 HTTP 在下载中断后重新下载，aria2 在控制文件可用时支持断点续传。
 
 ---
 

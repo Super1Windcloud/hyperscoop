@@ -197,6 +197,7 @@ pub fn install_app_from_local_manifest_file<P: AsRef<Path>>(
         download_manager.check_cache_file_hash()?
     }
     if options.contains(&InstallOptions::OnlyDownloadNoInstall) {
+        download_manager.finish_cache_cleanup();
         return Ok(());
     }
     //  * 提取 cache 中的zip 到 app dir
@@ -294,6 +295,7 @@ pub fn install_app_from_local_manifest_file<P: AsRef<Path>>(
             show_notes(notes)?;
         }
     }
+    download_manager.finish_cache_cleanup();
     Ok(())
 }
 

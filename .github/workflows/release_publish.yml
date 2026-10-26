@@ -46,9 +46,12 @@ jobs:
           cargo test -p command_util_lib --lib archive_regression_tests --target x86_64-pc-windows-msvc --locked
           cargo test -p command_util_lib --lib regression_tests --target x86_64-pc-windows-msvc --locked
           cargo test -p command_util_lib --lib install::check::tests --target x86_64-pc-windows-msvc --locked
+          cargo test -p command_util_lib --lib cache_regression --target x86_64-pc-windows-msvc --locked
+          cargo test -p command_util_lib --lib native_download --target x86_64-pc-windows-msvc --locked
           cargo test -p hp --bin hp performance_tests --target x86_64-pc-windows-msvc --locked
           cargo test -p hp --bin hp regression_tests --target x86_64-pc-windows-msvc --locked
           cargo test -p hp --bin hp hyperscoop_middle::invoke_reset::tests --target x86_64-pc-windows-msvc --locked
+          cargo test -p hp --bin hp command::tests --target x86_64-pc-windows-msvc --locked
       - run: cargo build --target ${{ matrix.arch }}-pc-windows-msvc --release --locked
 
 

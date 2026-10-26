@@ -23,6 +23,7 @@ use sha2::{Sha256, Sha512};
 use std::borrow::Cow;
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use std::vec;
 #[cfg(windows)]
 use windows_sys::Win32::System::Registry::{HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE};
@@ -53,6 +54,7 @@ pub struct DownloadManager<'a> {
     archive_files_format: Box<[ArchiveFormat]>,
     exe_setup: bool,
     pub seven_zip: SevenZipStruct<'a>,
+    cache_locks: Option<Arc<crate::cache::download::DownloadLocks>>,
 }
 
 fn archive_format_from_extension(extension: &str, exe_setup: bool) -> ArchiveFormat {
@@ -335,9 +337,11 @@ impl<'a> DownloadManager<'a> {
 
     pub fn set_input_file(&mut self) {
         let aria2c_input_file = format!(
-            "{}\\{}_input_file.txt",
+            "{}\\{}_{}_{}_input_file.txt",
             self.get_scoop_cache_dir(),
-            self.app_name
+            self.app_name,
+            std::process::id(),
+            rand::random::<u64>()
         );
         self.input_file = aria2c_input_file
     }
@@ -349,11 +353,20 @@ impl<'a> DownloadManager<'a> {
         let mut file =
             std::fs::File::create(self.get_input_file()).context("Failed to create input file")?;
         let urls = self.get_download_urls();
+        let mut seen = std::collections::HashSet::new();
         let result =
             urls.iter()
                 .zip(self.get_cache_file_name())
                 .try_for_each(|(url, cache_name)| {
-                    let content = format!("{}\n\tout={}", url, cache_name);
+                    if !seen.insert(cache_name) {
+                        return Ok(());
+                    }
+                    let target = Path::new(self.get_scoop_cache_dir()).join(cache_name);
+                    if crate::cache::download::is_complete(&target) {
+                        return Ok(());
+                    }
+                    crate::cache::download::prepare_aria2(&target)?;
+                    let content = format!("{}\n\tout={}.incomplete", url, cache_name);
                     writeln!(file, "{}", content).context("Failed to write input file")?;
                     Ok(())
                 }) as anyhow::Result<_>;
@@ -503,7 +516,7 @@ impl<'a> DownloadManager<'a> {
             let url: StringArrayOrString = StringArrayOrString::String(manifest_path.to_string());
             self.set_cache_file_name(app_name, "remote_url", &url)?;
             self.set_final_cache_file_path()?;
-            self.create_input_file()?;
+            self.lock_cache()?;
             return Ok(());
         }
         let content = std::fs::read_to_string(manifest_path)
@@ -571,8 +584,31 @@ impl<'a> DownloadManager<'a> {
 
         self.set_input_file();
         self.set_final_cache_file_path()?;
-        self.create_input_file()?;
+        self.lock_cache()?;
         Ok(())
+    }
+
+    fn lock_cache(&mut self) -> anyhow::Result<()> {
+        self.cache_locks = Some(Arc::new(crate::cache::download::DownloadLocks::acquire(
+            Path::new(&self.scoop_cache_dir),
+            &self.final_cache_file_path,
+        )?));
+        Ok(())
+    }
+
+    pub fn finish_cache_cleanup(self) {
+        let root = PathBuf::from(&self.scoop_cache_dir);
+        let protected = self.get_final_cache_file_path();
+        // Reused packages age from the last successful fetch/install, not the first download.
+        for path in &protected {
+            if let Ok(file) = std::fs::OpenOptions::new().write(true).open(path) {
+                let _ = file.set_modified(std::time::SystemTime::now());
+            }
+        }
+        drop(self);
+        if let Err(error) = crate::cache::auto_cleanup(&root, &protected) {
+            log::warn!("Cache cleanup failed: {error:#}");
+        }
     }
 
     pub fn new(
@@ -602,6 +638,7 @@ impl<'a> DownloadManager<'a> {
             archive_files_format: Box::new([]),
             exe_setup: false,
             seven_zip: SevenZipStruct::new(),
+            cache_locks: None,
         };
         download.init(manifest_path)?;
         Ok(download)
@@ -718,14 +755,19 @@ impl<'a> DownloadManager<'a> {
     }
 
     pub fn start_download(&self) -> anyhow::Result<()> {
+        let aria2_config = crate::config::get_config_value_no_print("aria2-enabled");
+        let aria2_enabled =
+            aria2_config.is_empty() || aria2_config.to_lowercase() == "true" || aria2_config == "1";
+        let result = self.start_download_inner(aria2_enabled);
+        let _ = crate::cache::download::remove_if_exists(Path::new(self.get_input_file()));
+        result
+    }
+
+    fn start_download_inner(&self, aria2_enabled: bool) -> anyhow::Result<()> {
         self.ensure_install_dir_not_in_env_path()?;
         let scoop_cache_dir = self.get_scoop_cache_dir();
         let input_file = self.get_input_file();
-        let mut aria2c = self.create_aria2c_instance();
         log::info!("input  file: {}", input_file);
-        aria2c.set_input_file(input_file);
-        aria2c.set_scoop_cache_dir(scoop_cache_dir);
-        aria2c.set_download_urls(self.get_download_urls().as_slice());
         if self.options.contains(&ForceDownloadNoInstallOverrideCache)
             || self.options.contains(&NoUseDownloadCache)
             || (self.app_name == "hp" && self.options.contains(&ForceInstallOverride))
@@ -735,10 +777,7 @@ impl<'a> DownloadManager<'a> {
                 .iter()
                 .map(|name| format!("{}\\{}", self.get_scoop_cache_dir(), name))
                 .collect::<Vec<String>>();
-            let result: Result<(), std::io::Error> = cache_file_path.iter().try_for_each(|path| {
-                if !Path::new(path).exists() {
-                    return Ok(());
-                }
+            let result: anyhow::Result<()> = cache_file_path.iter().try_for_each(|path| {
                 println!(
                     "{}",
                     tr_fmt!(
@@ -749,11 +788,7 @@ impl<'a> DownloadManager<'a> {
                     .dark_grey()
                     .bold()
                 );
-                std::fs::remove_file(path)?;
-                let aria2_file = format!("{path}.aria2");
-                if Path::new(&aria2_file).exists() {
-                    let _ = std::fs::remove_file(&aria2_file);
-                }
+                crate::cache::download::remove_download(Path::new(path))?;
                 Ok(())
             });
             if let Err(e) = result {
@@ -798,8 +833,10 @@ impl<'a> DownloadManager<'a> {
             );
         }
         let final_caches = self.final_cache_file_path.as_ref();
-        let result =
-            !final_caches.is_empty() && final_caches.iter().all(|path| Path::new(path).exists());
+        let result = !final_caches.is_empty()
+            && final_caches
+                .iter()
+                .all(|path| crate::cache::download::is_complete(Path::new(path)));
         if result {
             log::info!("cache file already exist, skip download");
             self.origin_cache_file_names.iter().for_each(|name| {
@@ -817,10 +854,6 @@ impl<'a> DownloadManager<'a> {
             }
             return Ok(());
         }
-        let aria2_config = crate::config::get_config_value_no_print("aria2-enabled");
-        let aria2_enabled =
-            aria2_config.is_empty() || aria2_config.to_lowercase() == "true" || aria2_config == "1";
-
         if !aria2_enabled {
             println!(
                 "{}",
@@ -834,9 +867,25 @@ impl<'a> DownloadManager<'a> {
             return self.download_files_native();
         }
 
+        self.create_input_file()?;
+        let mut aria2c = self.create_aria2c_instance();
+        aria2c.set_input_file(input_file);
+        aria2c.set_scoop_cache_dir(scoop_cache_dir);
+        aria2c.set_download_urls(self.get_download_urls().as_slice());
         aria2c.init_aria2c_config()?;
 
-        let output = aria2c.invoke_aria2c_download();
+        let output = aria2c.invoke_aria2c_download().and_then(|output| {
+            for path in final_caches {
+                let target = Path::new(path);
+                if !crate::cache::download::is_complete(target) {
+                    crate::cache::download::publish(
+                        &crate::cache::download::with_suffix(target, ".incomplete"),
+                        target,
+                    )?;
+                }
+            }
+            Ok(output)
+        });
 
         match output {
             Ok(output) => {
@@ -1203,6 +1252,141 @@ mod test_download_manager {
         println!("{}", output_hash);
         let end = std::time::Instant::now();
         println!(" 用时：{:?}", end - start);
+    }
+}
+
+#[cfg(test)]
+mod cache_regression_tests {
+    use super::*;
+    use std::io::{BufRead, BufReader};
+    use std::net::TcpListener;
+    use std::time::{Duration, Instant};
+
+    fn manager<'a>(
+        root: &Path,
+        options: &'a [InstallOptions<'a>],
+        urls: Vec<String>,
+    ) -> DownloadManager<'a> {
+        let mut manager = DownloadManager {
+            app_name: "fixture",
+            manifest_path: "fixture.json",
+            app_version: "1".into(),
+            scoop_cache_dir: root.to_string_lossy().into_owned(),
+            cache_file_name: vec![],
+            app_version_dir: String::new(),
+            app_current_dir: String::new(),
+            bucket_source: None,
+            options,
+            hash_format: vec![HashFormat::SHA256].into_boxed_slice(),
+            hash_value: vec![hex::encode(Sha256::digest(b"abc"))].into_boxed_slice(),
+            input_file: String::new(),
+            download_urls: Box::new([]),
+            target_rename_alias: Box::new([]),
+            persist_data_dir: String::new(),
+            final_cache_file_path: Box::new([]),
+            install_arch: Cow::Borrowed("64bit"),
+            origin_cache_file_names: Box::new([]),
+            archive_files_format: Box::new([]),
+            exe_setup: false,
+            seven_zip: SevenZipStruct::new(),
+            cache_locks: None,
+        };
+        manager
+            .set_cache_file_name("fixture", "1", &StringArrayOrString::StringArray(urls))
+            .unwrap();
+        manager.set_final_cache_file_path().unwrap();
+        manager.set_input_file();
+        manager.lock_cache().unwrap();
+        manager
+    }
+
+    #[test]
+    fn cache_regression_aria2_input_excludes_hits_deduplicates_and_migrates_partials()
+    -> anyhow::Result<()> {
+        let temp = tempfile::tempdir()?;
+        let manager = manager(
+            temp.path(),
+            &[],
+            vec![
+                "https://example.invalid/a.zip".into(),
+                "https://example.invalid/b.zip".into(),
+                "https://example.invalid/b.zip".into(),
+            ],
+        );
+        let cached = Path::new(&manager.final_cache_file_path[0]);
+        let partial = Path::new(&manager.final_cache_file_path[1]);
+        std::fs::write(cached, b"complete")?;
+        std::fs::write(partial, b"partial")?;
+        std::fs::write(
+            crate::cache::download::with_suffix(partial, ".aria2"),
+            b"resume",
+        )?;
+        manager.create_input_file()?;
+        let input = std::fs::read_to_string(manager.get_input_file())?;
+        assert!(!input.contains("a.zip"));
+        assert_eq!(input.matches("https://example.invalid/b.zip").count(), 1);
+        assert!(input.contains(&format!("out={}.incomplete", manager.cache_file_name[1])));
+        assert!(!partial.exists());
+        assert_eq!(std::fs::read(cached)?, b"complete");
+        Ok(())
+    }
+
+    #[test]
+    fn cache_regression_real_aria2_publishes_complete_download_and_reuses_it() -> anyhow::Result<()>
+    {
+        let temp = tempfile::tempdir()?;
+        let listener = TcpListener::bind("127.0.0.1:0")?;
+        listener.set_nonblocking(true)?;
+        let url = format!("http://{}/fixture.zip", listener.local_addr()?);
+        let manager = manager(temp.path(), &[], vec![url]);
+        let target = manager.final_cache_file_path[0].clone();
+        let server_target = target.clone();
+        let server = std::thread::spawn(move || {
+            let deadline = Instant::now() + Duration::from_secs(15);
+            while Instant::now() < deadline {
+                let (mut socket, _) = match listener.accept() {
+                    Ok(pair) => pair,
+                    Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+                        std::thread::sleep(Duration::from_millis(10));
+                        continue;
+                    }
+                    Err(error) => panic!("{error}"),
+                };
+                socket
+                    .set_read_timeout(Some(Duration::from_secs(3)))
+                    .unwrap();
+                let mut reader = BufReader::new(&mut socket);
+                let mut request = String::new();
+                reader.read_line(&mut request).unwrap();
+                loop {
+                    let mut header = String::new();
+                    reader.read_line(&mut header).unwrap();
+                    if header == "\r\n" || header.is_empty() {
+                        break;
+                    }
+                }
+                assert!(
+                    !Path::new(&server_target).exists(),
+                    "final cache exposed before download completion"
+                );
+                socket
+                    .write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 3\r\nConnection: close\r\n\r\n")
+                    .unwrap();
+                if request.starts_with("GET ") {
+                    socket.write_all(b"abc").unwrap();
+                    return;
+                }
+            }
+            panic!("aria2 did not request the test package");
+        });
+        manager.start_download_inner(true)?;
+        server.join().unwrap();
+        manager.check_cache_file_hash()?;
+        assert_eq!(std::fs::read(&target)?, b"abc");
+        assert!(!crate::cache::download::with_suffix(Path::new(&target), ".incomplete").exists());
+        // The server is gone: a second invocation must use the completed cache.
+        manager.start_download_inner(true)?;
+        Ok(())
     }
 }
 

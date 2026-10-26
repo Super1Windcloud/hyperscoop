@@ -1,5 +1,5 @@
 use crate::command::CacheArgs;
-use crate::command_args::cache::CacheSubcommand::{Rm, Show};
+use crate::command_args::cache::CacheSubcommand::{Prune, Rm, Show};
 use anyhow::bail;
 use command_util_lib::cache::*;
 
@@ -15,19 +15,17 @@ pub fn execute_cache_command(cache_args: CacheArgs) -> Result<(), anyhow::Error>
                 Ok(())
             }
             Rm(sub) => {
-                if sub.all {
-                    log::info!("cache rm command ");
-                    rm_all_cache(sub.global)?;
-                    return Ok(());
-                }
-                if sub.rm_apps.is_empty() {
+                if !sub.all && sub.rm_apps.is_empty() {
                     bail!("the following required arguments were not provided: <apps>...");
                 }
-                for app_name in &sub.rm_apps {
-                    display_specified_cache_info(app_name.as_str(), sub.global)?;
-                }
-                Ok(())
+                let apps = if sub.all || sub.rm_apps.iter().any(|name| name == "*") {
+                    &[][..]
+                } else {
+                    &sub.rm_apps
+                };
+                clean_cache(sub.global, apps, None, sub.dry_run)
             }
+            Prune(sub) => clean_cache(sub.global, &sub.apps, Some(sub.days), sub.dry_run),
         },
     }
 }

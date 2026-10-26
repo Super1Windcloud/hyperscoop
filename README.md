@@ -166,13 +166,36 @@ hp [COMMAND] [OPTIONS]
 | Command | Description |
 | :--- | :--- |
 | `hp doctor` / `checkup` | Diagnose Windows PATH, broken symlinks, orphaned shims, long paths; add `-f / --fix` to auto-repair |
-| `hp cleanup` | Reclaim disk space by purging old versions and download caches (`-n` for preview) |
+| `hp cleanup` | Remove old installed versions (`-n` for preview); use `hp cache` for download archives |
+| `hp cache show / rm / prune` | List completed downloads, remove selected caches, or prune expired packages (`-n` for preview) |
 | `hp size` / `disk-usage` | Breakdown disk space consumed by apps, cache, and persistent directories |
 | `hp hold <app>` / `hp pin` | Lock an app's version to prevent unintended updates (`hp unpin` to unlock) |
 | `hp switch <app> [ver]` | Switch active version of a multi-version application |
 | `hp services` / `service` | Manage Windows background services registered by packages (start/stop/restart) |
 | `hp shellenv` | Generate shell environment evaluation exports for PowerShell, Bash, Zsh, Nushell |
 | `hp bundle` | Manage declarative `Hpfile` workflows (`dump`, `install`, `check`, `cleanup`) |
+
+---
+
+## Download cache
+
+Completed downloads keep the Scoop-compatible `<app>#<version>#<URL-hash>.<ext>` name in the Scoop `cache` directory (or your configured `cache_path`). Existing completed caches are reused and checked against the manifest hash unless hash verification is disabled.
+
+Following Homebrew's separation of pending and completed downloads, aria2 writes to `.incomplete` files and publishes them only after success. Legacy `.aria2` partials are migrated with their resume data. Native HTTP fallback downloads to a separate `.part` file before renaming it, so an interrupted aria2 file cannot become a cache hit. Downloads of the same package are locked; cleanup waits for active hp cache users. Scoop itself does not participate in these hp locks.
+
+```powershell
+hp fetch git curl                   # Download and verify without installing
+hp cache show                       # Show completed packages only
+hp cache rm git curl -n              # Preview removal for selected apps
+hp cache rm git curl                 # Remove their packages and partial files
+hp cache prune --days 120 -n         # Preview expired packages
+hp cache prune git --days 30         # Prune only git caches older than 30 days
+hp cache rm --all -n                 # Preview removal of all managed package caches
+```
+
+Add `--global` to manage the global cache. Pruning groups packages with their partial/control files and uses the newest modification time in each group. Unknown files, directories and links are preserved. `--all` removes managed package caches while retaining hp's lock/maintenance files.
+
+Successful installs, upgrades and fetches refresh the package's cache timestamp and attempt automatic cleanup at most once per day. The default retention is 120 days; the current package is protected, and automatic cleanup skips a busy cache. Configure this with `hp config set cache_max_age_days 60`, or disable automatic cleanup with `hp config set cache_auto_cleanup false`. Manual `hp cache prune` remains available. Native HTTP restarts interrupted downloads; aria2 supports resuming when its control file is available.
 
 ---
 
