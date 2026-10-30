@@ -9,9 +9,7 @@ use rayon::prelude::*;
 use std::fs;
 use std::path::Path;
 pub mod update;
-use crate::init_env::{
-    get_app_current_dir, get_app_current_dir_global, get_app_dir, get_app_dir_global, is_app_held,
-};
+use crate::init_env::{get_app_current_dir, get_app_current_dir_global, is_app_held};
 use crate::install::InstallOptions::UpdateTransaction;
 use crate::install::UpdateOptions::{ForceUpdateOverride, Global, RemoveOldVersionApp};
 use crate::install::{InstallOptions, UpdateOptions, install_app};
@@ -23,7 +21,7 @@ use crate::utils::progrees_bar::{
 };
 use crate::utils::progrees_bar::{ProgressOptions, gen_stats_callback};
 use crate::utils::request::get_git_repo_remote_url;
-use crate::utils::system::kill_processes_using_app;
+use crate::utils::system::{kill_processes_using_app, read_dir_link};
 use crate::utils::utility::get_official_bucket_path;
 use anyhow::Context;
 #[allow(unused_imports)]
@@ -41,6 +39,7 @@ pub fn update_all_apps(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
     } else {
         get_all_installed_apps_name()
     };
+    let mut errors = Vec::new();
     for app in all_apps_name {
         if is_app_held(&app, is_global) {
             println!(
@@ -55,19 +54,28 @@ pub fn update_all_apps(options: &[UpdateOptions]) -> Result<(), anyhow::Error> {
             );
             continue;
         }
-        update_specific_app(&app, options)?;
+        // 单个应用失败不中断整批升级，最后统一汇总
+        if let Err(err) = update_specific_app(&app, options) {
+            eprintln!("{} {}: {:#}", "ERROR".dark_red().bold(), app, err);
+            errors.push(format!("{}: {:#}", app, err));
+        }
+    }
+    if !errors.is_empty() {
+        bail!(
+            "{}",
+            tr_fmt!(
+                "Failed to update {count} app(s):\n{errors}",
+                "更新 {count} 个应用失败:\n{errors}",
+                count = errors.len(),
+                errors = errors.join("\n")
+            )
+        );
     }
     Ok(())
 }
 
-pub fn remove_old_version(app_name: &str, options: &[UpdateOptions]) -> anyhow::Result<()> {
-    let app_current_dir = if options.contains(&Global) {
-        get_app_current_dir_global(app_name)
-    } else {
-        get_app_current_dir(app_name)
-    };
-    let target_version_path =
-        fs::read_link(app_current_dir).context(format!("failed to read link of {}", app_name))?;
+/// 删除升级前的旧版本目录，只能在新版本安装成功之后调用
+pub fn remove_old_version(app_name: &str, target_version_path: &Path) -> anyhow::Result<()> {
     log::debug!("target_version_path: {:?}", target_version_path);
     let result = fs::remove_dir_all(&target_version_path)
         .context(format!("failed to remove target version of {}", app_name));
@@ -132,17 +140,12 @@ pub fn update_specific_app(app_name: &str, options: &[UpdateOptions]) -> Result<
 
     let options = transform_update_options_to_install(options);
 
-    if origin_options.contains(&ForceUpdateOverride) {
-        let special_app_dir = if origin_options.contains(&Global) {
-            get_app_dir_global(&app_name)
-        } else {
-            get_app_dir(&app_name)
-        };
-        if Path::new(&special_app_dir).exists() {
-            fs::remove_dir_all(special_app_dir)
-                .context("Failed to remove old version of app at 102")?;
-        }
+    let app_current = if is_global {
+        get_app_current_dir_global(app_name)
+    } else {
+        get_app_current_dir(app_name)
     };
+    // --force 的旧目录处理交给 install 的备份事务，失败时可还原
     let _ = match check_app_version_latest(&app_name, &origin_options) {
         Ok(version) => {
             if version.is_some() {
@@ -163,24 +166,32 @@ pub fn update_specific_app(app_name: &str, options: &[UpdateOptions]) -> Result<
         }
         Err(err) => {
             eprintln!("{}", err.to_string().dark_red().bold());
-            let app_current = if origin_options.contains(&Global) {
-                get_app_current_dir_global(&app_name)
-            } else {
-                get_app_current_dir(&app_name)
-            };
             fs::remove_dir_all(&app_current).context(format!(
                 "Failed to remove broken link current {app_current} at 126"
             ))?;
         }
     };
 
-    if origin_options.contains(&RemoveOldVersionApp)
+    let old_version_dir = if origin_options.contains(&RemoveOldVersionApp)
         && app_name != "hp"
         && !origin_options.contains(&ForceUpdateOverride)
     {
-        remove_old_version(&app_name, &origin_options)?;
-    }
+        read_dir_link(&app_current)
+    } else {
+        None
+    };
     install_app(&app_name, options.as_ref())?;
+
+    // 与 brew 一致：新版本安装成功后才清理旧版本，清理失败只告警
+    if let Some(old_version_dir) = old_version_dir {
+        let new_version_dir = read_dir_link(&app_current);
+        if new_version_dir.as_deref() != Some(old_version_dir.as_path()) && old_version_dir.exists()
+        {
+            if let Err(err) = remove_old_version(app_name, &old_version_dir) {
+                eprintln!("{} {:#}", "Cleanup Failed:".dark_yellow().bold(), err);
+            }
+        }
+    }
     Ok(())
 }
 

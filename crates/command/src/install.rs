@@ -6,9 +6,11 @@ use std::path::Path;
 
 pub mod installer;
 use crate::init_env::{
-    check_bucket_whether_exists, get_app_current_dir, get_app_dir, get_app_dir_global,
+    check_bucket_whether_exists, get_app_current_dir, get_app_current_dir_global, get_app_dir,
+    get_app_dir_global, get_app_version_dir, get_app_version_dir_global,
     get_special_bucket_all_manifest_path, get_special_bucket_all_manifest_path_global,
     get_special_version_all_manifest_path, get_special_version_all_manifest_path_global,
+    init_scoop_global, init_user_scoop,
 };
 use crate::manifest::manifest_deserialize::*;
 pub use installer::*;
@@ -27,15 +29,17 @@ mod native_download;
 pub mod parse_lifecycle_scripts;
 pub use parse_lifecycle_scripts::*;
 pub mod env_operate;
+pub mod transaction;
 use crate::list::VersionJSON;
 use crate::manifest::manifest::{
     get_best_manifest_from_local_bucket, get_best_manifest_from_local_bucket_global,
     get_latest_manifest_from_local_bucket, get_latest_manifest_from_local_bucket_global,
 };
-use crate::utils::system::{ensure_persist_permission, kill_processes_using_app};
+use crate::utils::system::ensure_persist_permission;
 use crate::utils::utility::{nightly_version, validate_version};
 pub use download::*;
 pub use env_operate::*;
+use transaction::{AppDirBackup, InstallTransaction};
 
 /// 下载, 解压, preinstall, create_shim_shortcut, postinstall
 pub fn install_app_from_local_manifest_file<P: AsRef<Path>>(
@@ -70,28 +74,26 @@ pub fn install_app_from_local_manifest_file<P: AsRef<Path>>(
     if version.is_empty() {
         bail!("manifest file version is empty")
     }
-    if options.contains(&InstallOptions::ForceInstallOverride) {
-        let special_app_dir = if options.contains(&InstallOptions::Global) {
-            get_app_dir_global(&app_name)
+    // --force 不再直接删除 app 目录：先整体备份，安装成功后才删除备份
+    let force_backup = if options.contains(&InstallOptions::ForceInstallOverride)
+        && app_name.to_lowercase() != "hp"
+    {
+        let (special_app_dir, scoop_root) = if options.contains(&InstallOptions::Global) {
+            (get_app_dir_global(&app_name), init_scoop_global())
         } else {
-            get_app_dir(&app_name)
+            (get_app_dir(&app_name), init_user_scoop())
         };
-
-        if Path::new(&special_app_dir).exists() && app_name.to_lowercase() != "hp" {
-            let result = std::fs::remove_dir_all(&special_app_dir);
-            match result {
-                Ok(_) => {
-                    log::debug!("remove app dir success!");
-                }
-                Err(_) => {
-                    log::debug!("kill {app_name}  process");
-                    kill_processes_using_app(&app_name);
-                    std::fs::remove_dir_all(&special_app_dir)
-                        .context(format!("remove app dir '{}' failed", special_app_dir))?;
-                }
-            }
-        }
-    }
+        Some(
+            AppDirBackup::create(
+                &special_app_dir,
+                Path::new(&scoop_root).join("hp-backup"),
+                &app_name,
+            )
+            .context(format!("backup app dir '{}' failed", special_app_dir))?,
+        )
+    } else {
+        None
+    };
     validate_version(version)?;
 
     let version = if version == "nightly" {
@@ -190,13 +192,28 @@ pub fn install_app_from_local_manifest_file<P: AsRef<Path>>(
         }
     }
 
+    // 事务需在 DownloadManager 预创建版本目录之前开启，失败时回滚 current 并清理新版本目录
+    let manifest_version = obj_copy.version.clone().unwrap_or_default();
+    let mut install_transaction = if options.contains(&InstallOptions::Global) {
+        InstallTransaction::begin(
+            get_app_current_dir_global(&app_name),
+            get_app_version_dir_global(&app_name, &manifest_version),
+        )
+    } else {
+        InstallTransaction::begin(
+            get_app_current_dir(&app_name),
+            get_app_version_dir(&app_name, &manifest_version),
+        )
+    };
     //   **invoke aria2  to  download  file to cache
     let download_manager = DownloadManager::new(&options, &manifest_path, bucket_source)?;
+    install_transaction.verify_version_dir(download_manager.get_app_version_dir());
     download_manager.start_download()?;
     if !options.contains(&InstallOptions::SkipDownloadHashCheck) {
         download_manager.check_cache_file_hash()?
     }
     if options.contains(&InstallOptions::OnlyDownloadNoInstall) {
+        install_transaction.discard();
         download_manager.finish_cache_cleanup();
         return Ok(());
     }
@@ -280,6 +297,10 @@ pub fn install_app_from_local_manifest_file<P: AsRef<Path>>(
     download_manager
         .save_install_info()
         .context("save install info failed")?;
+    install_transaction.commit();
+    if let Some(backup) = force_backup {
+        backup.commit();
+    }
     if !suggest.is_none() {
         show_suggest(&suggest.unwrap())?;
     }

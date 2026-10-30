@@ -417,6 +417,36 @@ pub fn create_dir_link<P: AsRef<Path>, Q: AsRef<Path>>(target: P, link: Q) -> st
     }
 }
 
+/// 读取目录链接（junction 或符号链接）的目标，非链接或不存在时返回 None
+pub fn read_dir_link<P: AsRef<Path>>(link: P) -> Option<std::path::PathBuf> {
+    let link = link.as_ref();
+    #[cfg(windows)]
+    {
+        if junction::exists(link).unwrap_or(false) {
+            return junction::get_target(link).ok();
+        }
+    }
+    let metadata = fs::symlink_metadata(link).ok()?;
+    if metadata.file_type().is_symlink() {
+        fs::read_link(link).ok()
+    } else {
+        None
+    }
+}
+
+/// 只移除目录链接本身，不触碰链接目标
+pub fn remove_dir_link<P: AsRef<Path>>(link: P) -> std::io::Result<()> {
+    let link = link.as_ref();
+    #[cfg(windows)]
+    {
+        fs::remove_dir(link)
+    }
+    #[cfg(not(windows))]
+    {
+        fs::remove_file(link)
+    }
+}
+
 pub fn is_broken_symlink(path: &str) -> anyhow::Result<bool> {
     let path = Path::new(path);
     #[cfg(windows)]
