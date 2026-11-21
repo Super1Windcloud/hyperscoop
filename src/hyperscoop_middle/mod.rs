@@ -35,6 +35,8 @@ mod invoke_checkup;
 pub use invoke_checkup::execute_checkup_command;
 mod invoke_cheanup;
 pub use invoke_cheanup::execute_cleanup_command;
+mod invoke_purge;
+pub use invoke_purge::execute_purge_command;
 
 mod invoke_config;
 pub use invoke_config::execute_config_command;

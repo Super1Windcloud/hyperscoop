@@ -167,6 +167,7 @@ hp [COMMAND] [OPTIONS]
 | :--- | :--- |
 | `hp doctor` / `checkup` | 全面体检与自愈：检测断开软链、无效 Shim、PATH 环境变量与长路径支持，加 `-f / --fix` 一键自动修复 |
 | `hp cleanup` | 清理已安装软件的旧版本（支持 `-n` 预演）；安装包缓存通过 `hp cache` 管理 |
+| `hp purge` | 自动清理 APP 残留错误目录（支持 `-n` 预演）。已安装版本保留，旧版本仍用 `hp cleanup` |
 | `hp cache show / rm / prune` | 查看完整下载、删除指定应用缓存或清理过期包（支持 `-n` 预演） |
 | `hp size` / `disk-usage` | 可视化分析各应用、缓存和持久化数据的磁盘占用排行 |
 | `hp hold <app>` / `hp pin` | 锁定应用版本，禁止其被更新（解锁命令：`hp unpin` / `hp unhold`） |

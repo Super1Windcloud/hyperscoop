@@ -167,6 +167,7 @@ hp [COMMAND] [OPTIONS]
 | :--- | :--- |
 | `hp doctor` / `checkup` | Diagnose Windows PATH, broken symlinks, orphaned shims, long paths; add `-f / --fix` to auto-repair |
 | `hp cleanup` | Remove old installed versions (`-n` for preview); use `hp cache` for download archives |
+| `hp purge` | Remove leftover error directories inside app folders (`-n` to preview). Installed versions stay; use `hp cleanup` for old versions |
 | `hp cache show / rm / prune` | List completed downloads, remove selected caches, or prune expired packages (`-n` for preview) |
 | `hp size` / `disk-usage` | Breakdown disk space consumed by apps, cache, and persistent directories |
 | `hp hold <app>` / `hp pin` | Lock an app's version to prevent unintended updates (`hp unpin` to unlock) |

@@ -23,6 +23,7 @@ use crate::command_args::log::LogArgs;
 use crate::command_args::merge_bucket::MergeArgs;
 use crate::command_args::missing::MissingArgs;
 use crate::command_args::prefix::PrefixArgs;
+use crate::command_args::purge::PurgeArgs;
 use crate::command_args::reinstall::ReinstallArgs;
 use crate::command_args::reset::ResetArgs;
 use crate::command_args::search::SearchArgs;
@@ -68,6 +69,7 @@ pub(crate) enum Commands {
     Cache(CacheArgs),
     Checkup(CheckupArgs),
     Cleanup(CleanupArgs),
+    Purge(PurgeArgs),
     Completion(CompletionArgs),
     Config(ConfigArgs),
     Deps(DepsArgs),
@@ -933,6 +935,28 @@ mod tests {
                 assert!(args.command.is_none());
             }
             _ => panic!("Expected Bucket for 'tap'"),
+        }
+
+        // Test purge parsing
+        let cli = crate::Cli::try_parse_from(["hp", "purge", "dingtalk", "-n"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Purge(args) => {
+                assert_eq!(
+                    args.app_names.as_deref(),
+                    Some(["dingtalk".to_string()].as_slice())
+                );
+                assert!(args.dry_run);
+            }
+            _ => panic!("Expected Purge"),
+        }
+
+        let cli = crate::Cli::try_parse_from(["hp", "purge"]).unwrap();
+        match cli.command.unwrap() {
+            Commands::Purge(args) => {
+                assert!(args.app_names.is_none());
+                assert!(!args.dry_run);
+            }
+            _ => panic!("Expected Purge"),
         }
 
         // Test untap command

@@ -24,6 +24,7 @@ pub mod log;
 pub mod merge_bucket;
 pub mod missing;
 pub mod prefix;
+pub mod purge;
 pub mod reinstall;
 pub mod reset;
 pub mod search;

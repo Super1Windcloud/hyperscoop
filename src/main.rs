@@ -195,6 +195,7 @@ async fn main() -> anyhow::Result<()> {
             Commands::Cache(cache_args) => execute_cache_command(cache_args),
             Commands::Checkup(args) => execute_checkup_command(args).await,
             Commands::Cleanup(args) => execute_cleanup_command(args),
+            Commands::Purge(args) => execute_purge_command(args),
             Commands::Completion(args) => {
                 let mut cmd = Cli::command();
                 generate(args.shell, &mut cmd, "hp", &mut std::io::stdout());
