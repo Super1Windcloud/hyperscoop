@@ -23,3 +23,9 @@
 - Follow the existing log style: optional emoji prefix (e.g., `:panda_face:`) plus a concise imperative summary (`:panda_face: update hash flow`).
 - PRs should describe the change, impacted crates, and include sample `hp` output or screenshots when altering UX; link issues and note any `just` routines that were run.
 - Confirm formatting, tests, and relevant `just` scripts in the PR checklist; bucket changes must mention the updated manifests under `hyperscoop_source_bucket/`.
+
+## Superfile Release Bucket Synchronization
+- Every successfully published Superfile release must include synchronization of `hyperscoop_source_bucket/bucket/superfile.json`; the stable manifest follows the published stable channel. Release authorization includes these associated commits and pushes, while status-only requests remain read-only.
+- Use the actual Windows x64 portable ZIP and verify its SHA-256 against published metadata/checksums. Validate the Scoop schema, archive executable and shortcut paths, x64 PE architecture, and `checkver`/`autoupdate` rules. Do not advance the manifest for failed, cancelled or incomplete releases.
+- Commit and push the manifest in the bucket submodule first, then commit and push the parent submodule pointer. Inspect configured upstreams (currently bucket `master`, parent `main`) and stage only the intended manifest/pointer changes.
+- Verify both remote refs, remote manifest content and the parent pointer before reporting completion. Report the Superfile version, both commit IDs and verification limits; no Hyperscoop binary release is required solely for this synchronization.
